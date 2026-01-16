@@ -102,15 +102,34 @@ async def scrape_ottoneu_data(target_season=2025):
                         print(f"Warning: Could not find filter for {pos}, skipping...")
                         continue
                     
+                    # Capture current first row name to wait for change
+                    current_first_name = ""
+                    if total_processed_count > 0: # If not the very first load
+                        first_row = await page.query_selector('.table-container table tbody tr td:nth-child(2) a')
+                        if first_row:
+                             current_first_name = await first_row.inner_text()
+                    
                     print(f"Clicking '{pos}' filter...")
                     await pos_link.click()
                     
                     # Wait for table to update. 
-                    # The table likely re-renders. 
-                    # Staleness check or ensure rows change? 
-                    # Easier: Wait for table visible again + small sleep
+                    # If we had a previous name, wait for the name to be different
                     await page.wait_for_selector('.table-container table', state='visible')
-                    await page.wait_for_timeout(1500) # Give JS a moment to render rows
+                    
+                    if current_first_name:
+                         print(f"Waiting for table to update from {current_first_name}...")
+                         # Polling wait for first row to change
+                         for _ in range(20): # 10 seconds max (20 * 0.5)
+                             first_row_new = await page.query_selector('.table-container table tbody tr td:nth-child(2) a')
+                             if first_row_new:
+                                 new_name = await first_row_new.inner_text()
+                                 if new_name != current_first_name:
+                                     print("Table updated.")
+                                     break
+                             await page.wait_for_timeout(500)
+                    else:
+                         # Initial load or fallback
+                         await page.wait_for_timeout(2000)
                     
                     # Scrape Rows
                     rows = await page.query_selector_all('.table-container table tbody tr')
@@ -179,6 +198,82 @@ async def scrape_ottoneu_data(target_season=2025):
                                     clean_price = re.sub(r'[^\d]', '', salary_text)
                                     if clean_price:
                                         price = int(clean_price)
+                            
+                            # ID Check for valid player
+                            if not ottoneu_id: continue
+
+                            # --- NEW LOGIC: Check History for FA ---
+                            if fantasy_team == "FA" and href:
+                                try:
+                                    print(f"  Checking history for FA {name}...")
+                                    # Need URL. Href is usually relative e.g. /football/309/player_card/nfl/6771
+                                    if href.startswith("http"):
+                                        p_url = href
+                                    else:
+                                        p_url = f"https://ottoneu.fangraphs.com{href}"
+                                    
+                                    # Open new page or use current? Better to use a separate page or just goto and back?
+                                    # Going back might lose state/filters. Better to open a new tab (page).
+                                    p_page = await context.new_page()
+                                    await p_page.goto(p_url, timeout=30000)
+                                    
+                                    # Find Transaction History table
+                                    # We can iterate through tables to find one with "Transaction History" nearby or specific headers
+                                    # Based on debug: Table headers likely contain "TRANSACTION TYPE"
+                                    
+                                    # Wait for tables
+                                    await p_page.wait_for_selector('table')
+                                    p_tables = await p_page.query_selector_all('table')
+                                    
+                                    found_salary = False
+                                    for table in p_tables:
+                                        # Check headers
+                                        headers = await table.query_selector_all('th')
+                                        header_texts = [await h.inner_text() for h in headers]
+                                        
+                                        if "TRANSACTION TYPE" in header_texts and "SALARY" in header_texts:
+                                            # This is the one. Iterate rows.
+                                            p_rows = await table.query_selector_all('tbody tr') # or just tr if no tbody
+                                            if not p_rows:
+                                                p_rows = await table.query_selector_all('tr')
+                                                
+                                            for p_row in p_rows:
+                                                cols = await p_row.query_selector_all('td')
+                                                if len(cols) < 4: continue
+                                                
+                                                # Columns: DATE, TEAM, TRANSACTION TYPE, SALARY
+                                                # Indexes might vary? Debug showed: ['DATE', 'TEAM', 'TRANSACTION TYPE', 'SALARY']
+                                                # So Salary is index 3 (0-based)
+                                                
+                                                # Check headers index mapping to be safe? 
+                                                # Let's assume standard order or map it.
+                                                try:
+                                                    type_idx = header_texts.index("TRANSACTION TYPE")
+                                                    salary_idx = header_texts.index("SALARY")
+                                                except:
+                                                    continue
+                                                    
+                                                if len(cols) <= max(type_idx, salary_idx): continue
+                                                
+                                                t_type = await cols[type_idx].inner_text()
+                                                t_salary = await cols[salary_idx].inner_text()
+                                                
+                                                if "Cut" not in t_type:
+                                                    # Found valid salary
+                                                    clean_s = re.sub(r'[^\d]', '', t_salary)
+                                                    if clean_s:
+                                                        price = int(clean_s)
+                                                        print(f"    Found real salary: ${price} (Type: {t_type})")
+                                                        found_salary = True
+                                                        break
+                                        if found_salary: break
+                                    
+                                    await p_page.close()
+                                    
+                                except Exception as e:
+                                    print(f"    Error checking history for {name}: {e}")
+                                    # Don't fail the whole script, just keep original price (likely $1)
+                                    if 'p_page' in locals(): await p_page.close()
                             
                             # Points (Current year points, check column index)
                             # From valid inspection: Index 9 is "2025 PTS" (nth-child(10) potentially if 1-based and including hidden/icon?)
