@@ -64,6 +64,7 @@ export default function PlayerScatterChart({ data }: ScatterChartProps) {
     const positions = ['QB', 'RB', 'WR', 'TE', 'K'];
     const [selectedPositions, setSelectedPositions] = useState<string[]>(positions);
     const [metric, setMetric] = useState<'PPG' | 'PPS'>('PPG');
+    const [minGames, setMinGames] = useState<number>(0);
 
     const togglePosition = (pos: string) => {
         setSelectedPositions(prev =>
@@ -76,27 +77,41 @@ export default function PlayerScatterChart({ data }: ScatterChartProps) {
     return (
         <div className="w-full h-[600px] bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 flex flex-col">
             <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-                <div className="flex bg-slate-200 dark:bg-slate-800 rounded-lg p-1">
-                     <button
-                        onClick={() => setMetric('PPG')}
-                        className={`px-3 py-1 text-sm font-medium rounded-md transition-all ${
-                            metric === 'PPG'
-                                ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
-                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                        }`}
-                    >
-                        Points/Game
-                    </button>
-                    <button
-                        onClick={() => setMetric('PPS')}
-                        className={`px-3 py-1 text-sm font-medium rounded-md transition-all ${
-                            metric === 'PPS'
-                                ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
-                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                        }`}
-                    >
-                        Points/Snap
-                    </button>
+                <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex bg-slate-200 dark:bg-slate-800 rounded-lg p-1">
+                        <button
+                            onClick={() => setMetric('PPG')}
+                            className={`px-3 py-1 text-sm font-medium rounded-md transition-all ${
+                                metric === 'PPG'
+                                    ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
+                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                            }`}
+                        >
+                            Points/Game
+                        </button>
+                        <button
+                            onClick={() => setMetric('PPS')}
+                            className={`px-3 py-1 text-sm font-medium rounded-md transition-all ${
+                                metric === 'PPS'
+                                    ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
+                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                            }`}
+                        >
+                            Points/Snap
+                        </button>
+                    </div>
+
+                    <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
+                        <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Min Games: {minGames}</span>
+                        <input
+                            type="range"
+                            min="0"
+                            max="17"
+                            value={minGames}
+                            onChange={(e) => setMinGames(Number(e.target.value))}
+                            className="w-24 accent-blue-600"
+                        />
+                    </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2 justify-center">
@@ -145,7 +160,7 @@ export default function PlayerScatterChart({ data }: ScatterChartProps) {
                             <Scatter
                                 key={pos}
                                 name={pos}
-                                data={data.filter(d => d.position === pos)}
+                                data={data.filter(d => d.position === pos && d.games_played >= minGames)}
                                 fill={COLORS[pos as keyof typeof COLORS] || '#6366f1'}
                             />
                         ))}
