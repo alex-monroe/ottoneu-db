@@ -40,17 +40,19 @@ const CustomTooltip = ({ active, payload, metric }: any) => {
                 <div className="mt-2 space-y-1">
                     <p>Price: <span className="font-mono font-medium">${data.price}</span></p>
                     <p>Points: <span className="font-mono font-medium">{data.total_points}</span></p>
-                    {isPPG ? (
-                        <>
-                            <p>PPG: <span className="font-mono font-medium">{data.ppg}</span></p>
-                            <p>$/PPG: <span className="font-mono font-medium text-blue-600 dark:text-blue-400">${data.cost_per_ppg.toFixed(2)}</span></p>
-                        </>
-                    ) : (
-                        <>
-                            <p>PPS: <span className="font-mono font-medium">{data.pps}</span></p>
-                            <p>$/PPS: <span className="font-mono font-medium text-blue-600 dark:text-blue-400">${data.cost_per_pps.toFixed(2)}</span></p>
-                        </>
-                    )}
+                    <div className="border-t border-slate-200 dark:border-slate-700 my-1 pt-1">
+                        {isPPG ? (
+                            <>
+                                <p className="font-semibold text-blue-600 dark:text-blue-400">PPG: {data.ppg}</p>
+                                <p className="text-xs text-slate-500">(${data.cost_per_ppg.toFixed(2)} / PPG)</p>
+                            </>
+                        ) : (
+                            <>
+                                <p className="font-semibold text-blue-600 dark:text-blue-400">PPS: {data.pps}</p>
+                                <p className="text-xs text-slate-500">(${data.cost_per_pps.toFixed(2)} / PPS)</p>
+                            </>
+                        )}
+                    </div>
                 </div>
             </div>
         )
@@ -81,21 +83,19 @@ export default function PlayerScatterChart({ data }: ScatterChartProps) {
                     <div className="flex bg-slate-200 dark:bg-slate-800 rounded-lg p-1">
                         <button
                             onClick={() => setMetric('PPG')}
-                            className={`px-3 py-1 text-sm font-medium rounded-md transition-all ${
-                                metric === 'PPG'
-                                    ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
-                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                            }`}
+                            className={`px-3 py-1 text-sm font-medium rounded-md transition-all ${metric === 'PPG'
+                                ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                                }`}
                         >
                             Points/Game
                         </button>
                         <button
                             onClick={() => setMetric('PPS')}
-                            className={`px-3 py-1 text-sm font-medium rounded-md transition-all ${
-                                metric === 'PPS'
-                                    ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
-                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                            }`}
+                            className={`px-3 py-1 text-sm font-medium rounded-md transition-all ${metric === 'PPS'
+                                ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                                }`}
                         >
                             Points/Snap
                         </button>
@@ -119,11 +119,10 @@ export default function PlayerScatterChart({ data }: ScatterChartProps) {
                         <button
                             key={pos}
                             onClick={() => togglePosition(pos)}
-                            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors border ${
-                                selectedPositions.includes(pos)
-                                    ? 'text-white border-transparent'
-                                    : 'bg-transparent text-slate-500 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
-                            }`}
+                            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors border ${selectedPositions.includes(pos)
+                                ? 'text-white border-transparent'
+                                : 'bg-transparent text-slate-500 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                }`}
                             style={{
                                 backgroundColor: selectedPositions.includes(pos) ? COLORS[pos as keyof typeof COLORS] : undefined
                             }}
@@ -141,18 +140,18 @@ export default function PlayerScatterChart({ data }: ScatterChartProps) {
                     >
                         <XAxis
                             type="number"
-                            dataKey="total_points"
-                            name="Total Points"
-                            label={{ value: 'Total Points', position: 'bottom', offset: 0 }}
+                            dataKey={metric === 'PPG' ? "ppg" : "pps"}
+                            name={metric === 'PPG' ? "Points Per Game" : "Points Per Snap"}
+                            label={{ value: metric === 'PPG' ? 'Points Per Game' : 'Points Per Snap', position: 'bottom', offset: 0 }}
                         />
                         <YAxis
                             type="number"
-                            dataKey={metric === 'PPG' ? "cost_per_ppg" : "cost_per_pps"}
-                            name={metric === 'PPG' ? "$/PPG" : "$/PPS"}
-                            label={{ value: metric === 'PPG' ? 'Salary / PPG ($)' : 'Salary / PPS ($)', angle: -90, position: 'left' }}
-                            reversed={true}
+                            dataKey="price"
+                            name="Price"
+                            unit="$"
+                            label={{ value: 'Salary ($)', angle: -90, position: 'left' }}
                         />
-                        <ZAxis type="number" dataKey="price" range={[50, 400]} name="Price" />
+                        <ZAxis type="number" dataKey="total_points" range={[50, 400]} name="Total Points" />
                         <Tooltip content={<CustomTooltip metric={metric} />} cursor={{ strokeDasharray: '3 3' }} />
                         <Legend verticalAlign="top" />
 

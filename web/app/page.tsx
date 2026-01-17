@@ -54,7 +54,7 @@ export default async function Home() {
             Ottoneu Player Efficiency
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2">
-            Analyzing player value: Salary per Point (Per Game or Snap) vs Total Production (2025)
+            Analyzing player value: Salary vs Production (Points Per Game or Points Per Snap)
           </p>
         </header>
 
@@ -65,10 +65,10 @@ export default async function Home() {
         <section className="bg-slate-50 dark:bg-slate-900 rounded-lg p-6 border border-slate-200 dark:border-slate-800">
           <h2 className="text-xl font-semibold mb-4 text-slate-900 dark:text-white">Analysis Notes</h2>
           <ul className="list-disc list-inside space-y-2 text-slate-600 dark:text-slate-400">
-            <li><strong>Y-Axis ($/PPG)</strong>: Lower is better. A player costing $5/PPG is more efficient than one costing $20/PPG.</li>
-            <li><strong>X-Axis (Points)</strong>: Further right means more total production.</li>
-            <li><strong>Bubble Size</strong>: Represents Salary ($). Large bubbles = Expensive players.</li>
-            <li>Ideally, key contributors are in the <strong>Bottom-Right</strong> quadrant (High Points, Low Cost/PPG).</li>
+            <li><strong>Y-Axis (Salary)</strong>: Higher is more expensive.</li>
+            <li><strong>X-Axis (PPG/PPS)</strong>: Further right means more efficient production per game/snap.</li>
+            <li><strong>Bubble Size</strong>: Represents Total Points. Large bubblesPercent = High total volume.</li>
+            <li>Ideally, you want players in the <strong>Bottom-Right</strong> quadrant (High Production, Low Salary).</li>
           </ul>
         </section>
       </div>
