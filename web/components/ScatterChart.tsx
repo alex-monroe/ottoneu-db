@@ -1,0 +1,88 @@
+"use client"
+
+import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, Legend } from 'recharts'
+import { useState } from 'react'
+
+interface PlayerData {
+    name: string
+    position: string
+    nfl_team: string
+    total_points: number
+    ppg: number
+    price: number
+    cost_per_ppg: number
+    games_played: number
+}
+
+interface ScatterChartProps {
+    data: PlayerData[]
+}
+
+const COLORS = {
+    QB: '#EF4444', // Red
+    RB: '#3B82F6', // Blue
+    WR: '#10B981', // Green
+    TE: '#F59E0B', // Yellow
+    K: '#8B5CF6', // Purple
+}
+
+const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+        const data = payload[0].payload
+        return (
+            <div className="bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 p-3 rounded shadow-lg text-sm">
+                <p className="font-bold text-slate-900 dark:text-slate-100">{data.name}</p>
+                <p className="text-slate-600 dark:text-slate-400">{data.nfl_team} - {data.position}</p>
+                <div className="mt-2 space-y-1">
+                    <p>Price: <span className="font-mono font-medium">${data.price}</span></p>
+                    <p>Points: <span className="font-mono font-medium">{data.total_points}</span></p>
+                    <p>PPG: <span className="font-mono font-medium">{data.ppg}</span></p>
+                    <p>$/PPG: <span className="font-mono font-medium text-blue-600 dark:text-blue-400">${data.cost_per_ppg.toFixed(2)}</span></p>
+                </div>
+            </div>
+        )
+    }
+    return null
+}
+
+export default function PlayerScatterChart({ data }: ScatterChartProps) {
+    // Basic interaction state if needed, simpler to just use Recharts default for now.
+    // Group data by position for the legend to work naturally with colors
+    const positions = ['QB', 'RB', 'WR', 'TE', 'K'];
+
+    return (
+        <div className="w-full h-[600px] bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+            <ResponsiveContainer width="100%" height="100%">
+                <ScatterChart
+                    margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                >
+                    <XAxis
+                        type="number"
+                        dataKey="total_points"
+                        name="Total Points"
+                        label={{ value: 'Total Points', position: 'bottom', offset: 0 }}
+                    />
+                    <YAxis
+                        type="number"
+                        dataKey="cost_per_ppg"
+                        name="$/PPG"
+                        label={{ value: 'Salary / PPG ($)', angle: -90, position: 'left' }}
+                    />
+                    <ZAxis type="number" dataKey="price" range={[50, 400]} name="Price" />
+                    <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
+                    <Legend verticalAlign="top" />
+
+                    {positions.map((pos) => (
+                        <Scatter
+                            key={pos}
+                            name={pos}
+                            data={data.filter(d => d.position === pos)}
+                            fill={COLORS[pos as keyof typeof COLORS] || '#6366f1'}
+                        />
+                    ))}
+
+                </ScatterChart>
+            </ResponsiveContainer>
+        </div>
+    )
+}

@@ -4,3 +4,5 @@ python-dotenv
 nfl_data_py
 pandas
 numpy
+streamlit
+plotly

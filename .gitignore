@@ -1,5 +1,34 @@
+# System
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# VS Code
+.vscode/
+
+# Python / Backend
 venv/
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
 .env
-.DS_Store
+.env.local
+.python-version
+
+# Node / Frontend
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.next/
+dist/
+build/
+.vercel/
+
+# Environment Variables (Safety)
+# Block .env files in all directories
+**/.env
+**/.env.*
+# Allow specific example files if needed
+!**/.env.example
