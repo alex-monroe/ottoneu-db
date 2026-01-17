@@ -135,6 +135,7 @@ export default function PlayerScatterChart({ data }: ScatterChartProps) {
                             dataKey={metric === 'PPG' ? "cost_per_ppg" : "cost_per_pps"}
                             name={metric === 'PPG' ? "$/PPG" : "$/PPS"}
                             label={{ value: metric === 'PPG' ? 'Salary / PPG ($)' : 'Salary / PPS ($)', angle: -90, position: 'left' }}
+                            reversed={true}
                         />
                         <ZAxis type="number" dataKey="price" range={[50, 400]} name="Price" />
                         <Tooltip content={<CustomTooltip metric={metric} />} cursor={{ strokeDasharray: '3 3' }} />
