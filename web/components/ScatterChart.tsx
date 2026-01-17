@@ -49,40 +49,69 @@ export default function PlayerScatterChart({ data }: ScatterChartProps) {
     // Basic interaction state if needed, simpler to just use Recharts default for now.
     // Group data by position for the legend to work naturally with colors
     const positions = ['QB', 'RB', 'WR', 'TE', 'K'];
+    const [selectedPositions, setSelectedPositions] = useState<string[]>(positions);
+
+    const togglePosition = (pos: string) => {
+        setSelectedPositions(prev =>
+            prev.includes(pos)
+                ? prev.filter(p => p !== pos)
+                : [...prev, pos]
+        );
+    };
 
     return (
-        <div className="w-full h-[600px] bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4">
-            <ResponsiveContainer width="100%" height="100%">
-                <ScatterChart
-                    margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
-                >
-                    <XAxis
-                        type="number"
-                        dataKey="total_points"
-                        name="Total Points"
-                        label={{ value: 'Total Points', position: 'bottom', offset: 0 }}
-                    />
-                    <YAxis
-                        type="number"
-                        dataKey="cost_per_ppg"
-                        name="$/PPG"
-                        label={{ value: 'Salary / PPG ($)', angle: -90, position: 'left' }}
-                    />
-                    <ZAxis type="number" dataKey="price" range={[50, 400]} name="Price" />
-                    <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
-                    <Legend verticalAlign="top" />
-
-                    {positions.map((pos) => (
-                        <Scatter
-                            key={pos}
-                            name={pos}
-                            data={data.filter(d => d.position === pos)}
-                            fill={COLORS[pos as keyof typeof COLORS] || '#6366f1'}
+        <div className="w-full h-[600px] bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 flex flex-col">
+            <div className="mb-4 flex flex-wrap gap-2 justify-center">
+                {positions.map(pos => (
+                    <button
+                        key={pos}
+                        onClick={() => togglePosition(pos)}
+                        className={`px-3 py-1 rounded-full text-sm font-medium transition-colors border ${
+                            selectedPositions.includes(pos)
+                                ? 'text-white border-transparent'
+                                : 'bg-transparent text-slate-500 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                        style={{
+                            backgroundColor: selectedPositions.includes(pos) ? COLORS[pos as keyof typeof COLORS] : undefined
+                        }}
+                    >
+                        {pos}
+                    </button>
+                ))}
+            </div>
+            <div className="flex-1 min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
+                    <ScatterChart
+                        margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                    >
+                        <XAxis
+                            type="number"
+                            dataKey="total_points"
+                            name="Total Points"
+                            label={{ value: 'Total Points', position: 'bottom', offset: 0 }}
                         />
-                    ))}
+                        <YAxis
+                            type="number"
+                            dataKey="cost_per_ppg"
+                            name="$/PPG"
+                            label={{ value: 'Salary / PPG ($)', angle: -90, position: 'left' }}
+                        />
+                        <ZAxis type="number" dataKey="price" range={[50, 400]} name="Price" />
+                        <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
+                        <Legend verticalAlign="top" />
 
-                </ScatterChart>
-            </ResponsiveContainer>
+                        {positions.filter(pos => selectedPositions.includes(pos)).map((pos) => (
+                            <Scatter
+                                key={pos}
+                                name={pos}
+                                data={data.filter(d => d.position === pos)}
+                                fill={COLORS[pos as keyof typeof COLORS] || '#6366f1'}
+                            />
+                        ))}
+
+                    </ScatterChart>
+                </ResponsiveContainer>
+            </div>
         </div>
     )
 }
