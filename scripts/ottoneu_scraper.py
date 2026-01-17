@@ -85,7 +85,6 @@ async def scrape_ottoneu_data(target_season=2025):
             # Define positions to scrape
             # Based on inspection, the "Top Players" filters include these
             positions = ['QB', 'RB', 'WR', 'TE', 'K']
-            # positions = ['K'] # Debug: Start with small set if needed
             
             total_processed_count = 0
             
