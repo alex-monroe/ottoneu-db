@@ -21,10 +21,12 @@ export default async function Home() {
     if (!pStats || !pPrice) return null;
 
     const ppg = Number(pStats.ppg) || 0
+    const pps = Number(pStats.pps) || 0
     const price = Number(pPrice.price) || 0
     const total_points = Number(pStats.total_points) || 0
 
     const cost_per_ppg = ppg > 0 ? price / ppg : 0
+    const cost_per_pps = pps > 0 ? price / pps : 0
 
     // Filter out low volume or 0 ppg?
     if (ppg === 0) return null;
@@ -35,9 +37,12 @@ export default async function Home() {
       nfl_team: player.nfl_team,
       total_points,
       ppg,
+      pps,
       price,
       cost_per_ppg,
-      games_played: pStats.games_played
+      cost_per_pps,
+      games_played: pStats.games_played,
+      snaps: pStats.snaps
     }
   }).filter(Boolean) as any[]
 
@@ -49,7 +54,7 @@ export default async function Home() {
             Ottoneu Player Efficiency
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2">
-            Analyzing player value: Salary per Point Per Game vs Total Production (2025)
+            Analyzing player value: Salary per Point (Per Game or Snap) vs Total Production (2025)
           </p>
         </header>
 
