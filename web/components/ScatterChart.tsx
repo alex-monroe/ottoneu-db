@@ -50,6 +50,7 @@ export default function PlayerScatterChart({ data }: ScatterChartProps) {
     // Group data by position for the legend to work naturally with colors
     const positions = ['QB', 'RB', 'WR', 'TE', 'K'];
     const [selectedPositions, setSelectedPositions] = useState<string[]>(positions);
+    const [minGamesPlayed, setMinGamesPlayed] = useState<number>(0);
 
     const togglePosition = (pos: string) => {
         setSelectedPositions(prev =>
@@ -79,6 +80,22 @@ export default function PlayerScatterChart({ data }: ScatterChartProps) {
                     </button>
                 ))}
             </div>
+
+            <div className="mb-4 flex justify-center items-center gap-4">
+                <label htmlFor="minGames" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Min Games Played: {minGamesPlayed}
+                </label>
+                <input
+                    id="minGames"
+                    type="range"
+                    min="0"
+                    max="17"
+                    value={minGamesPlayed}
+                    onChange={(e) => setMinGamesPlayed(Number(e.target.value))}
+                    className="w-48 cursor-pointer"
+                />
+            </div>
+
             <div className="flex-1 min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
                     <ScatterChart
@@ -104,7 +121,7 @@ export default function PlayerScatterChart({ data }: ScatterChartProps) {
                             <Scatter
                                 key={pos}
                                 name={pos}
-                                data={data.filter(d => d.position === pos)}
+                                data={data.filter(d => d.position === pos && d.games_played >= minGamesPlayed)}
                                 fill={COLORS[pos as keyof typeof COLORS] || '#6366f1'}
                             />
                         ))}
