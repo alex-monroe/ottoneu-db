@@ -95,6 +95,7 @@ export default function PlayerScatterChart({ data }: ScatterChartProps) {
                             dataKey="cost_per_ppg"
                             name="$/PPG"
                             label={{ value: 'Salary / PPG ($)', angle: -90, position: 'left' }}
+                            reversed={true}
                         />
                         <ZAxis type="number" dataKey="price" range={[50, 400]} name="Price" />
                         <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
