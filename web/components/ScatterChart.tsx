@@ -29,9 +29,44 @@ const COLORS = {
     K: '#8B5CF6', // Purple
 }
 
+function getLinearRegression(data: PlayerData[], xKey: 'ppg' | 'pps') {
+    if (data.length < 2) return [];
+
+    const n = data.length;
+    let sumX = 0;
+    let sumY = 0;
+    let sumXY = 0;
+    let sumXX = 0;
+    let minX = Infinity;
+    let maxX = -Infinity;
+
+    for (const point of data) {
+        const x = point[xKey];
+        const y = point.price;
+        sumX += x;
+        sumY += y;
+        sumXY += x * y;
+        sumXX += x * x;
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+    }
+
+    const denominator = (n * sumXX) - (sumX * sumX);
+    if (denominator === 0) return [];
+
+    const slope = ((n * sumXY) - (sumX * sumY)) / denominator;
+    const intercept = (sumY - (slope * sumX)) / n;
+
+    return [
+        { [xKey]: minX, price: slope * minX + intercept, isTrendline: true },
+        { [xKey]: maxX, price: slope * maxX + intercept, isTrendline: true }
+    ];
+}
+
 const CustomTooltip = ({ active, payload, metric }: any) => {
     if (active && payload && payload.length) {
         const data = payload[0].payload
+        if (data.isTrendline) return null;
         const isPPG = metric === 'PPG';
         return (
             <div className="bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 p-3 rounded shadow-lg text-sm">
@@ -155,14 +190,30 @@ export default function PlayerScatterChart({ data }: ScatterChartProps) {
                         <Tooltip content={<CustomTooltip metric={metric} />} cursor={{ strokeDasharray: '3 3' }} />
                         <Legend verticalAlign="top" />
 
-                        {positions.filter(pos => selectedPositions.includes(pos)).map((pos) => (
-                            <Scatter
-                                key={pos}
-                                name={pos}
-                                data={data.filter(d => d.position === pos && d.games_played >= minGames)}
-                                fill={COLORS[pos as keyof typeof COLORS] || '#6366f1'}
-                            />
-                        ))}
+                        {positions.filter(pos => selectedPositions.includes(pos)).map((pos) => {
+                            const posData = data.filter(d => d.position === pos && d.games_played >= minGames);
+                            const regressionData = getLinearRegression(posData, metric === 'PPG' ? 'ppg' : 'pps');
+                            const items = [
+                                <Scatter
+                                    key={pos}
+                                    name={pos}
+                                    data={posData}
+                                    fill={COLORS[pos as keyof typeof COLORS] || '#6366f1'}
+                                />
+                            ];
+                            if (regressionData.length > 0) {
+                                items.push(
+                                    <Scatter
+                                        key={`${pos}-trendline`}
+                                        data={regressionData}
+                                        line={{ stroke: COLORS[pos as keyof typeof COLORS], strokeDasharray: '3 3', strokeWidth: 2 }}
+                                        shape={() => null}
+                                        legendType="none"
+                                    />
+                                );
+                            }
+                            return items;
+                        })}
 
                     </ScatterChart>
                 </ResponsiveContainer>
