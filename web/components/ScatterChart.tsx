@@ -207,7 +207,7 @@ export default function PlayerScatterChart({ data }: ScatterChartProps) {
                                         key={`${pos}-trendline`}
                                         data={regressionData}
                                         line={{ stroke: COLORS[pos as keyof typeof COLORS], strokeDasharray: '3 3', strokeWidth: 2 }}
-                                        shape={() => null}
+                                        shape={<g />}
                                         legendType="none"
                                     />
                                 );
