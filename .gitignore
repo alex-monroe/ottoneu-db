@@ -32,3 +32,6 @@ build/
 **/.env.*
 # Allow specific example files if needed
 !**/.env.example
+
+# Generated reports
+reports/*.md
