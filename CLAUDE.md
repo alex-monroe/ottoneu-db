@@ -44,6 +44,18 @@ Python Scripts (scraper/analysis)
 - PPS (Points Per Snap) = total_points / snaps
 - Chart shows salary (Y-axis) vs. selected metric (X-axis), bubble size = total points
 
+## Git Workflow
+
+Never commit directly to `main`. For every change, create a new branch off `main`, commit there, push, and open a PR.
+
+```bash
+git checkout main && git pull
+git checkout -b my-branch-name
+# ... make changes and commit ...
+git push -u origin my-branch-name
+gh pr create --fill
+```
+
 ## Tech Stack
 
 - **Frontend:** Next.js 16, React 19, TypeScript, Tailwind CSS 4, Recharts
