@@ -25,7 +25,7 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install supabase python-dotenv nfl_data_py pandas numpy
+        run: pip install supabase python-dotenv nfl_data_py pandas numpy tabulate
 
       - name: Create .env
         working-directory: .
