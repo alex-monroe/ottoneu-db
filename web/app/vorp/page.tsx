@@ -4,6 +4,9 @@ import {
   REPLACEMENT_LEVEL,
   POSITIONS,
   SEASON,
+  MIN_GAMES,
+  NUM_TEAMS,
+  CAP_PER_TEAM,
 } from "@/lib/analysis";
 import VorpClient from "./VorpClient";
 
@@ -68,6 +71,93 @@ export default async function VorpPage() {
             Higher VORP = more valuable above replacement level.
           </p>
         </header>
+
+        {/* Methodology */}
+        <section className="bg-slate-50 dark:bg-slate-900 rounded-lg p-5 border border-slate-200 dark:border-slate-800 space-y-4 text-sm text-slate-700 dark:text-slate-300">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+            How VORP Is Calculated
+          </h2>
+
+          <div>
+            <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">
+              1. Define the replacement level
+            </h3>
+            <p>
+              In a {NUM_TEAMS}-team superflex league, each team starts 1 QB + 1 superflex
+              (almost always a QB), 2 RB, 2 WR, 1 TE, and 1 K. The <em>replacement level</em> is
+              the Nth-best player at each position, where N approximates the number of
+              fantasy-relevant starters across the league. Because superflex effectively
+              requires 2 QBs per team, the QB replacement rank ({REPLACEMENT_LEVEL["QB"]}) is
+              double the standard 1-QB league.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">
+              2. Find replacement PPG
+            </h3>
+            <p>
+              Only players with at least {MIN_GAMES} games played qualify. For each position,
+              all qualified players are ranked by total points. The player at
+              the replacement rank sets the <em>replacement PPG</em> — the baseline
+              production freely available on waivers. See the benchmarks table below
+              for each position&apos;s current replacement PPG.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">
+              3. Calculate VORP per game
+            </h3>
+            <p>
+              For each player: <code className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded text-xs">VORP/G = Player PPG - Replacement PPG</code>.
+              A positive VORP/G means the player produces more per game than a freely
+              available replacement. A negative VORP/G means a waiver pickup would
+              outscore them.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">
+              4. Project to a full season
+            </h3>
+            <p>
+              <code className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded text-xs">Full-Season VORP = VORP/G &times; 17</code>.
+              This extrapolates the per-game advantage over a full 17-game NFL season,
+              making it easy to compare players who missed time to those who played
+              every week.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">
+              5. Convert to dollar value (used in Surplus Value)
+            </h3>
+            <p>
+              The total league salary cap is {NUM_TEAMS} teams &times; ${CAP_PER_TEAM} = $
+              {NUM_TEAMS * CAP_PER_TEAM}. We assume ~87.5% of that (${Math.round(NUM_TEAMS * CAP_PER_TEAM * 0.875)}) goes to above-replacement
+              players. Each point of full-season VORP is worth{" "}
+              <code className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded text-xs">
+                ${Math.round(NUM_TEAMS * CAP_PER_TEAM * 0.875)} &divide; total league VORP
+              </code>
+              , giving each player a dollar value. <em>Surplus</em> = dollar value - salary.
+            </p>
+          </div>
+
+          <div className="border-t border-slate-200 dark:border-slate-800 pt-3">
+            <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">
+              Why this matters in superflex
+            </h3>
+            <p>
+              Because each team needs ~2 starting QBs, the QB replacement level is much
+              deeper (rank {REPLACEMENT_LEVEL["QB"]} vs. {REPLACEMENT_LEVEL["RB"]} for RB).
+              Elite QBs tower above this deeper replacement
+              baseline, producing very high VORP. This is why the top VORP chart is
+              typically dominated by quarterbacks — it correctly captures the scarcity
+              premium that makes QBs so expensive in superflex auctions.
+            </p>
+          </div>
+        </section>
 
         {/* Replacement Benchmarks */}
         <section className="bg-slate-50 dark:bg-slate-900 rounded-lg p-5 border border-slate-200 dark:border-slate-800">
