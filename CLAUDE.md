@@ -18,6 +18,11 @@ Fantasy football analytics platform for Ottoneu leagues. Python scripts scrape p
 - `source venv/bin/activate`
 - `python scripts/ottoneu_scraper.py` — scrape Ottoneu player prices
 - `python scripts/analyze_efficiency.py` — calculate efficiency metrics
+- `python scripts/run_all_analyses.py` — run full analysis suite (projected salary, VORP, surplus value, arbitration)
+- `python scripts/analyze_projected_salary.py` — keep vs cut decisions for The Witchcraft
+- `python scripts/analyze_vorp.py` — positional scarcity / Value Over Replacement
+- `python scripts/analyze_surplus_value.py` — dollar value vs salary for all players
+- `python scripts/analyze_arbitration.py` — identify opponents' vulnerable players for arbitration
 - `python scripts/check_db.py` — verify database contents
 - `streamlit run scripts/visualize_app.py` — Streamlit dashboard
 
@@ -37,11 +42,22 @@ Python Scripts (scraper/analysis)
 
 **Database schema** (`schema.sql`): Three tables with UUID primary keys and foreign keys from `player_stats` and `league_prices` to `players`. Key unique constraints: `players(ottoneu_id)`, `player_stats(player_id, season)`, `league_prices(player_id, league_id, season)`.
 
-**Frontend structure** (`web/`): Next.js App Router with a single page. `page.tsx` is a server component that fetches and joins data from Supabase (revalidates every hour). `components/ScatterChart.tsx` is a `"use client"` component rendering an interactive scatter plot with position filters, min games slider, and PPG/PPS metric toggle.
+**Frontend structure** (`web/`): Next.js App Router with five pages. Shared `Navigation.tsx` nav bar and `DataTable.tsx` sortable table component. Analysis math is ported to `web/lib/analysis.ts` (TS equivalent of `analysis_utils.py`). All pages are server components that fetch live data from Supabase (revalidate every hour) with client wrappers for interactivity.
+
+**Web routes:**
+- `/` — Player Efficiency scatter chart (PPG/PPS vs salary)
+- `/projected-salary` — Keep vs cut decisions for The Witchcraft
+- `/vorp` — VORP analysis with bar chart and filterable table
+- `/surplus-value` — Surplus value rankings, bargains, overpaid, team summaries
+- `/arbitration` — Arbitration targets with per-opponent breakdown
+
+**Analysis suite** (`scripts/analysis_utils.py` + `scripts/analyze_*.py`): Shared config and DB helpers in `analysis_utils.py`. Four analysis scripts produce markdown reports in `reports/` (gitignored). `run_all_analyses.py` orchestrates them in dependency order: projected salary -> VORP -> surplus value -> arbitration. VORP and surplus value expose `calculate_vorp()` and `calculate_surplus()` for import by downstream scripts.
 
 **Key metrics:**
 - PPG (Points Per Game) = total_points / games_played
 - PPS (Points Per Snap) = total_points / snaps
+- VORP (Value Over Replacement) = ppg - replacement_ppg at position
+- Surplus Value = dollar_value (from VORP) - salary
 - Chart shows salary (Y-axis) vs. selected metric (X-axis), bubble size = total points
 
 ## Git Workflow
