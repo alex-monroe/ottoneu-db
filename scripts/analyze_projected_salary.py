@@ -1,5 +1,8 @@
 """Salary analysis — keep vs. cut decisions for The Witchcraft roster.
 
+Uses surplus value (dollar_value - salary) which accounts for positional
+scarcity via VORP. This correctly values QBs higher in superflex.
+
 NOTE: Database salaries already reflect the end-of-season $4/$1 bump,
 so `price` is the current salary going into the new season.
 """
@@ -9,54 +12,36 @@ import pandas as pd
 from analysis_utils import (
     MY_TEAM, SEASON, CAP_PER_TEAM, ensure_reports_dir, fetch_all_data, merge_data,
 )
+from analyze_surplus_value import calculate_surplus
 
 
 def analyze_projected_salary(merged_df: pd.DataFrame) -> pd.DataFrame:
-    """Analyze my roster for keep/cut decisions based on salary efficiency.
+    """Analyze my roster for keep/cut decisions based on surplus value.
 
     Returns a DataFrame with recommendation column.
     """
+    surplus_df = calculate_surplus(merged_df)
+    if surplus_df.empty:
+        return pd.DataFrame()
+
     # Filter to my team
-    my_roster = merged_df[merged_df['team_name'] == MY_TEAM].copy()
+    my_roster = surplus_df[surplus_df['team_name'] == MY_TEAM].copy()
     if my_roster.empty:
         print(f"No players found for team '{MY_TEAM}'.")
         return pd.DataFrame()
 
-    # Calculate price per PPG for my players (salary already includes bump)
-    my_roster['price_per_ppg'] = my_roster.apply(
-        lambda r: r['price'] / r['ppg'] if r['ppg'] > 0 else 999.0, axis=1
-    )
-
-    # Calculate position medians across ALL rostered players (league context)
-    all_rostered = merged_df[merged_df['team_name'].notna() & (merged_df['team_name'] != '')].copy()
-    all_rostered['pppg'] = all_rostered.apply(
-        lambda r: r['price'] / r['ppg'] if r['ppg'] > 0 else 999.0, axis=1
-    )
-    # Only include players with real production for a meaningful median
-    pos_medians = (
-        all_rostered[all_rostered['ppg'] > 0]
-        .groupby('position')['pppg']
-        .median()
-        .to_dict()
-    )
-
-    # Classify each player
-    def classify(row):
-        median = pos_medians.get(row['position'], 999.0)
-        if row['ppg'] <= 0:
-            return 'Cut Candidate'
-        ratio = row['price_per_ppg'] / median if median > 0 else 999.0
-        if ratio <= 0.60:
+    # Classify based on surplus value thresholds
+    def classify(surplus):
+        if surplus >= 10:
             return 'Strong Keep'
-        elif ratio <= 0.90:
+        elif surplus >= 0:
             return 'Keep'
-        elif ratio <= 1.10:
+        elif surplus >= -5:
             return 'Borderline'
         else:
             return 'Cut Candidate'
 
-    my_roster['recommendation'] = my_roster.apply(classify, axis=1)
-    my_roster['price_per_ppg'] = my_roster['price_per_ppg'].round(2)
+    my_roster['recommendation'] = my_roster['surplus'].apply(classify)
 
     return my_roster
 
@@ -70,20 +55,24 @@ def generate_report(df: pd.DataFrame) -> str:
     rec_order = {'Strong Keep': 0, 'Keep': 1, 'Borderline': 2, 'Cut Candidate': 3}
     df = df.copy()
     df['rec_sort'] = df['recommendation'].map(rec_order)
-    df = df.sort_values(['position', 'rec_sort', 'price_per_ppg'])
+    df = df.sort_values(['position', 'rec_sort', 'surplus'], ascending=[True, True, False])
 
-    cols = ['name', 'position', 'nfl_team', 'price',
-            'ppg', 'total_points', 'games_played', 'price_per_ppg', 'recommendation']
+    cols = ['name', 'position', 'nfl_team', 'price', 'dollar_value', 'surplus',
+            'ppg', 'total_points', 'games_played', 'recommendation']
 
     with open(output_file, 'w') as f:
         f.write(f'# Salary Analysis — {MY_TEAM} ({SEASON})\n\n')
-        f.write('Keep vs. cut decisions based on salary efficiency.\n')
-        f.write('`price_per_ppg` = salary / PPG. Lower is better.\n')
-        f.write('Recommendation compares each player to the league-wide position median.\n\n')
+        f.write('Keep vs. cut decisions based on surplus value (dollar_value - salary).\n')
+        f.write('Surplus accounts for positional scarcity via VORP, correctly valuing QBs in superflex.\n\n')
+        f.write('**Thresholds:** Strong Keep ≥ $10, Keep ≥ $0, Borderline ≥ -$5, Cut < -$5\n\n')
 
         total_salary = df['price'].sum()
+        total_value = df['dollar_value'].sum()
+        total_surplus = df['surplus'].sum()
         cap_space = CAP_PER_TEAM - total_salary
-        f.write(f'**Total salary:** ${total_salary:.0f}\n')
+        f.write(f'**Total salary:** ${total_salary:.0f}  \n')
+        f.write(f'**Total value:** ${total_value:.0f}  \n')
+        f.write(f'**Total surplus:** ${total_surplus:.0f}  \n')
         f.write(f'**Cap space:** ${cap_space:.0f}\n\n')
 
         for pos in ['QB', 'RB', 'WR', 'TE', 'K']:

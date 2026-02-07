@@ -7,10 +7,11 @@ interface PlayerRow {
   position: string;
   nfl_team: string;
   price: number;
+  dollar_value: number;
+  surplus: number;
   ppg: number;
   total_points: number;
   games_played: number;
-  price_per_ppg: number;
   recommendation: string;
 }
 
@@ -18,44 +19,19 @@ const COLUMNS: Column[] = [
   { key: "name", label: "Player" },
   { key: "nfl_team", label: "Team" },
   { key: "price", label: "Salary", format: "currency" },
+  { key: "dollar_value", label: "Value", format: "currency" },
+  { key: "surplus", label: "Surplus", format: "currency" },
   { key: "ppg", label: "PPG", format: "decimal" },
   { key: "total_points", label: "Points", format: "decimal" },
   { key: "games_played", label: "GP", format: "number" },
-  { key: "price_per_ppg", label: "$/PPG", format: "decimal" },
-  { key: "recommendation", label: "Rec" },
+  { key: "recommendation", label: "Recommendation" },
 ];
-
-const REC_BADGE: Record<string, string> = {
-  "Strong Keep":
-    "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  Keep: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  Borderline:
-    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-  "Cut Candidate":
-    "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-};
-
-function RecommendationBadge({ rec }: { rec: string }) {
-  return (
-    <span
-      className={`px-2 py-0.5 rounded-full text-xs font-medium ${REC_BADGE[rec] ?? ""}`}
-    >
-      {rec}
-    </span>
-  );
-}
 
 interface Props {
   positionGroups: { pos: string; players: PlayerRow[] }[];
-  recColors: Record<string, string>;
 }
 
 export default function ProjectedSalaryClient({ positionGroups }: Props) {
-  // Custom columns that render recommendation as a badge
-  const columnsWithBadge: Column[] = COLUMNS.map((col) =>
-    col.key === "recommendation" ? { ...col, label: "Recommendation" } : col
-  );
-
   return (
     <div className="space-y-8">
       {positionGroups.map(({ pos, players }) => (
@@ -64,14 +40,10 @@ export default function ProjectedSalaryClient({ positionGroups }: Props) {
             {pos}
           </h2>
           <DataTable
-            columns={columnsWithBadge}
-            data={players.map((p) => ({
-              ...p,
-              recommendation: p.recommendation,
-              _rec_raw: p.recommendation,
-            }))}
+            columns={COLUMNS}
+            data={players}
             highlightRow={(row) => {
-              const rec = row._rec_raw as string;
+              const rec = row.recommendation as string;
               if (rec === "Cut Candidate")
                 return "bg-red-50 dark:bg-red-950/30 border-t border-slate-100 dark:border-slate-800";
               if (rec === "Strong Keep")
@@ -87,9 +59,9 @@ export default function ProjectedSalaryClient({ positionGroups }: Props) {
           How recommendations work
         </p>
         <p>
-          Each player&apos;s $/PPG is compared to the league-wide
-          median at their position. Strong Keep ≤60%, Keep 60-90%, Borderline
-          90-110%, Cut Candidate &gt;110%.
+          Based on surplus value (dollar value from VORP minus salary).
+          Strong Keep: surplus &ge; $10. Keep: surplus &ge; $0. Borderline:
+          surplus &ge; -$5. Cut Candidate: surplus &lt; -$5.
         </p>
       </div>
     </div>

@@ -63,8 +63,7 @@ export interface SurplusPlayer extends VorpPlayer {
   surplus: number;
 }
 
-export interface ProjectedSalaryPlayer extends Player {
-  price_per_ppg: number;
+export interface ProjectedSalaryPlayer extends SurplusPlayer {
   recommendation: string;
 }
 
@@ -185,52 +184,21 @@ export function calculateSurplus(players: Player[]): SurplusPlayer[] {
 export function analyzeProjectedSalary(
   allPlayers: Player[]
 ): ProjectedSalaryPlayer[] {
-  const myRoster = allPlayers.filter((p) => p.team_name === MY_TEAM);
+  const surplusPlayers = calculateSurplus(allPlayers);
+  if (surplusPlayers.length === 0) return [];
+
+  const myRoster = surplusPlayers.filter((p) => p.team_name === MY_TEAM);
   if (myRoster.length === 0) return [];
 
-  // Calculate position medians across ALL rostered players
-  // DB salaries already include the end-of-season bump
-  const allRostered = allPlayers.filter(
-    (p) => p.team_name != null && p.team_name !== "" && p.ppg > 0
-  );
-
-  const posMedians: Record<string, number> = {};
-  for (const pos of POSITIONS) {
-    const posPlayers = allRostered
-      .filter((p) => p.position === pos)
-      .map((p) => p.price / p.ppg)
-      .sort((a, b) => a - b);
-
-    if (posPlayers.length > 0) {
-      const mid = Math.floor(posPlayers.length / 2);
-      posMedians[pos] =
-        posPlayers.length % 2 === 0
-          ? (posPlayers[mid - 1] + posPlayers[mid]) / 2
-          : posPlayers[mid];
-    }
-  }
-
+  // Classify based on surplus value thresholds
   return myRoster.map((p) => {
-    const pricePerPpg =
-      p.ppg > 0 ? Math.round((p.price / p.ppg) * 100) / 100 : 999;
-
-    const median = posMedians[p.position] ?? 999;
     let recommendation: string;
-    if (p.ppg <= 0) {
-      recommendation = "Cut Candidate";
-    } else {
-      const ratio = median > 0 ? pricePerPpg / median : 999;
-      if (ratio <= 0.6) recommendation = "Strong Keep";
-      else if (ratio <= 0.9) recommendation = "Keep";
-      else if (ratio <= 1.1) recommendation = "Borderline";
-      else recommendation = "Cut Candidate";
-    }
+    if (p.surplus >= 10) recommendation = "Strong Keep";
+    else if (p.surplus >= 0) recommendation = "Keep";
+    else if (p.surplus >= -5) recommendation = "Borderline";
+    else recommendation = "Cut Candidate";
 
-    return {
-      ...p,
-      price_per_ppg: pricePerPpg,
-      recommendation,
-    };
+    return { ...p, recommendation };
   });
 }
 

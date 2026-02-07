@@ -10,13 +10,6 @@ import ProjectedSalaryClient from "./ProjectedSalaryClient";
 
 export const revalidate = 3600;
 
-const REC_COLORS: Record<string, string> = {
-  "Strong Keep": "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  Keep: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  Borderline: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-  "Cut Candidate": "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-};
-
 export default async function ProjectedSalaryPage() {
   const allPlayers = await fetchAndMergeData();
   const roster = analyzeProjectedSalary(allPlayers);
@@ -34,6 +27,8 @@ export default async function ProjectedSalaryPage() {
   }
 
   const totalSalary = roster.reduce((s, p) => s + p.price, 0);
+  const totalValue = roster.reduce((s, p) => s + p.dollar_value, 0);
+  const totalSurplus = roster.reduce((s, p) => s + p.surplus, 0);
   const capSpace = CAP_PER_TEAM - totalSalary;
 
   // Group by position for tables
@@ -41,7 +36,7 @@ export default async function ProjectedSalaryPage() {
   for (const pos of POSITIONS) {
     const posPlayers = roster
       .filter((p) => p.position === pos)
-      .sort((a, b) => a.price_per_ppg - b.price_per_ppg);
+      .sort((a, b) => b.surplus - a.surplus);
     if (posPlayers.length > 0) byPosition[pos] = posPlayers;
   }
 
@@ -53,10 +48,11 @@ export default async function ProjectedSalaryPage() {
       position: p.position,
       nfl_team: p.nfl_team,
       price: p.price,
+      dollar_value: p.dollar_value,
+      surplus: p.surplus,
       ppg: p.ppg,
       total_points: p.total_points,
       games_played: p.games_played,
-      price_per_ppg: p.price_per_ppg,
       recommendation: p.recommendation,
     })),
   }));
@@ -69,19 +65,47 @@ export default async function ProjectedSalaryPage() {
             Salary Analysis — {MY_TEAM}
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2">
-            Keep vs. cut decisions based on salary efficiency.
-            Lower $/PPG is better.
+            Keep vs. cut decisions based on surplus value (dollar value - salary).
+            Accounts for positional scarcity via VORP.
           </p>
         </header>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-5 border border-slate-200 dark:border-slate-800">
             <p className="text-sm text-slate-500 dark:text-slate-400">
               Total Salary
             </p>
             <p className="text-2xl font-bold text-slate-900 dark:text-white">
               ${totalSalary}
+            </p>
+          </div>
+          <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-5 border border-slate-200 dark:border-slate-800">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Total Value
+            </p>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white">
+              ${totalValue}
+            </p>
+          </div>
+          <div
+            className={`rounded-lg p-5 border ${
+              totalSurplus >= 0
+                ? "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800"
+                : "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800"
+            }`}
+          >
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Total Surplus
+            </p>
+            <p
+              className={`text-2xl font-bold ${
+                totalSurplus >= 0
+                  ? "text-green-700 dark:text-green-300"
+                  : "text-red-700 dark:text-red-300"
+              }`}
+            >
+              ${totalSurplus}
             </p>
           </div>
           <div
@@ -106,10 +130,7 @@ export default async function ProjectedSalaryPage() {
           </div>
         </div>
 
-        <ProjectedSalaryClient
-          positionGroups={serialized}
-          recColors={REC_COLORS}
-        />
+        <ProjectedSalaryClient positionGroups={serialized} />
       </div>
     </main>
   );
