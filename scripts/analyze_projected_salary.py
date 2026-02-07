@@ -1,15 +1,18 @@
-"""Projected salary analysis — keep vs. cut decisions for The Witchcraft roster."""
+"""Salary analysis — keep vs. cut decisions for The Witchcraft roster.
+
+NOTE: Database salaries already reflect the end-of-season $4/$1 bump,
+so `price` is the current salary going into the new season.
+"""
 
 import os
 import pandas as pd
 from analysis_utils import (
-    MY_TEAM, SEASON, ensure_reports_dir, fetch_all_data, merge_data,
-    projected_salary,
+    MY_TEAM, SEASON, CAP_PER_TEAM, ensure_reports_dir, fetch_all_data, merge_data,
 )
 
 
 def analyze_projected_salary(merged_df: pd.DataFrame) -> pd.DataFrame:
-    """Analyze my roster for keep/cut decisions based on projected salary efficiency.
+    """Analyze my roster for keep/cut decisions based on salary efficiency.
 
     Returns a DataFrame with recommendation column.
     """
@@ -19,23 +22,15 @@ def analyze_projected_salary(merged_df: pd.DataFrame) -> pd.DataFrame:
         print(f"No players found for team '{MY_TEAM}'.")
         return pd.DataFrame()
 
-    # Calculate projected salary
-    my_roster['projected_salary'] = my_roster.apply(
-        lambda r: projected_salary(r['price'], r['games_played']), axis=1
-    )
-
-    # Calculate price per PPG for my players
+    # Calculate price per PPG for my players (salary already includes bump)
     my_roster['price_per_ppg'] = my_roster.apply(
-        lambda r: r['projected_salary'] / r['ppg'] if r['ppg'] > 0 else 999.0, axis=1
+        lambda r: r['price'] / r['ppg'] if r['ppg'] > 0 else 999.0, axis=1
     )
 
     # Calculate position medians across ALL rostered players (league context)
     all_rostered = merged_df[merged_df['team_name'].notna() & (merged_df['team_name'] != '')].copy()
-    all_rostered['proj_sal'] = all_rostered.apply(
-        lambda r: projected_salary(r['price'], r['games_played']), axis=1
-    )
     all_rostered['pppg'] = all_rostered.apply(
-        lambda r: r['proj_sal'] / r['ppg'] if r['ppg'] > 0 else 999.0, axis=1
+        lambda r: r['price'] / r['ppg'] if r['ppg'] > 0 else 999.0, axis=1
     )
     # Only include players with real production for a meaningful median
     pos_medians = (
@@ -67,7 +62,7 @@ def analyze_projected_salary(merged_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def generate_report(df: pd.DataFrame) -> str:
-    """Write projected salary report to reports/projected_salary.md."""
+    """Write salary analysis report to reports/projected_salary.md."""
     reports_dir = ensure_reports_dir()
     output_file = os.path.join(reports_dir, 'projected_salary.md')
 
@@ -77,20 +72,19 @@ def generate_report(df: pd.DataFrame) -> str:
     df['rec_sort'] = df['recommendation'].map(rec_order)
     df = df.sort_values(['position', 'rec_sort', 'price_per_ppg'])
 
-    cols = ['name', 'position', 'nfl_team', 'price', 'projected_salary',
+    cols = ['name', 'position', 'nfl_team', 'price',
             'ppg', 'total_points', 'games_played', 'price_per_ppg', 'recommendation']
 
     with open(output_file, 'w') as f:
-        f.write(f'# Projected Salary Analysis — {MY_TEAM} ({SEASON})\n\n')
-        f.write('Keep vs. cut decisions based on projected salary efficiency.\n')
-        f.write('`price_per_ppg` = projected salary / PPG. Lower is better.\n')
+        f.write(f'# Salary Analysis — {MY_TEAM} ({SEASON})\n\n')
+        f.write('Keep vs. cut decisions based on salary efficiency.\n')
+        f.write('`price_per_ppg` = salary / PPG. Lower is better.\n')
         f.write('Recommendation compares each player to the league-wide position median.\n\n')
 
-        total_current = df['price'].sum()
-        total_projected = df['projected_salary'].sum()
-        f.write(f'**Current salary total:** ${total_current:.0f}\n')
-        f.write(f'**Projected salary total:** ${total_projected:.0f}\n')
-        f.write(f'**Cap space (projected):** ${400 - total_projected:.0f}\n\n')
+        total_salary = df['price'].sum()
+        cap_space = CAP_PER_TEAM - total_salary
+        f.write(f'**Total salary:** ${total_salary:.0f}\n')
+        f.write(f'**Cap space:** ${cap_space:.0f}\n\n')
 
         for pos in ['QB', 'RB', 'WR', 'TE', 'K']:
             pos_df = df[df['position'] == pos]

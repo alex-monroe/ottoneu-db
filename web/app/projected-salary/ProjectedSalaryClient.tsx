@@ -7,7 +7,6 @@ interface PlayerRow {
   position: string;
   nfl_team: string;
   price: number;
-  projected_salary: number;
   ppg: number;
   total_points: number;
   games_played: number;
@@ -19,7 +18,6 @@ const COLUMNS: Column[] = [
   { key: "name", label: "Player" },
   { key: "nfl_team", label: "Team" },
   { key: "price", label: "Salary", format: "currency" },
-  { key: "projected_salary", label: "Projected", format: "currency" },
   { key: "ppg", label: "PPG", format: "decimal" },
   { key: "total_points", label: "Points", format: "decimal" },
   { key: "games_played", label: "GP", format: "number" },
@@ -89,7 +87,7 @@ export default function ProjectedSalaryClient({ positionGroups }: Props) {
           How recommendations work
         </p>
         <p>
-          Each player&apos;s projected $/PPG is compared to the league-wide
+          Each player&apos;s $/PPG is compared to the league-wide
           median at their position. Strong Keep ≤60%, Keep 60-90%, Borderline
           90-110%, Cut Candidate &gt;110%.
         </p>

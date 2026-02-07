@@ -33,9 +33,8 @@ export default async function ProjectedSalaryPage() {
     );
   }
 
-  const totalCurrent = roster.reduce((s, p) => s + p.price, 0);
-  const totalProjected = roster.reduce((s, p) => s + p.projected_salary, 0);
-  const capSpace = CAP_PER_TEAM - totalProjected;
+  const totalSalary = roster.reduce((s, p) => s + p.price, 0);
+  const capSpace = CAP_PER_TEAM - totalSalary;
 
   // Group by position for tables
   const byPosition: Record<string, typeof roster> = {};
@@ -54,7 +53,6 @@ export default async function ProjectedSalaryPage() {
       position: p.position,
       nfl_team: p.nfl_team,
       price: p.price,
-      projected_salary: p.projected_salary,
       ppg: p.ppg,
       total_points: p.total_points,
       games_played: p.games_played,
@@ -68,30 +66,22 @@ export default async function ProjectedSalaryPage() {
       <div className="max-w-7xl mx-auto space-y-8">
         <header>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Projected Salary — {MY_TEAM}
+            Salary Analysis — {MY_TEAM}
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2">
-            Keep vs. cut decisions based on projected {SEASON + 1} salary efficiency.
-            Lower price_per_ppg is better.
+            Keep vs. cut decisions based on salary efficiency.
+            Lower $/PPG is better.
           </p>
         </header>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-5 border border-slate-200 dark:border-slate-800">
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Current Salary
+              Total Salary
             </p>
             <p className="text-2xl font-bold text-slate-900 dark:text-white">
-              ${totalCurrent}
-            </p>
-          </div>
-          <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-5 border border-slate-200 dark:border-slate-800">
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Projected Salary
-            </p>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white">
-              ${totalProjected}
+              ${totalSalary}
             </p>
           </div>
           <div
@@ -102,7 +92,7 @@ export default async function ProjectedSalaryPage() {
             }`}
           >
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Cap Space (Projected)
+              Cap Space
             </p>
             <p
               className={`text-2xl font-bold ${

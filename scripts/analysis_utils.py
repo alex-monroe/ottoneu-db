@@ -19,9 +19,8 @@ MIN_GAMES = 4
 # in a 12-team superflex league (accounts for 2 QBs starting per team)
 REPLACEMENT_LEVEL = {'QB': 24, 'RB': 30, 'WR': 30, 'TE': 15, 'K': 13}
 
-# Salary bump rules (end of season)
-SALARY_BUMP_PLAYED = 4   # players who played >= 1 NFL game
-SALARY_BUMP_DEFAULT = 1  # all others
+# NOTE: Database salaries already reflect the end-of-season $4/$1 bump.
+# No additional salary projection is needed.
 
 # Arbitration constants
 ARB_BUDGET_PER_TEAM = 60
@@ -95,12 +94,6 @@ def merge_data(
             merged[col] = pd.to_numeric(merged[col], errors='coerce').fillna(0)
 
     return merged
-
-
-def projected_salary(price: float, games_played: float) -> float:
-    """Calculate next-season salary after the automatic end-of-season bump."""
-    bump = SALARY_BUMP_PLAYED if games_played > 0 else SALARY_BUMP_DEFAULT
-    return price + bump
 
 
 def ensure_reports_dir() -> str:

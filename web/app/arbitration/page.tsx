@@ -19,9 +19,8 @@ const TARGET_COLUMNS: Column[] = [
   { key: "nfl_team", label: "NFL Team" },
   { key: "team_name", label: "Owner" },
   { key: "price", label: "Salary", format: "currency" },
-  { key: "next_year_salary", label: "Next Year", format: "currency" },
   { key: "dollar_value", label: "Value", format: "currency" },
-  { key: "surplus_after_increase", label: "Surplus (Post-Bump)", format: "currency" },
+  { key: "surplus", label: "Surplus", format: "currency" },
   { key: "salary_after_arb", label: "After Arb", format: "currency" },
   { key: "surplus_after_arb", label: "Surplus (Post-Arb)", format: "currency" },
 ];
@@ -75,9 +74,8 @@ export default async function ArbitrationPage() {
           name: p.name,
           position: p.position,
           price: p.price,
-          next_year_salary: p.next_year_salary,
           dollar_value: p.dollar_value,
-          surplus_after_increase: p.surplus_after_increase,
+          surplus: p.surplus,
           surplus_after_arb: p.surplus_after_arb,
         })),
       };

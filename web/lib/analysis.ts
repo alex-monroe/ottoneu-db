@@ -18,9 +18,8 @@ export const REPLACEMENT_LEVEL: Record<string, number> = {
   K: 13,
 };
 
-// Salary bump rules (end of season)
-export const SALARY_BUMP_PLAYED = 4;
-export const SALARY_BUMP_DEFAULT = 1;
+// NOTE: Database salaries already reflect the end-of-season $4/$1 bump.
+// No additional salary projection is needed.
 
 // Arbitration constants
 export const ARB_BUDGET_PER_TEAM = 60;
@@ -65,14 +64,11 @@ export interface SurplusPlayer extends VorpPlayer {
 }
 
 export interface ProjectedSalaryPlayer extends Player {
-  projected_salary: number;
   price_per_ppg: number;
   recommendation: string;
 }
 
 export interface ArbitrationTarget extends SurplusPlayer {
-  next_year_salary: number;
-  surplus_after_increase: number;
   salary_after_arb: number;
   surplus_after_arb: number;
 }
@@ -123,11 +119,6 @@ export async function fetchAndMergeData(): Promise<Player[]> {
 }
 
 // === Analysis Functions ===
-
-export function projectedSalary(price: number, gamesPlayed: number): number {
-  const bump = gamesPlayed > 0 ? SALARY_BUMP_PLAYED : SALARY_BUMP_DEFAULT;
-  return price + bump;
-}
 
 export function calculateVorp(
   players: Player[],
@@ -198,6 +189,7 @@ export function analyzeProjectedSalary(
   if (myRoster.length === 0) return [];
 
   // Calculate position medians across ALL rostered players
+  // DB salaries already include the end-of-season bump
   const allRostered = allPlayers.filter(
     (p) => p.team_name != null && p.team_name !== "" && p.ppg > 0
   );
@@ -206,10 +198,7 @@ export function analyzeProjectedSalary(
   for (const pos of POSITIONS) {
     const posPlayers = allRostered
       .filter((p) => p.position === pos)
-      .map((p) => {
-        const projSal = projectedSalary(p.price, p.games_played);
-        return projSal / p.ppg;
-      })
+      .map((p) => p.price / p.ppg)
       .sort((a, b) => a - b);
 
     if (posPlayers.length > 0) {
@@ -222,9 +211,8 @@ export function analyzeProjectedSalary(
   }
 
   return myRoster.map((p) => {
-    const projSal = projectedSalary(p.price, p.games_played);
     const pricePerPpg =
-      p.ppg > 0 ? Math.round((projSal / p.ppg) * 100) / 100 : 999;
+      p.ppg > 0 ? Math.round((p.price / p.ppg) * 100) / 100 : 999;
 
     const median = posMedians[p.position] ?? 999;
     let recommendation: string;
@@ -240,7 +228,6 @@ export function analyzeProjectedSalary(
 
     return {
       ...p,
-      projected_salary: projSal,
       price_per_ppg: pricePerPpg,
       recommendation,
     };
@@ -260,28 +247,26 @@ export function analyzeArbitration(allPlayers: Player[]): ArbitrationTarget[] {
       p.team_name !== MY_TEAM
   );
 
+  // DB salaries already include the end-of-season bump.
+  // Arbitration adds up to $4 on top of current salary.
   const targets: ArbitrationTarget[] = opponents.map((p) => {
-    const nextYearSalary = projectedSalary(p.price, p.games_played);
-    const surplusAfterIncrease = p.dollar_value - nextYearSalary;
-    const salaryAfterArb = nextYearSalary + ARB_MAX_PER_PLAYER_PER_TEAM;
+    const salaryAfterArb = p.price + ARB_MAX_PER_PLAYER_PER_TEAM;
     const surplusAfterArb = p.dollar_value - salaryAfterArb;
 
     return {
       ...p,
-      next_year_salary: nextYearSalary,
-      surplus_after_increase: surplusAfterIncrease,
       salary_after_arb: salaryAfterArb,
       surplus_after_arb: surplusAfterArb,
     };
   });
 
-  // Focus on danger zone: surplus_after_increase between -10 and +15
+  // Focus on danger zone: surplus between -10 and +15
   return targets
     .filter(
       (t) =>
-        t.surplus_after_increase >= -10 &&
-        t.surplus_after_increase <= 15 &&
+        t.surplus >= -10 &&
+        t.surplus <= 15 &&
         t.dollar_value > 1
     )
-    .sort((a, b) => a.surplus_after_increase - b.surplus_after_increase);
+    .sort((a, b) => a.surplus - b.surplus);
 }

@@ -7,9 +7,8 @@ interface TeamPlayer {
   name: string;
   position: string;
   price: number;
-  next_year_salary: number;
   dollar_value: number;
-  surplus_after_increase: number;
+  surplus: number;
   surplus_after_arb: number;
 }
 
@@ -23,9 +22,8 @@ const TEAM_COLUMNS: Column[] = [
   { key: "name", label: "Player" },
   { key: "position", label: "Pos" },
   { key: "price", label: "Salary", format: "currency" },
-  { key: "next_year_salary", label: "Next Year", format: "currency" },
   { key: "dollar_value", label: "Value", format: "currency" },
-  { key: "surplus_after_increase", label: "Surplus (Post-Bump)", format: "currency" },
+  { key: "surplus", label: "Surplus", format: "currency" },
   { key: "surplus_after_arb", label: "Surplus (Post-Arb)", format: "currency" },
 ];
 

@@ -5,7 +5,7 @@ import pandas as pd
 from analysis_utils import (
     MY_TEAM, NUM_TEAMS, SEASON, ARB_BUDGET_PER_TEAM, ARB_MIN_PER_TEAM,
     ARB_MAX_PER_TEAM, ARB_MAX_PER_PLAYER_PER_TEAM, ensure_reports_dir,
-    fetch_all_data, merge_data, projected_salary,
+    fetch_all_data, merge_data,
 )
 from analyze_surplus_value import calculate_surplus
 
@@ -35,28 +35,20 @@ def analyze_arbitration(merged_df: pd.DataFrame) -> pd.DataFrame:
         print('No opponent players found.')
         return pd.DataFrame()
 
-    # Calculate projected salaries and surplus after increases
-    opponents['next_year_salary'] = opponents.apply(
-        lambda r: projected_salary(r['price'], r['games_played']), axis=1
-    )
-    opponents['surplus_after_increase'] = opponents['dollar_value'] - opponents['next_year_salary']
-    opponents['salary_after_arb'] = opponents['next_year_salary'] + ARB_MAX_PER_PLAYER_PER_TEAM
+    # DB salaries already include the end-of-season bump.
+    # Arbitration adds up to $4 on top of current salary.
+    opponents['salary_after_arb'] = opponents['price'] + ARB_MAX_PER_PLAYER_PER_TEAM
     opponents['surplus_after_arb'] = opponents['dollar_value'] - opponents['salary_after_arb']
 
-    # Disruption potential: how much damage a $4 arb allocation does
-    # Best targets: surplus_after_increase is small positive (still keepable)
-    # but surplus_after_arb is negative (pushed into cut territory)
-    opponents['disruption'] = opponents['surplus_after_increase'] - opponents['surplus_after_arb']
-
     # Focus on players who are close to the cut line
-    # (surplus_after_increase between -10 and +15 means they're in the danger zone)
+    # (surplus between -10 and +15 means they're in the danger zone)
     targets = opponents[
-        (opponents['surplus_after_increase'] >= -10)
-        & (opponents['surplus_after_increase'] <= 15)
+        (opponents['surplus'] >= -10)
+        & (opponents['surplus'] <= 15)
         & (opponents['dollar_value'] > 1)
     ].copy()
 
-    targets = targets.sort_values('surplus_after_increase', ascending=True)
+    targets = targets.sort_values('surplus', ascending=True)
 
     return targets
 
@@ -67,14 +59,14 @@ def generate_report(targets: pd.DataFrame) -> str:
     output_file = os.path.join(reports_dir, 'arbitration_targets.md')
 
     cols = ['name', 'position', 'nfl_team', 'team_name', 'price',
-            'next_year_salary', 'dollar_value', 'surplus_after_increase',
+            'dollar_value', 'surplus',
             'salary_after_arb', 'surplus_after_arb']
 
     with open(output_file, 'w') as f:
         f.write(f'# Arbitration Targets ({SEASON})\n\n')
         f.write('Players on opponent rosters most vulnerable to a $4 arbitration raise.\n')
-        f.write('`surplus_after_increase` = value after automatic salary bump.\n')
-        f.write('`surplus_after_arb` = value if you also allocate $4 in arbitration.\n')
+        f.write('`surplus` = dollar_value - current salary.\n')
+        f.write('`surplus_after_arb` = dollar_value - salary after $4 arbitration raise.\n')
         f.write('Negative surplus = player is overpaid and likely to be cut.\n\n')
         f.write(f'**Budget:** ${ARB_BUDGET_PER_TEAM} total, '
                 f'${ARB_MIN_PER_TEAM}-${ARB_MAX_PER_TEAM} per opposing team, '
@@ -111,8 +103,8 @@ def generate_report(targets: pd.DataFrame) -> str:
                     base_allocation + min(remaining_budget, n_targets * 2)
                 )
                 f.write(f'### {team} (suggested: ${suggested:.0f})\n\n')
-                team_cols = ['name', 'position', 'price', 'next_year_salary',
-                             'dollar_value', 'surplus_after_increase', 'surplus_after_arb']
+                team_cols = ['name', 'position', 'price',
+                             'dollar_value', 'surplus', 'surplus_after_arb']
                 f.write(team_targets[team_cols].to_markdown(index=False))
                 f.write('\n\n')
 
