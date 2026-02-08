@@ -11,131 +11,129 @@ Negative surplus = player is overpaid and likely to be cut.
 
 | name              | position   | nfl_team   | team_name                     |   price |   dollar_value |   surplus |   salary_after_arb |   surplus_after_arb |
 |:------------------|:-----------|:-----------|:------------------------------|--------:|---------------:|----------:|-------------------:|--------------------:|
-| Aaron Jones       | RB         | MIN        | The Hard Eight                |      18 |              8 |       -10 |                 22 |                 -14 |
-| Tee Higgins       | WR         | CIN        | Pacific Punt Masters          |      35 |             25 |       -10 |                 39 |                 -14 |
-| Jameson Williams  | WR         | DET        | The Triple Helix              |      25 |             16 |        -9 |                 29 |                 -13 |
-| George Kittle     | TE         | SF         | The Roseman Empire            |      40 |             31 |        -9 |                 44 |                 -13 |
-| Tetairoa McMillan | WR         | CAR        | Marin County Mountain Runners |      20 |             12 |        -8 |                 24 |                 -12 |
-| Breece Hall       | RB         | NYJ        | The Trigeminal Thunderclaps   |      41 |             33 |        -8 |                 45 |                 -12 |
-| Colston Loveland  | TE         | CHI        | Marin County Mountain Runners |      12 |              4 |        -8 |                 16 |                 -12 |
-| Tyler Warren      | TE         | IND        | Tinseltown Little Gold Men    |      13 |              6 |        -7 |                 17 |                 -11 |
-| Jauan Jennings    | WR         | SF         | The Trigeminal Thunderclaps   |      13 |              6 |        -7 |                 17 |                 -11 |
-| Mac Jones         | QB         | SF         | Irish Invasion                |       9 |              2 |        -7 |                 13 |                 -11 |
-| Bo Nix            | QB         | DEN        | The Golden Gouda              |      54 |             48 |        -6 |                 58 |                 -10 |
-| Omarion Hampton   | RB         | LAC        | The Triple Helix              |      43 |             37 |        -6 |                 47 |                 -10 |
-| Tony Pollard      | RB         | TEN        | The Trigeminal Thunderclaps   |      24 |             18 |        -6 |                 28 |                 -10 |
-| Juwan Johnson     | TE         | NO         | The Roseman Empire            |       8 |              2 |        -6 |                 12 |                 -10 |
+| Jauan Jennings    | WR         | SF         | The Trigeminal Thunderclaps   |      13 |              3 |       -10 |                 17 |                 -14 |
+| Aaron Jones       | RB         | MIN        | The Hard Eight                |      18 |              9 |        -9 |                 22 |                 -13 |
+| Josh Jacobs       | RB         | GB         | The Golden Gouda              |      66 |             57 |        -9 |                 70 |                 -13 |
+| Trey McBride      | TE         | ARI        | The Golden Gouda              |      49 |             41 |        -8 |                 53 |                 -12 |
+| Deebo Samuel      | WR         | WAS        | The Triple Helix              |      16 |              9 |        -7 |                 20 |                 -11 |
+| Breece Hall       | RB         | NYJ        | The Trigeminal Thunderclaps   |      41 |             34 |        -7 |                 45 |                 -11 |
+| Mac Jones         | QB         | SF         | Irish Invasion                |       9 |              3 |        -6 |                 13 |                 -10 |
+| Tony Pollard      | RB         | TEN        | The Trigeminal Thunderclaps   |      24 |             19 |        -5 |                 28 |                  -9 |
 | J.J. McCarthy     | QB         | MIN        | Ball So Hard University       |      13 |              8 |        -5 |                 17 |                  -9 |
-| Stefon Diggs      | WR         | NE         | Ball So Hard University       |      13 |              8 |        -5 |                 17 |                  -9 |
-| Jaylen Waddle     | WR         | MIA        | The Trigeminal Thunderclaps   |      13 |             10 |        -3 |                 17 |                  -7 |
+| Tee Higgins       | WR         | CIN        | Pacific Punt Masters          |      35 |             31 |        -4 |                 39 |                  -8 |
+| Tetairoa McMillan | WR         | CAR        | Marin County Mountain Runners |      20 |             16 |        -4 |                 24 |                  -8 |
 | Joey Slye         | K          | TEN        | The Golden Gouda              |       5 |              2 |        -3 |                  9 |                  -7 |
-| Kyle Monangai     | RB         | CHI        | The Hard Eight                |       7 |              4 |        -3 |                 11 |                  -7 |
+| Bo Nix            | QB         | DEN        | The Golden Gouda              |      54 |             51 |        -3 |                 58 |                  -7 |
+| Jameson Williams  | WR         | DET        | The Triple Helix              |      25 |             22 |        -3 |                 29 |                  -7 |
+| Kyren Williams    | RB         | LA         | The Golden Gouda              |      65 |             62 |        -3 |                 69 |                  -7 |
+| Omarion Hampton   | RB         | LAC        | The Triple Helix              |      43 |             40 |        -3 |                 47 |                  -7 |
+| Jake Bates        | K          | DET        | Pacific Punt Masters          |       8 |              6 |        -2 |                 12 |                  -6 |
 | Kareem Hunt       | RB         | KC         | The Royal Dynasty             |       5 |              3 |        -2 |                  9 |                  -6 |
+| Khalil Shakir     | WR         | BUF        | The Triple Helix              |       7 |              5 |        -2 |                 11 |                  -6 |
+| Sam Darnold       | QB         | SEA        | Pacific Punt Masters          |      20 |             19 |        -1 |                 24 |                  -5 |
 
 ## Targets by Opponent Team
 
 Suggested allocation strategy (must give each team $1-$8):
 
-### Ball So Hard University (suggested: $8)
+### The Golden Gouda (suggested: $8)
 
 | name           | position   |   price |   dollar_value |   surplus |   surplus_after_arb |
 |:---------------|:-----------|--------:|---------------:|----------:|--------------------:|
-| J.J. McCarthy  | QB         |      13 |              8 |        -5 |                  -9 |
-| Stefon Diggs   | WR         |      13 |              8 |        -5 |                  -9 |
-| Tyreek Hill    | WR         |      14 |             14 |         0 |                  -4 |
-| Dalton Kincaid | TE         |       6 |              7 |         1 |                  -3 |
-| RJ Harvey      | RB         |      21 |             24 |         3 |                  -1 |
+| Josh Jacobs    | RB         |      66 |             57 |        -9 |                 -13 |
+| Trey McBride   | TE         |      49 |             41 |        -8 |                 -12 |
+| Joey Slye      | K          |       5 |              2 |        -3 |                  -7 |
+| Bo Nix         | QB         |      54 |             51 |        -3 |                  -7 |
+| Kyren Williams | RB         |      65 |             62 |        -3 |                  -7 |
 
 ### The Trigeminal Thunderclaps (suggested: $8)
 
-| name           | position   |   price |   dollar_value |   surplus |   surplus_after_arb |
-|:---------------|:-----------|--------:|---------------:|----------:|--------------------:|
-| Breece Hall    | RB         |      41 |             33 |        -8 |                 -12 |
-| Jauan Jennings | WR         |      13 |              6 |        -7 |                 -11 |
-| Tony Pollard   | RB         |      24 |             18 |        -6 |                 -10 |
-| Jaylen Waddle  | WR         |      13 |             10 |        -3 |                  -7 |
-| Jake Ferguson  | TE         |       6 |              5 |        -1 |                  -5 |
+| name            | position   |   price |   dollar_value |   surplus |   surplus_after_arb |
+|:----------------|:-----------|--------:|---------------:|----------:|--------------------:|
+| Jauan Jennings  | WR         |      13 |              3 |       -10 |                 -14 |
+| Breece Hall     | RB         |      41 |             34 |        -7 |                 -11 |
+| Tony Pollard    | RB         |      24 |             19 |        -5 |                  -9 |
+| Harrison Butker | K          |       5 |              5 |         0 |                  -4 |
+| Jaylen Waddle   | WR         |      13 |             14 |         1 |                  -3 |
 
 ### The Triple Helix (suggested: $8)
 
 | name             | position   |   price |   dollar_value |   surplus |   surplus_after_arb |
 |:-----------------|:-----------|--------:|---------------:|----------:|--------------------:|
-| Jameson Williams | WR         |      25 |             16 |        -9 |                 -13 |
-| Omarion Hampton  | RB         |      43 |             37 |        -6 |                 -10 |
-| Hunter Henry     | TE         |       5 |              6 |         1 |                  -3 |
-| Harold Fannin    | TE         |       7 |             11 |         4 |                   0 |
-| Quentin Johnston | WR         |       7 |             12 |         5 |                   1 |
+| Deebo Samuel     | WR         |      16 |              9 |        -7 |                 -11 |
+| Jameson Williams | WR         |      25 |             22 |        -3 |                  -7 |
+| Omarion Hampton  | RB         |      43 |             40 |        -3 |                  -7 |
+| Khalil Shakir    | WR         |       7 |              5 |        -2 |                  -6 |
+| Justin Herbert   | QB         |      45 |             53 |         8 |                   4 |
+
+### Ball So Hard University (suggested: $8)
+
+| name          | position   |   price |   dollar_value |   surplus |   surplus_after_arb |
+|:--------------|:-----------|--------:|---------------:|----------:|--------------------:|
+| J.J. McCarthy | QB         |      13 |              8 |        -5 |                  -9 |
+| Stefon Diggs  | WR         |      13 |             13 |         0 |                  -4 |
+| Aaron Rodgers | QB         |       7 |             10 |         3 |                  -1 |
+| Tyreek Hill   | WR         |      14 |             19 |         5 |                   1 |
+| RJ Harvey     | RB         |      21 |             31 |        10 |                   6 |
 
 ### Irish Invasion (suggested: $8)
 
 | name          | position   |   price |   dollar_value |   surplus |   surplus_after_arb |
 |:--------------|:-----------|--------:|---------------:|----------:|--------------------:|
-| Mac Jones     | QB         |       9 |              2 |        -7 |                 -11 |
-| Davante Adams | WR         |      32 |             38 |         6 |                   2 |
+| Mac Jones     | QB         |       9 |              3 |        -6 |                 -10 |
 | Malik Willis  | QB         |       5 |             11 |         6 |                   2 |
-| Will Reichard | K          |       6 |             12 |         6 |                   2 |
-| Chase Brown   | RB         |      47 |             54 |         7 |                   3 |
-
-### The Golden Gouda (suggested: $8)
-
-| name         | position   |   price |   dollar_value |   surplus |   surplus_after_arb |
-|:-------------|:-----------|--------:|---------------:|----------:|--------------------:|
-| Bo Nix       | QB         |      54 |             48 |        -6 |                 -10 |
-| Joey Slye    | K          |       5 |              2 |        -3 |                  -7 |
-| Romeo Doubs  | WR         |       5 |              5 |         0 |                  -4 |
-| Trey McBride | TE         |      49 |             53 |         4 |                   0 |
-| Alec Pierce  | WR         |       7 |             14 |         7 |                   3 |
+| Davante Adams | WR         |      32 |             38 |         6 |                   2 |
+| Will Reichard | K          |       6 |             13 |         7 |                   3 |
+| Chase Brown   | RB         |      47 |             57 |        10 |                   6 |
 
 ### Pacific Punt Masters (suggested: $8)
 
 | name            | position   |   price |   dollar_value |   surplus |   surplus_after_arb |
 |:----------------|:-----------|--------:|---------------:|----------:|--------------------:|
-| Tee Higgins     | WR         |      35 |             25 |       -10 |                 -14 |
+| Tee Higgins     | WR         |      35 |             31 |        -4 |                  -8 |
 | Jake Bates      | K          |       8 |              6 |        -2 |                  -6 |
-| Sam Darnold     | QB         |      20 |             18 |        -2 |                  -6 |
-| Zach Charbonnet | RB         |      14 |             24 |        10 |                   6 |
-| Jordan Love     | QB         |      26 |             39 |        13 |                   9 |
+| Sam Darnold     | QB         |      20 |             19 |        -1 |                  -5 |
+| Zach Charbonnet | RB         |      14 |             26 |        12 |                   8 |
+| Jordan Love     | QB         |      26 |             41 |        15 |                  11 |
 
-### The Roseman Empire (suggested: $8)
+### The Hard Eight (suggested: $8)
 
-| name           | position   |   price |   dollar_value |   surplus |   surplus_after_arb |
-|:---------------|:-----------|--------:|---------------:|----------:|--------------------:|
-| George Kittle  | TE         |      40 |             31 |        -9 |                 -13 |
-| Juwan Johnson  | TE         |       8 |              2 |        -6 |                 -10 |
-| Bijan Robinson | RB         |      90 |             91 |         1 |                  -3 |
-| Chris Boswell  | K          |       5 |              7 |         2 |                  -2 |
-| Michael Wilson | WR         |       5 |             14 |         9 |                   5 |
-
-### Tinseltown Little Gold Men (suggested: $8)
-
-| name              | position   |   price |   dollar_value |   surplus |   surplus_after_arb |
-|:------------------|:-----------|--------:|---------------:|----------:|--------------------:|
-| Tyler Warren      | TE         |      13 |              6 |        -7 |                 -11 |
-| Chase McLaughlin  | K          |       5 |              9 |         4 |                   0 |
-| Wan'Dale Robinson | WR         |       7 |             14 |         7 |                   3 |
-| Dallas Goedert    | TE         |       5 |             18 |        13 |                   9 |
+| name          | position   |   price |   dollar_value |   surplus |   surplus_after_arb |
+|:--------------|:-----------|--------:|---------------:|----------:|--------------------:|
+| Aaron Jones   | RB         |      18 |              9 |        -9 |                 -13 |
+| Kyle Monangai | RB         |       7 |              6 |        -1 |                  -5 |
+| Zay Flowers   | WR         |      23 |             28 |         5 |                   1 |
+| Tucker Kraft  | TE         |       8 |             23 |        15 |                  11 |
 
 ### Marin County Mountain Runners (suggested: $7)
 
 | name               | position   |   price |   dollar_value |   surplus |   surplus_after_arb |
 |:-------------------|:-----------|--------:|---------------:|----------:|--------------------:|
-| Tetairoa McMillan  | WR         |      20 |             12 |        -8 |                 -12 |
-| Colston Loveland   | TE         |      12 |              4 |        -8 |                 -12 |
-| Jaxon Smith-Njigba | WR         |      62 |             67 |         5 |                   1 |
+| Tetairoa McMillan  | WR         |      20 |             16 |        -4 |                  -8 |
+| Jaxon Smith-Njigba | WR         |      62 |             76 |        14 |                  10 |
+| Jaylen Warren      | RB         |      19 |             34 |        15 |                  11 |
 
-### The Hard Eight (suggested: $7)
+### The Roseman Empire (suggested: $7)
 
-| name          | position   |   price |   dollar_value |   surplus |   surplus_after_arb |
-|:--------------|:-----------|--------:|---------------:|----------:|--------------------:|
-| Aaron Jones   | RB         |      18 |              8 |       -10 |                 -14 |
-| Kyle Monangai | RB         |       7 |              4 |        -3 |                  -7 |
-| Zay Flowers   | WR         |      23 |             22 |        -1 |                  -5 |
+| name           | position   |   price |   dollar_value |   surplus |   surplus_after_arb |
+|:---------------|:-----------|--------:|---------------:|----------:|--------------------:|
+| Chris Boswell  | K          |       5 |              7 |         2 |                  -2 |
+| Bijan Robinson | RB         |      90 |             97 |         7 |                   3 |
+| Michael Wilson | WR         |       5 |             19 |        14 |                  10 |
 
 ### The Royal Dynasty (suggested: $7)
 
 | name            | position   |   price |   dollar_value |   surplus |   surplus_after_arb |
 |:----------------|:-----------|--------:|---------------:|----------:|--------------------:|
 | Kareem Hunt     | RB         |       5 |              3 |        -2 |                  -6 |
-| Patrick Mahomes | QB         |      64 |             68 |         4 |                   0 |
-| Jared Goff      | QB         |      42 |             47 |         5 |                   1 |
+| Jared Goff      | QB         |      42 |             49 |         7 |                   3 |
+| Patrick Mahomes | QB         |      64 |             72 |         8 |                   4 |
+
+### Tinseltown Little Gold Men (suggested: $7)
+
+| name              | position   |   price |   dollar_value |   surplus |   surplus_after_arb |
+|:------------------|:-----------|--------:|---------------:|----------:|--------------------:|
+| Dallas Goedert    | TE         |       5 |              4 |        -1 |                  -5 |
+| Chase McLaughlin  | K          |       5 |              9 |         4 |                   0 |
+| Wan'Dale Robinson | WR         |       7 |             19 |        12 |                   8 |
 

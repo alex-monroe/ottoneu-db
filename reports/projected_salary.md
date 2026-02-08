@@ -6,16 +6,16 @@ Surplus accounts for positional scarcity via VORP, correctly valuing QBs in supe
 **Thresholds:** Strong Keep ≥ $10, Keep ≥ $0, Borderline ≥ -$5, Cut < -$5
 
 **Total salary:** $151  
-**Total value:** $112  
-**Total surplus:** $-39  
+**Total value:** $105  
+**Total surplus:** $-46  
 **Cap space:** $249
 
 ## QB
 
 | name            | position   | nfl_team   |   price |   dollar_value |   surplus |   ppg |   total_points |   games_played | recommendation   |
 |:----------------|:-----------|:-----------|--------:|---------------:|----------:|------:|---------------:|---------------:|:-----------------|
-| Trevor Lawrence | QB         | JAC        |      26 |             65 |        39 | 19.89 |         338.18 |             17 | Strong Keep      |
-| C.J. Stroud     | QB         | HOU        |      38 |             26 |       -12 | 14.84 |         207.82 |             14 | Cut Candidate    |
+| Trevor Lawrence | QB         | JAC        |      26 |             69 |        43 | 19.89 |         338.18 |             17 | Strong Keep      |
+| C.J. Stroud     | QB         | HOU        |      38 |             28 |       -10 | 14.84 |         207.82 |             14 | Cut Candidate    |
 
 ## RB
 
@@ -38,5 +38,5 @@ Surplus accounts for positional scarcity via VORP, correctly valuing QBs in supe
 
 | name       | position   | nfl_team   |   price |   dollar_value |   surplus |   ppg |   total_points |   games_played | recommendation   |
 |:-----------|:-----------|:-----------|--------:|---------------:|----------:|------:|---------------:|---------------:|:-----------------|
-| Kyle Pitts | TE         | ATL        |      11 |             14 |         3 |  9.81 |          166.8 |             17 | Keep             |
+| Kyle Pitts | TE         | ATL        |      11 |              1 |       -10 |  9.81 |          166.8 |             17 | Cut Candidate    |
 
