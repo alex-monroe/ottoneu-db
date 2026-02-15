@@ -106,7 +106,8 @@ export function calculateVorp(
     players: Player[],
     minGames: number = MIN_GAMES
 ): { players: VorpPlayer[]; replacementPpg: Record<string, number> } {
-    const qualified = players.filter((p) => p.games_played >= minGames);
+    // Exclude kickers from VORP analysis
+    const qualified = players.filter((p) => p.games_played >= minGames && p.position !== 'K');
     if (qualified.length === 0) return { players: [], replacementPpg: {} };
 
     // Determine replacement-level PPG per position
@@ -189,13 +190,14 @@ export function analyzeArbitration(allPlayers: Player[]): ArbitrationTarget[] {
     const surplusPlayers = calculateSurplus(allPlayers);
     if (surplusPlayers.length === 0) return [];
 
-    // Filter to opponents' rostered players only
+    // Filter to opponents' rostered players only (exclude kickers)
     const opponents = surplusPlayers.filter(
         (p) =>
             p.team_name != null &&
             p.team_name !== "" &&
             p.team_name !== "FA" &&
-            p.team_name !== MY_TEAM
+            p.team_name !== MY_TEAM &&
+            p.position !== "K"
     );
 
     // DB salaries already include the end-of-season bump.
@@ -453,7 +455,10 @@ export function runArbitrationSimulation(
     const surplusPlayers = calculateSurplus(players);
     if (surplusPlayers.length === 0) return [];
 
-    const allTeams = Array.from(new Set(surplusPlayers.map(p => p.team_name).filter(Boolean))) as string[];
+    // Exclude kickers from arbitration simulation
+    const surplusPlayersNoKickers = surplusPlayers.filter(p => p.position !== 'K');
+
+    const allTeams = Array.from(new Set(surplusPlayersNoKickers.map(p => p.team_name).filter(Boolean))) as string[];
     const rosteredTeams = allTeams.filter(t => t !== 'FA' && t !== '');
 
     // Track arbitration totals across simulations
@@ -461,7 +466,7 @@ export function runArbitrationSimulation(
 
     for (let sim = 0; sim < numSims; sim++) {
         const teamValuations = generateTeamValuations(
-            surplusPlayers,
+            surplusPlayersNoKickers,
             allTeams,
             valueVariation,
             sim
@@ -505,7 +510,7 @@ export function runArbitrationSimulation(
     for (const [key, amounts] of arbResults.entries()) {
         const [playerName, teamName] = key.split('|');
 
-        const playerData = surplusPlayers.find(
+        const playerData = surplusPlayersNoKickers.find(
             p => p.name === playerName && p.team_name === teamName
         );
 

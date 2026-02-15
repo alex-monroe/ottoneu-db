@@ -18,7 +18,11 @@ def calculate_vorp(merged_df: pd.DataFrame, min_games: int = MIN_GAMES) -> pd.Da
     Returns:
         DataFrame with added columns: replacement_ppg, vorp_per_game, full_season_vorp.
     """
-    qualified = merged_df[merged_df['games_played'] >= min_games].copy()
+    # Exclude kickers from VORP analysis
+    qualified = merged_df[
+        (merged_df['games_played'] >= min_games) &
+        (merged_df['position'] != 'K')
+    ].copy()
     if qualified.empty:
         print('No qualified players found.')
         return pd.DataFrame()
@@ -65,14 +69,14 @@ def generate_report(df: pd.DataFrame, replacement_ppg: dict) -> str:
         f.write('## Replacement Level Benchmarks\n\n')
         f.write('| Position | Replacement Rank | Replacement PPG |\n')
         f.write('|----------|-----------------|----------------|\n')
-        for pos in ['QB', 'RB', 'WR', 'TE', 'K']:
+        for pos in ['QB', 'RB', 'WR', 'TE']:
             rpg = replacement_ppg.get(pos, 0)
             rank = REPLACEMENT_LEVEL.get(pos, 0)
             f.write(f'| {pos} | {rank} | {rpg:.2f} |\n')
         f.write('\n')
 
         # Top 20 per position
-        for pos in ['QB', 'RB', 'WR', 'TE', 'K']:
+        for pos in ['QB', 'RB', 'WR', 'TE']:
             pos_df = df[df['position'] == pos].sort_values('full_season_vorp', ascending=False).head(20)
             if pos_df.empty:
                 continue

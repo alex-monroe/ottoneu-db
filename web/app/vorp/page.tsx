@@ -28,8 +28,9 @@ export default async function VorpPage() {
     );
   }
 
-  // Replacement benchmarks
-  const benchmarks = POSITIONS.map((pos) => ({
+  // Replacement benchmarks (exclude kickers)
+  const positionsNoKickers = POSITIONS.filter(pos => pos !== 'K');
+  const benchmarks = positionsNoKickers.map((pos) => ({
     position: pos,
     rank: REPLACEMENT_LEVEL[pos],
     ppg: Math.round((replacementPpg[pos] ?? 0) * 100) / 100,
@@ -84,11 +85,11 @@ export default async function VorpPage() {
             </h3>
             <p>
               In a {NUM_TEAMS}-team superflex league, each team starts 1 QB + 1 superflex
-              (almost always a QB), 2 RB, 2 WR, 1 TE, and 1 K. The <em>replacement level</em> is
+              (almost always a QB), 2 RB, 2 WR, and 1 TE. The <em>replacement level</em> is
               the Nth-best player at each position, where N approximates the number of
               fantasy-relevant starters across the league. Because superflex effectively
               requires 2 QBs per team, the QB replacement rank ({REPLACEMENT_LEVEL["QB"]}) is
-              double the standard 1-QB league.
+              double the standard 1-QB league. Kickers are excluded from VORP analysis.
             </p>
           </div>
 

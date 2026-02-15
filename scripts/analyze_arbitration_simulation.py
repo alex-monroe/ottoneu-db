@@ -436,6 +436,9 @@ if __name__ == '__main__':
         print('No surplus data available for simulation.')
         exit(1)
 
+    # Exclude kickers from arbitration simulation
+    surplus_df = surplus_df[surplus_df['position'] != 'K'].copy()
+
     # Run simulation
     print(f'Running {NUM_SIMULATIONS} arbitration simulations...')
     sim_results = run_simulation(surplus_df, num_sims=NUM_SIMULATIONS)
