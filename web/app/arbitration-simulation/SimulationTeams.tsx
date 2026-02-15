@@ -12,8 +12,10 @@ const TEAM_PLAYER_COLUMNS: Column[] = [
   { key: "name", label: "Player" },
   { key: "position", label: "Pos" },
   { key: "price", label: "Salary", format: "currency" },
+  { key: "dollar_value", label: "Value", format: "currency" },
   { key: "surplus", label: "Surplus", format: "currency" },
   { key: "mean_arb", label: "Expected Arb", format: "currency" },
+  { key: "salary_after_arb", label: "After Arb", format: "currency" },
   { key: "surplus_after_arb", label: "Surplus (Post)", format: "currency" },
 ];
 
@@ -32,20 +34,12 @@ export default function SimulationTeams({ results }: SimulationTeamsProps) {
   return (
     <div className="space-y-4">
       {opponentTeams.map((team) => {
-        const teamPlayers = results.filter((p) => p.team_name === team);
-
-        const vulnerable = teamPlayers
-          .filter((p) => p.surplus > 5 && p.mean_arb < 15)
-          .sort((a, b) => b.surplus - a.surplus);
-
-        const protectedPlayers = teamPlayers
-          .filter((p) => p.mean_arb > 15)
+        const teamPlayers = results
+          .filter((p) => p.team_name === team)
           .sort((a, b) => b.mean_arb - a.mean_arb);
 
-        const suggestedAllocation = Math.min(
-          ARB_MAX_PER_TEAM,
-          ARB_MIN_PER_TEAM + Math.min(vulnerable.length * 2, ARB_MAX_PER_TEAM - ARB_MIN_PER_TEAM)
-        );
+        const totalArb = teamPlayers.reduce((sum, p) => sum + p.mean_arb, 0);
+        const avgArb = teamPlayers.length > 0 ? totalArb / teamPlayers.length : 0;
 
         const isExpanded = expandedTeam === team;
 
@@ -64,50 +58,40 @@ export default function SimulationTeams({ results }: SimulationTeamsProps) {
                     {team}
                   </h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    {vulnerable.length} vulnerable target{vulnerable.length !== 1 ? "s" : ""} •{" "}
-                    {protectedPlayers.length} protected player{protectedPlayers.length !== 1 ? "s" : ""}
+                    {teamPlayers.length} player{teamPlayers.length !== 1 ? "s" : ""} •{" "}
+                    ${totalArb.toFixed(0)} total expected arb
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Suggested allocation
+                    Avg per player
                   </p>
                   <p className="font-bold text-slate-900 dark:text-white text-lg">
-                    ${suggestedAllocation}
+                    ${avgArb.toFixed(1)}
                   </p>
                 </div>
               </div>
             </button>
 
             {isExpanded && (
-              <div className="p-5 bg-white dark:bg-black space-y-6">
-                {vulnerable.length > 0 && (
-                  <div>
+              <div className="p-5 bg-white dark:bg-black">
+                {teamPlayers.length > 0 ? (
+                  <>
                     <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">
-                      Vulnerable Targets ({vulnerable.length})
+                      Full Roster (sorted by expected arbitration)
                     </h4>
                     <DataTable
                       columns={TEAM_PLAYER_COLUMNS}
-                      data={vulnerable.slice(0, 5)}
+                      data={teamPlayers}
                     />
-                  </div>
-                )}
-
-                {protectedPlayers.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">
-                      Protected Players ({protectedPlayers.length}) — Avoid
-                    </h4>
-                    <DataTable
-                      columns={TEAM_PLAYER_COLUMNS}
-                      data={protectedPlayers.slice(0, 3)}
-                    />
-                  </div>
-                )}
-
-                {vulnerable.length === 0 && protectedPlayers.length === 0 && (
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-3">
+                      <strong>Total Expected Arb:</strong> ${totalArb.toFixed(0)} |{" "}
+                      <strong>Avg per Player:</strong> ${avgArb.toFixed(1)}
+                    </p>
+                  </>
+                ) : (
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    No notable targets or protected players.
+                    No players found.
                   </p>
                 )}
               </div>

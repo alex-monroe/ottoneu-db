@@ -385,51 +385,33 @@ def generate_simulation_report(sim_results: pd.DataFrame) -> str:
             f.write(protected.head(15)[prot_cols].to_markdown(index=False, floatfmt='.1f'))
             f.write('\n\n')
 
-        # === Section 4: Strategic Recommendations by Opponent ===
-        f.write('## Strategic Recommendations by Opponent Team\n\n')
+        # === Section 4: Full Roster Breakdown by Opponent ===
+        f.write('## Full Roster Breakdown by Opponent\n\n')
+        f.write('Complete roster for each team showing expected arbitration raises.\n\n')
 
         opponent_teams = sorted(opponents['team_name'].unique())
 
         for team in opponent_teams:
             team_players = sim_results[sim_results['team_name'] == team].copy()
-
-            # Find vulnerable targets on this team
-            team_vulnerable = team_players[
-                (team_players['surplus'] > 5) &
-                (team_players['mean_arb'] < 15)
-            ].sort_values('surplus', ascending=False)
-
-            # Find protected players on this team
-            team_protected = team_players[
-                team_players['mean_arb'] > 15
-            ].sort_values('mean_arb', ascending=False)
+            team_players = team_players.sort_values('mean_arb', ascending=False)
 
             f.write(f'### {team}\n\n')
 
-            if not team_vulnerable.empty:
-                f.write(f'**Vulnerable targets ({len(team_vulnerable)}):**\n\n')
-                team_vuln_cols = [
-                    'name', 'position', 'price', 'surplus', 'mean_arb', 'surplus_after_arb'
+            if team_players.empty:
+                f.write('No players found.\n\n')
+            else:
+                roster_cols = [
+                    'name', 'position', 'price', 'dollar_value', 'surplus',
+                    'mean_arb', 'salary_after_arb', 'surplus_after_arb'
                 ]
-                f.write(team_vulnerable.head(3)[team_vuln_cols].to_markdown(index=False, floatfmt='.1f'))
+                f.write(team_players[roster_cols].to_markdown(index=False, floatfmt='.1f'))
                 f.write('\n\n')
 
-            if not team_protected.empty:
-                f.write(f'**Protected players ({len(team_protected)}) — avoid:**\n\n')
-                team_prot_cols = [
-                    'name', 'position', 'price', 'mean_arb', 'salary_after_arb'
-                ]
-                f.write(team_protected.head(2)[team_prot_cols].to_markdown(index=False, floatfmt='.1f'))
-                f.write('\n\n')
-
-            # Suggest allocation
-            n_vulnerable = len(team_vulnerable)
-            suggested_allocation = min(
-                ARB_MAX_PER_TEAM,
-                ARB_MIN_PER_TEAM + min(n_vulnerable * 2, ARB_MAX_PER_TEAM - ARB_MIN_PER_TEAM)
-            )
-
-            f.write(f'**Suggested allocation to {team}:** ${suggested_allocation:.0f}\n\n')
+                # Summary stats
+                total_arb = team_players['mean_arb'].sum()
+                avg_arb = team_players['mean_arb'].mean()
+                f.write(f'**Total Expected Arb:** ${total_arb:.0f} | ')
+                f.write(f'**Avg per Player:** ${avg_arb:.1f}\n\n')
 
     print(f'Simulation report generated: {output_file}')
     return output_file
