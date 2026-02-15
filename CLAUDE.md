@@ -16,7 +16,14 @@ Fantasy football analytics platform for Ottoneu leagues. Python scripts scrape p
 
 ### Backend (run from project root, activate venv first)
 - `source venv/bin/activate`
-- `python scripts/ottoneu_scraper.py` — scrape Ottoneu player prices
+- `python scripts/ottoneu_scraper.py` — scrape Ottoneu player prices (backward-compat wrapper: enqueues batch + runs worker)
+- `python scripts/enqueue.py batch` — enqueue full pipeline (NFL stats + all 5 positions)
+- `python scripts/enqueue.py roster --position QB` — enqueue single position scrape
+- `python scripts/enqueue.py player --ottoneu-id 6771 --name "Josh Allen" --player-uuid <uuid>` — enqueue single player card scrape
+- `python scripts/enqueue.py nfl-stats` — enqueue NFL stats pull only
+- `python scripts/enqueue.py status` — show recent job statuses
+- `python scripts/worker.py` — process pending scraper jobs (exit when done)
+- `python scripts/worker.py --poll` — process jobs continuously (for scheduling)
 - `python scripts/analyze_efficiency.py` — calculate efficiency metrics
 - `python scripts/run_all_analyses.py` — run full analysis suite (projected salary, VORP, surplus value, arbitration)
 - `python scripts/analyze_projected_salary.py` — keep vs cut decisions for The Witchcraft
@@ -25,6 +32,12 @@ Fantasy football analytics platform for Ottoneu leagues. Python scripts scrape p
 - `python scripts/analyze_arbitration.py` — identify opponents' vulnerable players for arbitration
 - `python scripts/check_db.py` — verify database contents
 - `streamlit run scripts/visualize_app.py` — Streamlit dashboard
+
+### Daily Scheduling (cron)
+```bash
+# Daily at 6 AM: enqueue batch and run worker
+0 6 * * * cd /path/to/ottoneu_db && source venv/bin/activate && python scripts/enqueue.py batch && python scripts/worker.py
+```
 
 ## Architecture
 
@@ -38,9 +51,11 @@ Python Scripts (scraper/analysis)
    Next.js App (web/)
 ```
 
-**Data pipeline:** `ottoneu_scraper.py` uses Playwright to scrape Ottoneu.com rosters/salaries and `nfl_data_py` for NFL snap counts and stats. Data is upserted into three tables: `players`, `player_stats`, `league_prices`. The frontend merges all three tables server-side and renders a client-side Recharts scatter plot.
+**Data pipeline:** Uses a worker-based job queue. `scripts/enqueue.py` inserts jobs into the `scraper_jobs` table in Supabase. `scripts/worker.py` polls the queue, dispatches tasks, and manages a shared Playwright browser. Three task types: `pull_nfl_stats` (sync, loads snap counts via `nfl_data_py`), `scrape_roster` (async, scrapes one position from Ottoneu search page), `scrape_player_card` (async, scrapes FA transaction history for real salary). Jobs support dependencies, retries (up to 3 attempts), and batch grouping. `ottoneu_scraper.py` is a backward-compatible wrapper that enqueues a batch and runs the worker. Data is upserted into three tables: `players`, `player_stats`, `league_prices`.
 
-**Database schema** (`schema.sql`): Three tables with UUID primary keys and foreign keys from `player_stats` and `league_prices` to `players`. Key unique constraints: `players(ottoneu_id)`, `player_stats(player_id, season)`, `league_prices(player_id, league_id, season)`.
+**Worker task modules** (`scripts/tasks/`): Each task type lives in its own module. `__init__.py` defines task type constants and `TaskResult` dataclass. The worker caches NFL stats in memory so roster scrapes can match snap counts by player name.
+
+**Database schema** (`schema.sql`): Three data tables with UUID primary keys and foreign keys from `player_stats` and `league_prices` to `players`. Key unique constraints: `players(ottoneu_id)`, `player_stats(player_id, season)`, `league_prices(player_id, league_id, season)`. The `scraper_jobs` table stores the persistent job queue (see `migrations/002_add_scraper_jobs.sql`).
 
 **Frontend structure** (`web/`): Next.js App Router with five pages. Shared `Navigation.tsx` nav bar and `DataTable.tsx` sortable table component. Analysis math is ported to `web/lib/analysis.ts` (TS equivalent of `analysis_utils.py`). All pages are server components that fetch live data from Supabase (revalidate every hour) with client wrappers for interactivity.
 
