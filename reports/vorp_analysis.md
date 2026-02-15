@@ -167,8 +167,8 @@ than the replacement-level player at his position.
 | Chase Brown         | RB         | CIN        | 14.59 |         248.1  |             17 |            6.97 |              118.5 |      47 |
 | Dak Prescott        | QB         | DAL        | 18.28 |         310.78 |             17 |            6.87 |              116.8 |      30 |
 | Cam Skattebo        | RB         | NYG        | 14.46 |         115.7  |              8 |            6.84 |              116.3 |      15 |
-| Justin Herbert      | QB         | LAC        | 17.93 |         286.88 |             16 |            6.52 |              110.8 |      45 |
 | Jalen Hurts         | QB         | PHI        | 17.93 |         286.9  |             16 |            6.52 |              110.8 |     110 |
+| Justin Herbert      | QB         | LAC        | 17.93 |         286.88 |             16 |            6.52 |              110.8 |      45 |
 | Javonte Williams    | RB         | DAL        | 14.08 |         225.3  |             16 |            6.46 |              109.8 |      11 |
 | Bo Nix              | QB         | DEN        | 17.7  |         300.84 |             17 |            6.29 |              106.9 |      54 |
 | Travis Etienne      | RB         | JAC        | 13.88 |         235.9  |             17 |            6.26 |              106.4 |      14 |
