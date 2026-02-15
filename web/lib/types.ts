@@ -54,6 +54,47 @@ export interface TooltipProps {
   metric?: 'PPG' | 'PPS';
 }
 
+// === Player Card Types ===
+
+export interface PlayerListItem {
+  id: string;
+  ottoneu_id: number;
+  name: string;
+  position: string;
+  nfl_team: string;
+  price: number | null;
+  team_name: string | null;
+  total_points: number | null;
+  ppg: number | null;
+  games_played: number | null;
+}
+
+export interface Transaction {
+  id: string;
+  transaction_type: string;
+  team_name: string | null;
+  from_team: string | null;
+  salary: number | null;
+  transaction_date: string | null;
+  raw_description: string | null;
+}
+
+export interface PlayerCardData {
+  id: string;
+  ottoneu_id: number;
+  name: string;
+  position: string;
+  nfl_team: string;
+  price: number | null;
+  team_name: string | null;
+  total_points: number | null;
+  games_played: number | null;
+  snaps: number | null;
+  ppg: number | null;
+  pps: number | null;
+  transactions: Transaction[];
+}
+
 // === Position Constants ===
 
 export type Position = 'QB' | 'RB' | 'WR' | 'TE' | 'K';
