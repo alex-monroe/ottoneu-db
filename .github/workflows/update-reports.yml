@@ -29,8 +29,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install --upgrade pip setuptools wheel
-          pip install supabase python-dotenv nfl_data_py pandas numpy tabulate
+          pip install --upgrade pip
+          pip install --only-binary pandas,numpy supabase python-dotenv nfl_data_py pandas numpy tabulate
 
       - name: Create .env
         working-directory: .
