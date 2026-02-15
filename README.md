@@ -223,12 +223,14 @@ Jobs support:
 **Core tables:**
 - `players`: Player metadata (UUID primary key, unique `ottoneu_id`)
 - `player_stats`: Season statistics (FK to `players`, unique per player/season)
-- `league_prices`: League-specific salaries (FK to `players`, unique per player/league/season)
+- `league_prices`: League-specific current salaries (FK to `players`, unique per player/league/season)
+- `salary_history`: Point-in-time salary snapshots — a new row is inserted only when a player's salary or team changes, enabling time-series analysis of salary movement throughout a season
+- `transactions`: Structured event log of all Ottoneu transactions (adds, cuts, trades, auctions) parsed from player card pages, with a unique constraint to prevent duplicates on re-scrape
 
 **Job queue:**
 - `scraper_jobs`: Persistent job queue with status tracking, dependencies, and retry logic
 
-See `schema.sql` and `migrations/002_add_scraper_jobs.sql` for full schema.
+See `schema.sql` and `migrations/` for full schema.
 
 ### Frontend Architecture
 
