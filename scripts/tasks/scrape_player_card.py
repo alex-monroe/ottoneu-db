@@ -80,7 +80,7 @@ async def run(params: dict, context, supabase) -> TaskResult:
                 if date_idx is not None and len(cols) > date_idx:
                     date_text = (await cols[date_idx].inner_text()).strip()
                     if date_text:
-                        for fmt in ("%m/%d/%Y", "%Y-%m-%d", "%b %d, %Y"):
+                        for fmt in ("%b %d, %Y %I:%M %p", "%m/%d/%Y", "%Y-%m-%d", "%b %d, %Y"):
                             try:
                                 t_date = datetime.strptime(date_text, fmt).date().isoformat()
                                 break
