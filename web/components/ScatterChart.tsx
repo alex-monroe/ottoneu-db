@@ -3,6 +3,7 @@
 import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, Legend } from 'recharts'
 import { useState } from 'react'
 import { ChartPoint, TooltipProps, Position, POSITIONS, POSITION_COLORS } from '@/lib/types'
+import PositionFilter from './PositionFilter'
 
 interface ScatterChartProps {
     data: ChartPoint[]
@@ -92,23 +93,11 @@ export default function PlayerScatterChart({ data }: ScatterChartProps) {
                     </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2 justify-center">
-                    {POSITIONS.map(pos => (
-                        <button
-                            key={pos}
-                            onClick={() => togglePosition(pos)}
-                            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors border ${selectedPositions.includes(pos)
-                                ? 'text-white border-transparent'
-                                : 'bg-transparent text-slate-500 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
-                                }`}
-                            style={{
-                                backgroundColor: selectedPositions.includes(pos) ? POSITION_COLORS[pos] : undefined
-                            }}
-                        >
-                            {pos}
-                        </button>
-                    ))}
-                </div>
+                <PositionFilter
+                    positions={POSITIONS}
+                    selectedPositions={selectedPositions}
+                    onToggle={togglePosition}
+                />
             </div>
 
             <div className="flex-1 min-h-0">
