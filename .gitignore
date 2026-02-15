@@ -30,5 +30,6 @@ build/
 # Block .env files in all directories
 **/.env
 **/.env.*
+.mcp.json
 # Allow specific example files if needed
 !**/.env.example
