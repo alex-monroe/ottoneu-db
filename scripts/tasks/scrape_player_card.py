@@ -122,39 +122,17 @@ async def run(params: dict, context, supabase) -> TaskResult:
 
             break  # Only process the first matching table
 
-        # Upsert league price (backward compat)
+        # Upsert league price (current state)
         if price is not None:
             supabase.table("league_prices").upsert(
                 {
                     "player_id": player_uuid,
                     "league_id": league_id,
-                    "season": season,
                     "price": price,
                     "team_name": "FA",
                 },
-                on_conflict="player_id, league_id, season",
+                on_conflict="player_id, league_id",
             ).execute()
-
-            # Insert salary history row (dedup: only if changed)
-            latest = (
-                supabase.table("salary_history")
-                .select("price, team_name")
-                .eq("player_id", player_uuid)
-                .eq("league_id", league_id)
-                .eq("season", season)
-                .order("scraped_at", desc=True)
-                .limit(1)
-                .execute()
-            )
-            prev = latest.data[0] if latest.data else None
-            if prev is None or prev["price"] != price or prev["team_name"] != "FA":
-                supabase.table("salary_history").insert({
-                    "player_id": player_uuid,
-                    "league_id": league_id,
-                    "season": season,
-                    "price": price,
-                    "team_name": "FA",
-                }).execute()
 
             return TaskResult(
                 success=True,

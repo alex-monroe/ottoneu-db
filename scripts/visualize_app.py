@@ -33,7 +33,7 @@ def load_data(league_id=309, season=2025):
     stats_df = pd.DataFrame(stats_resp.data)
 
     # Fetch Prices
-    prices_resp = supabase.table('league_prices').select('*').eq('league_id', league_id).eq('season', season).execute()
+    prices_resp = supabase.table('league_prices').select('*').eq('league_id', league_id).execute()
     prices_df = pd.DataFrame(prices_resp.data)
 
     if players_df.empty or stats_df.empty or prices_df.empty:

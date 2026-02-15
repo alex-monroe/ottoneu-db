@@ -29,7 +29,7 @@ def fetch_all_data(season: int = SEASON) -> tuple[pd.DataFrame, pd.DataFrame, pd
     supabase = get_supabase_client()
     print(f"Fetching data for season {season}...")
 
-    prices_res = supabase.table('league_prices').select('*').eq('season', season).execute()
+    prices_res = supabase.table('league_prices').select('*').execute()
     stats_res = supabase.table('player_stats').select('*').eq('season', season).execute()
     players_res = supabase.table('players').select('*').execute()
 
