@@ -27,8 +27,9 @@ async def run(params: dict, context, supabase) -> TaskResult:
     player_name = params.get("player_name", "Unknown")
     player_uuid = params["player_uuid"]
     href = params["href"]
-    season = params.get("season", 2025)
+    default_season = params.get("season", 2025)
     league_id = params.get("league_id", 309)
+    fantasy_team = params.get("fantasy_team", "FA")
 
     if href.startswith("http"):
         url = href
@@ -37,7 +38,7 @@ async def run(params: dict, context, supabase) -> TaskResult:
 
     page = await context.new_page()
     try:
-        print(f"  Checking history for FA {player_name}...")
+        print(f"  Scraping transaction history for {player_name}...")
         await page.goto(url, timeout=30000)
         await page.wait_for_selector("table")
 
@@ -96,13 +97,19 @@ async def run(params: dict, context, supabase) -> TaskResult:
                 all_texts = [await c.inner_text() for c in cols]
                 raw_desc = " | ".join(all_texts)
 
+                # Derive season from transaction date (year = season)
+                if t_date:
+                    tx_season = int(t_date[:4])
+                else:
+                    tx_season = default_season
+
                 # Store transaction (unique constraint handles dedup on re-scrape)
                 try:
                     supabase.table("transactions").upsert(
                         {
                             "player_id": player_uuid,
                             "league_id": league_id,
-                            "season": season,
+                            "season": tx_season,
                             "transaction_type": t_type.strip(),
                             "team_name": t_team,
                             "salary": row_salary,
@@ -122,8 +129,8 @@ async def run(params: dict, context, supabase) -> TaskResult:
 
             break  # Only process the first matching table
 
-        # Upsert league price (current state)
-        if price is not None:
+        # For FA players, upsert league price with their real salary
+        if fantasy_team == "FA" and price is not None:
             supabase.table("league_prices").upsert(
                 {
                     "player_id": player_uuid,
@@ -134,24 +141,14 @@ async def run(params: dict, context, supabase) -> TaskResult:
                 on_conflict="player_id, league_id",
             ).execute()
 
-            return TaskResult(
-                success=True,
-                data={
-                    "player_name": player_name,
-                    "price": price,
-                    "transactions_stored": transactions_stored,
-                },
-            )
-        else:
-            return TaskResult(
-                success=True,
-                data={
-                    "player_name": player_name,
-                    "price": None,
-                    "transactions_stored": transactions_stored,
-                    "note": "No non-cut transaction found",
-                },
-            )
+        return TaskResult(
+            success=True,
+            data={
+                "player_name": player_name,
+                "price": price,
+                "transactions_stored": transactions_stored,
+            },
+        )
 
     except Exception as e:
         return TaskResult(success=False, error=f"Error checking history for {player_name}: {e}")
