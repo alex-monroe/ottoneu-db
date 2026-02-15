@@ -93,14 +93,28 @@ export async function fetchPlayerCard(
     const pr = priceRes.data;
     const txns: Transaction[] = txnRes.data ?? [];
 
+    let currentPrice = pr?.price ?? null;
+    let currentTeam = pr?.team_name ?? null;
+
+    if (txns.length > 0) {
+        const latestTxn = txns[0];
+        if (latestTxn.transaction_type.toLowerCase().includes("cut")) {
+            currentPrice = 0;
+            currentTeam = null;
+        } else {
+            currentPrice = latestTxn.salary;
+            currentTeam = latestTxn.team_name;
+        }
+    }
+
     return {
         id: player.id,
         ottoneu_id: player.ottoneu_id,
         name: player.name,
         position: player.position,
         nfl_team: player.nfl_team,
-        price: pr?.price ?? null,
-        team_name: pr?.team_name ?? null,
+        price: currentPrice,
+        team_name: currentTeam,
         total_points: s ? Number(s.total_points) : null,
         games_played: s?.games_played ?? null,
         snaps: s?.snaps ?? null,
