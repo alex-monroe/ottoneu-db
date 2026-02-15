@@ -47,7 +47,7 @@ than the replacement-level player at his position.
 | Bijan Robinson      | RB         | ATL        | 19.49 |         331.3  |             17 |           11.87 |              201.8 |      90 |
 | Jahmyr Gibbs        | RB         | DET        | 19.32 |         328.4  |             17 |           11.7  |              198.9 |      83 |
 | De'Von Achane       | RB         | MIA        | 18.08 |         289.3  |             16 |           10.46 |              177.8 |      55 |
-| Derrick Henry       | RB         | BAL        | 16    |         272    |             17 |            8.38 |              142.5 |       1 |
+| Derrick Henry       | RB         | BAL        | 16    |         272    |             17 |            8.38 |              142.5 |      64 |
 | Kyren Williams      | RB         | LA         | 15.48 |         263.1  |             17 |            7.86 |              133.6 |      65 |
 | James Cook          | RB         | BUF        | 15.31 |         260.2  |             17 |            7.69 |              130.7 |      44 |
 | Josh Jacobs         | RB         | GB         | 14.61 |         219.1  |             15 |            6.99 |              118.8 |      66 |
@@ -57,7 +57,7 @@ than the replacement-level player at his position.
 | Travis Etienne      | RB         | JAC        | 13.88 |         235.9  |             17 |            6.26 |              106.4 |      14 |
 | Saquon Barkley      | RB         | PHI        | 13.36 |         213.8  |             16 |            5.74 |               97.6 |      94 |
 | D'Andre Swift       | RB         | CHI        | 12.93 |         206.8  |             16 |            5.31 |               90.3 |      28 |
-| Ashton Jeanty       | RB         | LV         | 12.8  |         217.6  |             17 |            5.18 |               88.1 |       1 |
+| Ashton Jeanty       | RB         | LV         | 12.8  |         217.6  |             17 |            5.18 |               88.1 |      78 |
 | Omarion Hampton     | RB         | LAC        | 12.5  |         112.5  |              9 |            4.88 |               83   |      43 |
 | Bucky Irving        | RB         | TB         | 12.35 |         123.5  |             10 |            4.73 |               80.4 |      55 |
 | Breece Hall         | RB         | NYJ        | 11.85 |         189.66 |             16 |            4.23 |               71.9 |      41 |
@@ -84,8 +84,8 @@ than the replacement-level player at his position.
 | CeeDee Lamb        | WR         | DAL        | 11.67 |          163.4 |             14 |            3.31 |               56.3 |      92 |
 | Garrett Wilson     | WR         | NYJ        | 11.64 |           81.5 |              7 |            3.28 |               55.8 |      50 |
 | Jameson Williams   | WR         | DET        | 11.02 |          187.4 |             17 |            2.66 |               45.2 |      25 |
-| Tyreek Hill        | WR         | MIA        | 10.75 |           43   |              4 |            2.39 |               40.6 |      14 |
 | Courtland Sutton   | WR         | DEN        | 10.75 |          182.7 |             17 |            2.39 |               40.6 |      34 |
+| Tyreek Hill        | WR         | MIA        | 10.75 |           43   |              4 |            2.39 |               40.6 |      14 |
 | Wan'Dale Robinson  | WR         | NYG        | 10.74 |          171.9 |             16 |            2.38 |               40.5 |       7 |
 
 ## Top 20 TE by VORP
@@ -100,13 +100,13 @@ than the replacement-level player at his position.
 | Kyle Pitts       | TE         | ATL        |  9.81 |          166.8 |             17 |            3.27 |               55.6 |      11 |
 | Sam LaPorta      | TE         | DET        |  9.66 |           86.9 |              9 |            3.12 |               53   |      32 |
 | Harold Fannin    | TE         | CLE        |  9.4  |          150.4 |             16 |            2.86 |               48.6 |       7 |
-| Travis Kelce     | TE         | KC         |  9.13 |          155.2 |             17 |            2.59 |               44   |       1 |
+| Travis Kelce     | TE         | KC         |  9.13 |          155.2 |             17 |            2.59 |               44   |      21 |
 | Colby Parkinson  | TE         | LA         |  9.01 |          135.1 |             15 |            2.47 |               42   |       1 |
 | Colston Loveland | TE         | CHI        |  8.98 |          143.7 |             16 |            2.44 |               41.5 |      12 |
 | Dalton Kincaid   | TE         | BUF        |  8.88 |          106.6 |             12 |            2.34 |               39.8 |       6 |
 | Tyler Warren     | TE         | IND        |  8.85 |          150.5 |             17 |            2.31 |               39.3 |      13 |
 | Jake Ferguson    | TE         | DAL        |  8.65 |          147.1 |             17 |            2.11 |               35.9 |       6 |
-| Darren Waller    | TE         | MIA        |  8.52 |           76.7 |              9 |            1.98 |               33.7 |       1 |
+| Darren Waller    | TE         | MIA        |  8.52 |           76.7 |              9 |            1.98 |               33.7 |       5 |
 | Juwan Johnson    | TE         | NO         |  8.32 |          141.4 |             17 |            1.78 |               30.3 |       8 |
 | Dalton Schultz   | TE         | HOU        |  7.95 |          135.1 |             17 |            1.41 |               24   |       5 |
 | Zach Ertz        | TE         | WAS        |  7.8  |          101.4 |             13 |            1.26 |               21.4 |       1 |
@@ -124,7 +124,7 @@ than the replacement-level player at his position.
 | Brandon Aubrey   | K          | DAL        | 10.62 |          180.6 |             17 |            2.97 |               50.5 |       7 |
 | Zane Gonzalez    | K          | ATL        | 10.22 |           92   |              9 |            2.57 |               43.7 |       1 |
 | Cameron Dicker   | K          | LAC        |  9.41 |          160   |             17 |            1.76 |               29.9 |       5 |
-| Cam Little       | K          | JAC        |  9.35 |          159   |             17 |            1.7  |               28.9 |       1 |
+| Cam Little       | K          | JAC        |  9.35 |          159   |             17 |            1.7  |               28.9 |       2 |
 | Will Reichard    | K          | MIN        |  9.24 |          157   |             17 |            1.59 |               27   |       6 |
 | Cairo Santos     | K          | CHI        |  8.93 |          134   |             15 |            1.28 |               21.8 |       1 |
 | Chase McLaughlin | K          | TB         |  8.76 |          149   |             17 |            1.11 |               18.9 |       5 |
@@ -135,8 +135,8 @@ than the replacement-level player at his position.
 | Tyler Loop       | K          | BAL        |  8.12 |          138   |             17 |            0.47 |                8   |       1 |
 | Joey Slye        | K          | TEN        |  7.94 |          127   |             16 |            0.29 |                4.9 |       5 |
 | Nick Folk        | K          | NYJ        |  7.88 |          126   |             16 |            0.23 |                3.9 |       1 |
+| Wil Lutz         | K          | DEN        |  7.65 |          130   |             17 |            0    |                0   |       2 |
 | Evan McPherson   | K          | CIN        |  7.65 |          130   |             17 |            0    |                0   |       5 |
-| Wil Lutz         | K          | DEN        |  7.65 |          130   |             17 |            0    |                0   |       1 |
 
 ## Top 30 Overall (Cross-Position)
 
@@ -154,7 +154,7 @@ than the replacement-level player at his position.
 | Trevor Lawrence     | QB         | JAC        | 20.43 |         347.24 |             17 |            9.02 |              153.3 |      26 |
 | Patrick Mahomes     | QB         | KC         | 20.23 |         283.18 |             14 |            8.82 |              149.9 |      64 |
 | Brock Purdy         | QB         | SF         | 20.2  |         181.78 |              9 |            8.79 |              149.4 |      44 |
-| Derrick Henry       | RB         | BAL        | 16    |         272    |             17 |            8.38 |              142.5 |       1 |
+| Derrick Henry       | RB         | BAL        | 16    |         272    |             17 |            8.38 |              142.5 |      64 |
 | Trey McBride        | TE         | ARI        | 14.88 |         252.9  |             17 |            8.34 |              141.8 |      49 |
 | Drake Maye          | QB         | NE         | 19.68 |         334.64 |             17 |            8.27 |              140.6 |      30 |
 | Kyren Williams      | RB         | LA         | 15.48 |         263.1  |             17 |            7.86 |              133.6 |      65 |
@@ -167,8 +167,8 @@ than the replacement-level player at his position.
 | Chase Brown         | RB         | CIN        | 14.59 |         248.1  |             17 |            6.97 |              118.5 |      47 |
 | Dak Prescott        | QB         | DAL        | 18.28 |         310.78 |             17 |            6.87 |              116.8 |      30 |
 | Cam Skattebo        | RB         | NYG        | 14.46 |         115.7  |              8 |            6.84 |              116.3 |      15 |
-| Jalen Hurts         | QB         | PHI        | 17.93 |         286.9  |             16 |            6.52 |              110.8 |     110 |
 | Justin Herbert      | QB         | LAC        | 17.93 |         286.88 |             16 |            6.52 |              110.8 |      45 |
+| Jalen Hurts         | QB         | PHI        | 17.93 |         286.9  |             16 |            6.52 |              110.8 |     110 |
 | Javonte Williams    | RB         | DAL        | 14.08 |         225.3  |             16 |            6.46 |              109.8 |      11 |
 | Bo Nix              | QB         | DEN        | 17.7  |         300.84 |             17 |            6.29 |              106.9 |      54 |
 | Travis Etienne      | RB         | JAC        | 13.88 |         235.9  |             17 |            6.26 |              106.4 |      14 |
