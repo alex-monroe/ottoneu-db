@@ -13,8 +13,7 @@ from analyze_surplus_value import calculate_surplus
 def analyze_arbitration(merged_df: pd.DataFrame) -> pd.DataFrame:
     """Identify arbitration targets on opponents' rosters.
 
-    A good arbitration target is a player where a $4 raise (max single-team arb)
-    could push them from barely keepable to cut territory.
+    A good arbitration target is a player with high surplus value
 
     Returns:
         DataFrame of arbitration targets sorted by disruption potential.
@@ -40,15 +39,13 @@ def analyze_arbitration(merged_df: pd.DataFrame) -> pd.DataFrame:
     opponents['salary_after_arb'] = opponents['price'] + ARB_MAX_PER_PLAYER_PER_TEAM
     opponents['surplus_after_arb'] = opponents['dollar_value'] - opponents['salary_after_arb']
 
-    # Focus on players who are close to the cut line
-    # (surplus between -10 and +15 means they're in the danger zone)
+    # Focus on players with the highest surplus
+    # Maximize opponent pain by targeting players they will likely keep anyway
     targets = opponents[
-        (opponents['surplus'] >= -10)
-        & (opponents['surplus'] <= 15)
-        & (opponents['dollar_value'] > 1)
+        (opponents['dollar_value'] > 1)
     ].copy()
 
-    targets = targets.sort_values('surplus', ascending=True)
+    targets = targets.sort_values('surplus', ascending=False)
 
     return targets
 
@@ -64,10 +61,10 @@ def generate_report(targets: pd.DataFrame) -> str:
 
     with open(output_file, 'w') as f:
         f.write(f'# Arbitration Targets ({SEASON})\n\n')
-        f.write('Players on opponent rosters most vulnerable to a $4 arbitration raise.\n')
+        f.write('Players on opponent rosters with the **highest surplus value**.\n')
+        f.write('Strategy: Maximize opponent cost by targeting players they are likely to keep.\n')
         f.write('`surplus` = dollar_value - current salary.\n')
-        f.write('`surplus_after_arb` = dollar_value - salary after $4 arbitration raise.\n')
-        f.write('Negative surplus = player is overpaid and likely to be cut.\n\n')
+        f.write('`surplus_after_arb` = dollar_value - salary after $4 arbitration raise.\n\n')
         f.write(f'**Budget:** ${ARB_BUDGET_PER_TEAM} total, '
                 f'${ARB_MIN_PER_TEAM}-${ARB_MAX_PER_TEAM} per opposing team, '
                 f'max ${ARB_MAX_PER_PLAYER_PER_TEAM} per player from you.\n\n')
