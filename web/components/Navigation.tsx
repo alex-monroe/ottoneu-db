@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { href: "/vorp", label: "VORP" },
   { href: "/surplus-value", label: "Surplus Value" },
   { href: "/arbitration", label: "Arbitration" },
+  { href: "/arbitration-simulation", label: "Arb Simulation" },
 ];
 
 export default function Navigation() {
