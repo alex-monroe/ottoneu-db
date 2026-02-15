@@ -87,7 +87,7 @@ export default async function PlayerCardPage({
                         </div>
 
                         <a
-                            href={`https://ottoneu.fangraphs.com/playercard?id=${player.ottoneu_id}`}
+                            href={`https://ottoneu.fangraphs.com/football/309/player_card/nfl/${player.ottoneu_id}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline mt-3"
@@ -190,8 +190,8 @@ export default async function PlayerCardPage({
                                             <tr
                                                 key={txn.id}
                                                 className={`border-t border-slate-100 dark:border-slate-800 ${i % 2 === 0
-                                                        ? "bg-white dark:bg-slate-950"
-                                                        : "bg-slate-50 dark:bg-slate-900"
+                                                    ? "bg-white dark:bg-slate-950"
+                                                    : "bg-slate-50 dark:bg-slate-900"
                                                     }`}
                                             >
                                                 <td className="px-3 py-2 text-slate-700 dark:text-slate-300 whitespace-nowrap">
