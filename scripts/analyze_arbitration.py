@@ -13,8 +13,7 @@ from analyze_surplus_value import calculate_surplus
 def analyze_arbitration(merged_df: pd.DataFrame) -> pd.DataFrame:
     """Identify arbitration targets on opponents' rosters.
 
-    A good arbitration target is a player where a $4 raise (max single-team arb)
-    could push them from barely keepable to cut territory.
+    A good arbitration target is a player with high surplus value
 
     Returns:
         DataFrame of arbitration targets sorted by disruption potential.
