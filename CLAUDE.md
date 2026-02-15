@@ -25,11 +25,12 @@ Comprehensive database and analytics platform for Ottoneu League 309 (12-team Su
 - `python scripts/worker.py` — process pending scraper jobs (exit when done)
 - `python scripts/worker.py --poll` — process jobs continuously (for scheduling)
 - `python scripts/analyze_efficiency.py` — calculate efficiency metrics
-- `python scripts/run_all_analyses.py` — run full analysis suite (projected salary, VORP, surplus value, arbitration)
+- `python scripts/run_all_analyses.py` — run full analysis suite (projected salary, VORP, surplus value, arbitration, arbitration simulation)
 - `python scripts/analyze_projected_salary.py` — keep vs cut decisions for The Witchcraft
 - `python scripts/analyze_vorp.py` — positional scarcity / Value Over Replacement
 - `python scripts/analyze_surplus_value.py` — dollar value vs salary for all players
 - `python scripts/analyze_arbitration.py` — identify opponents' vulnerable players for arbitration
+- `python scripts/analyze_arbitration_simulation.py` — simulate opponent arbitration spending (100 Monte Carlo runs)
 - `python scripts/check_db.py` — verify database contents
 - `streamlit run scripts/visualize_app.py` — Streamlit dashboard
 
@@ -66,7 +67,7 @@ Python Scripts (scraper/analysis)
 - `/surplus-value` — Surplus value rankings, bargains, overpaid, team summaries
 - `/arbitration` — Arbitration targets with per-opponent breakdown
 
-**Analysis suite** (`scripts/analysis_utils.py` + `scripts/analyze_*.py`): Shared config and DB helpers in `analysis_utils.py`. Four analysis scripts produce markdown reports in `reports/` (gitignored). `run_all_analyses.py` orchestrates them in dependency order: projected salary -> VORP -> surplus value -> arbitration. VORP and surplus value expose `calculate_vorp()` and `calculate_surplus()` for import by downstream scripts.
+**Analysis suite** (`scripts/analysis_utils.py` + `scripts/analyze_*.py`): Shared config and DB helpers in `analysis_utils.py`. Five analysis scripts produce markdown reports in `reports/` (gitignored). `run_all_analyses.py` orchestrates them in dependency order: projected salary -> VORP -> surplus value -> arbitration -> arbitration simulation. VORP and surplus value expose `calculate_vorp()` and `calculate_surplus()` for import by downstream scripts. Arbitration simulation uses Monte Carlo methods to predict opponent spending patterns (100 runs with ±20% value variation per team).
 
 **Key metrics:**
 - PPG (Points Per Game) = total_points / games_played

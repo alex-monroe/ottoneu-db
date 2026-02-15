@@ -25,6 +25,11 @@ export const ARB_BUDGET_PER_TEAM = 60;
 export const ARB_MIN_PER_TEAM = 1;
 export const ARB_MAX_PER_TEAM = 8;
 export const ARB_MAX_PER_PLAYER_PER_TEAM = 4;
+export const ARB_MAX_PER_PLAYER_LEAGUE = 44;
+
+// Simulation parameters
+export const NUM_SIMULATIONS = 100;
+export const VALUE_VARIATION = 0.20; // ±20% value variation per team
 
 export const POSITIONS = ["QB", "RB", "WR", "TE", "K"] as const;
 
@@ -83,6 +88,16 @@ export interface TeamAllocation {
         surplus: number;
         surplus_after_arb: number;
     }[];
+}
+
+export interface SimulationResult extends SurplusPlayer {
+    mean_arb: number;
+    std_arb: number;
+    min_arb: number;
+    max_arb: number;
+    pct_protected: number;
+    salary_after_arb: number;
+    surplus_after_arb: number;
 }
 
 // === Analysis Functions ===
@@ -283,4 +298,264 @@ export function allocateArbitrationBudget(targets: ArbitrationTarget[]): TeamAll
             })),
         }))
         .sort((a, b) => b.suggested - a.suggested);
+}
+
+// === Arbitration Simulation ===
+
+/**
+ * Seeded random number generator for reproducible simulations
+ */
+class SeededRandom {
+    private seed: number;
+
+    constructor(seed: number) {
+        this.seed = seed;
+    }
+
+    next(): number {
+        this.seed = (this.seed * 9301 + 49297) % 233280;
+        return this.seed / 233280;
+    }
+
+    /**
+     * Box-Muller transform to generate normally distributed random numbers
+     */
+    normalRandom(mean: number = 0, std: number = 1): number {
+        const u1 = this.next();
+        const u2 = this.next();
+        const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+        return z0 * std + mean;
+    }
+
+    /**
+     * Generate lognormal random number
+     */
+    lognormalRandom(sigma: number): number {
+        const normal = this.normalRandom(0, sigma);
+        return Math.exp(normal);
+    }
+}
+
+/**
+ * Generate team-specific valuations with variation
+ */
+function generateTeamValuations(
+    players: SurplusPlayer[],
+    allTeams: string[],
+    variation: number,
+    seed: number
+): Map<string, SurplusPlayer[]> {
+    const teamValuations = new Map<string, SurplusPlayer[]>();
+    const rosteredTeams = allTeams.filter(t => t !== 'FA' && t !== '' && t !== null);
+
+    for (const team of rosteredTeams) {
+        const rng = new SeededRandom(seed + team.split('').reduce((a, b) => a + b.charCodeAt(0), 0));
+        const teamPlayers = players.map(p => {
+            const multiplier = rng.lognormalRandom(variation);
+            const teamValueEstimate = Math.max(0, p.dollar_value * multiplier);
+
+            return {
+                ...p,
+                dollar_value: Math.round(teamValueEstimate),
+                surplus: Math.round(teamValueEstimate) - p.price,
+            };
+        });
+
+        teamValuations.set(team, teamPlayers);
+    }
+
+    return teamValuations;
+}
+
+/**
+ * Allocate one team's arbitration budget
+ */
+function allocateTeamBudget(
+    teamName: string,
+    teamValuations: SurplusPlayer[],
+    allTeams: string[],
+    budget: number,
+    minPerTeam: number,
+    maxPerTeam: number,
+    maxPerPlayer: number
+): Map<string, number> {
+    const allocations = new Map<string, number>();
+    const opponents = allTeams.filter(
+        t => t !== teamName && t !== 'FA' && t !== '' && t !== null
+    );
+
+    let remainingBudget = budget - (opponents.length * minPerTeam);
+
+    // Phase 1: Protect own valuable players (defensive spending)
+    const ownPlayers = teamValuations
+        .filter(p => p.team_name === teamName && p.dollar_value > 1)
+        .sort((a, b) => b.surplus - a.surplus)
+        .filter(p => p.surplus > 0)
+        .slice(0, 10);
+
+    const defensiveBudget = Math.min(
+        remainingBudget * 0.6,
+        ownPlayers.length * maxPerPlayer
+    );
+
+    let defensiveSpent = 0;
+    for (const player of ownPlayers) {
+        if (defensiveSpent >= defensiveBudget) break;
+
+        const amount = Math.min(
+            maxPerPlayer,
+            (defensiveBudget - defensiveSpent) / Math.max(1, ownPlayers.length - ownPlayers.indexOf(player))
+        );
+
+        if (amount >= 0.5) {
+            const key = `${player.name}|${teamName}`;
+            allocations.set(key, amount);
+            remainingBudget -= amount;
+            defensiveSpent += amount;
+        }
+    }
+
+    // Phase 2: Attack opponents' vulnerable high-value players (offensive spending)
+    const opponentPlayers = teamValuations
+        .filter(p => opponents.includes(p.team_name!) && p.dollar_value > 1)
+        .sort((a, b) => b.surplus - a.surplus)
+        .filter(p => p.surplus > 0)
+        .slice(0, 20);
+
+    for (const player of opponentPlayers) {
+        if (remainingBudget <= 0) break;
+
+        const targetTeam = player.team_name!;
+        const currentToTeam = Array.from(allocations.entries())
+            .filter(([key]) => key.endsWith(`|${targetTeam}`))
+            .reduce((sum, [, amt]) => sum + amt, 0);
+
+        const availableForTeam = maxPerTeam - currentToTeam;
+        if (availableForTeam < 0.5) continue;
+
+        const amount = Math.min(
+            maxPerPlayer,
+            availableForTeam,
+            remainingBudget / 5
+        );
+
+        if (amount >= 0.5) {
+            const key = `${player.name}|${targetTeam}`;
+            allocations.set(key, (allocations.get(key) || 0) + amount);
+            remainingBudget -= amount;
+        }
+    }
+
+    // Phase 3: Ensure minimum allocation to all opponents
+    for (const opponent of opponents) {
+        const currentToTeam = Array.from(allocations.entries())
+            .filter(([key]) => key.endsWith(`|${opponent}`))
+            .reduce((sum, [, amt]) => sum + amt, 0);
+
+        if (currentToTeam < minPerTeam) {
+            const shortfall = minPerTeam - currentToTeam;
+            const opponentPlayers = teamValuations.filter(p => p.team_name === opponent);
+
+            if (opponentPlayers.length > 0) {
+                const player = opponentPlayers[0];
+                const key = `${player.name}|${opponent}`;
+                allocations.set(key, (allocations.get(key) || 0) + shortfall);
+            }
+        }
+    }
+
+    return allocations;
+}
+
+/**
+ * Run arbitration simulation
+ */
+export function runArbitrationSimulation(
+    players: Player[],
+    numSims: number = NUM_SIMULATIONS
+): SimulationResult[] {
+    const surplusPlayers = calculateSurplus(players);
+    if (surplusPlayers.length === 0) return [];
+
+    const allTeams = Array.from(new Set(surplusPlayers.map(p => p.team_name).filter(Boolean))) as string[];
+    const rosteredTeams = allTeams.filter(t => t !== 'FA' && t !== '');
+
+    // Track arbitration totals across simulations
+    const arbResults = new Map<string, number[]>();
+
+    for (let sim = 0; sim < numSims; sim++) {
+        const teamValuations = generateTeamValuations(
+            surplusPlayers,
+            allTeams,
+            VALUE_VARIATION,
+            sim
+        );
+
+        // Track totals for this simulation
+        const simArbTotals = new Map<string, number>();
+
+        // Each team allocates their budget
+        for (const team of rosteredTeams) {
+            const allocations = allocateTeamBudget(
+                team,
+                teamValuations.get(team)!,
+                allTeams,
+                ARB_BUDGET_PER_TEAM,
+                ARB_MIN_PER_TEAM,
+                ARB_MAX_PER_TEAM,
+                ARB_MAX_PER_PLAYER_PER_TEAM
+            );
+
+            // Add to simulation totals
+            for (const [key, amount] of allocations.entries()) {
+                simArbTotals.set(key, (simArbTotals.get(key) || 0) + amount);
+            }
+        }
+
+        // Cap at league maximum and record results
+        for (const [key, total] of simArbTotals.entries()) {
+            const cappedTotal = Math.min(total, ARB_MAX_PER_PLAYER_LEAGUE);
+
+            if (!arbResults.has(key)) {
+                arbResults.set(key, []);
+            }
+            arbResults.get(key)!.push(cappedTotal);
+        }
+    }
+
+    // Aggregate simulation results
+    const results: SimulationResult[] = [];
+
+    for (const [key, amounts] of arbResults.entries()) {
+        const [playerName, teamName] = key.split('|');
+
+        const playerData = surplusPlayers.find(
+            p => p.name === playerName && p.team_name === teamName
+        );
+
+        if (!playerData) continue;
+
+        const meanArb = amounts.reduce((a, b) => a + b, 0) / amounts.length;
+        const variance = amounts.reduce((sum, x) => sum + Math.pow(x - meanArb, 2), 0) / amounts.length;
+        const stdArb = Math.sqrt(variance);
+        const minArb = Math.min(...amounts);
+        const maxArb = Math.max(...amounts);
+        const pctProtected = amounts.filter(x => x >= ARB_MAX_PER_PLAYER_LEAGUE * 0.9).length / amounts.length;
+
+        const salaryAfterArb = playerData.price + meanArb;
+        const surplusAfterArb = playerData.dollar_value - salaryAfterArb;
+
+        results.push({
+            ...playerData,
+            mean_arb: Math.round(meanArb * 10) / 10,
+            std_arb: Math.round(stdArb * 10) / 10,
+            min_arb: Math.round(minArb * 10) / 10,
+            max_arb: Math.round(maxArb * 10) / 10,
+            pct_protected: Math.round(pctProtected * 100) / 100,
+            salary_after_arb: Math.round(salaryAfterArb * 10) / 10,
+            surplus_after_arb: Math.round(surplusAfterArb * 10) / 10,
+        });
+    }
+
+    return results.sort((a, b) => b.mean_arb - a.mean_arb);
 }

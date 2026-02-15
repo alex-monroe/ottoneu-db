@@ -5,7 +5,7 @@ import { useState } from "react";
 export interface Column {
   key: string;
   label: string;
-  format?: "currency" | "number" | "decimal";
+  format?: "currency" | "number" | "decimal" | "percent";
 }
 
 export interface HighlightRule {
@@ -86,6 +86,8 @@ export default function DataTable<T extends TableRow = TableRow>({
     if (format === "number") return isNaN(num) ? String(value) : String(num);
     if (format === "decimal")
       return isNaN(num) ? String(value) : num.toFixed(2);
+    if (format === "percent")
+      return isNaN(num) ? String(value) : `${(num * 100).toFixed(0)}%`;
     return String(value);
   };
 
