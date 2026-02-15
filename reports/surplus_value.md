@@ -10,22 +10,22 @@
 | Matthew Stafford    | QB         | LA         |      13 |             75 |        62 | 21.48 |              171.2 | Irish Invasion                |
 | Trevor Lawrence     | QB         | JAC        |      26 |             67 |        41 | 20.43 |              153.3 | The Witchcraft                |
 | Rashee Rice         | WR         | KC         |      14 |             53 |        39 | 15.45 |              120.5 | Ball So Hard University       |
-| Tucker Kraft        | TE         | GB         |       8 |             46 |        38 | 12.65 |              103.9 | The Hard Eight                |
 | Daniel Jones        | QB         | IND        |       6 |             44 |        38 | 17.34 |              100.8 | Ball So Hard University       |
+| Tucker Kraft        | TE         | GB         |       8 |             46 |        38 | 12.65 |              103.9 | The Hard Eight                |
 | Javonte Williams    | RB         | DAL        |      11 |             48 |        37 | 14.08 |              109.8 | Marin County Mountain Runners |
-| Cam Skattebo        | RB         | NYG        |      15 |             51 |        36 | 14.46 |              116.3 | Tinseltown Little Gold Men    |
 | Harrison Mevis      | K          | LA         |       1 |             37 |        36 | 12.67 |               85.3 | FA                            |
-| Caleb Williams      | QB         | CHI        |      21 |             54 |        33 | 18.6  |              122.2 | The Triple Helix              |
+| Cam Skattebo        | RB         | NYG        |      15 |             51 |        36 | 14.46 |              116.3 | Tinseltown Little Gold Men    |
 | Travis Etienne      | RB         | JAC        |      14 |             47 |        33 | 13.88 |              106.4 | The Trigeminal Thunderclaps   |
+| Caleb Williams      | QB         | CHI        |      21 |             54 |        33 | 18.6  |              122.2 | The Triple Helix              |
 | Drake Maye          | QB         | NE         |      30 |             62 |        32 | 19.68 |              140.6 | Tinseltown Little Gold Men    |
 | Jonathan Taylor     | RB         | IND        |      61 |             92 |        31 | 19.96 |              209.8 | The Roseman Empire            |
-| Jaxson Dart         | QB         | NYG        |      13 |             43 |        30 | 17.18 |               98.1 | The Trigeminal Thunderclaps   |
-| Ka'imi Fairbairn    | K          | HOU        |       7 |             37 |        30 | 12.67 |               85.3 | The Hard Eight                |
 | Jacoby Brissett     | QB         | ARI        |       5 |             35 |        30 | 16.17 |               80.9 | The Roseman Empire            |
+| Ka'imi Fairbairn    | K          | HOU        |       7 |             37 |        30 | 12.67 |               85.3 | The Hard Eight                |
+| Jaxson Dart         | QB         | NYG        |      13 |             43 |        30 | 17.18 |               98.1 | The Trigeminal Thunderclaps   |
 | Spencer Shrader     | K          | IND        |       1 |             26 |        25 | 11.2  |               60.3 | FA                            |
+| Dallas Goedert      | TE         | PHI        |       5 |             28 |        23 | 10.34 |               64.6 | Tinseltown Little Gold Men    |
 | George Pickens      | WR         | DAL        |      22 |             45 |        23 | 14.44 |              103.4 | Pacific Punt Masters          |
 | De'Von Achane       | RB         | MIA        |      55 |             78 |        23 | 18.08 |              177.8 | The Royal Dynasty             |
-| Dallas Goedert      | TE         | PHI        |       5 |             28 |        23 | 10.34 |               64.6 | Tinseltown Little Gold Men    |
 | Christian McCaffrey | RB         | SF         |      77 |             99 |        22 | 20.93 |              226.3 | The Roseman Empire            |
 | Jason Myers         | K          | SEA        |       7 |             28 |        21 | 11.41 |               63.9 | The Royal Dynasty             |
 | Brock Purdy         | QB         | SF         |      44 |             65 |        21 | 20.2  |              149.4 | The Hard Eight                |
@@ -34,9 +34,9 @@
 | Chris Olave         | WR         | NO         |      19 |             39 |        20 | 13.62 |               89.4 | The Royal Dynasty             |
 | Quinshon Judkins    | RB         | CLE        |       8 |             27 |        19 | 11.2  |               60.9 | The Trigeminal Thunderclaps   |
 | Zane Gonzalez       | K          | ATL        |       1 |             19 |        18 | 10.22 |               43.7 | FA                            |
-| Tyler Shough        | QB         | NO         |       5 |             22 |        17 | 14.36 |               50.1 | The Hard Eight                |
-| Colby Parkinson     | TE         | LA         |       1 |             18 |        17 |  9.01 |               42   | FA                            |
 | Justin Fields       | QB         | NYJ        |      14 |             31 |        17 | 15.52 |               69.9 | FA                            |
+| Colby Parkinson     | TE         | LA         |       1 |             18 |        17 |  9.01 |               42   | FA                            |
+| Tyler Shough        | QB         | NO         |       5 |             22 |        17 | 14.36 |               50.1 | The Hard Eight                |
 
 ## Bottom 30 Surplus (Most Overpaid)
 
@@ -64,8 +64,8 @@
 | Chuba Hubbard      | RB         | CAR        |      28 |              1 |       -27 |  7.53 |               -1.5 | The Trigeminal Thunderclaps   |
 | Ricky Pearsall     | WR         | SF         |      27 |              1 |       -26 |  7.04 |              -22.4 | The Trigeminal Thunderclaps   |
 | Garrett Wilson     | WR         | NYJ        |      50 |             24 |       -26 | 11.64 |               55.8 | The Hard Eight                |
-| Emeka Egbuka       | WR         | TB         |      35 |             10 |       -25 |  9.66 |               22.1 | Tinseltown Little Gold Men    |
 | DeVonta Smith      | WR         | PHI        |      38 |             13 |       -25 | 10.07 |               29.1 | Marin County Mountain Runners |
+| Emeka Egbuka       | WR         | TB         |      35 |             10 |       -25 |  9.66 |               22.1 | Tinseltown Little Gold Men    |
 | Ladd McConkey      | WR         | LAC        |      28 |              4 |       -24 |  8.89 |                9   | Tinseltown Little Gold Men    |
 | Nico Collins       | WR         | HOU        |      55 |             32 |       -23 | 12.69 |               73.6 | Irish Invasion                |
 | Isiah Pacheco      | RB         | KC         |      23 |              1 |       -22 |  5.98 |              -27.9 | Pacific Punt Masters          |
@@ -81,8 +81,8 @@
 | Kyle Pitts      | TE         |      11 |             24 |        13 |  9.81 |               55.6 |
 | Jayden Higgins  | WR         |       5 |              1 |        -4 |  6.48 |              -32   |
 | Jalen McMillan  | WR         |       7 |              1 |        -6 |  5.97 |              -40.6 |
-| Tyjae Spears    | RB         |      10 |              1 |        -9 |  6.86 |              -12.9 |
 | Trey Benson     | RB         |      10 |              1 |        -9 |  7.22 |               -6.8 |
+| Tyjae Spears    | RB         |      10 |              1 |        -9 |  6.86 |              -12.9 |
 | Luther Burden   | WR         |      12 |              1 |       -11 |  6.96 |              -23.8 |
 | C.J. Stroud     | QB         |      38 |             26 |       -12 | 14.84 |               58.3 |
 | Jakobi Meyers   | WR         |      15 |              1 |       -14 |  7.89 |               -8   |
@@ -114,8 +114,8 @@
 | Jake Moody       | K          | WAS        |              7 |  8.56 |               15.5 |
 | Tyler Loop       | K          | BAL        |              4 |  8.12 |                8   |
 | Nick Folk        | K          | NYJ        |              2 |  7.88 |                3.9 |
-| Chad Ryland      | K          | ARI        |              1 |  7.24 |               -7   |
-| Younghoe Koo     | K          | FA         |              1 |  4.83 |              -47.9 |
+| Blake Grupe      | K          | IND        |              1 |  7.56 |               -1.5 |
+| Matthew Wright   | K          | FA         |              1 |  5.5  |              -36.6 |
 
 ## Per-Team Summary
 

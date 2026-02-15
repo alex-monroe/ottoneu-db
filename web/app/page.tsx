@@ -8,7 +8,7 @@ export default async function Home() {
   // Fetch Players
   const { data: players } = await supabase.from('players').select('*')
   const { data: stats } = await supabase.from('player_stats').select('*').eq('season', 2025)
-  const { data: prices } = await supabase.from('league_prices').select('*').eq('league_id', 309).eq('season', 2025)
+  const { data: prices } = await supabase.from('league_prices').select('*').eq('league_id', 309)
 
   if (!players || !stats || !prices) {
     return <div>Error loading data or no data found.</div>

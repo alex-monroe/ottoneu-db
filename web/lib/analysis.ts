@@ -81,8 +81,7 @@ export async function fetchAndMergeData(): Promise<Player[]> {
     supabase
       .from("league_prices")
       .select("*")
-      .eq("league_id", LEAGUE_ID)
-      .eq("season", SEASON),
+      .eq("league_id", LEAGUE_ID),
   ]);
 
   const players = playersRes.data;
