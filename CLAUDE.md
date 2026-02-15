@@ -75,6 +75,31 @@ Python Scripts (scraper/analysis)
 - Surplus Value = dollar_value (from VORP) - salary
 - Chart shows salary (Y-axis) vs. selected metric (X-axis), bubble size = total points
 
+## Code Organization
+
+### Python Configuration
+All configuration constants live in `scripts/config.py`:
+- League settings (LEAGUE_ID, SEASON, MY_TEAM)
+- Fantasy rules (NUM_TEAMS, CAP_PER_TEAM, POSITIONS)
+- Analysis thresholds (MIN_GAMES, REPLACEMENT_LEVEL)
+- Arbitration constants
+- Shared Supabase client via `get_supabase_client()`
+
+All scripts import from `config.py` to eliminate duplication and ensure consistency.
+
+### TypeScript Types
+Shared type definitions in `web/lib/types.ts`:
+- Player data interfaces (Player, VorpPlayer, SurplusPlayer, ChartPoint)
+- Chart component types (TooltipProps)
+- Position constants (Position type, POSITIONS array, POSITION_COLORS)
+
+### Reusable Components
+- `DataTable` — generic sortable table with type safety and highlight rules
+- `SummaryCard` — metric display cards with variant styles (default, positive, negative)
+- `PositionFilter` — position selection buttons with multi-select support
+- `ScatterChart` — player efficiency scatter plot with interactive filters
+- Column definitions in `web/lib/columns.ts` for consistent table layouts
+
 ## Git Workflow
 
 **CRITICAL: All changes MUST be submitted as pull requests. NEVER commit directly to `main`.**
