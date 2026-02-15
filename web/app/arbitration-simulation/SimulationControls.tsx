@@ -137,7 +137,7 @@ export default function SimulationControls({ initialPlayers }: SimulationControl
                 id="valueVar"
                 type="range"
                 min="0"
-                max="50"
+                max="90"
                 step="5"
                 value={valueVariation * 100}
                 onChange={(e) => setValueVariation(parseInt(e.target.value) / 100)}
@@ -148,7 +148,7 @@ export default function SimulationControls({ initialPlayers }: SimulationControl
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              How much teams&apos; valuations differ (0% = all agree, 50% = high variation)
+              How much teams&apos; valuations differ (0% = all agree, 90% = extreme variation)
             </p>
           </div>
         </div>
