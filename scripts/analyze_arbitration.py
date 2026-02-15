@@ -22,12 +22,13 @@ def analyze_arbitration(merged_df: pd.DataFrame) -> pd.DataFrame:
     if surplus_df.empty:
         return pd.DataFrame()
 
-    # Filter to opponents' rostered players only (exclude free agents and my team)
+    # Filter to opponents' rostered players only (exclude free agents, my team, and kickers)
     opponents = surplus_df[
         (surplus_df['team_name'].notna())
         & (surplus_df['team_name'] != '')
         & (surplus_df['team_name'] != 'FA')
         & (surplus_df['team_name'] != MY_TEAM)
+        & (surplus_df['position'] != 'K')
     ].copy()
 
     if opponents.empty:
