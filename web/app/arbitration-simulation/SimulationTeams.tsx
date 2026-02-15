@@ -22,18 +22,18 @@ const TEAM_PLAYER_COLUMNS: Column[] = [
 export default function SimulationTeams({ results }: SimulationTeamsProps) {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
 
-  // Get all opponent teams
-  const opponentTeams = Array.from(
+  // Get all rostered teams (including my team)
+  const allTeams = Array.from(
     new Set(
       results
-        .filter((p) => p.team_name !== MY_TEAM && p.team_name !== "FA" && p.team_name)
+        .filter((p) => p.team_name !== "FA" && p.team_name !== "" && p.team_name)
         .map((p) => p.team_name!)
     )
   ).sort();
 
   return (
     <div className="space-y-4">
-      {opponentTeams.map((team) => {
+      {allTeams.map((team) => {
         const teamPlayers = results
           .filter((p) => p.team_name === team)
           .sort((a, b) => b.mean_arb - a.mean_arb);

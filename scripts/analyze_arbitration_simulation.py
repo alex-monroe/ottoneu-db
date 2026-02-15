@@ -385,13 +385,16 @@ def generate_simulation_report(sim_results: pd.DataFrame) -> str:
             f.write(protected.head(15)[prot_cols].to_markdown(index=False, floatfmt='.1f'))
             f.write('\n\n')
 
-        # === Section 4: Full Roster Breakdown by Opponent ===
-        f.write('## Full Roster Breakdown by Opponent\n\n')
+        # === Section 4: Full Roster Breakdown by Team ===
+        f.write('## Full Roster Breakdown by Team\n\n')
         f.write('Complete roster for each team showing expected arbitration raises.\n\n')
 
-        opponent_teams = sorted(opponents['team_name'].unique())
+        all_rostered_teams = sorted(sim_results[
+            (sim_results['team_name'] != 'FA') &
+            (sim_results['team_name'] != '')
+        ]['team_name'].unique())
 
-        for team in opponent_teams:
+        for team in all_rostered_teams:
             team_players = sim_results[sim_results['team_name'] == team].copy()
             team_players = team_players.sort_values('mean_arb', ascending=False)
 

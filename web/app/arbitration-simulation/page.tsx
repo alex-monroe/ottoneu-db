@@ -190,10 +190,10 @@ export default async function ArbitrationSimulationPage() {
         {/* Per-Team Breakdown */}
         <section>
           <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
-            Full Roster Breakdown by Opponent
+            Full Roster Breakdown by Team
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-            Complete roster for each opponent team showing expected arbitration raises.
+            Complete roster for each team showing expected arbitration raises.
           </p>
           <SimulationTeams results={simResults} />
         </section>
