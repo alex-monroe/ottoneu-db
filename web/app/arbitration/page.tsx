@@ -1,6 +1,7 @@
 import {
   fetchAndMergeData,
   analyzeArbitration,
+  allocateArbitrationBudget,
   ARB_BUDGET_PER_TEAM,
   ARB_MIN_PER_TEAM,
   ARB_MAX_PER_TEAM,
@@ -45,41 +46,8 @@ export default async function ArbitrationPage() {
     );
   }
 
-  // Group targets by team
-  const teamTargets = new Map<string, typeof targets>();
-  for (const t of targets) {
-    const team = t.team_name!;
-    const list = teamTargets.get(team) ?? [];
-    list.push(t);
-    teamTargets.set(team, list);
-  }
-
   // Sort teams by number of targets (most first)
-  const sortedTeams = [...teamTargets.entries()]
-    .sort((a, b) => b[1].length - a[1].length)
-    .map(([team, players]) => {
-      const numOpponents = NUM_TEAMS - 1;
-      const baseAllocation = ARB_MIN_PER_TEAM;
-      const remainingBudget =
-        ARB_BUDGET_PER_TEAM - numOpponents * baseAllocation;
-      const suggested = Math.min(
-        ARB_MAX_PER_TEAM,
-        baseAllocation + Math.min(remainingBudget, players.length * 2)
-      );
-
-      return {
-        team,
-        suggested,
-        players: players.slice(0, 5).map((p) => ({
-          name: p.name,
-          position: p.position,
-          price: p.price,
-          dollar_value: p.dollar_value,
-          surplus: p.surplus,
-          surplus_after_arb: p.surplus_after_arb,
-        })),
-      };
-    });
+  const sortedTeams = allocateArbitrationBudget(targets);
 
   return (
     <main className="min-h-screen bg-white dark:bg-black p-8">
