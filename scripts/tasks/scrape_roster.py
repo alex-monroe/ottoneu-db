@@ -223,9 +223,9 @@ async def _process_row(row, page, context, supabase, nfl_stats,
         stats_data, on_conflict="player_id, season"
     ).execute()
 
-    # For FA players, create child job to scrape player card for real salary
+    # Create child job to scrape player card for transaction history
     child_job = None
-    if fantasy_team == "FA" and href:
+    if href:
         child_job = {
             "task_type": SCRAPE_PLAYER_CARD,
             "params": {
@@ -235,6 +235,7 @@ async def _process_row(row, page, context, supabase, nfl_stats,
                 "href": href,
                 "season": season,
                 "league_id": league_id,
+                "fantasy_team": fantasy_team,
             },
             "priority": -1,  # lower priority than roster scrapes
         }
