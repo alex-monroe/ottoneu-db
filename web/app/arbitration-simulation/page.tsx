@@ -36,7 +36,7 @@ const VULNERABLE_COLUMNS: Column[] = [
   { key: "surplus_after_arb", label: "Surplus (Post)", format: "currency" },
 ];
 
-const PROTECTED_COLUMNS: Column[] = [
+const CUT_CANDIDATE_COLUMNS: Column[] = [
   { key: "name", label: "Player" },
   { key: "position", label: "Pos" },
   { key: "nfl_team", label: "NFL" },
@@ -45,16 +45,16 @@ const PROTECTED_COLUMNS: Column[] = [
   { key: "dollar_value", label: "Value", format: "currency" },
   { key: "surplus", label: "Surplus", format: "currency" },
   { key: "mean_arb", label: "Expected Arb", format: "currency" },
-  { key: "pct_protected", label: "Protected %", format: "percent" },
   { key: "salary_after_arb", label: "After Arb", format: "currency" },
+  { key: "surplus_after_arb", label: "Surplus (Post)", format: "currency" },
 ];
 
 const VULNERABLE_RULES: HighlightRule[] = [
   { key: "surplus_after_arb", op: "gt", value: 15, className: "bg-green-50 dark:bg-green-950/30" },
 ];
 
-const PROTECTED_RULES: HighlightRule[] = [
-  { key: "pct_protected", op: "gte", value: 0.5, className: "bg-red-50 dark:bg-red-950/30" },
+const CUT_CANDIDATE_RULES: HighlightRule[] = [
+  { key: "surplus_after_arb", op: "lt", value: -10, className: "bg-red-50 dark:bg-red-950/30" },
 ];
 
 export default async function ArbitrationSimulationPage() {
@@ -85,9 +85,14 @@ export default async function ArbitrationSimulationPage() {
     .filter((p) => p.surplus > 5 && p.mean_arb < 10)
     .sort((a, b) => b.surplus - a.surplus);
 
-  const protectedPlayers = opponents
-    .filter((p) => p.mean_arb > 20)
-    .sort((a, b) => b.mean_arb - a.mean_arb);
+  // Cut candidates: all players (not just opponents) with negative surplus after arb
+  const allRosteredPlayers = simResults.filter(
+    (p) => p.team_name !== "FA" && p.team_name !== ""
+  );
+
+  const cutCandidates = allRosteredPlayers
+    .filter((p) => p.surplus_after_arb < 0)
+    .sort((a, b) => a.surplus_after_arb - b.surplus_after_arb);
 
   const totalExpectedArb = myRoster.reduce((sum, p) => sum + p.mean_arb, 0);
 
@@ -167,22 +172,24 @@ export default async function ArbitrationSimulationPage() {
           )}
         </section>
 
-        {/* Protected Players */}
+        {/* Cut Candidates */}
         <section>
           <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
-            Heavily Protected Players — Avoid
+            Cut Candidates — Negative Surplus After Arbitration
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-            These players are likely to receive heavy arbitration raises. Avoid targeting
-            unless strategic.
+            Players who will have negative surplus value after receiving expected arbitration.
+            These players are likely to be cut, creating FA opportunities.
           </p>
-          {protectedPlayers.length === 0 ? (
-            <p className="text-slate-500 dark:text-slate-400">No heavily protected players identified.</p>
+          {cutCandidates.length === 0 ? (
+            <p className="text-slate-500 dark:text-slate-400">
+              No cut candidates identified (all players have positive surplus after arb).
+            </p>
           ) : (
             <DataTable
-              columns={PROTECTED_COLUMNS}
-              data={protectedPlayers.slice(0, 15)}
-              highlightRules={PROTECTED_RULES}
+              columns={CUT_CANDIDATE_COLUMNS}
+              data={cutCandidates.slice(0, 20)}
+              highlightRules={CUT_CANDIDATE_RULES}
             />
           )}
         </section>

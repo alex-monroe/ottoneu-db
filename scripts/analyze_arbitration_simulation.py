@@ -364,25 +364,31 @@ def generate_simulation_report(sim_results: pd.DataFrame) -> str:
             f.write(vulnerable.head(20)[vuln_cols].to_markdown(index=False, floatfmt='.1f'))
             f.write('\n\n')
 
-        # === Section 3: Heavily Protected Players (Avoid) ===
-        f.write('## Heavily Protected Players — Avoid\n\n')
-        f.write('These players are likely to receive heavy arbitration raises.\n')
-        f.write('**Strategy:** Avoid targeting these players unless strategic.\n\n')
+        # === Section 3: Cut Candidates (Negative Surplus After Arb) ===
+        f.write('## Cut Candidates — Negative Surplus After Arbitration\n\n')
+        f.write('Players who will have negative surplus value after receiving expected arbitration.\n')
+        f.write('**Strategy:** These players are likely to be cut, creating FA opportunities.\n\n')
 
-        protected = opponents[opponents['mean_arb'] > 20].copy()
-        protected = protected.sort_values('mean_arb', ascending=False)
+        # Include all teams (not just opponents) to see potential cuts across the league
+        all_players = sim_results[
+            (sim_results['team_name'] != 'FA') &
+            (sim_results['team_name'] != '')
+        ].copy()
 
-        prot_cols = [
+        cut_candidates = all_players[all_players['surplus_after_arb'] < 0].copy()
+        cut_candidates = cut_candidates.sort_values('surplus_after_arb', ascending=True)
+
+        cut_cols = [
             'name', 'position', 'nfl_team', 'team_name', 'price',
-            'dollar_value', 'surplus', 'mean_arb', 'pct_protected',
-            'salary_after_arb'
+            'dollar_value', 'surplus', 'mean_arb', 'salary_after_arb',
+            'surplus_after_arb'
         ]
 
-        f.write(f'### Top {min(15, len(protected))} Protected Players\n\n')
-        if protected.empty:
-            f.write('No heavily protected players identified.\n\n')
+        f.write(f'### Top {min(20, len(cut_candidates))} Cut Candidates\n\n')
+        if cut_candidates.empty:
+            f.write('No cut candidates identified (all players have positive surplus after arb).\n\n')
         else:
-            f.write(protected.head(15)[prot_cols].to_markdown(index=False, floatfmt='.1f'))
+            f.write(cut_candidates.head(20)[cut_cols].to_markdown(index=False, floatfmt='.1f'))
             f.write('\n\n')
 
         # === Section 4: Full Roster Breakdown by Team ===
