@@ -24,6 +24,12 @@ export async function fetchAllPlayers(): Promise<PlayerListItem[]> {
         .eq("league_id", 309)
         .eq("season", 2025);
 
+    const { data: transactions } = await supabase
+        .from("transactions")
+        .select("player_id, transaction_type, team_name, salary")
+        .eq("league_id", 309)
+        .order("transaction_date", { ascending: false });
+
     const statsMap = new Map(
         (stats ?? []).map((s) => [s.player_id, s])
     );
@@ -31,17 +37,40 @@ export async function fetchAllPlayers(): Promise<PlayerListItem[]> {
         (prices ?? []).map((p) => [p.player_id, p])
     );
 
+    // keys are player_id, values are the LATEST transaction (since sorted desc)
+    const transactionMap = new Map();
+    (transactions ?? []).forEach((t) => {
+        if (!transactionMap.has(t.player_id)) {
+            transactionMap.set(t.player_id, t);
+        }
+    });
+
     return players.map((p) => {
         const s = statsMap.get(p.id);
         const pr = priceMap.get(p.id);
+        const txn = transactionMap.get(p.id);
+
+        let currentPrice = pr?.price ?? null;
+        let currentTeam = pr?.team_name ?? null;
+
+        if (txn) {
+            if (txn.transaction_type.toLowerCase().includes("cut")) {
+                currentPrice = 0;
+                currentTeam = null;
+            } else {
+                currentPrice = txn.salary;
+                currentTeam = txn.team_name;
+            }
+        }
+
         return {
             id: p.id,
             ottoneu_id: p.ottoneu_id,
             name: p.name,
             position: p.position,
             nfl_team: p.nfl_team,
-            price: pr?.price ?? null,
-            team_name: pr?.team_name ?? null,
+            price: currentPrice,
+            team_name: currentTeam,
             total_points: s ? Number(s.total_points) : null,
             ppg: s ? Number(s.ppg) : null,
             games_played: s?.games_played ?? null,
