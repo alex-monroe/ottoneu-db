@@ -15,17 +15,16 @@ export interface HighlightRule {
   className: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Row = any;
+export type TableRow = Record<string, string | number | null | undefined>;
 
-interface DataTableProps {
+interface DataTableProps<T extends TableRow = TableRow> {
   columns: Column[];
-  data: Row[];
-  highlightRow?: (row: Row) => string | undefined;
+  data: T[];
+  highlightRow?: (row: T) => string | undefined;
   highlightRules?: HighlightRule[];
 }
 
-function applyRules(row: Row, rules: HighlightRule[]): string | undefined {
+function applyRules<T extends TableRow>(row: T, rules: HighlightRule[]): string | undefined {
   for (const rule of rules) {
     const val = row[rule.key];
     if (val == null) continue;
@@ -46,12 +45,12 @@ function applyRules(row: Row, rules: HighlightRule[]): string | undefined {
   return undefined;
 }
 
-export default function DataTable({
+export default function DataTable<T extends TableRow = TableRow>({
   columns,
   data,
   highlightRow,
   highlightRules,
-}: DataTableProps) {
+}: DataTableProps<T>) {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortAsc, setSortAsc] = useState(true);
 

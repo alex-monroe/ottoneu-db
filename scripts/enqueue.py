@@ -12,21 +12,9 @@ from supabase import create_client
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from scripts.tasks import PULL_NFL_STATS, SCRAPE_ROSTER, SCRAPE_PLAYER_CARD
+from scripts.config import POSITIONS, SEASON as DEFAULT_SEASON, LEAGUE_ID as DEFAULT_LEAGUE_ID, get_supabase_client as get_supabase
 
 load_dotenv()
-
-POSITIONS = ["QB", "RB", "WR", "TE", "K"]
-DEFAULT_SEASON = 2025
-DEFAULT_LEAGUE_ID = 309
-
-
-def get_supabase():
-    url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_KEY")
-    if not url or not key:
-        print("Error: SUPABASE_URL and SUPABASE_KEY must be set in .env")
-        sys.exit(1)
-    return create_client(url, key)
 
 
 def enqueue_batch(args):

@@ -19,7 +19,7 @@ interface BarData {
   full_season_vorp: number;
 }
 
-interface TableRow {
+interface VorpTableRow {
   name: string;
   position: string;
   nfl_team: string;
@@ -30,6 +30,7 @@ interface TableRow {
   full_season_vorp: number;
   price: number;
   team_name: string;
+  [key: string]: string | number | null | undefined;
 }
 
 const TABLE_COLUMNS: Column[] = [
@@ -47,7 +48,7 @@ const TABLE_COLUMNS: Column[] = [
 
 interface Props {
   top15: BarData[];
-  tableData: TableRow[];
+  tableData: VorpTableRow[];
 }
 
 export default function VorpClient({ top15, tableData }: Props) {

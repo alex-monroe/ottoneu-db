@@ -10,6 +10,7 @@ interface TeamPlayer {
   dollar_value: number;
   surplus: number;
   surplus_after_arb: number;
+  [key: string]: string | number | null | undefined;
 }
 
 interface TeamGroup {

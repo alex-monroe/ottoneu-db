@@ -50,6 +50,7 @@ export interface Player {
   snaps: number;
   ppg: number;
   pps: number;
+  [key: string]: string | number | null | undefined;
 }
 
 export interface VorpPlayer extends Player {

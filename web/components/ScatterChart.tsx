@@ -2,34 +2,13 @@
 
 import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, Legend } from 'recharts'
 import { useState } from 'react'
-
-interface PlayerData {
-    name: string
-    position: string
-    nfl_team: string
-    total_points: number
-    ppg: number
-    pps: number
-    price: number
-    cost_per_ppg: number
-    cost_per_pps: number
-    games_played: number
-    snaps: number
-}
+import { ChartPoint, TooltipProps, Position, POSITIONS, POSITION_COLORS } from '@/lib/types'
 
 interface ScatterChartProps {
-    data: PlayerData[]
+    data: ChartPoint[]
 }
 
-const COLORS = {
-    QB: '#EF4444', // Red
-    RB: '#3B82F6', // Blue
-    WR: '#10B981', // Green
-    TE: '#F59E0B', // Yellow
-    K: '#8B5CF6', // Purple
-}
-
-const CustomTooltip = ({ active, payload, metric }: any) => {
+const CustomTooltip = ({ active, payload, metric }: TooltipProps & { metric?: 'PPG' | 'PPS' }) => {
     if (active && payload && payload.length) {
         const data = payload[0].payload
         const isPPG = metric === 'PPG';
@@ -63,12 +42,11 @@ const CustomTooltip = ({ active, payload, metric }: any) => {
 export default function PlayerScatterChart({ data }: ScatterChartProps) {
     // Basic interaction state if needed, simpler to just use Recharts default for now.
     // Group data by position for the legend to work naturally with colors
-    const positions = ['QB', 'RB', 'WR', 'TE', 'K'];
-    const [selectedPositions, setSelectedPositions] = useState<string[]>(positions);
+    const [selectedPositions, setSelectedPositions] = useState<Position[]>([...POSITIONS]);
     const [metric, setMetric] = useState<'PPG' | 'PPS'>('PPG');
     const [minGames, setMinGames] = useState<number>(0);
 
-    const togglePosition = (pos: string) => {
+    const togglePosition = (pos: Position) => {
         setSelectedPositions(prev =>
             prev.includes(pos)
                 ? prev.filter(p => p !== pos)
@@ -115,7 +93,7 @@ export default function PlayerScatterChart({ data }: ScatterChartProps) {
                 </div>
 
                 <div className="flex flex-wrap gap-2 justify-center">
-                    {positions.map(pos => (
+                    {POSITIONS.map(pos => (
                         <button
                             key={pos}
                             onClick={() => togglePosition(pos)}
@@ -124,7 +102,7 @@ export default function PlayerScatterChart({ data }: ScatterChartProps) {
                                 : 'bg-transparent text-slate-500 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
                                 }`}
                             style={{
-                                backgroundColor: selectedPositions.includes(pos) ? COLORS[pos as keyof typeof COLORS] : undefined
+                                backgroundColor: selectedPositions.includes(pos) ? POSITION_COLORS[pos] : undefined
                             }}
                         >
                             {pos}
@@ -155,12 +133,12 @@ export default function PlayerScatterChart({ data }: ScatterChartProps) {
                         <Tooltip content={<CustomTooltip metric={metric} />} cursor={{ strokeDasharray: '3 3' }} />
                         <Legend verticalAlign="top" />
 
-                        {positions.filter(pos => selectedPositions.includes(pos)).map((pos) => (
+                        {POSITIONS.filter(pos => selectedPositions.includes(pos)).map((pos) => (
                             <Scatter
                                 key={pos}
                                 name={pos}
                                 data={data.filter(d => d.position === pos && d.games_played >= minGames)}
-                                fill={COLORS[pos as keyof typeof COLORS] || '#6366f1'}
+                                fill={POSITION_COLORS[pos]}
                             />
                         ))}
 

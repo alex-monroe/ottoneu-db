@@ -1,43 +1,23 @@
 """Shared utilities for Ottoneu fantasy football analysis scripts."""
 
 import os
-from supabase import create_client, Client
-from dotenv import load_dotenv
 import pandas as pd
 
-load_dotenv()
-
-# === Config Constants ===
-LEAGUE_ID = 309
-SEASON = 2025
-MY_TEAM = "The Witchcraft"
-NUM_TEAMS = 12
-CAP_PER_TEAM = 400
-MIN_GAMES = 4
-
-# Replacement level: approximate number of fantasy-relevant players per position
-# in a 12-team superflex league (accounts for 2 QBs starting per team)
-REPLACEMENT_LEVEL = {'QB': 24, 'RB': 30, 'WR': 30, 'TE': 15, 'K': 13}
-
-# NOTE: Database salaries already reflect the end-of-season $4/$1 bump.
-# No additional salary projection is needed.
-
-# Arbitration constants
-ARB_BUDGET_PER_TEAM = 60
-ARB_MIN_PER_TEAM = 1
-ARB_MAX_PER_TEAM = 8
-ARB_MAX_PER_PLAYER_PER_TEAM = 4
-ARB_MAX_PER_PLAYER_LEAGUE = 44  # max from all teams combined
-
-
-def get_supabase_client() -> Client:
-    """Return a configured Supabase client."""
-    url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_KEY")
-    if not url or not key:
-        print("Error: SUPABASE_URL and SUPABASE_KEY must be set in .env")
-        exit(1)
-    return create_client(url, key)
+from config import (
+    LEAGUE_ID,
+    SEASON,
+    MY_TEAM,
+    NUM_TEAMS,
+    CAP_PER_TEAM,
+    MIN_GAMES,
+    REPLACEMENT_LEVEL,
+    ARB_BUDGET_PER_TEAM,
+    ARB_MIN_PER_TEAM,
+    ARB_MAX_PER_TEAM,
+    ARB_MAX_PER_PLAYER_PER_TEAM,
+    ARB_MAX_PER_PLAYER_LEAGUE,
+    get_supabase_client,
+)
 
 
 def fetch_all_data(season: int = SEASON) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:

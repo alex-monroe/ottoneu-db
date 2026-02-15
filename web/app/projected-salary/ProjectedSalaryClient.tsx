@@ -13,6 +13,7 @@ interface PlayerRow {
   total_points: number;
   games_played: number;
   recommendation: string;
+  [key: string]: string | number | null | undefined;
 }
 
 const COLUMNS: Column[] = [
