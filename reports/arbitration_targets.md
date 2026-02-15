@@ -13,8 +13,8 @@ Strategy: Maximize opponent cost by targeting players they are likely to keep.
 |:--------------------|:-----------|:-----------|:------------------------------|--------:|---------------:|----------:|-------------------:|--------------------:|
 | Matthew Stafford    | QB         | LA         | Irish Invasion                |      13 |             75 |        62 |                 17 |                  58 |
 | Rashee Rice         | WR         | KC         | Ball So Hard University       |      14 |             53 |        39 |                 18 |                  35 |
-| Tucker Kraft        | TE         | GB         | The Hard Eight                |       8 |             46 |        38 |                 12 |                  34 |
 | Daniel Jones        | QB         | IND        | Ball So Hard University       |       6 |             44 |        38 |                 10 |                  34 |
+| Tucker Kraft        | TE         | GB         | The Hard Eight                |       8 |             46 |        38 |                 12 |                  34 |
 | Javonte Williams    | RB         | DAL        | Marin County Mountain Runners |      11 |             48 |        37 |                 15 |                  33 |
 | Cam Skattebo        | RB         | NYG        | Tinseltown Little Gold Men    |      15 |             51 |        36 |                 19 |                  32 |
 | Caleb Williams      | QB         | CHI        | The Triple Helix              |      21 |             54 |        33 |                 25 |                  29 |
@@ -24,13 +24,13 @@ Strategy: Maximize opponent cost by targeting players they are likely to keep.
 | Jaxson Dart         | QB         | NYG        | The Trigeminal Thunderclaps   |      13 |             43 |        30 |                 17 |                  26 |
 | Jacoby Brissett     | QB         | ARI        | The Roseman Empire            |       5 |             35 |        30 |                  9 |                  26 |
 | Ka'imi Fairbairn    | K          | HOU        | The Hard Eight                |       7 |             37 |        30 |                 11 |                  26 |
-| De'Von Achane       | RB         | MIA        | The Royal Dynasty             |      55 |             78 |        23 |                 59 |                  19 |
 | George Pickens      | WR         | DAL        | Pacific Punt Masters          |      22 |             45 |        23 |                 26 |                  19 |
 | Dallas Goedert      | TE         | PHI        | Tinseltown Little Gold Men    |       5 |             28 |        23 |                  9 |                  19 |
+| De'Von Achane       | RB         | MIA        | The Royal Dynasty             |      55 |             78 |        23 |                 59 |                  19 |
 | Christian McCaffrey | RB         | SF         | The Roseman Empire            |      77 |             99 |        22 |                 81 |                  18 |
+| Dak Prescott        | QB         | DAL        | Marin County Mountain Runners |      30 |             51 |        21 |                 34 |                  17 |
 | Jason Myers         | K          | SEA        | The Royal Dynasty             |       7 |             28 |        21 |                 11 |                  17 |
 | Brock Purdy         | QB         | SF         | The Hard Eight                |      44 |             65 |        21 |                 48 |                  17 |
-| Dak Prescott        | QB         | DAL        | Marin County Mountain Runners |      30 |             51 |        21 |                 34 |                  17 |
 
 ## Targets by Opponent Team
 
@@ -46,16 +46,6 @@ Suggested allocation strategy (must give each team $1-$8):
 | Quentin Johnston | WR         |       7 |             15 |         8 |                   4 |
 | Jahmyr Gibbs     | RB         |      83 |             87 |         4 |                   0 |
 
-### Ball So Hard University (suggested: $8)
-
-| name                | position   |   price |   dollar_value |   surplus |   surplus_after_arb |
-|:--------------------|:-----------|--------:|---------------:|----------:|--------------------:|
-| Rashee Rice         | WR         |      14 |             53 |        39 |                  35 |
-| Daniel Jones        | QB         |       6 |             44 |        38 |                  34 |
-| Rhamondre Stevenson | RB         |       9 |             25 |        16 |                  12 |
-| Aaron Rodgers       | QB         |       7 |             20 |        13 |                   9 |
-| Dalton Kincaid      | TE         |       6 |             17 |        11 |                   7 |
-
 ### The Trigeminal Thunderclaps (suggested: $8)
 
 | name             | position   |   price |   dollar_value |   surplus |   surplus_after_arb |
@@ -65,6 +55,16 @@ Suggested allocation strategy (must give each team $1-$8):
 | Quinshon Judkins | RB         |       8 |             27 |        19 |                  15 |
 | Jake Ferguson    | TE         |       6 |             16 |        10 |                   6 |
 | Bryce Young      | QB         |      14 |             22 |         8 |                   4 |
+
+### Ball So Hard University (suggested: $8)
+
+| name                | position   |   price |   dollar_value |   surplus |   surplus_after_arb |
+|:--------------------|:-----------|--------:|---------------:|----------:|--------------------:|
+| Rashee Rice         | WR         |      14 |             53 |        39 |                  35 |
+| Daniel Jones        | QB         |       6 |             44 |        38 |                  34 |
+| Rhamondre Stevenson | RB         |       9 |             25 |        16 |                  12 |
+| Aaron Rodgers       | QB         |       7 |             20 |        13 |                   9 |
+| Dalton Kincaid      | TE         |       6 |             17 |        11 |                   7 |
 
 ### Tinseltown Little Gold Men (suggested: $8)
 
@@ -86,16 +86,6 @@ Suggested allocation strategy (must give each team $1-$8):
 | Romeo Doubs    | WR         |       5 |              9 |         4 |                   0 |
 | Joey Slye      | K          |       5 |              2 |        -3 |                  -7 |
 
-### Irish Invasion (suggested: $8)
-
-| name             | position   |   price |   dollar_value |   surplus |   surplus_after_arb |
-|:-----------------|:-----------|--------:|---------------:|----------:|--------------------:|
-| Matthew Stafford | QB         |      13 |             75 |        62 |                  58 |
-| D'Andre Swift    | RB         |      28 |             40 |        12 |                   8 |
-| Dalton Schultz   | TE         |       5 |             11 |         6 |                   2 |
-| Will Reichard    | K          |       6 |             12 |         6 |                   2 |
-| Chase Brown      | RB         |      47 |             52 |         5 |                   1 |
-
 ### Pacific Punt Masters (suggested: $8)
 
 | name            | position   |   price |   dollar_value |   surplus |   surplus_after_arb |
@@ -105,6 +95,16 @@ Suggested allocation strategy (must give each team $1-$8):
 | Zach Charbonnet | RB         |      14 |             24 |        10 |                   6 |
 | Sam Darnold     | QB         |      20 |             19 |        -1 |                  -5 |
 | Jake Bates      | K          |       8 |              6 |        -2 |                  -6 |
+
+### Irish Invasion (suggested: $8)
+
+| name             | position   |   price |   dollar_value |   surplus |   surplus_after_arb |
+|:-----------------|:-----------|--------:|---------------:|----------:|--------------------:|
+| Matthew Stafford | QB         |      13 |             75 |        62 |                  58 |
+| D'Andre Swift    | RB         |      28 |             40 |        12 |                   8 |
+| Will Reichard    | K          |       6 |             12 |         6 |                   2 |
+| Dalton Schultz   | TE         |       5 |             11 |         6 |                   2 |
+| Malik Willis     | QB         |       5 |             10 |         5 |                   1 |
 
 ### The Hard Eight (suggested: $8)
 
@@ -133,8 +133,8 @@ Suggested allocation strategy (must give each team $1-$8):
 | Javonte Williams   | RB         |      11 |             48 |        37 |                  33 |
 | Dak Prescott       | QB         |      30 |             51 |        21 |                  17 |
 | Jaylen Warren      | RB         |      19 |             31 |        12 |                   8 |
-| Colston Loveland   | TE         |      12 |             18 |         6 |                   2 |
 | Jaxon Smith-Njigba | WR         |      62 |             68 |         6 |                   2 |
+| Colston Loveland   | TE         |      12 |             18 |         6 |                   2 |
 
 ### The Royal Dynasty (suggested: $8)
 
