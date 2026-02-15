@@ -2,14 +2,15 @@
 
 This analysis simulates independent decision-making by all 12 teams, where each team:
 1. Has slightly different value estimates for players (represents different evaluation philosophies)
-2. Prioritizes protecting their own high-value players
-3. Allocates remaining budget to attack opponents' vulnerable players
-4. Must respect all arbitration constraints ($1-$8 per team, max $4 per player per team)
+2. Targets opponents' high-surplus players to maximize disruption
+3. Must respect all arbitration constraints ($1-$8 per team, max $4 per player per team)
+
+NOTE: In Ottoneu, teams can ONLY arbitrate opponents' players, not their own.
 
 Output shows expected arbitration raises across multiple simulation runs, helping identify:
-- Which opponent players will receive heavy protection (avoid targeting)
-- Which opponent players are vulnerable (good targets)
-- Expected raises to your own roster
+- Expected raises to your own roster (from opponent targeting)
+- Which opponent players will receive heavy raises (avoid wasting your budget)
+- Which opponent players are vulnerable (good targets for you)
 - Optimal arbitration strategy given predicted opponent behavior
 """
 
@@ -86,12 +87,11 @@ def allocate_team_budget(
     max_per_team: float,
     max_per_player: float
 ) -> Dict[Tuple[str, str], float]:
-    """Allocate one team's arbitration budget across opponents.
+    """Allocate one team's arbitration budget to opponent players only.
 
-    Strategy:
-    1. Protect own high-value players (defensive spending)
-    2. Attack opponents' vulnerable high-value players (offensive spending)
-    3. Respect budget and constraint requirements
+    In Ottoneu arbitration, teams can ONLY give money to opponents' players,
+    not their own. Strategy focuses on targeting high-surplus players to
+    maximize disruption to opponents' rosters.
 
     Args:
         team_name: Name of the team allocating budget
@@ -112,33 +112,7 @@ def allocate_team_budget(
     allocations: Dict[Tuple[str, str], float] = {}
     remaining_budget = budget - (num_opponents * min_per_team)
 
-    # Phase 1: Protect own valuable players
-    own_players = team_valuations[
-        team_valuations['team_name'] == team_name
-    ].copy()
-
-    own_players = own_players[own_players['team_value_estimate'] > 1].sort_values(
-        'team_value_estimate', ascending=False
-    )
-
-    # Calculate surplus for own players
-    own_players['surplus'] = own_players['team_value_estimate'] - own_players['price']
-
-    # Protect top players with positive surplus (these are keepers worth defending)
-    defensive_targets = own_players[own_players['surplus'] > 0].head(10)
-
-    defensive_budget = min(remaining_budget * 0.6, len(defensive_targets) * max_per_player)
-
-    for _, player in defensive_targets.iterrows():
-        if defensive_budget <= 0:
-            break
-        # Allocate proportional to surplus value
-        amount = min(max_per_player, defensive_budget / len(defensive_targets))
-        allocations[(player['name'], team_name)] = amount
-        remaining_budget -= amount
-        defensive_budget -= amount
-
-    # Phase 2: Attack opponents' vulnerable high-value players
+    # Get all opponent players
     opponent_players = team_valuations[
         (team_valuations['team_name'].isin(opponents)) &
         (team_valuations['team_value_estimate'] > 1)
@@ -148,13 +122,14 @@ def allocate_team_budget(
         opponent_players['team_value_estimate'] - opponent_players['price']
     )
 
-    # Target players with high surplus (likely keepers for opponents)
-    offensive_targets = opponent_players[
+    # Target players with high surplus (likely keepers for opponents = good targets)
+    # Sort by surplus to prioritize the most valuable targets
+    targets = opponent_players[
         opponent_players['surplus'] > 0
-    ].sort_values('surplus', ascending=False).head(20)
+    ].sort_values('surplus', ascending=False).head(30)
 
-    # Distribute remaining budget across offensive targets
-    for _, player in offensive_targets.iterrows():
+    # Distribute budget across targets
+    for _, player in targets.iterrows():
         if remaining_budget <= 0:
             break
 
@@ -170,22 +145,24 @@ def allocate_team_budget(
         if available_for_team < 0.5:  # Not enough room
             continue
 
-        # Allocate to this player
-        amount = min(max_per_player, available_for_team, remaining_budget / 5)
+        # Allocate to this player (proportional to remaining budget)
+        amount = min(max_per_player, available_for_team, remaining_budget / 10)
         if amount >= 0.5:  # Only allocate meaningful amounts
             allocations[(player['name'], target_team)] = amount
             remaining_budget -= amount
 
-    # Phase 3: Ensure minimum allocation to all opponents
-    # Distribute any tiny amounts to ensure we meet minimum requirements
+    # Ensure minimum allocation to all opponents
     for opponent in opponents:
         current_to_team = sum(
             amt for (name, team), amt in allocations.items()
             if team == opponent
         )
         if current_to_team < min_per_team:
-            # Find any player on this team and give them the minimum
-            team_players = team_valuations[team_valuations['team_name'] == opponent]
+            # Find the highest surplus player on this team and give them the minimum
+            team_players = opponent_players[
+                opponent_players['team_name'] == opponent
+            ].sort_values('surplus', ascending=False)
+
             if not team_players.empty:
                 player = team_players.iloc[0]
                 shortfall = min_per_team - current_to_team
@@ -326,10 +303,10 @@ def generate_simulation_report(sim_results: pd.DataFrame) -> str:
         f.write(f'# Arbitration Simulation Analysis ({SEASON})\n\n')
         f.write(f'**Simulation:** {NUM_SIMULATIONS} Monte Carlo runs\n')
         f.write(f'**Value Variation:** ±{VALUE_VARIATION*100:.0f}% per team\n\n')
-        f.write('Each team independently allocates their arbitration budget based on:\n')
-        f.write('1. **Defensive spending:** Protect own high-value players\n')
-        f.write('2. **Offensive spending:** Attack opponents\' vulnerable assets\n\n')
-        f.write('Results show expected arbitration raises and uncertainty.\n\n')
+        f.write('Each team independently allocates their arbitration budget to opponent players.\n')
+        f.write('**Strategy:** Target high-surplus players to maximize disruption to opponents.\n\n')
+        f.write('**Note:** In Ottoneu, teams can ONLY arbitrate opponents\' players, not their own.\n\n')
+        f.write('Results show expected arbitration raises from opponent targeting.\n\n')
 
         # === Section 1: My Team Protection ===
         f.write(f'## My Roster ({MY_TEAM}) — Expected Arbitration Raises\n\n')

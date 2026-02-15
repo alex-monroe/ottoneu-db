@@ -111,15 +111,18 @@ export default async function ArbitrationSimulationPage() {
           </h2>
           <div className="text-sm text-slate-600 dark:text-slate-300 space-y-2">
             <p>
-              Each team independently allocates their arbitration budget based on:
+              <strong>Important:</strong> In Ottoneu, teams can ONLY arbitrate opponents&apos; players, not their own.
             </p>
-            <ul className="list-disc list-inside ml-4 space-y-1">
-              <li><strong>Defensive spending (60%):</strong> Protect own high-value players</li>
-              <li><strong>Offensive spending (40%):</strong> Attack opponents&apos; vulnerable assets</li>
-            </ul>
+            <p>
+              Each team independently allocates their $60 budget to opponent players, targeting high-surplus
+              players to maximize disruption.
+            </p>
             <p className="mt-3">
               Teams have different value estimates (±{VALUE_VARIATION * 100}% variation) representing
               different evaluation philosophies.
+            </p>
+            <p>
+              Results show the expected arbitration raises your players will receive from opponent targeting.
             </p>
           </div>
         </div>

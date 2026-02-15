@@ -368,7 +368,10 @@ function generateTeamValuations(
 }
 
 /**
- * Allocate one team's arbitration budget
+ * Allocate one team's arbitration budget to opponent players only.
+ *
+ * In Ottoneu, teams can ONLY arbitrate opponents' players, not their own.
+ * Strategy focuses on targeting high-surplus players to maximize disruption.
  */
 function allocateTeamBudget(
     teamName: string,
@@ -386,42 +389,13 @@ function allocateTeamBudget(
 
     let remainingBudget = budget - (opponents.length * minPerTeam);
 
-    // Phase 1: Protect own valuable players (defensive spending)
-    const ownPlayers = teamValuations
-        .filter(p => p.team_name === teamName && p.dollar_value > 1)
-        .sort((a, b) => b.surplus - a.surplus)
-        .filter(p => p.surplus > 0)
-        .slice(0, 10);
-
-    const defensiveBudget = Math.min(
-        remainingBudget * 0.6,
-        ownPlayers.length * maxPerPlayer
-    );
-
-    let defensiveSpent = 0;
-    for (const player of ownPlayers) {
-        if (defensiveSpent >= defensiveBudget) break;
-
-        const amount = Math.min(
-            maxPerPlayer,
-            (defensiveBudget - defensiveSpent) / Math.max(1, ownPlayers.length - ownPlayers.indexOf(player))
-        );
-
-        if (amount >= 0.5) {
-            const key = `${player.name}|${teamName}`;
-            allocations.set(key, amount);
-            remainingBudget -= amount;
-            defensiveSpent += amount;
-        }
-    }
-
-    // Phase 2: Attack opponents' vulnerable high-value players (offensive spending)
+    // Get all opponent players with positive surplus
     const opponentPlayers = teamValuations
-        .filter(p => opponents.includes(p.team_name!) && p.dollar_value > 1)
+        .filter(p => opponents.includes(p.team_name!) && p.dollar_value > 1 && p.surplus > 0)
         .sort((a, b) => b.surplus - a.surplus)
-        .filter(p => p.surplus > 0)
-        .slice(0, 20);
+        .slice(0, 30);
 
+    // Distribute budget across high-surplus targets
     for (const player of opponentPlayers) {
         if (remainingBudget <= 0) break;
 
@@ -436,7 +410,7 @@ function allocateTeamBudget(
         const amount = Math.min(
             maxPerPlayer,
             availableForTeam,
-            remainingBudget / 5
+            remainingBudget / 10
         );
 
         if (amount >= 0.5) {
@@ -446,19 +420,20 @@ function allocateTeamBudget(
         }
     }
 
-    // Phase 3: Ensure minimum allocation to all opponents
+    // Ensure minimum allocation to all opponents
     for (const opponent of opponents) {
         const currentToTeam = Array.from(allocations.entries())
             .filter(([key]) => key.endsWith(`|${opponent}`))
             .reduce((sum, [, amt]) => sum + amt, 0);
 
         if (currentToTeam < minPerTeam) {
-            const shortfall = minPerTeam - currentToTeam;
-            const opponentPlayers = teamValuations.filter(p => p.team_name === opponent);
+            // Find highest surplus player on this team
+            const opponentPlayersForTeam = opponentPlayers.filter(p => p.team_name === opponent);
 
-            if (opponentPlayers.length > 0) {
-                const player = opponentPlayers[0];
+            if (opponentPlayersForTeam.length > 0) {
+                const player = opponentPlayersForTeam[0];
                 const key = `${player.name}|${opponent}`;
+                const shortfall = minPerTeam - currentToTeam;
                 allocations.set(key, (allocations.get(key) || 0) + shortfall);
             }
         }
