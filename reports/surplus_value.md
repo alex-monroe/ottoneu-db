@@ -13,30 +13,30 @@
 | Daniel Jones        | QB         | IND        |       6 |             44 |        38 | 17.34 |              100.8 | Ball So Hard University       |
 | Tucker Kraft        | TE         | GB         |       8 |             46 |        38 | 12.65 |              103.9 | The Hard Eight                |
 | Javonte Williams    | RB         | DAL        |      11 |             48 |        37 | 14.08 |              109.8 | Marin County Mountain Runners |
-| Harrison Mevis      | K          | LA         |       1 |             37 |        36 | 12.67 |               85.3 | FA                            |
 | Cam Skattebo        | RB         | NYG        |      15 |             51 |        36 | 14.46 |              116.3 | Tinseltown Little Gold Men    |
-| Travis Etienne      | RB         | JAC        |      14 |             47 |        33 | 13.88 |              106.4 | The Trigeminal Thunderclaps   |
+| Harrison Mevis      | K          | LA         |       1 |             37 |        36 | 12.67 |               85.3 | FA                            |
 | Caleb Williams      | QB         | CHI        |      21 |             54 |        33 | 18.6  |              122.2 | The Triple Helix              |
+| Travis Etienne      | RB         | JAC        |      14 |             47 |        33 | 13.88 |              106.4 | The Trigeminal Thunderclaps   |
 | Drake Maye          | QB         | NE         |      30 |             62 |        32 | 19.68 |              140.6 | Tinseltown Little Gold Men    |
 | Jonathan Taylor     | RB         | IND        |      61 |             92 |        31 | 19.96 |              209.8 | The Roseman Empire            |
+| Jaxson Dart         | QB         | NYG        |      13 |             43 |        30 | 17.18 |               98.1 | The Trigeminal Thunderclaps   |
 | Jacoby Brissett     | QB         | ARI        |       5 |             35 |        30 | 16.17 |               80.9 | The Roseman Empire            |
 | Ka'imi Fairbairn    | K          | HOU        |       7 |             37 |        30 | 12.67 |               85.3 | The Hard Eight                |
-| Jaxson Dart         | QB         | NYG        |      13 |             43 |        30 | 17.18 |               98.1 | The Trigeminal Thunderclaps   |
 | Spencer Shrader     | K          | IND        |       1 |             26 |        25 | 11.2  |               60.3 | FA                            |
 | Dallas Goedert      | TE         | PHI        |       5 |             28 |        23 | 10.34 |               64.6 | Tinseltown Little Gold Men    |
 | George Pickens      | WR         | DAL        |      22 |             45 |        23 | 14.44 |              103.4 | Pacific Punt Masters          |
 | De'Von Achane       | RB         | MIA        |      55 |             78 |        23 | 18.08 |              177.8 | The Royal Dynasty             |
 | Christian McCaffrey | RB         | SF         |      77 |             99 |        22 | 20.93 |              226.3 | The Roseman Empire            |
+| Dak Prescott        | QB         | DAL        |      30 |             51 |        21 | 18.28 |              116.8 | Marin County Mountain Runners |
 | Jason Myers         | K          | SEA        |       7 |             28 |        21 | 11.41 |               63.9 | The Royal Dynasty             |
 | Brock Purdy         | QB         | SF         |      44 |             65 |        21 | 20.2  |              149.4 | The Hard Eight                |
-| Dak Prescott        | QB         | DAL        |      30 |             51 |        21 | 18.28 |              116.8 | Marin County Mountain Runners |
-| Rico Dowdle         | RB         | CAR        |       9 |             29 |        20 | 11.58 |               67.3 | Tinseltown Little Gold Men    |
 | Chris Olave         | WR         | NO         |      19 |             39 |        20 | 13.62 |               89.4 | The Royal Dynasty             |
+| Rico Dowdle         | RB         | CAR        |       9 |             29 |        20 | 11.58 |               67.3 | Tinseltown Little Gold Men    |
 | Quinshon Judkins    | RB         | CLE        |       8 |             27 |        19 | 11.2  |               60.9 | The Trigeminal Thunderclaps   |
 | Zane Gonzalez       | K          | ATL        |       1 |             19 |        18 | 10.22 |               43.7 | FA                            |
-| Justin Fields       | QB         | NYJ        |      14 |             31 |        17 | 15.52 |               69.9 | FA                            |
 | Colby Parkinson     | TE         | LA         |       1 |             18 |        17 |  9.01 |               42   | FA                            |
 | Tyler Shough        | QB         | NO         |       5 |             22 |        17 | 14.36 |               50.1 | The Hard Eight                |
+| Justin Fields       | QB         | NYJ        |      14 |             31 |        17 | 15.52 |               69.9 | FA                            |
 
 ## Bottom 30 Surplus (Most Overpaid)
 
