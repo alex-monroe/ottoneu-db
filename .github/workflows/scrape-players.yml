@@ -1,0 +1,69 @@
+name: Scrape Player Data
+
+on:
+  # Manual trigger with optional season override
+  workflow_dispatch:
+    inputs:
+      season:
+        description: "Season year to scrape"
+        required: false
+        default: "2025"
+        type: string
+
+  # Daily at 6:00 AM UTC (10 PM PT previous day)
+  schedule:
+    - cron: "0 6 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check if in fantasy football season
+        id: season_gate
+        run: |
+          MONTH=$(date +%-m)
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "Manual trigger — skipping season check."
+            echo "in_season=true" >> "$GITHUB_OUTPUT"
+          elif [[ $MONTH -ge 9 || $MONTH -le 1 ]]; then
+            echo "Month $MONTH is in season (Sep–Jan). Proceeding."
+            echo "in_season=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Month $MONTH is out of season. Skipping."
+            echo "in_season=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.season_gate.outputs.in_season == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        if: steps.season_gate.outputs.in_season == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        if: steps.season_gate.outputs.in_season == 'true'
+        run: |
+          pip install --upgrade pip
+          pip install --only-binary pandas,numpy playwright supabase python-dotenv nfl_data_py pandas numpy
+
+      - name: Install Playwright browsers
+        if: steps.season_gate.outputs.in_season == 'true'
+        run: playwright install --with-deps chromium
+
+      - name: Create .env
+        if: steps.season_gate.outputs.in_season == 'true'
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> .env
+
+      - name: Run scraper
+        if: steps.season_gate.outputs.in_season == 'true'
+        run: python scripts/ottoneu_scraper.py
