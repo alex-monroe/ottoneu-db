@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import PlayerScatterChart from '@/components/ScatterChart'
+import { ChartPoint } from '@/lib/types'
 
 export const revalidate = 3600 // Revalidate every hour
 
@@ -44,7 +45,7 @@ export default async function Home() {
       games_played: pStats.games_played,
       snaps: pStats.snaps
     }
-  }).filter(Boolean) as any[]
+  }).filter(Boolean) as ChartPoint[]
 
   return (
     <main className="min-h-screen bg-white dark:bg-black p-8">

@@ -1,57 +1,23 @@
 import os
-import asyncio
-from supabase import create_client, Client
-from dotenv import load_dotenv
+from typing import Optional
 import pandas as pd
+from config import SEASON
+from analysis_utils import fetch_all_data, merge_data
 
-load_dotenv()
+def analyze_efficiency(merged_df: pd.DataFrame) -> Optional[pd.DataFrame]:
+    """Analyze cost efficiency for all players from merged data.
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+    Args:
+        merged_df: Merged DataFrame containing player, price, and stats data
 
-if not SUPABASE_URL or not SUPABASE_KEY:
-    print("Error: SUPABASE_URL and SUPABASE_KEY must be set in .env")
-    exit(1)
-
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-def fetch_data(season=2025):
-    print(f"Fetching data for season {season}...")
-    
-    # Fetch League Prices
-    # We need to getAll if > 1000 rows, but likely < 1000 for one league.
-    prices_res = supabase.table('league_prices').select('*').eq('season', season).execute()
-    prices_data = prices_res.data
-    
-    # Fetch Player Stats
-    stats_res = supabase.table('player_stats').select('*').eq('season', season).execute()
-    stats_data = stats_res.data
-    
-    # Fetch Players (for names/positions)
-    players_res = supabase.table('players').select('*').execute()
-    players_data = players_res.data
-    
-    return pd.DataFrame(prices_data), pd.DataFrame(stats_data), pd.DataFrame(players_data)
-
-def analyze_efficiency(prices_df, stats_df, players_df):
-    if prices_df.empty or stats_df.empty or players_df.empty:
+    Returns:
+        DataFrame with efficiency metrics or None if data is empty
+    """
+    if merged_df.empty:
         print("Data missing, cannot analyze.")
-        return
+        return None
 
     print("Processing data...")
-    
-    # Merge Data
-    # 1. Merge Players into Prices to get Name, Position, Team
-    # Rename id in players to player_id or join on correct columns
-    players_df.rename(columns={'id': 'player_id_ref'}, inplace=True)
-    
-    # players: id, name, position, nfl_team
-    # prices: player_id, price
-    merged_df = pd.merge(prices_df, players_df, left_on='player_id', right_on='player_id_ref', how='left')
-    
-    # 2. Merge Stats
-    # stats: player_id, ppg, pps, total_points
-    merged_df = pd.merge(merged_df, stats_df, on='player_id', how='left', suffixes=('', '_stats'))
     
     # Calculate Efficiency
     # Cost per PPG = Price / PPG
@@ -85,7 +51,12 @@ def analyze_efficiency(prices_df, stats_df, players_df):
     
     return analysis_df
 
-def generate_report(df):
+def generate_report(df: pd.DataFrame) -> None:
+    """Write efficiency analysis report to analysis_results.md.
+
+    Args:
+        df: DataFrame with efficiency metrics
+    """
     output_file = "analysis_results.md"
     positions = ['QB', 'RB', 'WR', 'TE'] # Main fantasy positions
     
@@ -125,7 +96,8 @@ def generate_report(df):
 
 
 if __name__ == "__main__":
-    prices, stats, players = fetch_data()
-    result_df = analyze_efficiency(prices, stats, players)
+    prices_df, stats_df, players_df = fetch_all_data()
+    merged = merge_data(prices_df, stats_df, players_df)
+    result_df = analyze_efficiency(merged)
     if result_df is not None:
         generate_report(result_df)

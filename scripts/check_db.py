@@ -1,18 +1,8 @@
-import os
-from supabase import create_client, Client
-from dotenv import load_dotenv
+from config import get_supabase_client, LEAGUE_ID
 
-load_dotenv()
-
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-
-def check_database():
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        print("Error: SUPABASE_URL and SUPABASE_KEY must be set in .env")
-        return
-
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+def check_database() -> None:
+    """Verify database content and display top players."""
+    supabase = get_supabase_client()
     
     print("--- Verifying Database Content ---")
     
@@ -20,17 +10,17 @@ def check_database():
     response = supabase.table('players').select('*', count='exact').execute()
     print(f"Total Players in DB: {response.count}")
     
-    # Get top 5 most expensive players in League 309
+    # Get top 5 most expensive players in the league
     # We join league_prices with players
-    print("\n--- Top 5 Most Expensive Players (League 309) ---")
-    
+    print(f"\n--- Top 5 Most Expensive Players (League {LEAGUE_ID}) ---")
+
     # Supabase-py join syntax can be tricky, let's do two queries or use proper select
     # select player_id, price, team_name, players(name, position, nfl_team)
-    
+
     try:
         data = supabase.table('league_prices')\
             .select('price, team_name, players(name, position, nfl_team)')\
-            .eq('league_id', 309)\
+            .eq('league_id', LEAGUE_ID)\
             .order('price', desc=True)\
             .limit(5)\
             .execute()

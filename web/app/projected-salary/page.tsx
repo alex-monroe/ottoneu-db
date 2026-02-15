@@ -4,9 +4,9 @@ import {
   CAP_PER_TEAM,
   POSITIONS,
   MY_TEAM,
-  SEASON,
 } from "@/lib/analysis";
 import ProjectedSalaryClient from "./ProjectedSalaryClient";
+import SummaryCard from "@/components/SummaryCard";
 
 export const revalidate = 3600;
 
@@ -72,62 +72,18 @@ export default async function ProjectedSalaryPage() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-5 border border-slate-200 dark:border-slate-800">
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Total Salary
-            </p>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white">
-              ${totalSalary}
-            </p>
-          </div>
-          <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-5 border border-slate-200 dark:border-slate-800">
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Total Value
-            </p>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white">
-              ${totalValue}
-            </p>
-          </div>
-          <div
-            className={`rounded-lg p-5 border ${
-              totalSurplus >= 0
-                ? "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800"
-                : "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800"
-            }`}
-          >
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Total Surplus
-            </p>
-            <p
-              className={`text-2xl font-bold ${
-                totalSurplus >= 0
-                  ? "text-green-700 dark:text-green-300"
-                  : "text-red-700 dark:text-red-300"
-              }`}
-            >
-              ${totalSurplus}
-            </p>
-          </div>
-          <div
-            className={`rounded-lg p-5 border ${
-              capSpace >= 0
-                ? "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800"
-                : "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800"
-            }`}
-          >
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Cap Space
-            </p>
-            <p
-              className={`text-2xl font-bold ${
-                capSpace >= 0
-                  ? "text-green-700 dark:text-green-300"
-                  : "text-red-700 dark:text-red-300"
-              }`}
-            >
-              ${capSpace}
-            </p>
-          </div>
+          <SummaryCard label="Total Salary" value={totalSalary} />
+          <SummaryCard label="Total Value" value={totalValue} />
+          <SummaryCard
+            label="Total Surplus"
+            value={totalSurplus}
+            variant={totalSurplus >= 0 ? 'positive' : 'negative'}
+          />
+          <SummaryCard
+            label="Cap Space"
+            value={capSpace}
+            variant={capSpace >= 0 ? 'positive' : 'negative'}
+          />
         </div>
 
         <ProjectedSalaryClient positionGroups={serialized} />

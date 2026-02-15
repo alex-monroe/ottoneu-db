@@ -15,28 +15,19 @@ import sys
 import uuid
 
 from dotenv import load_dotenv
-from supabase import create_client
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from scripts.tasks import PULL_NFL_STATS, SCRAPE_ROSTER
 from scripts.worker import ScraperWorker
+from scripts.config import LEAGUE_ID, POSITIONS, get_supabase_client
 
 load_dotenv()
-
-LEAGUE_ID = 309
-POSITIONS = ["QB", "RB", "WR", "TE", "K"]
 
 
 def enqueue_batch(season=2025):
     """Create a full batch of scraper jobs and return the batch ID."""
-    url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_KEY")
-    if not url or not key:
-        print("Error: SUPABASE_URL and SUPABASE_KEY must be set in .env")
-        return None
-
-    supabase = create_client(url, key)
+    supabase = get_supabase_client()
     batch_id = str(uuid.uuid4())
 
     # 1. NFL stats job

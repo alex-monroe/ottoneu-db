@@ -12,6 +12,8 @@ import {
 } from "recharts";
 import DataTable, { Column } from "@/components/DataTable";
 import { POSITIONS, POSITION_COLORS } from "@/lib/analysis";
+import PositionFilter from "@/components/PositionFilter";
+import { Position } from "@/lib/types";
 
 interface BarData {
   name: string;
@@ -19,7 +21,7 @@ interface BarData {
   full_season_vorp: number;
 }
 
-interface TableRow {
+interface VorpTableRow {
   name: string;
   position: string;
   nfl_team: string;
@@ -30,6 +32,7 @@ interface TableRow {
   full_season_vorp: number;
   price: number;
   team_name: string;
+  [key: string]: string | number | null | undefined;
 }
 
 const TABLE_COLUMNS: Column[] = [
@@ -47,15 +50,29 @@ const TABLE_COLUMNS: Column[] = [
 
 interface Props {
   top15: BarData[];
-  tableData: TableRow[];
+  tableData: VorpTableRow[];
 }
 
 export default function VorpClient({ top15, tableData }: Props) {
-  const [selectedPos, setSelectedPos] = useState<string | null>(null);
+  const [selectedPositions, setSelectedPositions] = useState<Position[]>([...POSITIONS]);
 
-  const filteredData = selectedPos
-    ? tableData.filter((p) => p.position === selectedPos)
-    : tableData;
+  const togglePosition = (pos: Position) => {
+    setSelectedPositions((prev) =>
+      prev.includes(pos)
+        ? prev.filter((p) => p !== pos)
+        : [...prev, pos]
+    );
+  };
+
+  const toggleAll = () => {
+    setSelectedPositions(
+      selectedPositions.length === POSITIONS.length ? [] : [...POSITIONS]
+    );
+  };
+
+  const filteredData = tableData.filter((p) =>
+    selectedPositions.includes(p.position as Position)
+  );
 
   const sortedData = [...filteredData].sort(
     (a, b) => b.full_season_vorp - a.full_season_vorp
@@ -119,39 +136,13 @@ export default function VorpClient({ top15, tableData }: Props) {
           <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
             All Players
           </h2>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setSelectedPos(null)}
-              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors border ${
-                selectedPos === null
-                  ? "bg-slate-700 text-white border-transparent"
-                  : "bg-transparent text-slate-500 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-              }`}
-            >
-              All
-            </button>
-            {POSITIONS.map((pos) => (
-              <button
-                key={pos}
-                onClick={() =>
-                  setSelectedPos(selectedPos === pos ? null : pos)
-                }
-                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors border ${
-                  selectedPos === pos
-                    ? "text-white border-transparent"
-                    : "bg-transparent text-slate-500 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-                }`}
-                style={{
-                  backgroundColor:
-                    selectedPos === pos
-                      ? POSITION_COLORS[pos]
-                      : undefined,
-                }}
-              >
-                {pos}
-              </button>
-            ))}
-          </div>
+          <PositionFilter
+            positions={POSITIONS}
+            selectedPositions={selectedPositions}
+            onToggle={togglePosition}
+            showAll
+            onToggleAll={toggleAll}
+          />
         </div>
         <DataTable columns={TABLE_COLUMNS} data={sortedData} />
       </section>
