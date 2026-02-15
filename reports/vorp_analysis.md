@@ -11,7 +11,7 @@ than the replacement-level player at his position.
 | RB | 30 | 7.62 |
 | WR | 30 | 8.36 |
 | TE | 15 | 6.54 |
-| K | 13 | 7.65 |
+| K | 13 | 0.00 |
 
 ## Top 20 QB by VORP
 
@@ -113,31 +113,6 @@ than the replacement-level player at his position.
 | Brenton Strange  | TE         | JAC        |  7.42 |           89   |             12 |            0.88 |               15   |       5 |
 | Hunter Henry     | TE         | NE         |  7.33 |          124.6 |             17 |            0.79 |               13.4 |       5 |
 
-## Top 20 K by VORP
-
-| name             | position   | nfl_team   |   ppg |   total_points |   games_played |   vorp_per_game |   full_season_vorp |   price |
-|:-----------------|:-----------|:-----------|------:|---------------:|---------------:|----------------:|-------------------:|--------:|
-| Ka'imi Fairbairn | K          | HOU        | 12.67 |          190   |             15 |            5.02 |               85.3 |       7 |
-| Harrison Mevis   | K          | LA         | 12.67 |          114   |              9 |            5.02 |               85.3 |       1 |
-| Jason Myers      | K          | SEA        | 11.41 |          194   |             17 |            3.76 |               63.9 |       7 |
-| Spencer Shrader  | K          | IND        | 11.2  |           56   |              5 |            3.55 |               60.3 |       1 |
-| Brandon Aubrey   | K          | DAL        | 10.62 |          180.6 |             17 |            2.97 |               50.5 |       7 |
-| Zane Gonzalez    | K          | ATL        | 10.22 |           92   |              9 |            2.57 |               43.7 |       1 |
-| Cameron Dicker   | K          | LAC        |  9.41 |          160   |             17 |            1.76 |               29.9 |       5 |
-| Cam Little       | K          | JAC        |  9.35 |          159   |             17 |            1.7  |               28.9 |       2 |
-| Will Reichard    | K          | MIN        |  9.24 |          157   |             17 |            1.59 |               27   |       6 |
-| Cairo Santos     | K          | CHI        |  8.93 |          134   |             15 |            1.28 |               21.8 |       1 |
-| Chase McLaughlin | K          | TB         |  8.76 |          149   |             17 |            1.11 |               18.9 |       5 |
-| Jake Moody       | K          | WAS        |  8.56 |           77   |              9 |            0.91 |               15.5 |       1 |
-| Chris Boswell    | K          | PIT        |  8.53 |          145   |             17 |            0.88 |               15   |       5 |
-| Jake Bates       | K          | DET        |  8.41 |          143   |             17 |            0.76 |               12.9 |       8 |
-| Harrison Butker  | K          | KC         |  8.24 |          140   |             17 |            0.59 |               10   |       5 |
-| Tyler Loop       | K          | BAL        |  8.12 |          138   |             17 |            0.47 |                8   |       1 |
-| Joey Slye        | K          | TEN        |  7.94 |          127   |             16 |            0.29 |                4.9 |       5 |
-| Nick Folk        | K          | NYJ        |  7.88 |          126   |             16 |            0.23 |                3.9 |       1 |
-| Evan McPherson   | K          | CIN        |  7.65 |          130   |             17 |            0    |                0   |       5 |
-| Wil Lutz         | K          | DEN        |  7.65 |          130   |             17 |            0    |                0   |       2 |
-
 ## Top 30 Overall (Cross-Position)
 
 | name                | position   | nfl_team   |   ppg |   total_points |   games_played |   vorp_per_game |   full_season_vorp |   price |
@@ -148,8 +123,8 @@ than the replacement-level player at his position.
 | Jahmyr Gibbs        | RB         | DET        | 19.32 |         328.4  |             17 |           11.7  |              198.9 |      83 |
 | Puka Nacua          | WR         | LA         | 19.19 |         307    |             16 |           10.83 |              184.1 |      77 |
 | De'Von Achane       | RB         | MIA        | 18.08 |         289.3  |             16 |           10.46 |              177.8 |      55 |
-| Josh Allen          | QB         | BUF        | 21.48 |         365.18 |             17 |           10.07 |              171.2 |     114 |
 | Matthew Stafford    | QB         | LA         | 21.48 |         365.1  |             17 |           10.07 |              171.2 |      13 |
+| Josh Allen          | QB         | BUF        | 21.48 |         365.18 |             17 |           10.07 |              171.2 |     114 |
 | Jaxon Smith-Njigba  | WR         | SEA        | 17.49 |         297.4  |             17 |            9.13 |              155.2 |      62 |
 | Trevor Lawrence     | QB         | JAC        | 20.43 |         347.24 |             17 |            9.02 |              153.3 |      26 |
 | Patrick Mahomes     | QB         | KC         | 20.23 |         283.18 |             14 |            8.82 |              149.9 |      64 |
