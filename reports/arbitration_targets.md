@@ -12,25 +12,25 @@ Negative surplus = player is overpaid and likely to be cut.
 | name              | position   | nfl_team   | team_name                     |   price |   dollar_value |   surplus |   salary_after_arb |   surplus_after_arb |
 |:------------------|:-----------|:-----------|:------------------------------|--------:|---------------:|----------:|-------------------:|--------------------:|
 | Jauan Jennings    | WR         | SF         | The Trigeminal Thunderclaps   |      13 |              3 |       -10 |                 17 |                 -14 |
-| Aaron Jones       | RB         | MIN        | The Hard Eight                |      18 |              9 |        -9 |                 22 |                 -13 |
 | Josh Jacobs       | RB         | GB         | The Golden Gouda              |      66 |             57 |        -9 |                 70 |                 -13 |
+| Aaron Jones       | RB         | MIN        | The Hard Eight                |      18 |              9 |        -9 |                 22 |                 -13 |
 | Trey McBride      | TE         | ARI        | The Golden Gouda              |      49 |             41 |        -8 |                 53 |                 -12 |
-| Deebo Samuel      | WR         | WAS        | The Triple Helix              |      16 |              9 |        -7 |                 20 |                 -11 |
 | Breece Hall       | RB         | NYJ        | The Trigeminal Thunderclaps   |      41 |             34 |        -7 |                 45 |                 -11 |
+| Deebo Samuel      | WR         | WAS        | The Triple Helix              |      16 |              9 |        -7 |                 20 |                 -11 |
 | Mac Jones         | QB         | SF         | Irish Invasion                |       9 |              3 |        -6 |                 13 |                 -10 |
-| Tony Pollard      | RB         | TEN        | The Trigeminal Thunderclaps   |      24 |             19 |        -5 |                 28 |                  -9 |
 | J.J. McCarthy     | QB         | MIN        | Ball So Hard University       |      13 |              8 |        -5 |                 17 |                  -9 |
-| Tee Higgins       | WR         | CIN        | Pacific Punt Masters          |      35 |             31 |        -4 |                 39 |                  -8 |
+| Tony Pollard      | RB         | TEN        | The Trigeminal Thunderclaps   |      24 |             19 |        -5 |                 28 |                  -9 |
 | Tetairoa McMillan | WR         | CAR        | Marin County Mountain Runners |      20 |             16 |        -4 |                 24 |                  -8 |
+| Tee Higgins       | WR         | CIN        | Pacific Punt Masters          |      35 |             31 |        -4 |                 39 |                  -8 |
+| Omarion Hampton   | RB         | LAC        | The Triple Helix              |      43 |             40 |        -3 |                 47 |                  -7 |
+| Kyren Williams    | RB         | LA         | The Golden Gouda              |      65 |             62 |        -3 |                 69 |                  -7 |
+| Jameson Williams  | WR         | DET        | The Triple Helix              |      25 |             22 |        -3 |                 29 |                  -7 |
 | Joey Slye         | K          | TEN        | The Golden Gouda              |       5 |              2 |        -3 |                  9 |                  -7 |
 | Bo Nix            | QB         | DEN        | The Golden Gouda              |      54 |             51 |        -3 |                 58 |                  -7 |
-| Jameson Williams  | WR         | DET        | The Triple Helix              |      25 |             22 |        -3 |                 29 |                  -7 |
-| Kyren Williams    | RB         | LA         | The Golden Gouda              |      65 |             62 |        -3 |                 69 |                  -7 |
-| Omarion Hampton   | RB         | LAC        | The Triple Helix              |      43 |             40 |        -3 |                 47 |                  -7 |
 | Jake Bates        | K          | DET        | Pacific Punt Masters          |       8 |              6 |        -2 |                 12 |                  -6 |
-| Kareem Hunt       | RB         | KC         | The Royal Dynasty             |       5 |              3 |        -2 |                  9 |                  -6 |
 | Khalil Shakir     | WR         | BUF        | The Triple Helix              |       7 |              5 |        -2 |                 11 |                  -6 |
-| Sam Darnold       | QB         | SEA        | Pacific Punt Masters          |      20 |             19 |        -1 |                 24 |                  -5 |
+| Kareem Hunt       | RB         | KC         | The Royal Dynasty             |       5 |              3 |        -2 |                  9 |                  -6 |
+| Kyle Monangai     | RB         | CHI        | The Hard Eight                |       7 |              6 |        -1 |                 11 |                  -5 |
 
 ## Targets by Opponent Team
 
@@ -42,9 +42,9 @@ Suggested allocation strategy (must give each team $1-$8):
 |:---------------|:-----------|--------:|---------------:|----------:|--------------------:|
 | Josh Jacobs    | RB         |      66 |             57 |        -9 |                 -13 |
 | Trey McBride   | TE         |      49 |             41 |        -8 |                 -12 |
+| Kyren Williams | RB         |      65 |             62 |        -3 |                  -7 |
 | Joey Slye      | K          |       5 |              2 |        -3 |                  -7 |
 | Bo Nix         | QB         |      54 |             51 |        -3 |                  -7 |
-| Kyren Williams | RB         |      65 |             62 |        -3 |                  -7 |
 
 ### The Trigeminal Thunderclaps (suggested: $8)
 
@@ -61,8 +61,8 @@ Suggested allocation strategy (must give each team $1-$8):
 | name             | position   |   price |   dollar_value |   surplus |   surplus_after_arb |
 |:-----------------|:-----------|--------:|---------------:|----------:|--------------------:|
 | Deebo Samuel     | WR         |      16 |              9 |        -7 |                 -11 |
-| Jameson Williams | WR         |      25 |             22 |        -3 |                  -7 |
 | Omarion Hampton  | RB         |      43 |             40 |        -3 |                  -7 |
+| Jameson Williams | WR         |      25 |             22 |        -3 |                  -7 |
 | Khalil Shakir    | WR         |       7 |              5 |        -2 |                  -6 |
 | Justin Herbert   | QB         |      45 |             53 |         8 |                   4 |
 
