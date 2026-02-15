@@ -129,8 +129,8 @@ than the replacement-level player at his position.
 | Chase McLaughlin | K          | TB         |  8.76 |          149   |             17 |            1.11 |               18.9 |       5 |
 | Jake Moody       | K          | WAS        |  8.56 |           77   |              9 |            0.91 |               15.5 |       1 |
 | Chris Boswell    | K          | PIT        |  8.53 |          145   |             17 |            0.88 |               15   |       5 |
-| Wil Lutz         | K          | DEN        |  8.47 |          144   |             17 |            0.82 |               13.9 |       2 |
 | Cairo Santos     | K          | CHI        |  8.47 |          127   |             15 |            0.82 |               13.9 |       1 |
+| Wil Lutz         | K          | DEN        |  8.47 |          144   |             17 |            0.82 |               13.9 |       2 |
 | Jake Bates       | K          | DET        |  8.41 |          143   |             17 |            0.76 |               12.9 |       8 |
 | Harrison Butker  | K          | KC         |  8.24 |          140   |             17 |            0.59 |               10   |       5 |
 | Tyler Loop       | K          | BAL        |  8.12 |          138   |             17 |            0.47 |                8   |       1 |
