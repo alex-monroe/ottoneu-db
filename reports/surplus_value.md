@@ -7,129 +7,129 @@
 
 | name                | position   | nfl_team   |   price |   dollar_value |   surplus |   ppg |   full_season_vorp | team_name                     |
 |:--------------------|:-----------|:-----------|--------:|---------------:|----------:|------:|-------------------:|:------------------------------|
-| Blake Grupe         | K          | IND        |       1 |            127 |       126 | 24.2  |              281.3 | FA                            |
-| Matthew Stafford    | QB         | LA         |      13 |             71 |        58 | 20.61 |              156.4 | Irish Invasion                |
-| Drake Maye          | QB         | NE         |      30 |             71 |        41 | 20.62 |              156.6 | Tinseltown Little Gold Men    |
-| Daniel Jones        | QB         | IND        |       6 |             46 |        40 | 17.34 |              100.8 | Ball So Hard University       |
-| Trevor Lawrence     | QB         | JAC        |      26 |             65 |        39 | 19.89 |              144.2 | The Witchcraft                |
-| Javonte Williams    | RB         | DAL        |      11 |             50 |        39 | 14.08 |              109.8 | Marin County Mountain Runners |
-| Jake Moody          | K          | WAS        |       1 |             40 |        39 | 12.83 |               88.1 | FA                            |
-| Cam Skattebo        | RB         | NYG        |      15 |             53 |        38 | 14.46 |              116.3 | Tinseltown Little Gold Men    |
-| Rashee Rice         | WR         | KC         |      14 |             50 |        36 | 15.45 |              111.5 | Ball So Hard University       |
-| Travis Etienne      | RB         | JAC        |      14 |             48 |        34 | 13.88 |              106.4 | The Trigeminal Thunderclaps   |
-| Caleb Williams      | QB         | CHI        |      21 |             55 |        34 | 18.6  |              122.2 | The Triple Helix              |
-| Jonathan Taylor     | RB         | IND        |      61 |             95 |        34 | 19.96 |              209.8 | The Roseman Empire            |
-| Rashid Shaheed      | WR         | SEA        |       7 |             40 |        33 | 14.12 |               88.9 | Ball So Hard University       |
-| Ka'imi Fairbairn    | K          | HOU        |       7 |             39 |        32 | 12.67 |               85.3 | The Hard Eight                |
-| Jacoby Brissett     | QB         | ARI        |       5 |             37 |        32 | 16.17 |               80.9 | The Roseman Empire            |
-| Jaxson Dart         | QB         | NYG        |      13 |             44 |        31 | 17.18 |               98.1 | The Trigeminal Thunderclaps   |
-| Christian McCaffrey | RB         | SF         |      77 |            107 |        30 | 21.51 |              236.1 | The Roseman Empire            |
-| Tucker Kraft        | TE         | GB         |       8 |             36 |        28 | 12.65 |               78.7 | The Hard Eight                |
-| Rhamondre Stevenson | RB         | NE         |       9 |             37 |        28 | 12.39 |               81.1 | Ball So Hard University       |
-| Joe Flacco          | QB         | CIN        |       9 |             36 |        27 | 16.07 |               79.2 | Marin County Mountain Runners |
-| Spencer Shrader     | K          | IND        |       1 |             27 |        26 | 11.2  |               60.3 | FA                            |
-| De'Von Achane       | RB         | MIA        |      55 |             80 |        25 | 18.08 |              177.8 | The Royal Dynasty             |
-| Dak Prescott        | QB         | DAL        |      30 |             53 |        23 | 18.28 |              116.8 | Marin County Mountain Runners |
-| Jason Myers         | K          | SEA        |       7 |             29 |        22 | 11.47 |               64.9 | The Royal Dynasty             |
-| George Pickens      | WR         | DAL        |      22 |             43 |        21 | 14.44 |               94.3 | Pacific Punt Masters          |
-| James Cook          | RB         | BUF        |      44 |             65 |        21 | 16.06 |              143.5 | The Royal Dynasty             |
-| Rico Dowdle         | RB         | CAR        |       9 |             30 |        21 | 11.58 |               67.3 | Tinseltown Little Gold Men    |
-| Quinshon Judkins    | RB         | CLE        |       8 |             28 |        20 | 11.2  |               60.9 | The Trigeminal Thunderclaps   |
-| Harrison Mevis      | K          | LA         |       1 |             21 |        20 | 10.33 |               45.6 | FA                            |
-| Zane Gonzalez       | K          | ATL        |       1 |             20 |        19 | 10.22 |               43.7 | FA                            |
+| Matthew Stafford    | QB         | LA         |      13 |             82 |        69 | 21.48 |              171.2 | Irish Invasion                |
+| Rashee Rice         | WR         | KC         |      14 |             58 |        44 | 15.45 |              120.5 | Ball So Hard University       |
+| Trevor Lawrence     | QB         | JAC        |      26 |             69 |        43 | 19.89 |              144.2 | The Witchcraft                |
+| Daniel Jones        | QB         | IND        |       6 |             48 |        42 | 17.34 |              100.8 | Ball So Hard University       |
+| Javonte Williams    | RB         | DAL        |      11 |             53 |        42 | 14.08 |              109.8 | Marin County Mountain Runners |
+| Cam Skattebo        | RB         | NYG        |      15 |             56 |        41 | 14.46 |              116.3 | Tinseltown Little Gold Men    |
+| Harrison Mevis      | K          | LA         |       1 |             41 |        40 | 12.67 |               85.3 | FA                            |
+| Drake Maye          | QB         | NE         |      30 |             70 |        40 | 20.02 |              146.4 | Tinseltown Little Gold Men    |
+| Jonathan Taylor     | RB         | IND        |      61 |            100 |        39 | 19.96 |              209.8 | The Roseman Empire            |
+| Travis Etienne      | RB         | JAC        |      14 |             51 |        37 | 13.88 |              106.4 | The Trigeminal Thunderclaps   |
+| Caleb Williams      | QB         | CHI        |      21 |             58 |        37 | 18.56 |              121.5 | The Triple Helix              |
+| Ka'imi Fairbairn    | K          | HOU        |       7 |             42 |        35 | 12.87 |               88.7 | The Hard Eight                |
+| Jaxson Dart         | QB         | NYG        |      13 |             47 |        34 | 17.18 |               98.1 | The Trigeminal Thunderclaps   |
+| Jacoby Brissett     | QB         | ARI        |       5 |             39 |        34 | 16.17 |               80.9 | The Roseman Empire            |
+| Christian McCaffrey | RB         | SF         |      77 |            108 |        31 | 20.93 |              226.3 | The Roseman Empire            |
+| De'Von Achane       | RB         | MIA        |      55 |             85 |        30 | 18.08 |              177.8 | The Royal Dynasty             |
+| Brock Purdy         | QB         | SF         |      44 |             72 |        28 | 20.2  |              149.4 | The Hard Eight                |
+| Spencer Shrader     | K          | IND        |       1 |             29 |        28 | 11.2  |               60.3 | FA                            |
+| George Pickens      | WR         | DAL        |      22 |             49 |        27 | 14.44 |              103.4 | Pacific Punt Masters          |
+| Dak Prescott        | QB         | DAL        |      30 |             56 |        26 | 18.28 |              116.8 | Marin County Mountain Runners |
+| Jason Myers         | K          | SEA        |       7 |             33 |        26 | 11.65 |               68   | The Royal Dynasty             |
+| James Cook          | RB         | BUF        |      44 |             69 |        25 | 16.06 |              143.5 | The Royal Dynasty             |
+| Chris Olave         | WR         | NO         |      19 |             43 |        24 | 13.62 |               89.4 | The Royal Dynasty             |
+| Rico Dowdle         | RB         | CAR        |       9 |             32 |        23 | 11.58 |               67.3 | Tinseltown Little Gold Men    |
+| Quinshon Judkins    | RB         | CLE        |       8 |             29 |        21 | 11.2  |               60.9 | The Trigeminal Thunderclaps   |
+| Rhamondre Stevenson | RB         | NE         |       9 |             30 |        21 | 11.3  |               62.6 | Ball So Hard University       |
+| Zane Gonzalez       | K          | ATL        |       1 |             21 |        20 | 10.22 |               43.7 | FA                            |
+| Justin Fields       | QB         | NYJ        |      14 |             33 |        19 | 15.52 |               69.9 | FA                            |
+| Tyler Shough        | QB         | NO         |       5 |             24 |        19 | 14.36 |               50.1 | The Hard Eight                |
+| Puka Nacua          | WR         | LA         |      77 |             95 |        18 | 20.04 |              198.6 | Ball So Hard University       |
 
 ## Bottom 30 Surplus (Most Overpaid)
 
 | name              | position   | nfl_team   |   price |   dollar_value |   surplus |   ppg |   full_season_vorp | team_name                     |
 |:------------------|:-----------|:-----------|--------:|---------------:|----------:|------:|-------------------:|:------------------------------|
-| Justin Jefferson  | WR         | MIN        |      99 |              4 |       -95 |  9.38 |                8.3 | FA                            |
-| Lamar Jackson     | QB         | BAL        |     117 |             39 |       -78 | 16.45 |               85.7 | Tinseltown Little Gold Men    |
-| CeeDee Lamb       | WR         | DAL        |      92 |             21 |       -71 | 11.67 |               47.3 | Ball So Hard University       |
-| Brian Thomas      | WR         | JAC        |      69 |              1 |       -68 |  8.24 |              -11.1 | Marin County Mountain Runners |
-| Joe Burrow        | QB         | CIN        |     102 |             41 |       -61 | 16.81 |               91.8 | The Hard Eight                |
-| Jalen Hurts       | QB         | PHI        |     110 |             50 |       -60 | 17.93 |              110.8 | The Roseman Empire            |
-| Ja'Marr Chase     | WR         | CIN        |     103 |             52 |       -51 | 15.69 |              115.6 | The Triple Helix              |
-| Saquon Barkley    | RB         | PHI        |      94 |             43 |       -51 | 13.25 |               95.7 | The Triple Helix              |
-| A.J. Brown        | WR         | PHI        |      73 |             26 |       -47 | 12.27 |               57.5 | The Trigeminal Thunderclaps   |
-| Terry McLaurin    | WR         | WAS        |      46 |              5 |       -41 |  9.52 |               10.7 | Pacific Punt Masters          |
-| Malik Nabers      | WR         | NYG        |      64 |             24 |       -40 | 12.03 |               53.4 | Marin County Mountain Runners |
-| Ashton Jeanty     | RB         | LV         |      78 |             40 |       -38 | 12.8  |               88.1 | FA                            |
-| Josh Allen        | QB         | BUF        |     114 |             77 |       -37 | 21.39 |              169.7 | Irish Invasion                |
-| Jayden Daniels    | QB         | WAS        |      74 |             37 |       -37 | 16.18 |               81.1 | Ball So Hard University       |
+| Justin Jefferson  | WR         | MIN        |      99 |              8 |       -91 |  9.38 |               17.3 | FA                            |
+| Lamar Jackson     | QB         | BAL        |     117 |             41 |       -76 | 16.45 |               85.7 | Tinseltown Little Gold Men    |
+| Brian Thomas      | WR         | JAC        |      69 |              1 |       -68 |  8.24 |               -2   | Marin County Mountain Runners |
+| CeeDee Lamb       | WR         | DAL        |      92 |             27 |       -65 | 11.67 |               56.3 | Ball So Hard University       |
+| Joe Burrow        | QB         | CIN        |     102 |             44 |       -58 | 16.81 |               91.8 | The Hard Eight                |
+| Jalen Hurts       | QB         | PHI        |     110 |             53 |       -57 | 17.93 |              110.8 | The Roseman Empire            |
+| Saquon Barkley    | RB         | PHI        |      94 |             46 |       -48 | 13.25 |               95.7 | The Triple Helix              |
+| Ja'Marr Chase     | WR         | CIN        |     103 |             60 |       -43 | 15.69 |              124.6 | The Triple Helix              |
+| A.J. Brown        | WR         | PHI        |      73 |             32 |       -41 | 12.27 |               66.5 | The Trigeminal Thunderclaps   |
+| Terry McLaurin    | WR         | WAS        |      46 |              9 |       -37 |  9.52 |               19.7 | Pacific Punt Masters          |
 | Alvin Kamara      | RB         | NO         |      37 |              1 |       -36 |  7.65 |                0.5 | Pacific Punt Masters          |
-| Mike Evans        | WR         | TB         |      36 |              1 |       -35 |  8.72 |               -2.9 | The Trigeminal Thunderclaps   |
-| Drake London      | WR         | ATL        |      73 |             39 |       -34 | 13.99 |               86.7 | Pacific Punt Masters          |
-| Amon-Ra St. Brown | WR         | DET        |      84 |             52 |       -32 | 15.62 |              114.4 | Tinseltown Little Gold Men    |
-| DeVonta Smith     | WR         | PHI        |      38 |              9 |       -29 | 10.07 |               20.1 | Marin County Mountain Runners |
-| Emeka Egbuka      | WR         | TB         |      35 |              6 |       -29 |  9.66 |               13.1 | Tinseltown Little Gold Men    |
-| Garrett Wilson    | WR         | NYJ        |      50 |             21 |       -29 | 11.64 |               46.8 | The Hard Eight                |
-| Ladd McConkey     | WR         | LAC        |      28 |              1 |       -27 |  8.89 |                0   | Tinseltown Little Gold Men    |
+| Ashton Jeanty     | RB         | LV         |      78 |             42 |       -36 | 12.8  |               88.1 | FA                            |
+| Brock Bowers      | TE         | LV         |      53 |             18 |       -35 | 12.02 |               36.9 | Tinseltown Little Gold Men    |
+| Jayden Daniels    | QB         | WAS        |      74 |             39 |       -35 | 16.18 |               81.1 | Ball So Hard University       |
+| Malik Nabers      | WR         | NYG        |      64 |             30 |       -34 | 12.03 |               62.4 | Marin County Mountain Runners |
+| Mike Evans        | WR         | TB         |      36 |              3 |       -33 |  8.72 |                6.1 | The Trigeminal Thunderclaps   |
+| Sam LaPorta       | TE         | DET        |      32 |              1 |       -31 |  9.66 |               -3.2 | The Royal Dynasty             |
+| Rome Odunze       | WR         | CHI        |      31 |              1 |       -30 |  7.83 |               -9   | The Royal Dynasty             |
+| Josh Allen        | QB         | BUF        |     114 |             86 |       -28 | 21.98 |              179.7 | Irish Invasion                |
+| Drake London      | WR         | ATL        |      73 |             46 |       -27 | 13.99 |               95.7 | Pacific Punt Masters          |
 | Chuba Hubbard     | RB         | CAR        |      28 |              1 |       -27 |  7.53 |               -1.5 | The Trigeminal Thunderclaps   |
-| Ricky Pearsall    | WR         | SF         |      27 |              1 |       -26 |  7.84 |              -17.9 | The Trigeminal Thunderclaps   |
-| Nico Collins      | WR         | HOU        |      55 |             29 |       -26 | 12.71 |               64.9 | Irish Invasion                |
-| Rome Odunze       | WR         | CHI        |      31 |              6 |       -25 |  9.73 |               14.3 | The Royal Dynasty             |
-| Brock Bowers      | TE         | LV         |      53 |             31 |       -22 | 12.02 |               68   | Tinseltown Little Gold Men    |
+| Ricky Pearsall    | WR         | SF         |      27 |              1 |       -26 |  7.04 |              -22.4 | The Trigeminal Thunderclaps   |
+| Amon-Ra St. Brown | WR         | DET        |      84 |             59 |       -25 | 15.62 |              123.4 | Tinseltown Little Gold Men    |
+| Ladd McConkey     | WR         | LAC        |      28 |              4 |       -24 |  8.89 |                9   | Tinseltown Little Gold Men    |
+| DeVonta Smith     | WR         | PHI        |      38 |             14 |       -24 | 10.07 |               29.1 | Marin County Mountain Runners |
+| Emeka Egbuka      | WR         | TB         |      35 |             11 |       -24 |  9.66 |               22.1 | Tinseltown Little Gold Men    |
+| Garrett Wilson    | WR         | NYJ        |      50 |             27 |       -23 | 11.64 |               55.8 | The Hard Eight                |
+| George Kittle     | TE         | SF         |      40 |             18 |       -22 | 12.09 |               38.1 | The Roseman Empire            |
 | Isiah Pacheco     | RB         | KC         |      23 |              1 |       -22 |  5.98 |              -27.9 | Pacific Punt Masters          |
-| Courtland Sutton  | WR         | DEN        |      34 |             14 |       -20 | 10.75 |               31.6 | The Golden Gouda              |
-| Sam LaPorta       | TE         | DET        |      32 |             13 |       -19 |  9.66 |               27.9 | The Royal Dynasty             |
+| Travis Kelce      | TE         | KC         |      21 |              1 |       -20 |  9.13 |              -12.2 | FA                            |
 
 ## The Witchcraft Roster — Surplus Breakdown
 
 | name            | position   |   price |   dollar_value |   surplus |   ppg |   full_season_vorp |
 |:----------------|:-----------|--------:|---------------:|----------:|------:|-------------------:|
-| Trevor Lawrence | QB         |      26 |             65 |        39 | 19.89 |              144.2 |
-| Kyle Pitts      | TE         |      11 |             14 |         3 |  9.81 |               30.4 |
-| Jayden Higgins  | WR         |       5 |              1 |        -4 |  6.48 |              -41   |
-| Jalen McMillan  | WR         |       7 |              1 |        -6 |  5.97 |              -49.6 |
+| Trevor Lawrence | QB         |      26 |             69 |        43 | 19.89 |              144.2 |
+| Jayden Higgins  | WR         |       5 |              1 |        -4 |  6.48 |              -32   |
+| Jalen McMillan  | WR         |       7 |              1 |        -6 |  5.97 |              -40.6 |
 | Tyjae Spears    | RB         |      10 |              1 |        -9 |  6.86 |              -12.9 |
 | Trey Benson     | RB         |      10 |              1 |        -9 |  7.22 |               -6.8 |
-| Luther Burden   | WR         |      12 |              1 |       -11 |  6.96 |              -32.8 |
-| C.J. Stroud     | QB         |      38 |             26 |       -12 | 14.84 |               58.3 |
-| Jakobi Meyers   | WR         |      15 |              1 |       -14 |  7.89 |              -17   |
-| Jordan Addison  | WR         |      17 |              1 |       -16 |  8.15 |              -12.6 |
+| C.J. Stroud     | QB         |      38 |             28 |       -10 | 14.84 |               58.3 |
+| Kyle Pitts      | TE         |      11 |              1 |       -10 |  9.81 |               -0.7 |
+| Luther Burden   | WR         |      12 |              1 |       -11 |  6.96 |              -23.8 |
+| Jakobi Meyers   | WR         |      15 |              1 |       -14 |  7.89 |               -8   |
+| Jordan Addison  | WR         |      17 |              1 |       -16 |  8.15 |               -3.6 |
 
 **Total salary:** $151  
-**Total value:** $112  
-**Total surplus:** $-39
+**Total value:** $105  
+**Total surplus:** $-46
 
 ## Top Free Agents by Dollar Value (Waiver Targets)
 
-| name             | position   | nfl_team   |   dollar_value |   ppg |   full_season_vorp |
-|:-----------------|:-----------|:-----------|---------------:|------:|-------------------:|
-| Blake Grupe      | K          | IND        |            127 | 24.2  |              281.3 |
-| Derrick Henry    | RB         | BAL        |             64 | 16    |              142.5 |
-| Ashton Jeanty    | RB         | LV         |             40 | 12.8  |               88.1 |
-| Jake Moody       | K          | WAS        |             40 | 12.83 |               88.1 |
-| Justin Fields    | QB         | NYJ        |             32 | 15.52 |               69.9 |
-| Spencer Shrader  | K          | IND        |             27 | 11.2  |               60.3 |
-| Harrison Mevis   | K          | LA         |             21 | 10.33 |               45.6 |
-| Zane Gonzalez    | K          | ATL        |             20 | 10.22 |               43.7 |
-| Carson Wentz     | QB         | MIN        |             19 | 13.87 |               41.8 |
-| Michael Penix    | QB         | ATL        |             14 | 13.25 |               31.3 |
-| Cairo Santos     | K          | CHI        |             10 |  8.93 |               21.8 |
-| Cam Little       | K          | JAC        |              9 |  8.82 |               19.9 |
-| Travis Kelce     | TE         | KC         |              9 |  9.13 |               18.9 |
-| Tyler Loop       | K          | BAL        |              4 |  8.12 |                8   |
-| Justin Jefferson | WR         | MIN        |              4 |  9.38 |                8.3 |
-| Darren Waller    | TE         | MIA        |              4 |  8.52 |                8.5 |
-| Nick Folk        | K          | NYJ        |              2 |  7.88 |                3.9 |
-| Cole Kmet        | TE         | CHI        |              1 |  3.76 |              -72.4 |
-| Mike Gesicki     | TE         | CIN        |              1 |  4.36 |              -62.2 |
-| Taysom Hill      | TE         | NO         |              1 |  2.79 |              -88.9 |
+| name              | position   | nfl_team   |   dollar_value |   ppg |   full_season_vorp |
+|:------------------|:-----------|:-----------|---------------:|------:|-------------------:|
+| Derrick Henry     | RB         | BAL        |             68 | 16    |              142.5 |
+| Ashton Jeanty     | RB         | LV         |             42 | 12.8  |               88.1 |
+| Harrison Mevis    | K          | LA         |             41 | 12.67 |               85.3 |
+| Justin Fields     | QB         | NYJ        |             33 | 15.52 |               69.9 |
+| Spencer Shrader   | K          | IND        |             29 | 11.2  |               60.3 |
+| Zane Gonzalez     | K          | ATL        |             21 | 10.22 |               43.7 |
+| Carson Wentz      | QB         | MIN        |             20 | 13.87 |               41.8 |
+| Michael Penix     | QB         | ATL        |             15 | 13.25 |               31.3 |
+| Cam Little        | K          | JAC        |             14 |  9.35 |               28.9 |
+| Justin Jefferson  | WR         | MIN        |              8 |  9.38 |               17.3 |
+| Wil Lutz          | K          | DEN        |              7 |  8.47 |               13.9 |
+| Cairo Santos      | K          | CHI        |              7 |  8.47 |               13.9 |
+| Jake Moody        | K          | WAS        |              7 |  8.56 |               15.5 |
+| Tyler Loop        | K          | BAL        |              4 |  8.12 |                8   |
+| Nick Folk         | K          | NYJ        |              2 |  7.88 |                3.9 |
+| Ben Sinnott       | TE         | WAS        |              1 |  1.43 |             -143.1 |
+| Taysom Hill       | TE         | NO         |              1 |  2.79 |             -120   |
+| Terrance Ferguson | TE         | LA         |              1 |  3.5  |             -108   |
+| Noah Gray         | TE         | KC         |              1 |  1.77 |             -137.4 |
+| Will Dissly       | TE         | LAC        |              1 |  1.69 |             -138.7 |
 
 ## Per-Team Summary
 
 | team_name                     |   players |   total_salary |   total_value |   total_surplus |
 |:------------------------------|----------:|---------------:|--------------:|----------------:|
-| Ball So Hard University       |        17 |            384 |           423 |              39 |
-| The Roseman Empire            |        12 |            424 |           437 |              13 |
-| The Royal Dynasty             |        16 |            344 |           354 |              10 |
-| Irish Invasion                |        14 |            337 |           342 |               5 |
-| The Hard Eight                |        12 |            287 |           260 |             -27 |
-| The Witchcraft                |        10 |            151 |           112 |             -39 |
-| The Trigeminal Thunderclaps   |        15 |            344 |           281 |             -63 |
-| Marin County Mountain Runners |        14 |            363 |           296 |             -67 |
-| The Triple Helix              |        15 |            487 |           403 |             -84 |
-| The Golden Gouda              |        18 |            439 |           323 |            -116 |
-| Tinseltown Little Gold Men    |        16 |            450 |           334 |            -116 |
-| Pacific Punt Masters          |        15 |            409 |           251 |            -158 |
+| Irish Invasion                |        14 |            337 |           376 |              39 |
+| Ball So Hard University       |        17 |            384 |           411 |              27 |
+| The Roseman Empire            |        12 |            424 |           445 |              21 |
+| The Royal Dynasty             |        16 |            344 |           363 |              19 |
+| The Hard Eight                |        12 |            287 |           278 |              -9 |
+| The Witchcraft                |        10 |            151 |           105 |             -46 |
+| The Trigeminal Thunderclaps   |        15 |            344 |           291 |             -53 |
+| The Triple Helix              |        15 |            487 |           433 |             -54 |
+| Marin County Mountain Runners |        14 |            363 |           286 |             -77 |
+| The Golden Gouda              |        18 |            439 |           347 |             -92 |
+| Tinseltown Little Gold Men    |        16 |            450 |           328 |            -122 |
+| Pacific Punt Masters          |        15 |            409 |           282 |            -127 |
