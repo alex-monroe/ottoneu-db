@@ -447,7 +447,8 @@ function allocateTeamBudget(
  */
 export function runArbitrationSimulation(
     players: Player[],
-    numSims: number = NUM_SIMULATIONS
+    numSims: number = NUM_SIMULATIONS,
+    valueVariation: number = VALUE_VARIATION
 ): SimulationResult[] {
     const surplusPlayers = calculateSurplus(players);
     if (surplusPlayers.length === 0) return [];
@@ -462,7 +463,7 @@ export function runArbitrationSimulation(
         const teamValuations = generateTeamValuations(
             surplusPlayers,
             allTeams,
-            VALUE_VARIATION,
+            valueVariation,
             sim
         );
 
