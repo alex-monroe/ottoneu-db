@@ -186,6 +186,27 @@ async def _process_row(row, page, context, supabase, nfl_stats,
         price_data, on_conflict="player_id, league_id, season"
     ).execute()
 
+    # Insert salary history row only if price or team changed since last snapshot
+    latest = (
+        supabase.table("salary_history")
+        .select("price, team_name")
+        .eq("player_id", player_uuid)
+        .eq("league_id", league_id)
+        .eq("season", season)
+        .order("scraped_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    prev = latest.data[0] if latest.data else None
+    if prev is None or prev["price"] != price or prev["team_name"] != fantasy_team:
+        supabase.table("salary_history").insert({
+            "player_id": player_uuid,
+            "league_id": league_id,
+            "season": season,
+            "price": price,
+            "team_name": fantasy_team,
+        }).execute()
+
     # Match NFL stats — sum across all teams for traded players
     if not nfl_stats.empty:
         player_stats_row = nfl_stats[nfl_stats["player"] == name]
