@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Fantasy football analytics platform for Ottoneu leagues. Python scripts scrape player data and NFL stats into a Supabase PostgreSQL database. A Next.js frontend visualizes player salary vs. production efficiency (PPG/PPS) via interactive scatter charts. Target league is ID 309.
+Comprehensive database and analytics platform for Ottoneu League 309 (12-team Superflex Half PPR). This system maintains a complete record of the league including all player points scored, transactions, salary updates, and roster changes. Python scripts scrape player data and NFL stats into a Supabase PostgreSQL database. A Next.js frontend provides interactive analytics and visualizations for player efficiency (PPG/PPS), value over replacement (VORP), surplus value, projected salaries, and arbitration targets.
 
 ## Commands
 

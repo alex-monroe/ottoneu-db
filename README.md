@@ -1,10 +1,10 @@
-# Ottoneu Fantasy Football Analytics Platform
+# Ottoneu Fantasy Football Database & Analytics Platform
 
-A comprehensive analytics platform for Ottoneu fantasy football leagues, featuring automated data scraping, advanced statistical analysis, and interactive visualizations to optimize roster decisions and identify arbitration targets.
+A comprehensive database and analytics platform for Ottoneu League 309, maintaining a complete record of all player points scored, transactions, salary updates, and roster changes. Features automated data scraping, advanced statistical analysis, and interactive visualizations to optimize roster decisions and identify arbitration targets.
 
 ## Overview
 
-This platform helps manage and analyze fantasy football rosters in Ottoneu League 309 (12-team Superflex Half PPR). It combines automated web scraping of player data from Ottoneu with NFL statistics to provide insights on:
+This platform maintains a full database for Ottoneu League 309 (12-team Superflex Half PPR), capturing all league activity including player performance, roster moves, and salary changes. It combines automated web scraping of player data from Ottoneu with NFL statistics to provide insights on:
 
 - **Player efficiency** metrics (PPG, PPS)
 - **Projected salaries** to guide keep/cut decisions
