@@ -117,8 +117,8 @@ than the replacement-level player at his position.
 
 | name             | position   | nfl_team   |   ppg |   total_points |   games_played |   vorp_per_game |   full_season_vorp |   price |
 |:-----------------|:-----------|:-----------|------:|---------------:|---------------:|----------------:|-------------------:|--------:|
-| Harrison Mevis   | K          | LA         | 12.67 |          114   |              9 |            5.02 |               85.3 |       1 |
 | Ka'imi Fairbairn | K          | HOU        | 12.67 |          190   |             15 |            5.02 |               85.3 |       7 |
+| Harrison Mevis   | K          | LA         | 12.67 |          114   |              9 |            5.02 |               85.3 |       1 |
 | Jason Myers      | K          | SEA        | 11.41 |          194   |             17 |            3.76 |               63.9 |       7 |
 | Spencer Shrader  | K          | IND        | 11.2  |           56   |              5 |            3.55 |               60.3 |       1 |
 | Brandon Aubrey   | K          | DAL        | 10.62 |          180.6 |             17 |            2.97 |               50.5 |       7 |
@@ -135,8 +135,8 @@ than the replacement-level player at his position.
 | Tyler Loop       | K          | BAL        |  8.12 |          138   |             17 |            0.47 |                8   |       1 |
 | Joey Slye        | K          | TEN        |  7.94 |          127   |             16 |            0.29 |                4.9 |       5 |
 | Nick Folk        | K          | NYJ        |  7.88 |          126   |             16 |            0.23 |                3.9 |       1 |
-| Wil Lutz         | K          | DEN        |  7.65 |          130   |             17 |            0    |                0   |       2 |
 | Evan McPherson   | K          | CIN        |  7.65 |          130   |             17 |            0    |                0   |       5 |
+| Wil Lutz         | K          | DEN        |  7.65 |          130   |             17 |            0    |                0   |       2 |
 
 ## Top 30 Overall (Cross-Position)
 
