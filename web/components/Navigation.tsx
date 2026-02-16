@@ -3,11 +3,18 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { Lock, ExternalLink } from "lucide-react";
 
 const PUBLIC_LINKS = [
   { href: "/", label: "Player Efficiency" },
   { href: "/players", label: "Players" },
 ];
+
+const SOFA_LEAGUE_LINK = {
+  href: "https://ottoneu.fangraphs.com/football/309/",
+  label: "SOFA League",
+  isExternal: true,
+};
 
 const PRIVATE_LINKS = [
   { href: "/projected-salary", label: "Projected Salary" },
@@ -26,11 +33,6 @@ export default function Navigation({ isAuthenticated }: NavigationProps) {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // Show all links if authenticated, only public links if not
-  const visibleLinks = isAuthenticated
-    ? [...PUBLIC_LINKS, ...PRIVATE_LINKS]
-    : PUBLIC_LINKS;
-
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
@@ -48,7 +50,8 @@ export default function Navigation({ isAuthenticated }: NavigationProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
           <div className="flex items-center gap-1 overflow-x-auto">
-            {visibleLinks.map((link) => {
+            {/* Public links */}
+            {PUBLIC_LINKS.map((link) => {
               const isActive = pathname === link.href;
               return (
                 <Link
@@ -64,6 +67,37 @@ export default function Navigation({ isAuthenticated }: NavigationProps) {
                 </Link>
               );
             })}
+
+            {/* SOFA League external link */}
+            <a
+              href={SOFA_LEAGUE_LINK.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
+            >
+              {SOFA_LEAGUE_LINK.label}
+              <ExternalLink size={14} />
+            </a>
+
+            {/* Protected links (only if authenticated) */}
+            {isAuthenticated &&
+              PRIVATE_LINKS.map((link) => {
+                const isActive = pathname === link.href;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${
+                      isActive
+                        ? "bg-blue-600 text-white"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
+                    }`}
+                  >
+                    <Lock size={12} className="opacity-60" />
+                    {link.label}
+                  </Link>
+                );
+              })}
           </div>
           {isAuthenticated ? (
             <button
