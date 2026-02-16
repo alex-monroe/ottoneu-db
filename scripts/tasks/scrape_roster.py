@@ -6,6 +6,7 @@ import re
 
 import pandas as pd
 
+from scripts.name_utils import normalize_player_name
 from scripts.tasks import SCRAPE_PLAYER_CARD, TaskResult
 
 
@@ -187,7 +188,17 @@ async def _process_row(row, page, context, supabase, nfl_stats,
 
     # Match NFL stats — sum across all teams for traded players
     if not nfl_stats.empty:
-        player_stats_row = nfl_stats[nfl_stats["player"] == name]
+        # Normalize both Ottoneu name and NFL names for matching
+        normalized_name = normalize_player_name(name)
+
+        # Create temporary normalized column for matching
+        nfl_stats_temp = nfl_stats.copy()
+        nfl_stats_temp["player_normalized"] = nfl_stats_temp["player"].apply(normalize_player_name)
+
+        # Match on normalized names
+        player_stats_row = nfl_stats_temp[nfl_stats_temp["player_normalized"] == normalized_name]
+
+        # Existing disambiguation logic (unchanged)
         if len(player_stats_row) > 1:
             # Check if multiple rows are the same player on different teams (trade)
             # vs. genuinely different players with the same name
