@@ -25,7 +25,7 @@ MIN_GAMES = 4
 
 # Replacement level: approximate number of fantasy-relevant players per position
 # in a 12-team superflex league (accounts for 2 QBs starting per team)
-REPLACEMENT_LEVEL = {'QB': 24, 'RB': 30, 'WR': 30, 'TE': 15, 'K': 13}
+REPLACEMENT_LEVEL = {'QB': 24, 'RB': 30, 'WR': 30, 'TE': 20, 'K': 13}
 
 # NOTE: Database salaries already reflect the end-of-season $4/$1 bump.
 # No additional salary projection is needed.

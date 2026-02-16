@@ -13,7 +13,7 @@ export const REPLACEMENT_LEVEL: Record<string, number> = {
     QB: 24,
     RB: 30,
     WR: 30,
-    TE: 15,
+    TE: 20,
     K: 13,
 };
 
