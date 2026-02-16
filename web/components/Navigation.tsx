@@ -65,7 +65,7 @@ export default function Navigation({ isAuthenticated }: NavigationProps) {
               );
             })}
           </div>
-          {isAuthenticated && (
+          {isAuthenticated ? (
             <button
               onClick={handleLogout}
               disabled={isLoggingOut}
@@ -73,6 +73,13 @@ export default function Navigation({ isAuthenticated }: NavigationProps) {
             >
               {isLoggingOut ? "Signing out..." : "Sign Out"}
             </button>
+          ) : (
+            <Link
+              href="/login"
+              className="ml-4 px-3 py-1.5 text-sm font-medium rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors whitespace-nowrap"
+            >
+              Sign In
+            </Link>
           )}
         </div>
       </div>
