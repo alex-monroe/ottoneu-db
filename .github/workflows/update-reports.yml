@@ -1,8 +1,9 @@
 name: Update Analysis Reports
 
 on:
-  pull_request:
-    types: [opened, synchronize]
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -15,10 +16,9 @@ jobs:
       run:
         working-directory: scripts
     steps:
-      - name: Checkout PR branch
+      - name: Checkout main branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Python
