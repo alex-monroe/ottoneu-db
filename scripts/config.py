@@ -23,9 +23,14 @@ POSITIONS = ["QB", "RB", "WR", "TE", "K"]
 # === Analysis Configuration ===
 MIN_GAMES = 4
 
-# Replacement level: approximate number of fantasy-relevant players per position
-# in a 12-team superflex league (accounts for 2 QBs starting per team)
-REPLACEMENT_LEVEL = {'QB': 24, 'RB': 30, 'WR': 30, 'TE': 20, 'K': 13}
+# Roster-based replacement levels derived from analyze_roster_composition.py.
+# Bench level = average number of rostered players per position across 5 season snapshots.
+# Waiver level = bench + 1 (first truly free player, not on any roster).
+BENCH_REPLACEMENT_LEVEL = {'QB': 42, 'RB': 57, 'WR': 65, 'TE': 28, 'K': 14}
+WAIVER_REPLACEMENT_LEVEL = {'QB': 43, 'RB': 58, 'WR': 66, 'TE': 29, 'K': 15}
+
+# Backward-compat alias used by surplus/arbitration scripts.
+REPLACEMENT_LEVEL = WAIVER_REPLACEMENT_LEVEL
 
 # NOTE: Database salaries already reflect the end-of-season $4/$1 bump.
 # No additional salary projection is needed.

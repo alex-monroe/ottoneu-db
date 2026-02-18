@@ -15,7 +15,7 @@ def calculate_surplus(merged_df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame with added columns: dollar_value, surplus.
     """
-    vorp_df, _ = calculate_vorp(merged_df)
+    vorp_df, _, _ = calculate_vorp(merged_df)
     if vorp_df.empty:
         return pd.DataFrame()
 

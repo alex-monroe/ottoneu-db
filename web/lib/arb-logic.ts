@@ -7,15 +7,26 @@ export const NUM_TEAMS = 12;
 export const CAP_PER_TEAM = 400;
 export const MIN_GAMES = 4;
 
-// Replacement level: approximate number of fantasy-relevant players per position
-// in a 12-team superflex league (accounts for 2 QBs starting per team)
-export const REPLACEMENT_LEVEL: Record<string, number> = {
-    QB: 24,
-    RB: 30,
-    WR: 30,
-    TE: 20,
-    K: 13,
+// Roster-based replacement levels from analyze_roster_composition.py.
+// Bench level = average rostered players per position across 5 season snapshots.
+// Waiver level = bench + 1 (first player not on any roster).
+export const BENCH_REPLACEMENT_LEVEL: Record<string, number> = {
+    QB: 42,
+    RB: 57,
+    WR: 65,
+    TE: 28,
+    K: 14,
 };
+export const WAIVER_REPLACEMENT_LEVEL: Record<string, number> = {
+    QB: 43,
+    RB: 58,
+    WR: 66,
+    TE: 29,
+    K: 15,
+};
+
+// Backward-compat alias used by surplus/arbitration logic.
+export const REPLACEMENT_LEVEL = WAIVER_REPLACEMENT_LEVEL;
 
 // NOTE: Database salaries already reflect the end-of-season $4/$1 bump.
 // No additional salary projection is needed.
@@ -58,9 +69,13 @@ export interface Player {
 }
 
 export interface VorpPlayer extends Player {
-    replacement_ppg: number;
-    vorp_per_game: number;
-    full_season_vorp: number;
+    bench_replacement_ppg: number;
+    waiver_replacement_ppg: number;
+    replacement_ppg: number;       // alias for waiver_replacement_ppg (backward compat)
+    vorp_vs_bench: number;
+    vorp_vs_waiver: number;
+    vorp_per_game: number;         // alias for vorp_vs_waiver (backward compat)
+    full_season_vorp: number;      // vorp_per_game × 17
 }
 
 export interface SurplusPlayer extends VorpPlayer {
@@ -105,43 +120,52 @@ export interface SimulationResult extends SurplusPlayer {
 export function calculateVorp(
     players: Player[],
     minGames: number = MIN_GAMES
-): { players: VorpPlayer[]; replacementPpg: Record<string, number> } {
+): { players: VorpPlayer[]; waiverPpg: Record<string, number>; benchPpg: Record<string, number> } {
     // Exclude kickers from VORP analysis
     const qualified = players.filter((p) => p.games_played >= minGames && p.position !== 'K');
-    if (qualified.length === 0) return { players: [], replacementPpg: {} };
+    if (qualified.length === 0) return { players: [], waiverPpg: {}, benchPpg: {} };
 
-    // Determine replacement-level PPG per position
-    const replacementPpg: Record<string, number> = {};
-    for (const [pos, rank] of Object.entries(REPLACEMENT_LEVEL)) {
+    // Helper: get PPG of the Nth-ranked player (by total_points) at a position
+    function getReplacementPpg(pos: string, rank: number): number {
         const posPlayers = qualified
             .filter((p) => p.position === pos)
             .sort((a, b) => b.total_points - a.total_points);
+        if (posPlayers.length >= rank) return posPlayers[rank - 1].ppg;
+        if (posPlayers.length > 0) return posPlayers[posPlayers.length - 1].ppg;
+        return 0;
+    }
 
-        if (posPlayers.length >= rank) {
-            replacementPpg[pos] = posPlayers[rank - 1].ppg;
-        } else if (posPlayers.length > 0) {
-            replacementPpg[pos] = posPlayers[posPlayers.length - 1].ppg;
-        } else {
-            replacementPpg[pos] = 0;
-        }
+    const waiverPpg: Record<string, number> = {};
+    const benchPpg: Record<string, number> = {};
+
+    for (const pos of Object.keys(BENCH_REPLACEMENT_LEVEL)) {
+        benchPpg[pos] = getReplacementPpg(pos, BENCH_REPLACEMENT_LEVEL[pos]);
+        waiverPpg[pos] = getReplacementPpg(pos, WAIVER_REPLACEMENT_LEVEL[pos]);
     }
 
     const vorpPlayers: VorpPlayer[] = qualified.map((p) => {
-        const repPpg = replacementPpg[p.position] ?? 0;
-        const vorpPerGame = p.ppg - repPpg;
+        const bPpg = benchPpg[p.position] ?? 0;
+        const wPpg = waiverPpg[p.position] ?? 0;
+        const vorpVsBench = p.ppg - bPpg;
+        const vorpVsWaiver = p.ppg - wPpg;
         return {
             ...p,
-            replacement_ppg: repPpg,
-            vorp_per_game: Math.round(vorpPerGame * 100) / 100,
-            full_season_vorp: Math.round(vorpPerGame * 17 * 10) / 10,
+            bench_replacement_ppg: bPpg,
+            waiver_replacement_ppg: wPpg,
+            replacement_ppg: wPpg,
+            vorp_vs_bench: Math.round(vorpVsBench * 100) / 100,
+            vorp_vs_waiver: Math.round(vorpVsWaiver * 100) / 100,
+            vorp_per_game: Math.round(vorpVsWaiver * 100) / 100,
+            full_season_vorp: Math.round(vorpVsWaiver * 17 * 10) / 10,
         };
     });
 
-    return { players: vorpPlayers, replacementPpg };
+    return { players: vorpPlayers, waiverPpg, benchPpg };
 }
 
 export function calculateSurplus(players: Player[]): SurplusPlayer[] {
     const { players: vorpPlayers } = calculateVorp(players);
+
     if (vorpPlayers.length === 0) return [];
 
     const totalPositiveVorp = vorpPlayers

@@ -1,7 +1,8 @@
 import {
   fetchAndMergeData,
   calculateVorp,
-  REPLACEMENT_LEVEL,
+  BENCH_REPLACEMENT_LEVEL,
+  WAIVER_REPLACEMENT_LEVEL,
   POSITIONS,
   SEASON,
   MIN_GAMES,
@@ -14,7 +15,7 @@ export const revalidate = 3600;
 
 export default async function VorpPage() {
   const allPlayers = await fetchAndMergeData();
-  const { players, replacementPpg } = calculateVorp(allPlayers);
+  const { players, waiverPpg, benchPpg } = calculateVorp(allPlayers);
 
   if (players.length === 0) {
     return (
@@ -29,14 +30,16 @@ export default async function VorpPage() {
   }
 
   // Replacement benchmarks (exclude kickers)
-  const positionsNoKickers = POSITIONS.filter(pos => pos !== 'K');
+  const positionsNoKickers = POSITIONS.filter((pos) => pos !== "K");
   const benchmarks = positionsNoKickers.map((pos) => ({
     position: pos,
-    rank: REPLACEMENT_LEVEL[pos],
-    ppg: Math.round((replacementPpg[pos] ?? 0) * 100) / 100,
+    benchRank: BENCH_REPLACEMENT_LEVEL[pos],
+    waiverRank: WAIVER_REPLACEMENT_LEVEL[pos],
+    benchPpgVal: Math.round((benchPpg[pos] ?? 0) * 100) / 100,
+    waiverPpgVal: Math.round((waiverPpg[pos] ?? 0) * 100) / 100,
   }));
 
-  // Top 15 overall for bar chart
+  // Top 15 overall for bar chart (sorted by waiver VORP = full_season_vorp)
   const top15 = [...players]
     .sort((a, b) => b.full_season_vorp - a.full_season_vorp)
     .slice(0, 15)
@@ -44,6 +47,7 @@ export default async function VorpPage() {
       name: p.name,
       position: p.position,
       full_season_vorp: p.full_season_vorp,
+      vorp_vs_bench: p.vorp_vs_bench * 17,
     }));
 
   // All players for table
@@ -54,7 +58,8 @@ export default async function VorpPage() {
     ppg: p.ppg,
     total_points: p.total_points,
     games_played: p.games_played,
-    vorp_per_game: p.vorp_per_game,
+    vorp_vs_waiver: p.vorp_vs_waiver,
+    vorp_vs_bench: p.vorp_vs_bench,
     full_season_vorp: p.full_season_vorp,
     price: p.price,
     team_name: p.team_name ?? "FA",
@@ -81,15 +86,28 @@ export default async function VorpPage() {
 
           <div>
             <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">
-              1. Define the replacement level
+              1. Two replacement tiers
             </h3>
             <p>
-              In a {NUM_TEAMS}-team superflex league, each team starts 1 QB + 1 superflex
-              (almost always a QB), 2 RB, 2 WR, and 1 TE. The <em>replacement level</em> is
-              the Nth-best player at each position, where N approximates the number of
-              fantasy-relevant starters across the league. Because superflex effectively
-              requires 2 QBs per team, the QB replacement rank ({REPLACEMENT_LEVEL["QB"]}) is
-              double the standard 1-QB league. Kickers are excluded from VORP analysis.
+              This league uses 20-man rosters, so teams carry significant bench
+              depth beyond starters. Two replacement baselines are tracked:
+            </p>
+            <ul className="list-disc list-inside mt-1 space-y-1 ml-2">
+              <li>
+                <strong>vs Waiver</strong> — the best player <em>not on any roster</em> (freely
+                acquirable, zero cost). This is the primary VORP metric used for salary
+                decisions and surplus value.
+              </li>
+              <li>
+                <strong>vs Bench</strong> — the worst player <em>still rostered</em> league-wide
+                (floor of the rostered pool). Useful context for how many rostered players
+                are truly replaceable.
+              </li>
+            </ul>
+            <p className="mt-1">
+              Replacement ranks are data-driven from actual roster snapshots at 5 points
+              during the season (pre-season, Weeks 4, 8, 12, 16), averaged across all
+              {NUM_TEAMS} teams. Kickers are excluded from VORP.
             </p>
           </div>
 
@@ -99,10 +117,8 @@ export default async function VorpPage() {
             </h3>
             <p>
               Only players with at least {MIN_GAMES} games played qualify. For each position,
-              all qualified players are ranked by total points. The player at
-              the replacement rank sets the <em>replacement PPG</em> — the baseline
-              production freely available on waivers. See the benchmarks table below
-              for each position&apos;s current replacement PPG.
+              qualified players are ranked by total points. The player at each replacement
+              rank sets the baseline PPG. See the benchmarks table below.
             </p>
           </div>
 
@@ -111,10 +127,13 @@ export default async function VorpPage() {
               3. Calculate VORP per game
             </h3>
             <p>
-              For each player: <code className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded text-xs">VORP/G = Player PPG - Replacement PPG</code>.
-              A positive VORP/G means the player produces more per game than a freely
-              available replacement. A negative VORP/G means a waiver pickup would
-              outscore them.
+              For each player:{" "}
+              <code className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded text-xs">
+                VORP/G = Player PPG − Replacement PPG
+              </code>.{" "}
+              A positive value means the player produces more than the baseline. Negative
+              vs Waiver means a free agent would outscore them; negative vs Bench means
+              even the worst rostered player outscores them.
             </p>
           </div>
 
@@ -123,10 +142,10 @@ export default async function VorpPage() {
               4. Project to a full season
             </h3>
             <p>
-              <code className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded text-xs">Full-Season VORP = VORP/G &times; 17</code>.
-              This extrapolates the per-game advantage over a full 17-game NFL season,
-              making it easy to compare players who missed time to those who played
-              every week.
+              <code className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded text-xs">
+                Full-Season VORP = VORP/G &times; 17
+              </code>.{" "}
+              The bar chart and default table sort use full-season VORP vs Waiver.
             </p>
           </div>
 
@@ -136,12 +155,13 @@ export default async function VorpPage() {
             </h3>
             <p>
               The total league salary cap is {NUM_TEAMS} teams &times; ${CAP_PER_TEAM} = $
-              {NUM_TEAMS * CAP_PER_TEAM}. We assume ~87.5% of that (${Math.round(NUM_TEAMS * CAP_PER_TEAM * 0.875)}) goes to above-replacement
-              players. Each point of full-season VORP is worth{" "}
+              {NUM_TEAMS * CAP_PER_TEAM}. We assume ~87.5% of that ($
+              {Math.round(NUM_TEAMS * CAP_PER_TEAM * 0.875)}) goes to above-replacement
+              players. Each point of full-season VORP (vs Waiver) is worth{" "}
               <code className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded text-xs">
                 ${Math.round(NUM_TEAMS * CAP_PER_TEAM * 0.875)} &divide; total league VORP
               </code>
-              , giving each player a dollar value. <em>Surplus</em> = dollar value - salary.
+              , giving each player a dollar value. <em>Surplus</em> = dollar value − salary.
             </p>
           </div>
 
@@ -150,12 +170,12 @@ export default async function VorpPage() {
               Why this matters in superflex
             </h3>
             <p>
-              Because each team needs ~2 starting QBs, the QB replacement level is much
-              deeper (rank {REPLACEMENT_LEVEL["QB"]} vs. {REPLACEMENT_LEVEL["RB"]} for RB).
-              Elite QBs tower above this deeper replacement
-              baseline, producing very high VORP. This is why the top VORP chart is
-              typically dominated by quarterbacks — it correctly captures the scarcity
-              premium that makes QBs so expensive in superflex auctions.
+              Because each team needs ~2 starting QBs, and 20-man rosters allow backup QB
+              stashing, the actual QB rostered pool is ~{WAIVER_REPLACEMENT_LEVEL["QB"]}{" "}
+              players deep. Elite QBs tower above this deep baseline, producing very high
+              VORP. This is why the top VORP chart is typically dominated by
+              quarterbacks — it correctly captures the scarcity premium that makes QBs so
+              expensive in superflex auctions.
             </p>
           </div>
         </section>
@@ -170,12 +190,10 @@ export default async function VorpPage() {
               <thead>
                 <tr className="text-slate-500 dark:text-slate-400">
                   <th className="pr-6 py-1 text-left font-medium">Position</th>
-                  <th className="pr-6 py-1 text-left font-medium">
-                    Replacement Rank
-                  </th>
-                  <th className="pr-6 py-1 text-left font-medium">
-                    Replacement PPG
-                  </th>
+                  <th className="pr-6 py-1 text-left font-medium">Bench Rank</th>
+                  <th className="pr-6 py-1 text-left font-medium">Bench PPG</th>
+                  <th className="pr-6 py-1 text-left font-medium">Waiver Rank</th>
+                  <th className="pr-6 py-1 text-left font-medium">Waiver PPG</th>
                 </tr>
               </thead>
               <tbody>
@@ -185,13 +203,19 @@ export default async function VorpPage() {
                     className="text-slate-800 dark:text-slate-200"
                   >
                     <td className="pr-6 py-1 font-medium">{b.position}</td>
-                    <td className="pr-6 py-1">{b.rank}</td>
-                    <td className="pr-6 py-1">{b.ppg.toFixed(2)}</td>
+                    <td className="pr-6 py-1">{b.benchRank}</td>
+                    <td className="pr-6 py-1">{b.benchPpgVal.toFixed(2)}</td>
+                    <td className="pr-6 py-1">{b.waiverRank}</td>
+                    <td className="pr-6 py-1">{b.waiverPpgVal.toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+            Ranks derived from average rostered counts across 5 season snapshots. Waiver = first
+            truly free player (Bench + 1).
+          </p>
         </section>
 
         <VorpClient top15={top15} tableData={tableData} />

@@ -34,9 +34,9 @@ def main():
 
     print('\n[3/6] VORP Analysis...')
     from analyze_vorp import calculate_vorp, generate_report as vorp_report
-    vorp_result, rpg = calculate_vorp(merged)
+    vorp_result, waiver_ppg, bench_ppg = calculate_vorp(merged)
     if not vorp_result.empty:
-        reports.append(vorp_report(vorp_result, rpg))
+        reports.append(vorp_report(vorp_result, waiver_ppg, bench_ppg))
 
     print('\n[4/6] Surplus Value Analysis...')
     from analyze_surplus_value import calculate_surplus, generate_report as sv_report

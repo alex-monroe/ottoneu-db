@@ -3,20 +3,27 @@
 import os
 import pandas as pd
 from analysis_utils import (
-    REPLACEMENT_LEVEL, MIN_GAMES, SEASON, ensure_reports_dir,
+    MIN_GAMES, SEASON, ensure_reports_dir,
     fetch_all_data, merge_data,
 )
+from config import BENCH_REPLACEMENT_LEVEL, WAIVER_REPLACEMENT_LEVEL
 
 
-def calculate_vorp(merged_df: pd.DataFrame, min_games: int = MIN_GAMES) -> pd.DataFrame:
-    """Calculate VORP for all players.
+def calculate_vorp(
+    merged_df: pd.DataFrame, min_games: int = MIN_GAMES
+) -> tuple[pd.DataFrame, dict, dict]:
+    """Calculate two-tier VORP for all qualified players.
 
     Args:
         merged_df: Merged DataFrame from merge_data().
         min_games: Minimum games played to qualify.
 
     Returns:
-        DataFrame with added columns: replacement_ppg, vorp_per_game, full_season_vorp.
+        (df, waiver_ppg, bench_ppg) where:
+          - df has vorp_vs_waiver, vorp_vs_bench, vorp_per_game, full_season_vorp
+          - waiver_ppg: replacement PPG at the waiver level per position
+          - bench_ppg: replacement PPG at the bench level per position
+        vorp_per_game and full_season_vorp are aliases for waiver VORP (backward compat).
     """
     # Exclude kickers from VORP analysis
     qualified = merged_df[
@@ -25,54 +32,76 @@ def calculate_vorp(merged_df: pd.DataFrame, min_games: int = MIN_GAMES) -> pd.Da
     ].copy()
     if qualified.empty:
         print('No qualified players found.')
-        return pd.DataFrame()
+        return pd.DataFrame(), {}, {}
 
-    # Determine replacement-level PPG per position
-    replacement_ppg = {}
-    for pos, rank in REPLACEMENT_LEVEL.items():
+    # Determine replacement-level PPG for each tier
+    bench_ppg = {}
+    waiver_ppg = {}
+
+    for pos in BENCH_REPLACEMENT_LEVEL:
+        bench_rank = BENCH_REPLACEMENT_LEVEL[pos]
+        waiver_rank = WAIVER_REPLACEMENT_LEVEL[pos]
+
         pos_players = qualified[qualified['position'] == pos].sort_values(
             'total_points', ascending=False
         )
-        if len(pos_players) >= rank:
-            replacement_ppg[pos] = pos_players.iloc[rank - 1]['ppg']
-        elif not pos_players.empty:
-            # If fewer players than rank, use the worst qualifier
-            replacement_ppg[pos] = pos_players.iloc[-1]['ppg']
-        else:
-            replacement_ppg[pos] = 0.0
 
-    qualified['replacement_ppg'] = qualified['position'].map(replacement_ppg).fillna(0)
-    qualified['vorp_per_game'] = qualified['ppg'] - qualified['replacement_ppg']
+        if len(pos_players) >= bench_rank:
+            bench_ppg[pos] = pos_players.iloc[bench_rank - 1]['ppg']
+        elif not pos_players.empty:
+            bench_ppg[pos] = pos_players.iloc[-1]['ppg']
+        else:
+            bench_ppg[pos] = 0.0
+
+        if len(pos_players) >= waiver_rank:
+            waiver_ppg[pos] = pos_players.iloc[waiver_rank - 1]['ppg']
+        elif not pos_players.empty:
+            waiver_ppg[pos] = pos_players.iloc[-1]['ppg']
+        else:
+            waiver_ppg[pos] = 0.0
+
+    qualified['bench_replacement_ppg'] = qualified['position'].map(bench_ppg).fillna(0)
+    qualified['waiver_replacement_ppg'] = qualified['position'].map(waiver_ppg).fillna(0)
+    qualified['vorp_vs_bench'] = qualified['ppg'] - qualified['bench_replacement_ppg']
+    qualified['vorp_vs_waiver'] = qualified['ppg'] - qualified['waiver_replacement_ppg']
+
+    # Primary VORP = vs waiver (backward compat aliases)
+    qualified['replacement_ppg'] = qualified['waiver_replacement_ppg']
+    qualified['vorp_per_game'] = qualified['vorp_vs_waiver']
     qualified['full_season_vorp'] = qualified['vorp_per_game'] * 17
 
-    return qualified, replacement_ppg
+    return qualified, waiver_ppg, bench_ppg
 
 
-def generate_report(df: pd.DataFrame, replacement_ppg: dict) -> str:
+def generate_report(df: pd.DataFrame, waiver_ppg: dict, bench_ppg: dict) -> str:
     """Write VORP analysis report to reports/vorp_analysis.md."""
     reports_dir = ensure_reports_dir()
     output_file = os.path.join(reports_dir, 'vorp_analysis.md')
 
     cols = ['name', 'position', 'nfl_team', 'ppg', 'total_points', 'games_played',
-            'vorp_per_game', 'full_season_vorp', 'price']
+            'vorp_vs_waiver', 'vorp_vs_bench', 'full_season_vorp', 'price']
 
     df = df.copy()
-    df['vorp_per_game'] = df['vorp_per_game'].round(2)
+    df['vorp_vs_waiver'] = df['vorp_vs_waiver'].round(2)
+    df['vorp_vs_bench'] = df['vorp_vs_bench'].round(2)
     df['full_season_vorp'] = df['full_season_vorp'].round(1)
 
     with open(output_file, 'w') as f:
         f.write(f'# VORP Analysis ({SEASON})\n\n')
-        f.write('Value Over Replacement Player — measures how much better a player is\n')
-        f.write('than the replacement-level player at his position.\n\n')
+        f.write('Value Over Replacement Player — two tiers of replacement:\n')
+        f.write('- **vs Waiver**: above the best freely available player (primary metric)\n')
+        f.write('- **vs Bench**: above the worst rostered player league-wide\n\n')
 
         # Replacement level benchmarks
         f.write('## Replacement Level Benchmarks\n\n')
-        f.write('| Position | Replacement Rank | Replacement PPG |\n')
-        f.write('|----------|-----------------|----------------|\n')
+        f.write('| Position | Bench Rank | Bench PPG | Waiver Rank | Waiver PPG |\n')
+        f.write('|----------|-----------|-----------|-------------|------------|\n')
         for pos in ['QB', 'RB', 'WR', 'TE']:
-            rpg = replacement_ppg.get(pos, 0)
-            rank = REPLACEMENT_LEVEL.get(pos, 0)
-            f.write(f'| {pos} | {rank} | {rpg:.2f} |\n')
+            bppg = bench_ppg.get(pos, 0)
+            wppg = waiver_ppg.get(pos, 0)
+            brank = BENCH_REPLACEMENT_LEVEL.get(pos, 0)
+            wrank = WAIVER_REPLACEMENT_LEVEL.get(pos, 0)
+            f.write(f'| {pos} | {brank} | {bppg:.2f} | {wrank} | {wppg:.2f} |\n')
         f.write('\n')
 
         # Top 20 per position
@@ -84,7 +113,7 @@ def generate_report(df: pd.DataFrame, replacement_ppg: dict) -> str:
             f.write(pos_df[cols].to_markdown(index=False))
             f.write('\n\n')
 
-        # Top 30 overall (cross-position — shows superflex QB premium)
+        # Top 30 overall
         f.write('## Top 30 Overall (Cross-Position)\n\n')
         top_overall = df.sort_values('full_season_vorp', ascending=False).head(30)
         f.write(top_overall[cols].to_markdown(index=False))
@@ -97,6 +126,6 @@ def generate_report(df: pd.DataFrame, replacement_ppg: dict) -> str:
 if __name__ == '__main__':
     prices_df, stats_df, players_df = fetch_all_data()
     merged = merge_data(prices_df, stats_df, players_df)
-    result, rpg = calculate_vorp(merged)
+    result, wpg, bpg = calculate_vorp(merged)
     if not result.empty:
-        generate_report(result, rpg)
+        generate_report(result, wpg, bpg)
