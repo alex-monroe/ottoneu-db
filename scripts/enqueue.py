@@ -11,8 +11,8 @@ from supabase import create_client
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from scripts.tasks import PULL_NFL_STATS, SCRAPE_ROSTER, SCRAPE_PLAYER_CARD
-from scripts.config import POSITIONS, SEASON as DEFAULT_SEASON, LEAGUE_ID as DEFAULT_LEAGUE_ID, get_supabase_client as get_supabase
+from scripts.tasks import PULL_NFL_STATS, PULL_PLAYER_STATS, SCRAPE_ROSTER, SCRAPE_PLAYER_CARD
+from scripts.config import POSITIONS, SEASON as DEFAULT_SEASON, LEAGUE_ID as DEFAULT_LEAGUE_ID, HISTORICAL_SEASONS, get_supabase_client as get_supabase
 
 load_dotenv()
 
@@ -35,7 +35,18 @@ def enqueue_batch(args):
     nfl_job_id = result.data[0]["id"]
     print(f"Enqueued pull_nfl_stats (id: {nfl_job_id[:8]}...)")
 
-    # 2. Roster scrape jobs (depend on NFL stats)
+    # 2. Player stats job for current season (independent, runs in parallel with NFL stats)
+    player_stats_job = {
+        "task_type": PULL_PLAYER_STATS,
+        "params": json.dumps({"seasons": [season]}),
+        "priority": 10,
+        "batch_id": batch_id,
+    }
+    result = supabase.table("scraper_jobs").insert(player_stats_job).execute()
+    ps_job_id = result.data[0]["id"]
+    print(f"Enqueued pull_player_stats({season}) (id: {ps_job_id[:8]}...)")
+
+    # 3. Roster scrape jobs (depend on NFL stats)
     for pos in POSITIONS:
         roster_job = {
             "task_type": SCRAPE_ROSTER,
@@ -52,7 +63,7 @@ def enqueue_batch(args):
         job_id = result.data[0]["id"]
         print(f"Enqueued scrape_roster({pos}) (id: {job_id[:8]}...)")
 
-    print(f"\nBatch {batch_id[:8]}... created with 6 jobs.")
+    print(f"\nBatch {batch_id[:8]}... created with 7 jobs.")
     print(f"Run: python scripts/worker.py")
 
 
@@ -105,6 +116,21 @@ def enqueue_nfl_stats(args):
     result = supabase.table("scraper_jobs").insert(job).execute()
     job_id = result.data[0]["id"]
     print(f"Enqueued pull_nfl_stats (id: {job_id[:8]}...)")
+
+
+def enqueue_player_stats(args):
+    """Enqueue player stats pull for specified seasons."""
+    supabase = get_supabase()
+    seasons = args.seasons if args.seasons else HISTORICAL_SEASONS
+    job = {
+        "task_type": PULL_PLAYER_STATS,
+        "params": json.dumps({"seasons": seasons}),
+        "priority": 10,
+    }
+    result = supabase.table("scraper_jobs").insert(job).execute()
+    job_id = result.data[0]["id"]
+    print(f"Enqueued pull_player_stats({seasons}) (id: {job_id[:8]}...)")
+    print(f"Run: python scripts/worker.py")
 
 
 def show_status(args):
@@ -178,6 +204,15 @@ def main():
     # nfl-stats
     subparsers.add_parser("nfl-stats", help="Enqueue NFL stats pull only")
 
+    # player-stats
+    player_stats_parser = subparsers.add_parser(
+        "player-stats", help="Enqueue historical player stats pull"
+    )
+    player_stats_parser.add_argument(
+        "--seasons", type=int, nargs="+",
+        help=f"Seasons to pull (default: {HISTORICAL_SEASONS})",
+    )
+
     # status
     status_parser = subparsers.add_parser("status", help="Show recent job statuses")
     status_parser.add_argument("--limit", type=int, default=20)
@@ -189,6 +224,7 @@ def main():
         "roster": enqueue_roster,
         "player": enqueue_player,
         "nfl-stats": enqueue_nfl_stats,
+        "player-stats": enqueue_player_stats,
         "status": show_status,
     }
 

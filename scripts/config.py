@@ -14,6 +14,7 @@ load_dotenv()
 LEAGUE_ID = 309
 SEASON = 2025
 MY_TEAM = "The Witchcraft"
+HISTORICAL_SEASONS = [2022, 2023, 2024]
 
 # === Fantasy League Rules ===
 NUM_TEAMS = 12
