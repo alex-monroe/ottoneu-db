@@ -8,6 +8,7 @@ import { Lock, ExternalLink } from "lucide-react";
 const PUBLIC_LINKS = [
   { href: "/", label: "Player Efficiency" },
   { href: "/players", label: "Players" },
+  { href: "/rosters", label: "Rosters" },
 ];
 
 const SOFA_LEAGUE_LINK = {
@@ -22,7 +23,6 @@ const PRIVATE_LINKS = [
   { href: "/surplus-value", label: "Surplus Value" },
   { href: "/arbitration", label: "Arbitration" },
   { href: "/arbitration-simulation", label: "Arb Simulation" },
-  { href: "/rosters", label: "Rosters" },
 ];
 
 interface NavigationProps {
