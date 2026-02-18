@@ -111,7 +111,7 @@ export function reconstructRostersAtDate(
         acquisition_type: txn.transaction_type,
       });
     } else if (
-      type.includes("trade") ||
+      type.includes("move") ||
       type.includes("add") ||
       type.includes("auction") ||
       type.includes("waiver") ||
