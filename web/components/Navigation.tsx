@@ -22,6 +22,7 @@ const PRIVATE_LINKS = [
   { href: "/surplus-value", label: "Surplus Value" },
   { href: "/arbitration", label: "Arbitration" },
   { href: "/arbitration-simulation", label: "Arb Simulation" },
+  { href: "/rosters", label: "Rosters" },
 ];
 
 interface NavigationProps {
