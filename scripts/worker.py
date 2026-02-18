@@ -21,11 +21,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from scripts.tasks import (
     BROWSER_TASKS,
     PULL_NFL_STATS,
+    PULL_PLAYER_STATS,
     SCRAPE_PLAYER_CARD,
     SCRAPE_ROSTER,
     TaskResult,
 )
-from scripts.tasks import pull_nfl_stats, scrape_roster, scrape_player_card
+from scripts.tasks import pull_nfl_stats, pull_player_stats, scrape_roster, scrape_player_card
 
 load_dotenv()
 
@@ -157,6 +158,9 @@ class ScraperWorker:
                 season = result.data.get("season", 2025)
                 self.nfl_stats_cache[season] = result.data["stats"]
             return result
+
+        elif task_type == PULL_PLAYER_STATS:
+            return pull_player_stats.run(params, self.supabase)
 
         elif task_type == SCRAPE_ROSTER:
             season = params.get("season", 2025)
