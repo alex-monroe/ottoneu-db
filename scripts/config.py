@@ -24,8 +24,14 @@ POSITIONS = ["QB", "RB", "WR", "TE", "K"]
 MIN_GAMES = 4
 
 # Replacement level: approximate number of fantasy-relevant players per position
-# in a 12-team superflex league (accounts for 2 QBs starting per team)
+# in a 12-team superflex league (accounts for 2 QBs starting per team).
+# Used as fallback when salary-implied method lacks sufficient data.
 REPLACEMENT_LEVEL = {'QB': 24, 'RB': 30, 'WR': 30, 'TE': 20, 'K': 13}
+
+# Salary-implied replacement level: players priced in the bottom quartile of
+# rostered salaries are treated as "replacement tier" by market consensus.
+SALARY_REPLACEMENT_PERCENTILE = 0.25  # bottom quartile of rostered salaries
+MIN_SALARY_PLAYERS = 3                # min players needed to use salary method
 
 # NOTE: Database salaries already reflect the end-of-season $4/$1 bump.
 # No additional salary projection is needed.

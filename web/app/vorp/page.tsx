@@ -1,7 +1,6 @@
 import {
   fetchAndMergeData,
   calculateVorp,
-  REPLACEMENT_LEVEL,
   POSITIONS,
   SEASON,
   MIN_GAMES,
@@ -14,7 +13,7 @@ export const revalidate = 3600;
 
 export default async function VorpPage() {
   const allPlayers = await fetchAndMergeData();
-  const { players, replacementPpg } = calculateVorp(allPlayers);
+  const { players, replacementPpg, replacementN } = calculateVorp(allPlayers);
 
   if (players.length === 0) {
     return (
@@ -32,7 +31,7 @@ export default async function VorpPage() {
   const positionsNoKickers = POSITIONS.filter(pos => pos !== 'K');
   const benchmarks = positionsNoKickers.map((pos) => ({
     position: pos,
-    rank: REPLACEMENT_LEVEL[pos],
+    n: replacementN[pos] ?? 0,
     ppg: Math.round((replacementPpg[pos] ?? 0) * 100) / 100,
   }));
 
@@ -84,12 +83,12 @@ export default async function VorpPage() {
               1. Define the replacement level
             </h3>
             <p>
-              In a {NUM_TEAMS}-team superflex league, each team starts 1 QB + 1 superflex
-              (almost always a QB), 2 RB, 2 WR, and 1 TE. The <em>replacement level</em> is
-              the Nth-best player at each position, where N approximates the number of
-              fantasy-relevant starters across the league. Because superflex effectively
-              requires 2 QBs per team, the QB replacement rank ({REPLACEMENT_LEVEL["QB"]}) is
-              double the standard 1-QB league. Kickers are excluded from VORP analysis.
+              In a keeper league with {NUM_TEAMS} teams × 20 roster spots, the waiver wire is
+              nearly empty of useful players — managers hoard backups and handcuffs. Instead of
+              using a fixed rank (which would assume the Nth-best player is freely available),
+              we use a <em>salary-implied</em> replacement level: the auction market itself
+              identifies which players are "replacement tier" by pricing them at minimum salary.
+              Kickers are excluded from VORP analysis.
             </p>
           </div>
 
@@ -99,10 +98,11 @@ export default async function VorpPage() {
             </h3>
             <p>
               Only players with at least {MIN_GAMES} games played qualify. For each position,
-              all qualified players are ranked by total points. The player at
-              the replacement rank sets the <em>replacement PPG</em> — the baseline
-              production freely available on waivers. See the benchmarks table below
-              for each position&apos;s current replacement PPG.
+              we identify all <em>rostered</em> qualified players in the bottom 25th percentile
+              of salaries — these are the players managers collectively decided weren&apos;t
+              worth more than the minimum. The <em>replacement PPG</em> is the median PPG of
+              that group. See the benchmarks table below for how many players were used and
+              each position&apos;s current replacement PPG.
             </p>
           </div>
 
@@ -150,12 +150,12 @@ export default async function VorpPage() {
               Why this matters in superflex
             </h3>
             <p>
-              Because each team needs ~2 starting QBs, the QB replacement level is much
-              deeper (rank {REPLACEMENT_LEVEL["QB"]} vs. {REPLACEMENT_LEVEL["RB"]} for RB).
-              Elite QBs tower above this deeper replacement
-              baseline, producing very high VORP. This is why the top VORP chart is
-              typically dominated by quarterbacks — it correctly captures the scarcity
-              premium that makes QBs so expensive in superflex auctions.
+              Because each team needs ~2 starting QBs, managers pay significantly more for
+              QBs than in standard formats — which means QBs priced at the salary floor are
+              rarer and worse. This produces a higher QB replacement baseline relative to
+              other positions, but elite QBs still tower above it. The top VORP chart
+              is typically dominated by quarterbacks because it correctly captures the
+              scarcity premium that makes QBs so expensive in superflex auctions.
             </p>
           </div>
         </section>
@@ -171,7 +171,7 @@ export default async function VorpPage() {
                 <tr className="text-slate-500 dark:text-slate-400">
                   <th className="pr-6 py-1 text-left font-medium">Position</th>
                   <th className="pr-6 py-1 text-left font-medium">
-                    Replacement Rank
+                    # Players Used
                   </th>
                   <th className="pr-6 py-1 text-left font-medium">
                     Replacement PPG
@@ -185,7 +185,7 @@ export default async function VorpPage() {
                     className="text-slate-800 dark:text-slate-200"
                   >
                     <td className="pr-6 py-1 font-medium">{b.position}</td>
-                    <td className="pr-6 py-1">{b.rank}</td>
+                    <td className="pr-6 py-1">{b.n}</td>
                     <td className="pr-6 py-1">{b.ppg.toFixed(2)}</td>
                   </tr>
                 ))}

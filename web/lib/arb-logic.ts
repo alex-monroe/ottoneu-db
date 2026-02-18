@@ -8,7 +8,8 @@ export const CAP_PER_TEAM = 400;
 export const MIN_GAMES = 4;
 
 // Replacement level: approximate number of fantasy-relevant players per position
-// in a 12-team superflex league (accounts for 2 QBs starting per team)
+// in a 12-team superflex league (accounts for 2 QBs starting per team).
+// Used as fallback when salary-implied method lacks sufficient data.
 export const REPLACEMENT_LEVEL: Record<string, number> = {
     QB: 24,
     RB: 30,
@@ -16,6 +17,10 @@ export const REPLACEMENT_LEVEL: Record<string, number> = {
     TE: 20,
     K: 13,
 };
+
+// Salary-implied replacement level constants
+const SALARY_REPLACEMENT_PERCENTILE = 0.25; // bottom quartile of rostered salaries
+const MIN_SALARY_PLAYERS = 3;               // min players needed to use salary method
 
 // NOTE: Database salaries already reflect the end-of-season $4/$1 bump.
 // No additional salary projection is needed.
@@ -102,17 +107,52 @@ export interface SimulationResult extends SurplusPlayer {
 
 // === Analysis Functions ===
 
+/**
+ * Return the value at the given percentile (0–1) in a sorted numeric array.
+ * Uses linear interpolation between adjacent values.
+ */
+function percentile(sorted: number[], p: number): number {
+    if (sorted.length === 0) return 0;
+    if (sorted.length === 1) return sorted[0];
+    const idx = p * (sorted.length - 1);
+    const lo = Math.floor(idx);
+    const hi = Math.ceil(idx);
+    return sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo);
+}
+
 export function calculateVorp(
     players: Player[],
     minGames: number = MIN_GAMES
-): { players: VorpPlayer[]; replacementPpg: Record<string, number> } {
+): { players: VorpPlayer[]; replacementPpg: Record<string, number>; replacementN: Record<string, number> } {
     // Exclude kickers from VORP analysis
     const qualified = players.filter((p) => p.games_played >= minGames && p.position !== 'K');
-    if (qualified.length === 0) return { players: [], replacementPpg: {} };
+    if (qualified.length === 0) return { players: [], replacementPpg: {}, replacementN: {} };
 
-    // Determine replacement-level PPG per position
+    // Determine replacement-level PPG per position using salary-implied method.
+    // Players in the bottom quartile of rostered salaries represent "replacement tier"
+    // by manager consensus. Falls back to fixed-rank method when data is sparse.
     const replacementPpg: Record<string, number> = {};
+    const replacementN: Record<string, number> = {};
+
     for (const [pos, rank] of Object.entries(REPLACEMENT_LEVEL)) {
+        const rostered = qualified.filter(
+            (p) => p.position === pos && p.team_name != null && p.team_name !== 'FA' && p.team_name !== ''
+        );
+
+        if (rostered.length >= MIN_SALARY_PLAYERS) {
+            const sortedPrices = [...rostered.map((p) => p.price)].sort((a, b) => a - b);
+            const threshold = percentile(sortedPrices, SALARY_REPLACEMENT_PERCENTILE);
+            const bottomTier = rostered.filter((p) => p.price <= threshold);
+
+            if (bottomTier.length >= MIN_SALARY_PLAYERS) {
+                const sortedPpg = [...bottomTier.map((p) => p.ppg)].sort((a, b) => a - b);
+                replacementPpg[pos] = percentile(sortedPpg, 0.5); // median
+                replacementN[pos] = bottomTier.length;
+                continue;
+            }
+        }
+
+        // Fallback: fixed rank by total points
         const posPlayers = qualified
             .filter((p) => p.position === pos)
             .sort((a, b) => b.total_points - a.total_points);
@@ -124,6 +164,7 @@ export function calculateVorp(
         } else {
             replacementPpg[pos] = 0;
         }
+        replacementN[pos] = rank;
     }
 
     const vorpPlayers: VorpPlayer[] = qualified.map((p) => {
@@ -137,7 +178,7 @@ export function calculateVorp(
         };
     });
 
-    return { players: vorpPlayers, replacementPpg };
+    return { players: vorpPlayers, replacementPpg, replacementN };
 }
 
 export function calculateSurplus(players: Player[]): SurplusPlayer[] {
