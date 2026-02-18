@@ -7,16 +7,20 @@ export const NUM_TEAMS = 12;
 export const CAP_PER_TEAM = 400;
 export const MIN_GAMES = 4;
 
-// Roster-based replacement levels from analyze_roster_composition.py.
-// Bench level = average rostered players per position across 5 season snapshots.
-// Waiver level = bench + 1 (first player not on any roster).
+// Two-tier replacement levels:
+// BENCH: first non-starter = (starters/team × 12 teams) + 1
+//   QB: 2/team (QB + Superflex) × 12 = 24 starters → rank 25
+//   RB/WR: 2 × 12 = 24 → rank 25
+//   TE/K: 1 × 12 = 12 → rank 13
 export const BENCH_REPLACEMENT_LEVEL: Record<string, number> = {
-    QB: 42,
-    RB: 57,
-    WR: 65,
-    TE: 28,
-    K: 14,
+    QB: 25,
+    RB: 25,
+    WR: 25,
+    TE: 13,
+    K: 13,
 };
+// WAIVER: first player not on any roster (from analyze_roster_composition.py,
+// average rostered count across 5 season snapshots + 1)
 export const WAIVER_REPLACEMENT_LEVEL: Record<string, number> = {
     QB: 43,
     RB: 58,

@@ -23,10 +23,14 @@ POSITIONS = ["QB", "RB", "WR", "TE", "K"]
 # === Analysis Configuration ===
 MIN_GAMES = 4
 
-# Roster-based replacement levels derived from analyze_roster_composition.py.
-# Bench level = average number of rostered players per position across 5 season snapshots.
-# Waiver level = bench + 1 (first truly free player, not on any roster).
-BENCH_REPLACEMENT_LEVEL = {'QB': 42, 'RB': 57, 'WR': 65, 'TE': 28, 'K': 14}
+# Two-tier replacement levels:
+# BENCH: first non-starter = (starters/team × 12 teams) + 1
+#   QB: 2 starters/team (QB + Superflex) × 12 = 24 → rank 25
+#   RB/WR: 2 × 12 = 24 → rank 25
+#   TE/K: 1 × 12 = 12 → rank 13
+BENCH_REPLACEMENT_LEVEL = {'QB': 25, 'RB': 25, 'WR': 25, 'TE': 13, 'K': 13}
+# WAIVER: first player not on any roster, derived from analyze_roster_composition.py
+# (average rostered count across 5 season snapshots + 1)
 WAIVER_REPLACEMENT_LEVEL = {'QB': 43, 'RB': 58, 'WR': 66, 'TE': 29, 'K': 15}
 
 # Backward-compat alias used by surplus/arbitration scripts.

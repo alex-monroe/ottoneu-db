@@ -95,19 +95,18 @@ export default async function VorpPage() {
             <ul className="list-disc list-inside mt-1 space-y-1 ml-2">
               <li>
                 <strong>vs Waiver</strong> — the best player <em>not on any roster</em> (freely
-                acquirable, zero cost). This is the primary VORP metric used for salary
-                decisions and surplus value.
+                acquirable at zero cost). This is the primary VORP metric used for salary
+                decisions and surplus value. Ranks derived from actual roster snapshots.
               </li>
               <li>
-                <strong>vs Bench</strong> — the worst player <em>still rostered</em> league-wide
-                (floor of the rostered pool). Useful context for how many rostered players
-                are truly replaceable.
+                <strong>vs Bench</strong> — the first player <em>not in a starting lineup</em>{" "}
+                (rank {BENCH_REPLACEMENT_LEVEL["QB"]} for QB/RB/WR, {BENCH_REPLACEMENT_LEVEL["TE"]} for
+                TE/K). Represents the production floor of a true starter — useful for
+                identifying which bench stashes are genuinely above the starter threshold.
               </li>
             </ul>
             <p className="mt-1">
-              Replacement ranks are data-driven from actual roster snapshots at 5 points
-              during the season (pre-season, Weeks 4, 8, 12, 16), averaged across all
-              {NUM_TEAMS} teams. Kickers are excluded from VORP.
+              Kickers are excluded from VORP analysis.
             </p>
           </div>
 
