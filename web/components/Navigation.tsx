@@ -8,6 +8,7 @@ import { Lock, ExternalLink } from "lucide-react";
 const PUBLIC_LINKS = [
   { href: "/", label: "Player Efficiency" },
   { href: "/players", label: "Players" },
+  { href: "/rosters", label: "Rosters" },
 ];
 
 const SOFA_LEAGUE_LINK = {
