@@ -7,6 +7,7 @@ const PROTECTED_ROUTES = [
   "/surplus-value",
   "/arbitration",
   "/arbitration-simulation",
+  "/projections",
 ];
 
 export function middleware(request: NextRequest) {
