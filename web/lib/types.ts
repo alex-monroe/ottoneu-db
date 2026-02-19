@@ -65,6 +65,13 @@ export interface SeasonStats {
   pps: number | null;
 }
 
+export interface MultiSeasonStats {
+  player_id: string;
+  season: number;
+  ppg: number;
+  games_played: number;
+}
+
 export interface PlayerListItem {
   id: string;
   ottoneu_id: number;

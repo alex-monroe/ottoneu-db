@@ -178,6 +178,8 @@ def run(params: dict, supabase: Client) -> TaskResult:
                 "pat_made": _safe_int(row.get("pat_made")),
             }
             stat_row["total_points"] = round(_calc_points(stat_row), 2)
+            games = stat_row.get("games_played") or 0
+            stat_row["ppg"] = round(stat_row["total_points"] / games, 2) if games > 0 else 0.0
 
             upsert_rows.append(stat_row)
             matched += 1
