@@ -56,6 +56,15 @@ export interface TooltipProps {
 
 // === Player Card Types ===
 
+export interface SeasonStats {
+  season: number;
+  total_points: number | null;
+  games_played: number | null;
+  snaps: number | null;
+  ppg: number | null;
+  pps: number | null;
+}
+
 export interface PlayerListItem {
   id: string;
   ottoneu_id: number;
@@ -87,11 +96,7 @@ export interface PlayerCardData {
   nfl_team: string;
   price: number | null;
   team_name: string | null;
-  total_points: number | null;
-  games_played: number | null;
-  snaps: number | null;
-  ppg: number | null;
-  pps: number | null;
+  seasonStats: SeasonStats[];
   transactions: Transaction[];
 }
 
