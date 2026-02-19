@@ -32,6 +32,17 @@ export default async function PlayerCardPage({
     const posColor =
         POSITION_COLORS[player.position as Position] ?? "#6B7280";
 
+    const age = player.birth_date
+        ? (() => {
+              const today = new Date();
+              const dob = new Date(player.birth_date + "T00:00:00");
+              let a = today.getFullYear() - dob.getFullYear();
+              const m = today.getMonth() - dob.getMonth();
+              if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) a--;
+              return a;
+          })()
+        : null;
+
     return (
         <main className="min-h-screen bg-white dark:bg-black p-8">
             <div className="max-w-4xl mx-auto space-y-8">
@@ -60,7 +71,7 @@ export default async function PlayerCardPage({
                                     </span>
                                 </div>
                                 <p className="text-slate-500 dark:text-slate-400 mt-1">
-                                    {player.nfl_team} · Ottoneu ID: {player.ottoneu_id}
+                                    {player.nfl_team}{age != null ? ` · Age ${age}` : ""} · Ottoneu ID: {player.ottoneu_id}
                                 </p>
                             </div>
 

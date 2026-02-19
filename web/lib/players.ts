@@ -87,7 +87,7 @@ export async function fetchPlayerCard(
     // Get the player
     const { data: player } = await supabase
         .from("players")
-        .select("id, ottoneu_id, name, position, nfl_team")
+        .select("id, ottoneu_id, name, position, nfl_team, birth_date")
         .eq("ottoneu_id", ottoneuId)
         .single();
 
@@ -149,6 +149,7 @@ export async function fetchPlayerCard(
         name: player.name,
         position: player.position,
         nfl_team: player.nfl_team,
+        birth_date: player.birth_date ?? null,
         price: currentPrice,
         team_name: currentTeam,
         seasonStats,
