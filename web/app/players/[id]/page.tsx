@@ -98,42 +98,49 @@ export default async function PlayerCardPage({
                 </div>
 
                 {/* ===== Season Stats ===== */}
-                {player.total_points != null && (
+                {player.seasonStats.length > 0 && (
                     <section>
                         <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">
-                            2025 Season Stats
+                            Season Stats
                         </h2>
-                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-                            {[
-                                {
-                                    label: "Total Points",
-                                    value: Number(player.total_points).toFixed(1),
-                                },
-                                { label: "Games", value: player.games_played ?? "—" },
-                                { label: "Snaps", value: player.snaps?.toLocaleString() ?? "—" },
-                                {
-                                    label: "PPG",
-                                    value:
-                                        player.ppg != null ? Number(player.ppg).toFixed(2) : "—",
-                                },
-                                {
-                                    label: "PPS",
-                                    value:
-                                        player.pps != null ? Number(player.pps).toFixed(4) : "—",
-                                },
-                            ].map((stat) => (
-                                <div
-                                    key={stat.label}
-                                    className="rounded-lg border border-slate-200 dark:border-slate-800 p-4 bg-slate-50 dark:bg-slate-900"
-                                >
-                                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                                        {stat.label}
-                                    </p>
-                                    <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1 font-mono">
-                                        {stat.value}
-                                    </p>
-                                </div>
-                            ))}
+                        <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+                            <table className="min-w-full text-sm">
+                                <thead>
+                                    <tr className="bg-slate-100 dark:bg-slate-800">
+                                        <th className="px-3 py-2.5 text-left font-semibold text-slate-700 dark:text-slate-300">Season</th>
+                                        <th className="px-3 py-2.5 text-right font-semibold text-slate-700 dark:text-slate-300">Total Pts</th>
+                                        <th className="px-3 py-2.5 text-right font-semibold text-slate-700 dark:text-slate-300">Games</th>
+                                        <th className="px-3 py-2.5 text-right font-semibold text-slate-700 dark:text-slate-300">Snaps</th>
+                                        <th className="px-3 py-2.5 text-right font-semibold text-slate-700 dark:text-slate-300">PPG</th>
+                                        <th className="px-3 py-2.5 text-right font-semibold text-slate-700 dark:text-slate-300">PPS</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {player.seasonStats.map((s, i) => (
+                                        <tr
+                                            key={s.season}
+                                            className={`border-t border-slate-100 dark:border-slate-800 ${i % 2 === 0 ? "bg-white dark:bg-slate-950" : "bg-slate-50 dark:bg-slate-900"}`}
+                                        >
+                                            <td className="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">{s.season}</td>
+                                            <td className="px-3 py-2 text-right font-mono text-slate-800 dark:text-slate-200">
+                                                {s.total_points != null ? s.total_points.toFixed(1) : "—"}
+                                            </td>
+                                            <td className="px-3 py-2 text-right font-mono text-slate-800 dark:text-slate-200">
+                                                {s.games_played ?? "—"}
+                                            </td>
+                                            <td className="px-3 py-2 text-right font-mono text-slate-800 dark:text-slate-200">
+                                                {s.snaps != null ? s.snaps.toLocaleString() : "—"}
+                                            </td>
+                                            <td className="px-3 py-2 text-right font-mono text-slate-800 dark:text-slate-200">
+                                                {s.ppg != null ? s.ppg.toFixed(2) : "—"}
+                                            </td>
+                                            <td className="px-3 py-2 text-right font-mono text-slate-800 dark:text-slate-200">
+                                                {s.pps != null ? s.pps.toFixed(4) : "—"}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     </section>
                 )}

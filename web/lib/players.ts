@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import { PlayerListItem, PlayerCardData, Transaction } from "./types";
+import { PlayerListItem, PlayerCardData, Transaction, SeasonStats } from "./types";
 
 /**
  * Fetch all players with their current season stats and league price
@@ -97,10 +97,9 @@ export async function fetchPlayerCard(
     const [statsRes, priceRes, txnRes] = await Promise.all([
         supabase
             .from("player_stats")
-            .select("total_points, games_played, snaps, ppg, pps")
+            .select("season, total_points, games_played, snaps, ppg, pps")
             .eq("player_id", player.id)
-            .eq("season", 2025)
-            .maybeSingle(),
+            .order("season", { ascending: false }),
         supabase
             .from("league_prices")
             .select("price, team_name")
@@ -118,7 +117,6 @@ export async function fetchPlayerCard(
             .order("transaction_date", { ascending: false }),
     ]);
 
-    const s = statsRes.data;
     const pr = priceRes.data;
     const txns: Transaction[] = txnRes.data ?? [];
 
@@ -136,6 +134,15 @@ export async function fetchPlayerCard(
         }
     }
 
+    const seasonStats: SeasonStats[] = (statsRes.data ?? []).map((row) => ({
+        season: row.season,
+        total_points: row.total_points != null ? Number(row.total_points) : null,
+        games_played: row.games_played ?? null,
+        snaps: row.snaps ?? null,
+        ppg: row.ppg != null ? Number(row.ppg) : null,
+        pps: row.pps != null ? Number(row.pps) : null,
+    }));
+
     return {
         id: player.id,
         ottoneu_id: player.ottoneu_id,
@@ -144,11 +151,7 @@ export async function fetchPlayerCard(
         nfl_team: player.nfl_team,
         price: currentPrice,
         team_name: currentTeam,
-        total_points: s ? Number(s.total_points) : null,
-        games_played: s?.games_played ?? null,
-        snaps: s?.snaps ?? null,
-        ppg: s ? Number(s.ppg) : null,
-        pps: s ? Number(s.pps) : null,
+        seasonStats,
         transactions: txns,
     };
 }
