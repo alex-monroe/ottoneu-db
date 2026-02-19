@@ -1,11 +1,20 @@
-"""Task: Pull multi-season NFL player stats via nfl_data_py and upsert to player_stats."""
+"""Task: Pull multi-season NFL player stats via nflverse-data and upsert to player_stats.
+
+Reads directly from the nflverse-data `stats_player` GitHub release, which:
+- Covers 2022-present and is updated within days of each season ending
+- Pre-aggregates stats by player/season (no groupby needed)
+- Includes kicking stats (fg_made_0_39, fg_made_40_49, fg_made_50_plus, pat_made)
+- Works independently of the archived nfl_data_py library
+
+URL pattern: https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_reg_{year}.parquet
+"""
 
 from __future__ import annotations
 
 import sys
 import os
+import math
 
-import nfl_data_py as nfl
 import pandas as pd
 from supabase import Client
 
@@ -13,6 +22,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 from scripts.tasks import TaskResult
 from scripts.name_utils import normalize_player_name
+
+_STATS_PLAYER_URL = (
+    "https://github.com/nflverse/nflverse-data/releases/download/"
+    "stats_player/stats_player_reg_{year}.parquet"
+)
 
 
 def _calc_points(row: dict) -> float:
@@ -49,7 +63,6 @@ def _safe_int(val) -> int | None:
     if val is None:
         return None
     try:
-        import math
         if math.isnan(float(val)):
             return None
         return int(val)
@@ -57,16 +70,21 @@ def _safe_int(val) -> int | None:
         return None
 
 
+def _load_season(year: int) -> pd.DataFrame:
+    """Fetch stats_player_reg_{year}.parquet from nflverse-data."""
+    url = _STATS_PLAYER_URL.format(year=year)
+    df = pd.read_parquet(url)
+    return df
+
+
 def run(params: dict, supabase: Client) -> TaskResult:
     """Pull NFL player stats for multiple seasons and upsert to player_stats.
 
-    Uses nfl_data_py.import_weekly_data() which provides per-player-per-week
-    offensive stats with player_display_name. Data is filtered to REG season
-    and aggregated to season totals. Kickers are not included in weekly offensive
-    data, so existing kicker rows in player_stats are preserved.
+    Reads pre-aggregated regular-season stats from the nflverse-data
+    `stats_player` release. Includes both skill-position and kicking stats.
 
     Params:
-        seasons (list[int]): List of NFL season years to pull
+        seasons (list[int]): List of NFL season years to pull (e.g. [2022, 2023, 2024, 2025])
 
     Returns a TaskResult indicating success or failure.
     """
@@ -74,49 +92,63 @@ def run(params: dict, supabase: Client) -> TaskResult:
     print(f"Pulling player stats for seasons: {seasons}")
 
     try:
-        # Build player lookup from DB
         player_lookup = _build_player_lookup(supabase)
         print(f"Loaded {len(player_lookup)} players from DB.")
 
-        # Fetch weekly offensive data — has player_display_name + all skill-position stats
-        print("Fetching weekly offensive stats...")
-        weekly_cols = [
-            "player_display_name", "season", "week", "season_type",
-            "passing_yards", "passing_tds", "interceptions",
-            "carries", "rushing_yards", "rushing_tds",
-            "receptions", "targets", "receiving_yards", "receiving_tds",
-        ]
-        weekly_raw = nfl.import_weekly_data(seasons, columns=weekly_cols)
-        weekly_raw = weekly_raw[weekly_raw["season_type"] == "REG"]
-        print(f"  Fetched {len(weekly_raw)} weekly rows across {len(seasons)} season(s).")
+        frames: list[pd.DataFrame] = []
+        for year in seasons:
+            print(f"  Fetching {year}...")
+            try:
+                df = _load_season(year)
+                frames.append(df)
+                print(f"    {year}: {len(df)} rows")
+            except Exception as e:
+                print(f"    {year}: SKIP — {e}")
 
-        # Rename carries -> rushing_attempts for DB column name consistency
-        weekly_raw = weekly_raw.rename(columns={"carries": "rushing_attempts"})
+        if not frames:
+            return TaskResult(success=False, error="No season data could be fetched.")
 
-        # Aggregate stat columns by player + season; count unique weeks as games_played
+        combined = pd.concat(frames, ignore_index=True)
+
+        # Build fg_made_0_39 from sub-ranges, and fg_made_50_plus from 50-59 + 60+
+        fg_sub = ["fg_made_0_19", "fg_made_20_29", "fg_made_30_39"]
+        fg_50_plus = ["fg_made_50_59", "fg_made_60_"]
+        present_sub = [c for c in fg_sub if c in combined.columns]
+        present_50 = [c for c in fg_50_plus if c in combined.columns]
+        if present_sub:
+            combined["fg_made_0_39"] = combined[present_sub].sum(axis=1)
+        if present_50:
+            combined["fg_made_50_plus"] = combined[present_50].sum(axis=1)
+
+        # Normalize column names to match DB schema
+        combined = combined.rename(columns={
+            "passing_interceptions": "interceptions",
+            "carries": "rushing_attempts",
+            "games": "games_played",
+        })
+
+        # Aggregate stat columns for players who appear multiple times in a season
+        # (mid-season trades produce one row per team)
         stat_cols = [
-            "passing_yards", "passing_tds", "interceptions",
-            "rushing_attempts", "rushing_yards", "rushing_tds",
+            "games_played", "passing_yards", "passing_tds", "interceptions",
+            "rushing_yards", "rushing_tds", "rushing_attempts",
             "receptions", "targets", "receiving_yards", "receiving_tds",
+            "fg_made_0_39", "fg_made_40_49", "fg_made_50_plus", "pat_made",
         ]
-        agg_dict: dict[str, str] = {c: "sum" for c in stat_cols if c in weekly_raw.columns}
-        agg_dict["week"] = "nunique"
-
-        season_agg = (
-            weekly_raw
-            .groupby(["player_display_name", "season"])
-            .agg(agg_dict)
-            .reset_index()
-            .rename(columns={"week": "games_played"})
+        agg_cols = {c: "sum" for c in stat_cols if c in combined.columns}
+        combined = (
+            combined
+            .groupby(["player_display_name", "season"], as_index=False)
+            .agg(agg_cols)
         )
 
-        # --- Match to DB players and build upsert rows ---
+        # Match to DB players and build upsert rows
         matched = 0
         unmatched_names: set[str] = set()
         upsert_rows: list[dict] = []
 
-        for _, row in season_agg.iterrows():
-            raw_name = str(row["player_display_name"])
+        for _, row in combined.iterrows():
+            raw_name = str(row.get("player_display_name", ""))
             norm_name = normalize_player_name(raw_name)
             player_uuid = player_lookup.get(norm_name)
 
@@ -140,10 +172,10 @@ def run(params: dict, supabase: Client) -> TaskResult:
                 "receiving_yards": _safe_int(row.get("receiving_yards")),
                 "receiving_tds": _safe_int(row.get("receiving_tds")),
                 "targets": _safe_int(row.get("targets")),
-                "fg_made_0_39": None,
-                "fg_made_40_49": None,
-                "fg_made_50_plus": None,
-                "pat_made": None,
+                "fg_made_0_39": _safe_int(row.get("fg_made_0_39")),
+                "fg_made_40_49": _safe_int(row.get("fg_made_40_49")),
+                "fg_made_50_plus": _safe_int(row.get("fg_made_50_plus")),
+                "pat_made": _safe_int(row.get("pat_made")),
             }
             stat_row["total_points"] = round(_calc_points(stat_row), 2)
 
@@ -155,7 +187,6 @@ def run(params: dict, supabase: Client) -> TaskResult:
             sample = sorted(unmatched_names)[:20]
             print(f"  Unmatched sample: {sample}")
 
-        # Upsert in batches to avoid request size limits
         batch_size = 200
         for i in range(0, len(upsert_rows), batch_size):
             batch = upsert_rows[i:i + batch_size]
