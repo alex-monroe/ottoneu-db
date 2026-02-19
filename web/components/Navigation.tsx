@@ -20,6 +20,7 @@ const SOFA_LEAGUE_LINK = {
 const PRIVATE_LINKS = [
   { href: "/projected-salary", label: "Projected Salary" },
   { href: "/projections", label: "Projections" },
+  { href: "/projection-accuracy", label: "Proj. Accuracy" },
   { href: "/vorp", label: "VORP" },
   { href: "/surplus-value", label: "Surplus Value" },
   { href: "/arbitration", label: "Arbitration" },

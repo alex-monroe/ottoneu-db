@@ -108,6 +108,24 @@ export interface PlayerCardData {
   transactions: Transaction[];
 }
 
+// === Backtest Types ===
+
+export interface BacktestPlayer {
+  player_id: string;
+  name: string;
+  position: string;
+  nfl_team: string;
+  team_name: string | null;
+  price: number;
+  projected_ppg: number;
+  actual_ppg: number;
+  error: number;         // actual - projected (signed)
+  abs_error: number;
+  seasons_used: string;  // pre-serialized: "2022, 2023, 2024"
+  games_played: number;
+  [key: string]: string | number | null | undefined;
+}
+
 // === Position Constants ===
 
 export type Position = 'QB' | 'RB' | 'WR' | 'TE' | 'K';

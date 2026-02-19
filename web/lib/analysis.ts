@@ -108,6 +108,104 @@ export interface ProjectedPlayer extends Player {
   observed_ppg: number;
 }
 
+// === Backtest / Projection Accuracy ===
+
+import type { BacktestPlayer } from "./types";
+
+const ALL_DB_SEASONS = [2022, 2023, 2024, 2025];
+
+/**
+ * Fetch historical + target-season data and apply WeightedAveragePPG projections
+ * to produce per-player projected vs actual PPG for backtesting.
+ */
+export async function fetchBacktestData(
+  targetSeason: number
+): Promise<BacktestPlayer[]> {
+  const histSeasons = ALL_DB_SEASONS.filter((s) => s < targetSeason).slice(-3);
+  if (histSeasons.length === 0) return [];
+
+  const [playersRes, targetStatsRes, histStatsRes, pricesRes] =
+    await Promise.all([
+      supabase.from("players").select("id, name, position, nfl_team"),
+      supabase
+        .from("player_stats")
+        .select("player_id, ppg, games_played")
+        .eq("season", targetSeason),
+      supabase
+        .from("player_stats")
+        .select("player_id, season, ppg, games_played")
+        .in("season", histSeasons),
+      supabase
+        .from("league_prices")
+        .select("player_id, price, team_name")
+        .eq("league_id", LEAGUE_ID)
+        .eq("season", targetSeason),
+    ]);
+
+  if (!playersRes.data || !targetStatsRes.data || !histStatsRes.data) return [];
+
+  const playerMap = new Map(
+    playersRes.data.map((p) => [String(p.id), p])
+  );
+  const targetStatsMap = new Map(
+    targetStatsRes.data.map((s) => [String(s.player_id), s])
+  );
+  const pricesMap = new Map(
+    (pricesRes.data ?? []).map((p) => [String(p.player_id), p])
+  );
+
+  // Group history stats by player_id
+  const historyByPlayer = new Map<string, { season: number; ppg: number; games_played: number }[]>();
+  for (const row of histStatsRes.data) {
+    const playerId = String(row.player_id);
+    const existing = historyByPlayer.get(playerId) ?? [];
+    existing.push({
+      season: Number(row.season),
+      ppg: Number(row.ppg) || 0,
+      games_played: Number(row.games_played) || 0,
+    });
+    historyByPlayer.set(playerId, existing);
+  }
+
+  const method = new WeightedAveragePPG();
+  const result: BacktestPlayer[] = [];
+
+  for (const [playerId, history] of historyByPlayer.entries()) {
+    const projected = method.projectPpg(history);
+    if (projected === null) continue;
+
+    const targetStats = targetStatsMap.get(playerId);
+    if (!targetStats) continue; // player had no stats in target season
+
+    const player = playerMap.get(playerId);
+    if (!player) continue;
+
+    const priceRow = pricesMap.get(playerId);
+    const actual_ppg = Number(targetStats.ppg) || 0;
+    const error = actual_ppg - projected;
+    const sortedSeasons = [...history]
+      .sort((a, b) => a.season - b.season)
+      .map((h) => h.season);
+
+    result.push({
+      player_id: playerId,
+      name: player.name,
+      position: player.position,
+      nfl_team: player.nfl_team,
+      team_name: priceRow?.team_name ?? null,
+      price: priceRow ? Number(priceRow.price) || 0 : 0,
+      projected_ppg: projected,
+      actual_ppg,
+      error,
+      abs_error: Math.abs(error),
+      seasons_used: sortedSeasons.join(", "),
+      games_played: Number(targetStats.games_played) || 0,
+    });
+  }
+
+  return result;
+}
+
 /**
  * Fetch current-season data + multi-season history, apply WeightedAveragePPG
  * projections, and return players with ppg = projected_ppg and observed_ppg
