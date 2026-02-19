@@ -22,6 +22,7 @@ const PRIVATE_LINKS = [
   { href: "/vorp", label: "VORP" },
   { href: "/surplus-value", label: "Surplus Value" },
   { href: "/arbitration", label: "Arbitration" },
+  { href: "/projected-arbitration", label: "Proj. Arbitration" },
   { href: "/arbitration-simulation", label: "Arb Simulation" },
 ];
 

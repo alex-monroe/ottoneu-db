@@ -6,6 +6,7 @@ import pandas as pd
 from config import (
     LEAGUE_ID,
     SEASON,
+    HISTORICAL_SEASONS,
     MY_TEAM,
     NUM_TEAMS,
     CAP_PER_TEAM,
@@ -20,6 +21,28 @@ from config import (
     ARB_MAX_PER_PLAYER_LEAGUE,
     get_supabase_client,
 )
+
+
+def fetch_multi_season_stats(seasons: list[int]) -> pd.DataFrame:
+    """Fetch player_stats rows for multiple seasons.
+
+    Args:
+        seasons: List of season years to include.
+
+    Returns:
+        DataFrame with all rows for those seasons, including 'season' column.
+    """
+    supabase = get_supabase_client()
+    print(f"Fetching multi-season stats for seasons {seasons}...")
+    res = supabase.table('player_stats').select('*').in_('season', seasons).execute()
+    df = pd.DataFrame(res.data)
+    if df.empty:
+        return df
+    for col in ['ppg', 'pps', 'total_points', 'games_played', 'snaps']:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+    df['season'] = pd.to_numeric(df['season'], errors='coerce')
+    return df
 
 
 def fetch_all_data(season: int = SEASON) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:

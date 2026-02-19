@@ -2,6 +2,7 @@
 // === Config Constants ===
 export const LEAGUE_ID = 309;
 export const SEASON = 2025;
+export const HISTORICAL_SEASONS = [2022, 2023, 2024];
 export const MY_TEAM = "The Witchcraft";
 export const NUM_TEAMS = 12;
 export const CAP_PER_TEAM = 400;

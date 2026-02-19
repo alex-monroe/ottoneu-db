@@ -2,8 +2,11 @@ import { supabase } from "./supabase";
 import {
   LEAGUE_ID,
   SEASON,
+  HISTORICAL_SEASONS,
   Player,
 } from "./arb-logic";
+import { WeightedAveragePPG, SeasonData } from "./projection-methods";
+import type { MultiSeasonStats } from "./types";
 
 export * from "./arb-logic";
 
@@ -49,4 +52,94 @@ export async function fetchAndMergeData(): Promise<Player[]> {
   }
 
   return merged;
+}
+
+// === Multi-Season Projection ===
+
+export async function fetchMultiSeasonStats(
+  seasons: number[] = HISTORICAL_SEASONS
+): Promise<MultiSeasonStats[]> {
+  const res = await supabase
+    .from("player_stats")
+    .select("player_id, season, ppg, games_played")
+    .in("season", seasons);
+
+  if (!res.data) return [];
+
+  return res.data.map((row) => ({
+    player_id: String(row.player_id),
+    season: Number(row.season),
+    ppg: Number(row.ppg) || 0,
+    games_played: Number(row.games_played) || 0,
+  }));
+}
+
+/**
+ * Build a player_id → projected_ppg map using WeightedAveragePPG.
+ */
+function buildProjectionMap(
+  multiSeasonStats: MultiSeasonStats[]
+): Map<string, number> {
+  const method = new WeightedAveragePPG();
+  const grouped = new Map<string, SeasonData[]>();
+
+  for (const row of multiSeasonStats) {
+    const existing = grouped.get(row.player_id) ?? [];
+    existing.push({
+      season: row.season,
+      ppg: row.ppg,
+      games_played: row.games_played,
+    });
+    grouped.set(row.player_id, existing);
+  }
+
+  const projections = new Map<string, number>();
+  for (const [playerId, history] of grouped.entries()) {
+    const projected = method.projectPpg(history);
+    if (projected !== null) {
+      projections.set(playerId, projected);
+    }
+  }
+
+  return projections;
+}
+
+export interface ProjectedPlayer extends Player {
+  observed_ppg: number;
+}
+
+/**
+ * Fetch current-season data + multi-season history, apply WeightedAveragePPG
+ * projections, and return players with ppg = projected_ppg and observed_ppg
+ * preserved for display.
+ *
+ * Players with no projection history are excluded.
+ */
+export async function fetchAndMergeProjectedData(): Promise<ProjectedPlayer[]> {
+  const [currentPlayers, multiSeasonStats] = await Promise.all([
+    fetchAndMergeData(),
+    fetchMultiSeasonStats(),
+  ]);
+
+  if (currentPlayers.length === 0) return [];
+  if (multiSeasonStats.length === 0) {
+    // No history available — fall back to observed PPG
+    return currentPlayers.map((p) => ({ ...p, observed_ppg: p.ppg }));
+  }
+
+  const projectionMap = buildProjectionMap(multiSeasonStats);
+
+  const projected: ProjectedPlayer[] = [];
+  for (const player of currentPlayers) {
+    const projectedPpg = projectionMap.get(player.player_id);
+    if (projectedPpg === undefined) continue; // exclude players with no history
+
+    projected.push({
+      ...player,
+      observed_ppg: player.ppg,
+      ppg: projectedPpg,
+    });
+  }
+
+  return projected;
 }
