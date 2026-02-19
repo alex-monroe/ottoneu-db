@@ -94,6 +94,7 @@ export interface PlayerCardData {
   name: string;
   position: string;
   nfl_team: string;
+  birth_date: string | null;
   price: number | null;
   team_name: string | null;
   seasonStats: SeasonStats[];
