@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { POSITIONS } from "@/lib/analysis";
+import { POSITIONS, PROJECTION_YEARS, SEASON } from "@/lib/analysis";
 import PositionFilter from "@/components/PositionFilter";
+import ProjectionYearSelector from "@/components/ProjectionYearSelector";
 import { Position } from "@/lib/types";
 
 export interface ProjectionRow {
@@ -22,9 +23,10 @@ type SortKey = keyof Omit<ProjectionRow, "[key: string]">;
 
 interface Props {
   initialData: ProjectionRow[];
+  projectionYear: number;
 }
 
-export default function ProjectionsClient({ initialData }: Props) {
+export default function ProjectionsClient({ initialData, projectionYear }: Props) {
   const [selectedPositions, setSelectedPositions] = useState<Position[]>([
     ...POSITIONS,
   ]);
@@ -83,6 +85,7 @@ export default function ProjectionsClient({ initialData }: Props) {
         <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
           All Players
         </h2>
+        <ProjectionYearSelector currentYear={projectionYear} years={PROJECTION_YEARS} />
         <PositionFilter
           positions={POSITIONS}
           selectedPositions={selectedPositions}
@@ -112,13 +115,13 @@ export default function ProjectionsClient({ initialData }: Props) {
                 Salary{sortIndicator("price")}
               </th>
               <th className={thClass} onClick={() => handleSort("observed_ppg")}>
-                Obs PPG{sortIndicator("observed_ppg")}
+                {SEASON} PPG{sortIndicator("observed_ppg")}
               </th>
               <th className={thClass} onClick={() => handleSort("projected_ppg")}>
-                Proj PPG{sortIndicator("projected_ppg")}
+                Proj {projectionYear}{sortIndicator("projected_ppg")}
               </th>
               <th className={thClass} onClick={() => handleSort("ppg_delta")}>
-                Delta{sortIndicator("ppg_delta")}
+                Δ {projectionYear} vs {SEASON}{sortIndicator("ppg_delta")}
               </th>
             </tr>
           </thead>

@@ -1,10 +1,27 @@
-import { fetchAndMergeProjectedData, SEASON } from "@/lib/analysis";
+import {
+  fetchAndMergeProjectedData,
+  PROJECTION_YEARS,
+  DEFAULT_PROJECTION_YEAR,
+  getHistoricalSeasonsForYear,
+  SEASON,
+} from "@/lib/analysis";
 import ProjectionsClient from "./ProjectionsClient";
 
 export const revalidate = 3600;
 
-export default async function ProjectionsPage() {
-  const players = await fetchAndMergeProjectedData();
+interface Props {
+  searchParams: Promise<{ year?: string }>;
+}
+
+export default async function ProjectionsPage({ searchParams }: Props) {
+  const params = await searchParams;
+  const rawYear = Number(params.year);
+  const projectionYear = (PROJECTION_YEARS as readonly number[]).includes(rawYear)
+    ? rawYear
+    : DEFAULT_PROJECTION_YEAR;
+
+  const players = await fetchAndMergeProjectedData(projectionYear);
+  const historicalSeasons = getHistoricalSeasonsForYear(projectionYear);
 
   if (players.length === 0) {
     return (
@@ -37,11 +54,24 @@ export default async function ProjectionsPage() {
       <div className="max-w-7xl mx-auto space-y-8">
         <header>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Player Projections ({SEASON})
+            Player Projections — {projectionYear}
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2">
-            Weighted-average PPG projections built from 2022–2024 historical
-            seasons. Delta shows how a player is trending vs. their projection.
+            {projectionYear > SEASON ? (
+              <>
+                <strong>Forward-looking:</strong> {SEASON} actual PPG vs.
+                projected {projectionYear} performance, built from{" "}
+                {historicalSeasons.join(", ")} history. Use this for arbitration
+                and keeper decisions.
+              </>
+            ) : (
+              <>
+                <strong>Backtest:</strong> What the model would have projected
+                for {projectionYear} using {historicalSeasons.join(", ")} history,
+                compared to actual {SEASON} results. Green = outperformed
+                projection; red = underperformed.
+              </>
+            )}
           </p>
         </header>
 
@@ -73,19 +103,21 @@ export default async function ProjectionsPage() {
               projects higher; falling H2 usage projects lower.
             </li>
             <li>
-              <strong>Obs PPG</strong> — this season&apos;s actual points-per-game
+              <strong>{SEASON} PPG</strong> — actual {SEASON} season
+              points-per-game (always the most recently completed season)
             </li>
             <li>
-              <strong>Proj PPG</strong> — projected next-season PPG
+              <strong>Proj {projectionYear}</strong> — model projection for{" "}
+              {projectionYear} built from {historicalSeasons.join(", ")} history
             </li>
             <li>
-              <strong>Delta</strong> — Obs PPG minus Proj PPG (positive = outperforming
-              projection, negative = underperforming)
+              <strong>Δ {projectionYear} vs {SEASON}</strong> — Proj minus {SEASON}
+              PPG (positive = projected improvement; negative = projected decline)
             </li>
           </ul>
         </section>
 
-        <ProjectionsClient initialData={rows} />
+        <ProjectionsClient initialData={rows} projectionYear={projectionYear} />
       </div>
     </main>
   );
