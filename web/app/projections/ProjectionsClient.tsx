@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { POSITIONS } from "@/lib/analysis";
+import { POSITIONS, PROJECTION_YEARS } from "@/lib/analysis";
 import PositionFilter from "@/components/PositionFilter";
+import ProjectionYearSelector from "@/components/ProjectionYearSelector";
 import { Position } from "@/lib/types";
 
 export interface ProjectionRow {
@@ -22,9 +23,10 @@ type SortKey = keyof Omit<ProjectionRow, "[key: string]">;
 
 interface Props {
   initialData: ProjectionRow[];
+  projectionYear: number;
 }
 
-export default function ProjectionsClient({ initialData }: Props) {
+export default function ProjectionsClient({ initialData, projectionYear }: Props) {
   const [selectedPositions, setSelectedPositions] = useState<Position[]>([
     ...POSITIONS,
   ]);
@@ -83,6 +85,7 @@ export default function ProjectionsClient({ initialData }: Props) {
         <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
           All Players
         </h2>
+        <ProjectionYearSelector currentYear={projectionYear} years={PROJECTION_YEARS} />
         <PositionFilter
           positions={POSITIONS}
           selectedPositions={selectedPositions}

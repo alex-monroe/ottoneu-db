@@ -10,6 +10,15 @@ import type { MultiSeasonStats } from "./types";
 
 export * from "./arb-logic";
 
+// === Projection Year Config ===
+export const PROJECTION_YEARS = [2025, 2026] as const;
+export type ProjectionYear = typeof PROJECTION_YEARS[number];
+export const DEFAULT_PROJECTION_YEAR: ProjectionYear = 2026;
+
+export function getHistoricalSeasonsForYear(year: number): number[] {
+  return [year - 3, year - 2, year - 1]; // e.g. 2026 → [2023, 2024, 2025]
+}
+
 // === Data Fetching ===
 export async function fetchAndMergeData(): Promise<Player[]> {
   const [playersRes, statsRes, pricesRes] = await Promise.all([
@@ -260,10 +269,13 @@ export async function fetchBacktestData(
  *
  * Players with no projection history are excluded.
  */
-export async function fetchAndMergeProjectedData(): Promise<ProjectedPlayer[]> {
+export async function fetchAndMergeProjectedData(
+  projectionYear: number = DEFAULT_PROJECTION_YEAR
+): Promise<ProjectedPlayer[]> {
+  const historicalSeasons = getHistoricalSeasonsForYear(projectionYear);
   const [currentPlayers, multiSeasonStats] = await Promise.all([
     fetchAndMergeData(),
-    fetchMultiSeasonStats(),
+    fetchMultiSeasonStats(historicalSeasons),
   ]);
 
   if (currentPlayers.length === 0) return [];

@@ -7,13 +7,20 @@ import {
   ARB_MAX_PER_TEAM,
   ARB_MAX_PER_PLAYER_PER_TEAM,
   NUM_TEAMS,
-  HISTORICAL_SEASONS,
+  PROJECTION_YEARS,
+  DEFAULT_PROJECTION_YEAR,
+  getHistoricalSeasonsForYear,
 } from "@/lib/analysis";
 import { ArbitrationTarget } from "@/lib/arb-logic";
 import DataTable, { Column, HighlightRule } from "@/components/DataTable";
 import ArbitrationTeams from "./ArbitrationTeams";
+import ProjectionYearSelector from "@/components/ProjectionYearSelector";
 
 export const revalidate = 3600;
+
+interface Props {
+  searchParams: Promise<{ year?: string }>;
+}
 
 // ArbitrationTarget at runtime carries observed_ppg / ppg from ProjectedPlayer spreads
 type ProjectedTarget = ArbitrationTarget & {
@@ -38,8 +45,15 @@ const ARB_TARGET_RULES: HighlightRule[] = [
   { key: "surplus_after_arb", op: "lt", value: 0, className: "bg-red-50 dark:bg-red-950/30" },
 ];
 
-export default async function ProjectedArbitrationPage() {
-  const projectedPlayers = await fetchAndMergeProjectedData();
+export default async function ProjectedArbitrationPage({ searchParams }: Props) {
+  const params = await searchParams;
+  const rawYear = Number(params.year);
+  const projectionYear = (PROJECTION_YEARS as readonly number[]).includes(rawYear)
+    ? rawYear
+    : DEFAULT_PROJECTION_YEAR;
+
+  const historicalSeasons = getHistoricalSeasonsForYear(projectionYear);
+  const projectedPlayers = await fetchAndMergeProjectedData(projectionYear);
   const targets = analyzeArbitration(projectedPlayers) as ProjectedTarget[];
 
   if (targets.length === 0) {
@@ -75,18 +89,28 @@ export default async function ProjectedArbitrationPage() {
     }),
   }));
 
+  const mostRecentSeason = Math.max(...historicalSeasons);
+
   return (
     <main className="min-h-screen bg-white dark:bg-black p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         <header>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Projected Arbitration Targets
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">
-            Value based on <strong>projected future PPG</strong> rather than
-            observed {Math.max(...HISTORICAL_SEASONS)} performance. Use this to
-            target players whose value differs meaningfully from their recent stats.
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                Projected Arbitration Targets — {projectionYear}
+              </h1>
+              <p className="text-slate-500 dark:text-slate-400 mt-2">
+                Value based on <strong>projected future PPG</strong> rather than
+                observed {mostRecentSeason} performance. Use this to target
+                players whose value differs meaningfully from their recent stats.
+                {projectionYear >= 2026 && (
+                  <> 2025 rookies are included via trajectory projection.</>
+                )}
+              </p>
+            </div>
+            <ProjectionYearSelector currentYear={projectionYear} years={PROJECTION_YEARS} />
+          </div>
         </header>
 
         {/* Methodology callout */}
@@ -96,7 +120,7 @@ export default async function ProjectedArbitrationPage() {
           </h2>
           <p className="text-sm text-blue-800 dark:text-blue-300">
             <strong>Games-weighted, recency-weighted average</strong> over{" "}
-            {HISTORICAL_SEASONS.join(", ")} seasons. Weights:{" "}
+            {historicalSeasons.join(", ")} seasons. Weights:{" "}
             <code className="text-xs bg-blue-100 dark:bg-blue-900 px-1 rounded">
               50% most recent / 30% prior / 20% oldest
             </code>
@@ -104,8 +128,8 @@ export default async function ProjectedArbitrationPage() {
             <code className="text-xs bg-blue-100 dark:bg-blue-900 px-1 rounded">
               games_played / 17
             </code>{" "}
-            to discount injury-shortened years. Players with no historical data
-            are excluded.
+            to discount injury-shortened years. First-year players use a
+            trajectory projection based on H2 vs H1 snap usage.
           </p>
         </div>
 
@@ -150,7 +174,7 @@ export default async function ProjectedArbitrationPage() {
             Top 20 Projected Arbitration Targets
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-            <strong>Obs PPG</strong> = actual {Math.max(...HISTORICAL_SEASONS)}{" "}
+            <strong>Obs PPG</strong> = actual {mostRecentSeason}{" "}
             season. <strong>Proj PPG</strong> = recency-weighted projection.
             Red rows = negative projected surplus after a $
             {ARB_MAX_PER_PLAYER_PER_TEAM} raise.
