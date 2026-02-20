@@ -3,6 +3,7 @@ import {
   PROJECTION_YEARS,
   DEFAULT_PROJECTION_YEAR,
   getHistoricalSeasonsForYear,
+  SEASON,
 } from "@/lib/analysis";
 import ProjectionsClient from "./ProjectionsClient";
 
@@ -56,9 +57,21 @@ export default async function ProjectionsPage({ searchParams }: Props) {
             Player Projections — {projectionYear}
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2">
-            Weighted-average PPG projections built from{" "}
-            {historicalSeasons.join("–")} historical seasons. Delta shows how a
-            player is trending vs. their projection.
+            {projectionYear > SEASON ? (
+              <>
+                <strong>Forward-looking:</strong> {SEASON} actual PPG vs.
+                projected {projectionYear} performance, built from{" "}
+                {historicalSeasons.join(", ")} history. Use this for arbitration
+                and keeper decisions.
+              </>
+            ) : (
+              <>
+                <strong>Backtest:</strong> What the model would have projected
+                for {projectionYear} using {historicalSeasons.join(", ")} history,
+                compared to actual {SEASON} results. Green = outperformed
+                projection; red = underperformed.
+              </>
+            )}
           </p>
         </header>
 
@@ -90,14 +103,16 @@ export default async function ProjectionsPage({ searchParams }: Props) {
               projects higher; falling H2 usage projects lower.
             </li>
             <li>
-              <strong>Obs PPG</strong> — this season&apos;s actual points-per-game
+              <strong>{SEASON} PPG</strong> — actual {SEASON} season
+              points-per-game (always the most recently completed season)
             </li>
             <li>
-              <strong>Proj PPG</strong> — projected next-season PPG
+              <strong>Proj {projectionYear}</strong> — model projection for{" "}
+              {projectionYear} built from {historicalSeasons.join(", ")} history
             </li>
             <li>
-              <strong>Delta</strong> — Proj PPG minus Obs PPG (positive = projected
-              improvement, negative = projected decline)
+              <strong>Δ {projectionYear} vs {SEASON}</strong> — Proj minus {SEASON}
+              PPG (positive = projected improvement; negative = projected decline)
             </li>
           </ul>
         </section>
