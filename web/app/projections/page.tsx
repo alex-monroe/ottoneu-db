@@ -28,6 +28,7 @@ export default async function ProjectionsPage() {
       observed_ppg: p.observed_ppg,
       projected_ppg: p.ppg,
       ppg_delta: p.ppg - p.observed_ppg,
+      projection_method: p.projection_method ?? "weighted_average_ppg",
     }))
     .sort((a, b) => b.projected_ppg - a.projected_ppg);
 
@@ -50,22 +51,32 @@ export default async function ProjectionsPage() {
             Methodology
           </h2>
           <p>
-            Each player&apos;s projected PPG is a weighted average of their per-game
-            output across the three most recent seasons, with recency weights{" "}
-            <strong>0.50 / 0.30 / 0.20</strong> (most recent to oldest). Seasons
-            with fewer than 4 games played are discounted proportionally (
-            <code className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded text-xs">
-              weight × games / 4
-            </code>
-            ) to reduce noise from small samples. Players with no qualifying
-            historical seasons are excluded.
+            Two methods are applied based on the player&apos;s history depth:
           </p>
           <ul className="list-disc list-inside space-y-1">
+            <li>
+              <strong>Veteran (2+ seasons):</strong> Games-weighted, recency-weighted
+              average across up to three seasons with weights{" "}
+              <strong>0.50 / 0.30 / 0.20</strong> (most recent to oldest). Injury-shortened
+              seasons are discounted by{" "}
+              <code className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded text-xs">
+                games / 17
+              </code>.
+            </li>
+            <li>
+              <strong>Rookie / First-Year (1 season, shown as{" "}
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                Rookie
+              </span>):</strong>{" "}
+              Season PPG scaled by a usage trajectory factor derived from
+              H2 vs H1 snaps-per-game, clamped to ±50%. Rising H2 usage
+              projects higher; falling H2 usage projects lower.
+            </li>
             <li>
               <strong>Obs PPG</strong> — this season&apos;s actual points-per-game
             </li>
             <li>
-              <strong>Proj PPG</strong> — weighted historical average
+              <strong>Proj PPG</strong> — projected next-season PPG
             </li>
             <li>
               <strong>Delta</strong> — Obs PPG minus Proj PPG (positive = outperforming

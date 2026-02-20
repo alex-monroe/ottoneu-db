@@ -214,9 +214,15 @@ async def _process_row(row, page, context, supabase, nfl_stats,
 
     games_played = 0
     snaps = 0
+    h1_snaps = h1_games = h2_snaps = h2_games = 0
     if not player_stats_row.empty:
         games_played = int(player_stats_row["games_played"].sum())
         snaps = int(player_stats_row["total_snaps"].sum())
+        if "h1_snaps" in player_stats_row.columns:
+            h1_snaps = int(player_stats_row["h1_snaps"].sum())
+            h1_games = int(player_stats_row["h1_games"].sum())
+            h2_snaps = int(player_stats_row["h2_snaps"].sum())
+            h2_games = int(player_stats_row["h2_games"].sum())
 
     ppg = round(total_points / games_played, 2) if games_played > 0 else 0.0
     pps = round(total_points / snaps, 4) if snaps > 0 else 0.0
@@ -229,6 +235,10 @@ async def _process_row(row, page, context, supabase, nfl_stats,
         "snaps": snaps,
         "ppg": ppg,
         "pps": pps,
+        "h1_snaps": h1_snaps,
+        "h1_games": h1_games,
+        "h2_snaps": h2_snaps,
+        "h2_games": h2_games,
     }
     supabase.table("player_stats").upsert(
         stats_data, on_conflict="player_id, season"

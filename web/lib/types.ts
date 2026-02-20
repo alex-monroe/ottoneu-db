@@ -70,6 +70,10 @@ export interface MultiSeasonStats {
   season: number;
   ppg: number;
   games_played: number;
+  h1_snaps?: number;
+  h1_games?: number;
+  h2_snaps?: number;
+  h2_games?: number;
 }
 
 export interface PlayerListItem {
@@ -119,10 +123,11 @@ export interface BacktestPlayer {
   price: number;
   projected_ppg: number;
   actual_ppg: number;
-  error: number;         // actual - projected (signed)
+  error: number;              // actual - projected (signed)
   abs_error: number;
-  seasons_used: string;  // pre-serialized: "2022, 2023, 2024"
+  seasons_used: string;       // pre-serialized: "2022, 2023, 2024"
   games_played: number;
+  projection_method: string;  // "rookie_trajectory" | "weighted_average_ppg"
   [key: string]: string | number | null | undefined;
 }
 

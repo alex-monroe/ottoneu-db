@@ -29,8 +29,9 @@ export default async function ProjectionAccuracyPage({ searchParams }: Props) {
             Projection Accuracy — {targetSeason}
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2">
-            Backtesting the WeightedAveragePPG model: projections built from
-            prior seasons compared to actual {targetSeason} results.
+            Backtesting composite projections: WeightedAveragePPG for veterans
+            (2+ seasons) and RookieTrajectoryPPG for first-year players.
+            Projections built from prior seasons compared to actual {targetSeason} results.
           </p>
         </header>
 
@@ -40,10 +41,14 @@ export default async function ProjectionAccuracyPage({ searchParams }: Props) {
             Methodology
           </h2>
           <p>
-            For each target season, prior seasons are used as inputs to the{" "}
-            <strong>WeightedAveragePPG</strong> model (recency weights 0.50 /
-            0.30 / 0.20, games-scaled). The resulting projection is compared to
-            the player&apos;s actual PPG in the target season.
+            For each target season, prior seasons are used as projection inputs.
+            Players with <strong>2+ seasons</strong> of history use{" "}
+            <strong>WeightedAveragePPG</strong> (recency weights 0.50 / 0.30 /
+            0.20, games-scaled). Players with <strong>exactly 1 prior season</strong>{" "}
+            use <strong>RookieTrajectoryPPG</strong> (season PPG × H2/H1 snap
+            trajectory factor, clamped ±50%). Rookies are broken out separately
+            at the bottom. The resulting projection is compared to the player&apos;s
+            actual PPG in the target season.
           </p>
           <ul className="list-disc list-inside space-y-1">
             <li>
