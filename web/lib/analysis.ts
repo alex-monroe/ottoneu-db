@@ -173,7 +173,7 @@ export async function fetchBacktestData(
         .eq("season", targetSeason),
       supabase
         .from("player_stats")
-        .select("player_id, season, ppg, games_played")
+        .select("player_id, season, ppg, games_played, h1_snaps, h1_games, h2_snaps, h2_games")
         .in("season", histSeasons),
       supabase
         .from("league_prices")
@@ -194,8 +194,8 @@ export async function fetchBacktestData(
     (pricesRes.data ?? []).map((p) => [String(p.player_id), p])
   );
 
-  // Group history stats by player_id
-  const historyByPlayer = new Map<string, { season: number; ppg: number; games_played: number }[]>();
+  // Group history stats by player_id (include H1/H2 snap fields for rookie projection)
+  const historyByPlayer = new Map<string, SeasonData[]>();
   for (const row of histStatsRes.data) {
     const playerId = String(row.player_id);
     const existing = historyByPlayer.get(playerId) ?? [];
@@ -203,15 +203,21 @@ export async function fetchBacktestData(
       season: Number(row.season),
       ppg: Number(row.ppg) || 0,
       games_played: Number(row.games_played) || 0,
+      h1_snaps: row.h1_snaps != null ? Number(row.h1_snaps) : undefined,
+      h1_games: row.h1_games != null ? Number(row.h1_games) : undefined,
+      h2_snaps: row.h2_snaps != null ? Number(row.h2_snaps) : undefined,
+      h2_games: row.h2_games != null ? Number(row.h2_games) : undefined,
     });
     historyByPlayer.set(playerId, existing);
   }
 
-  const method = new WeightedAveragePPG();
+  const rookieMethod = new RookieTrajectoryPPG();
+  const veteranMethod = new WeightedAveragePPG();
   const result: BacktestPlayer[] = [];
 
   for (const [playerId, history] of historyByPlayer.entries()) {
-    const projected = method.projectPpg(history);
+    const chosenMethod = history.length === 1 ? rookieMethod : veteranMethod;
+    const projected = chosenMethod.projectPpg(history);
     if (projected === null) continue;
 
     const targetStats = targetStatsMap.get(playerId);
@@ -240,6 +246,7 @@ export async function fetchBacktestData(
       abs_error: Math.abs(error),
       seasons_used: sortedSeasons.join(", "),
       games_played: Number(targetStats.games_played) || 0,
+      projection_method: chosenMethod.name,
     });
   }
 
