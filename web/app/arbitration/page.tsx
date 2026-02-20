@@ -1,5 +1,5 @@
 import {
-  fetchAndMergeData,
+  fetchPlayersWithProjectedPpg,
   analyzeArbitration,
   allocateArbitrationBudget,
   ARB_BUDGET_PER_TEAM,
@@ -31,7 +31,7 @@ const ARB_TARGET_RULES: HighlightRule[] = [
 ];
 
 export default async function ArbitrationPage() {
-  const allPlayers = await fetchAndMergeData();
+  const allPlayers = await fetchPlayersWithProjectedPpg();
   const targets = analyzeArbitration(allPlayers);
 
   if (targets.length === 0) {

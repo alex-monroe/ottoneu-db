@@ -5,7 +5,7 @@ import {
   HISTORICAL_SEASONS,
   Player,
 } from "./arb-logic";
-import { WeightedAveragePPG, SeasonData } from "./projection-methods";
+import { WeightedAveragePPG, RookieTrajectoryPPG, SeasonData } from "./projection-methods";
 import type { MultiSeasonStats } from "./types";
 
 export * from "./arb-logic";
@@ -61,7 +61,7 @@ export async function fetchMultiSeasonStats(
 ): Promise<MultiSeasonStats[]> {
   const res = await supabase
     .from("player_stats")
-    .select("player_id, season, ppg, games_played")
+    .select("player_id, season, ppg, games_played, h1_snaps, h1_games, h2_snaps, h2_games")
     .in("season", seasons);
 
   if (!res.data) return [];
@@ -71,16 +71,23 @@ export async function fetchMultiSeasonStats(
     season: Number(row.season),
     ppg: Number(row.ppg) || 0,
     games_played: Number(row.games_played) || 0,
+    h1_snaps: row.h1_snaps != null ? Number(row.h1_snaps) : undefined,
+    h1_games: row.h1_games != null ? Number(row.h1_games) : undefined,
+    h2_snaps: row.h2_snaps != null ? Number(row.h2_snaps) : undefined,
+    h2_games: row.h2_games != null ? Number(row.h2_games) : undefined,
   }));
 }
 
 /**
- * Build a player_id → projected_ppg map using WeightedAveragePPG.
+ * Build a player_id → { ppg, method } map using composite projection:
+ * - 1-season players: RookieTrajectoryPPG
+ * - 2+ season players: WeightedAveragePPG
  */
 function buildProjectionMap(
   multiSeasonStats: MultiSeasonStats[]
-): Map<string, number> {
-  const method = new WeightedAveragePPG();
+): Map<string, { ppg: number; method: string }> {
+  const rookieMethod = new RookieTrajectoryPPG();
+  const veteranMethod = new WeightedAveragePPG();
   const grouped = new Map<string, SeasonData[]>();
 
   for (const row of multiSeasonStats) {
@@ -89,15 +96,20 @@ function buildProjectionMap(
       season: row.season,
       ppg: row.ppg,
       games_played: row.games_played,
+      h1_snaps: row.h1_snaps,
+      h1_games: row.h1_games,
+      h2_snaps: row.h2_snaps,
+      h2_games: row.h2_games,
     });
     grouped.set(row.player_id, existing);
   }
 
-  const projections = new Map<string, number>();
+  const projections = new Map<string, { ppg: number; method: string }>();
   for (const [playerId, history] of grouped.entries()) {
-    const projected = method.projectPpg(history);
+    const chosenMethod = history.length === 1 ? rookieMethod : veteranMethod;
+    const projected = chosenMethod.projectPpg(history);
     if (projected !== null) {
-      projections.set(playerId, projected);
+      projections.set(playerId, { ppg: projected, method: chosenMethod.name });
     }
   }
 
@@ -106,6 +118,7 @@ function buildProjectionMap(
 
 export interface ProjectedPlayer extends Player {
   observed_ppg: number;
+  projection_method?: string;
 }
 
 // === Backtest / Projection Accuracy ===
@@ -113,6 +126,33 @@ export interface ProjectedPlayer extends Player {
 import type { BacktestPlayer } from "./types";
 
 const ALL_DB_SEASONS = [2022, 2023, 2024, 2025];
+
+/**
+ * Fetch current-season data + multi-season history, apply composite projections
+ * (RookieTrajectoryPPG for 1-season players, WeightedAveragePPG for veterans),
+ * and return Player[] with ppg = projected PPG where available, observed PPG
+ * otherwise. All rostered players are included (no exclusions).
+ *
+ * Drop-in compatible with fetchAndMergeData() — returns Player[] not ProjectedPlayer[].
+ */
+export async function fetchPlayersWithProjectedPpg(): Promise<Player[]> {
+  const [currentPlayers, multiSeasonStats] = await Promise.all([
+    fetchAndMergeData(),
+    fetchMultiSeasonStats(),
+  ]);
+
+  if (currentPlayers.length === 0 || multiSeasonStats.length === 0) {
+    return currentPlayers;
+  }
+
+  const projectionMap = buildProjectionMap(multiSeasonStats);
+
+  return currentPlayers.map((player) => {
+    const projEntry = projectionMap.get(player.player_id);
+    if (projEntry === undefined) return player; // no projection: use observed PPG
+    return { ...player, ppg: projEntry.ppg };
+  });
+}
 
 /**
  * Fetch historical + target-season data and apply WeightedAveragePPG projections
@@ -229,13 +269,14 @@ export async function fetchAndMergeProjectedData(): Promise<ProjectedPlayer[]> {
 
   const projected: ProjectedPlayer[] = [];
   for (const player of currentPlayers) {
-    const projectedPpg = projectionMap.get(player.player_id);
-    if (projectedPpg === undefined) continue; // exclude players with no history
+    const projEntry = projectionMap.get(player.player_id);
+    if (projEntry === undefined) continue; // exclude players with no history
 
     projected.push({
       ...player,
       observed_ppg: player.ppg,
-      ppg: projectedPpg,
+      ppg: projEntry.ppg,
+      projection_method: projEntry.method,
     });
   }
 

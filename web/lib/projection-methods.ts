@@ -11,6 +11,10 @@ export interface SeasonData {
   season: number;
   ppg: number;
   games_played: number;
+  h1_snaps?: number;
+  h1_games?: number;
+  h2_snaps?: number;
+  h2_games?: number;
 }
 
 export interface ProjectionMethod {
@@ -58,5 +62,33 @@ export class WeightedAveragePPG implements ProjectionMethod {
 
     if (denominator === 0) return null;
     return numerator / denominator;
+  }
+}
+
+/**
+ * Projection for players with exactly one prior season (rookies/first-year).
+ *
+ * Uses H2 snaps-per-game / H1 snaps-per-game as a usage trajectory factor.
+ * Projected PPG = season_ppg × clamp(h2_spg / h1_spg, 0.75, 1.50)
+ *
+ * Falls back to season_ppg if H1 snap data is missing or zero.
+ */
+export class RookieTrajectoryPPG implements ProjectionMethod {
+  readonly name = "rookie_trajectory";
+  private static readonly MIN = 0.75;
+  private static readonly MAX = 1.50;
+
+  projectPpg(history: SeasonData[]): number | null {
+    if (history.length !== 1) return null;
+    const s = history[0];
+    if (!s.ppg) return null;
+    const h1Spg = (s.h1_snaps ?? 0) / Math.max(s.h1_games ?? 1, 1);
+    const h2Spg = (s.h2_snaps ?? 0) / Math.max(s.h2_games ?? 1, 1);
+    if (h1Spg === 0) return s.ppg;
+    const factor = Math.min(
+      Math.max(h2Spg / h1Spg, RookieTrajectoryPPG.MIN),
+      RookieTrajectoryPPG.MAX
+    );
+    return s.ppg * factor;
   }
 }

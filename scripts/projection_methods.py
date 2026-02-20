@@ -15,10 +15,14 @@ from __future__ import annotations
 from typing import Optional, Protocol, TypedDict
 
 
-class SeasonData(TypedDict):
-    season: int
-    ppg: float
-    games_played: int
+class SeasonData(TypedDict, total=False):
+    season: int       # required
+    ppg: float        # required
+    games_played: int # required
+    h1_snaps: int
+    h1_games: int
+    h2_snaps: int
+    h2_games: int
 
 
 class ProjectionMethod(Protocol):
@@ -77,3 +81,30 @@ class WeightedAveragePPG:
             return None
 
         return numerator / denominator
+
+
+class RookieTrajectoryPPG:
+    """Projection for players with exactly one prior season (rookies/first-year).
+
+    Uses H2 snaps-per-game / H1 snaps-per-game as a usage trajectory factor.
+    Projected PPG = season_ppg × clamp(h2_spg / h1_spg, 0.75, 1.50)
+
+    Falls back to season_ppg if H1 snap data is missing or zero.
+    """
+
+    name = "rookie_trajectory"
+    MIN_FACTOR = 0.75
+    MAX_FACTOR = 1.50
+
+    def project_ppg(self, history: list[SeasonData]) -> Optional[float]:
+        if len(history) != 1:
+            return None
+        s = history[0]
+        if not s.get("ppg"):
+            return None
+        h1_spg = (s.get("h1_snaps") or 0) / max(s.get("h1_games") or 1, 1)
+        h2_spg = (s.get("h2_snaps") or 0) / max(s.get("h2_games") or 1, 1)
+        if h1_spg == 0:
+            return float(s["ppg"])
+        factor = min(max(h2_spg / h1_spg, self.MIN_FACTOR), self.MAX_FACTOR)
+        return s["ppg"] * factor

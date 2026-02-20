@@ -70,6 +70,10 @@ export interface MultiSeasonStats {
   season: number;
   ppg: number;
   games_played: number;
+  h1_snaps?: number;
+  h1_games?: number;
+  h2_snaps?: number;
+  h2_games?: number;
 }
 
 export interface PlayerListItem {
