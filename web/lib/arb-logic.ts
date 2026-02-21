@@ -107,6 +107,25 @@ export function calculateVorp(
     const replacementN: Record<string, number> = {};
 
     for (const [pos, rank] of Object.entries(REPLACEMENT_LEVEL)) {
+        // Special case for QBs: market implied replacement is too low due to scarcity
+        // Instead, use the ~25th highest QB by PPG
+        if (pos === 'QB') {
+            const qbRank = 25;
+            const posPlayers = qualified
+                .filter((p) => p.position === pos)
+                .sort((a, b) => b.ppg - a.ppg);
+
+            if (posPlayers.length >= qbRank) {
+                replacementPpg[pos] = posPlayers[qbRank - 1].ppg;
+            } else if (posPlayers.length > 0) {
+                replacementPpg[pos] = posPlayers[posPlayers.length - 1].ppg;
+            } else {
+                replacementPpg[pos] = 0;
+            }
+            replacementN[pos] = qbRank;
+            continue;
+        }
+
         const rostered = qualified.filter(
             (p) => p.position === pos && p.team_name != null && p.team_name !== 'FA' && p.team_name !== ''
         );
