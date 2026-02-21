@@ -10,16 +10,19 @@ import {
   PROJECTION_YEARS,
   DEFAULT_PROJECTION_YEAR,
   getHistoricalSeasonsForYear,
+  LEAGUE_ID,
 } from "@/lib/analysis";
+import { supabase } from "@/lib/supabase";
 import { ArbitrationTarget } from "@/lib/arb-logic";
 import DataTable, { Column, HighlightRule } from "@/components/DataTable";
 import ArbitrationTeams from "./ArbitrationTeams";
 import ProjectionYearSelector from "@/components/ProjectionYearSelector";
+import ModeToggle from "@/components/ModeToggle";
 
 export const revalidate = 3600;
 
 interface Props {
-  searchParams: Promise<{ year?: string }>;
+  searchParams: Promise<{ year?: string; mode?: string }>;
 }
 
 // ArbitrationTarget at runtime carries observed_ppg / ppg from ProjectedPlayer spreads
@@ -51,10 +54,29 @@ export default async function ProjectedArbitrationPage({ searchParams }: Props) 
   const projectionYear = (PROJECTION_YEARS as readonly number[]).includes(rawYear)
     ? rawYear
     : DEFAULT_PROJECTION_YEAR;
+  const isAdjusted = params.mode === "adjusted";
 
   const historicalSeasons = getHistoricalSeasonsForYear(projectionYear);
-  const projectedPlayers = await fetchAndMergeProjectedData(projectionYear);
-  const targets = analyzeArbitration(projectedPlayers) as ProjectedTarget[];
+
+  const [projectedPlayers, adjRes] = await Promise.all([
+    fetchAndMergeProjectedData(projectionYear),
+    supabase
+      .from("surplus_adjustments")
+      .select("player_id, adjustment")
+      .eq("league_id", LEAGUE_ID)
+      .neq("adjustment", 0),
+  ]);
+
+  const hasAdjustments = (adjRes.data?.length ?? 0) > 0;
+
+  let adjustments: Map<string, number> | undefined;
+  if (isAdjusted && adjRes.data && adjRes.data.length > 0) {
+    adjustments = new Map(
+      adjRes.data.map((r) => [String(r.player_id), Number(r.adjustment)])
+    );
+  }
+
+  const targets = analyzeArbitration(projectedPlayers, adjustments) as ProjectedTarget[];
 
   if (targets.length === 0) {
     return (
@@ -90,6 +112,10 @@ export default async function ProjectedArbitrationPage({ searchParams }: Props) 
   }));
 
   const mostRecentSeason = Math.max(...historicalSeasons);
+  const extraParams: Record<string, string> =
+    projectionYear !== DEFAULT_PROJECTION_YEAR
+      ? { year: String(projectionYear) }
+      : {};
 
   return (
     <main className="min-h-screen bg-white dark:bg-black p-8">
@@ -109,8 +135,21 @@ export default async function ProjectedArbitrationPage({ searchParams }: Props) 
                 )}
               </p>
             </div>
-            <ProjectionYearSelector currentYear={projectionYear} years={PROJECTION_YEARS} />
+            <div className="flex flex-wrap items-center gap-3">
+              <ModeToggle
+                currentMode={isAdjusted ? "adjusted" : "raw"}
+                basePath="/projected-arbitration"
+                hasAdjustments={hasAdjustments}
+                extraParams={extraParams}
+              />
+              <ProjectionYearSelector currentYear={projectionYear} years={PROJECTION_YEARS} />
+            </div>
           </div>
+          {isAdjusted && hasAdjustments && (
+            <div className="mt-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-2 text-sm text-blue-800 dark:text-blue-300">
+              Showing results with your manual surplus adjustments applied.
+            </div>
+          )}
         </header>
 
         {/* Methodology callout */}

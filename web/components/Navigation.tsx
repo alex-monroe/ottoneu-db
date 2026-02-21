@@ -23,6 +23,7 @@ const PRIVATE_LINKS = [
   { href: "/projection-accuracy", label: "Proj. Accuracy" },
   { href: "/vorp", label: "VORP" },
   { href: "/surplus-value", label: "Surplus Value" },
+  { href: "/surplus-adjustments", label: "Adjustments" },
   { href: "/arbitration", label: "Arbitration" },
   { href: "/projected-arbitration", label: "Proj. Arbitration" },
   { href: "/arbitration-simulation", label: "Arb Simulation" },

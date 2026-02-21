@@ -53,7 +53,22 @@ create table transactions (
   unique(player_id, league_id, transaction_type, transaction_date, salary)
 );
 
+-- Stores manual surplus value adjustments per player per league
+-- Used to override VORP-calculated dollar value with scouting judgment
+create table surplus_adjustments (
+  id uuid default gen_random_uuid() primary key,
+  player_id uuid references players(id) not null,
+  league_id integer not null,
+  adjustment numeric not null default 0,
+  notes text,
+  created_at timestamp with time zone default now() not null,
+  updated_at timestamp with time zone default now() not null,
+  unique(player_id, league_id)
+);
+
 -- Create indexes for performance
+create index idx_surplus_adjustments_league on surplus_adjustments(league_id);
+create index idx_surplus_adjustments_player on surplus_adjustments(player_id);
 create index idx_players_ottoneu_id on players(ottoneu_id);
 create index idx_player_stats_player_id on player_stats(player_id);
 create index idx_league_prices_league_id on league_prices(league_id);
