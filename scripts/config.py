@@ -2,6 +2,9 @@
 
 This module consolidates all configuration constants and provides a shared
 Supabase client factory to eliminate duplication across scripts.
+
+NOTE: These constants must stay in sync with web/lib/config.ts.
+When updating league settings or analysis parameters, update both files.
 """
 
 import os

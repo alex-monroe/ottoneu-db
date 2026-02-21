@@ -9,7 +9,7 @@ from analysis_utils import (
 )
 
 
-def calculate_vorp(merged_df: pd.DataFrame, min_games: int = MIN_GAMES) -> pd.DataFrame:
+def calculate_vorp(merged_df: pd.DataFrame, min_games: int = MIN_GAMES) -> tuple[pd.DataFrame, dict, dict]:
     """Calculate VORP for all players.
 
     Args:
