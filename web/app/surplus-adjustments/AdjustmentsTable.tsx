@@ -319,7 +319,7 @@ export default function AdjustmentsTable({
       {/* Table */}
       <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
         <table className="min-w-full text-sm">
-          <thead>
+          <thead className="sticky top-0 z-10">
             <tr className="bg-slate-100 dark:bg-slate-800">
               <th className={thClass} onClick={() => toggleSort("name")}>
                 Player{sortIndicator("name")}
@@ -426,10 +426,10 @@ export default function AdjustmentsTable({
                   </td>
                   <td
                     className={`px-3 py-2 whitespace-nowrap font-medium ${!hasProjection
-                        ? "text-slate-400 dark:text-slate-600"
-                        : proj.projected_surplus >= 0
-                          ? "text-green-700 dark:text-green-400"
-                          : "text-red-700 dark:text-red-400"
+                      ? "text-slate-400 dark:text-slate-600"
+                      : proj.projected_surplus >= 0
+                        ? "text-green-700 dark:text-green-400"
+                        : "text-red-700 dark:text-red-400"
                       }`}
                   >
                     {hasProjection
@@ -438,10 +438,10 @@ export default function AdjustmentsTable({
                   </td>
                   <td
                     className={`px-3 py-2 whitespace-nowrap text-xs font-medium ${!hasProjection
-                        ? "text-slate-400 dark:text-slate-600"
-                        : projDelta >= 0
-                          ? "text-green-600 dark:text-green-400"
-                          : "text-red-600 dark:text-red-400"
+                      ? "text-slate-400 dark:text-slate-600"
+                      : projDelta >= 0
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-red-600 dark:text-red-400"
                       }`}
                   >
                     {hasProjection
