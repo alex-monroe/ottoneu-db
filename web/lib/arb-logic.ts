@@ -108,9 +108,9 @@ export function calculateVorp(
 
     for (const [pos, rank] of Object.entries(REPLACEMENT_LEVEL)) {
         // Special case for QBs: market implied replacement is too low due to scarcity
-        // Instead, use the ~25th highest QB by PPG
+        // Instead, use the ~38th highest QB by PPG to get roughly 10-11 PPG
         if (pos === 'QB') {
-            const qbRank = 25;
+            const qbRank = 38;
             const posPlayers = qualified
                 .filter((p) => p.position === pos)
                 .sort((a, b) => b.ppg - a.ppg);
