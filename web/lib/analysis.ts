@@ -52,6 +52,7 @@ export async function fetchAndMergeData(): Promise<Player[]> {
       nfl_team: player.nfl_team,
       price: pPrice ? Number(pPrice.price) || 0 : 0,
       team_name: pPrice?.team_name || null,
+      birth_date: player.birth_date ?? null,
       total_points: Number(pStats.total_points) || 0,
       games_played: Number(pStats.games_played) || 0,
       snaps: Number(pStats.snaps) || 0,
