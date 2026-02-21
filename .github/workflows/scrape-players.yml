@@ -1,14 +1,8 @@
 name: Scrape Player Data
 
 on:
-  # Manual trigger with optional season override
+  # Manual trigger
   workflow_dispatch:
-    inputs:
-      season:
-        description: "Season year to scrape"
-        required: false
-        default: "2025"
-        type: string
 
   # Daily at 6:00 AM UTC (10 PM PT previous day)
   schedule:
