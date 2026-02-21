@@ -17,7 +17,6 @@ Output shows expected arbitration raises across multiple simulation runs, helpin
 import os
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Tuple
 from analysis_utils import (
     MY_TEAM, NUM_TEAMS, SEASON, ARB_BUDGET_PER_TEAM, ARB_MIN_PER_TEAM,
     ARB_MAX_PER_TEAM, ARB_MAX_PER_PLAYER_PER_TEAM, ARB_MAX_PER_PLAYER_LEAGUE,
@@ -35,7 +34,7 @@ def generate_team_valuations(
     players: pd.DataFrame,
     num_teams: int,
     variation: float
-) -> Dict[str, pd.DataFrame]:
+) -> dict[str, pd.DataFrame]:
     """Generate different value estimates for each team.
 
     Each team evaluates players differently based on their roster needs,
@@ -81,12 +80,12 @@ def generate_team_valuations(
 def allocate_team_budget(
     team_name: str,
     team_valuations: pd.DataFrame,
-    all_teams: List[str],
+    all_teams: list[str],
     budget: float,
     min_per_team: float,
     max_per_team: float,
     max_per_player: float
-) -> Dict[Tuple[str, str], float]:
+) -> dict[tuple[str, str], float]:
     """Allocate one team's arbitration budget to opponent players only.
 
     In Ottoneu arbitration, teams can ONLY give money to opponents' players,
@@ -109,7 +108,7 @@ def allocate_team_budget(
     num_opponents = len(opponents)
 
     # Start with minimum allocation to each opponent
-    allocations: Dict[Tuple[str, str], float] = {}
+    allocations: dict[tuple[str, str], float] = {}
     remaining_budget = budget - (num_opponents * min_per_team)
 
     # Get all opponent players
@@ -200,7 +199,7 @@ def run_simulation(
 
     # Track arbitration totals across simulations
     # Key: (player_name, team_name), Value: list of total arbitration amounts
-    arb_results: Dict[Tuple[str, str], List[float]] = {}
+    arb_results: dict[tuple[str, str], list[float]] = {}
 
     for sim in range(num_sims):
         # Set random seed for reproducibility of each simulation run
@@ -214,7 +213,7 @@ def run_simulation(
         )
 
         # Track arbitration allocated to each player in this simulation
-        sim_arb_totals: Dict[Tuple[str, str], float] = {}
+        sim_arb_totals: dict[tuple[str, str], float] = {}
 
         # Each team allocates their budget
         for team in rostered_teams:
@@ -257,6 +256,7 @@ def run_simulation(
         ]
 
         if player_row.empty:
+            print(f"[DEBUG] Skipped player '{player_name}' on '{team_name}': not found in DataFrame")
             continue
 
         player_row = player_row.iloc[0]
