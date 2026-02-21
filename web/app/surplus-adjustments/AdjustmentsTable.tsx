@@ -8,9 +8,15 @@ interface AdjustmentEntry {
   notes: string;
 }
 
+interface ProjectedValueEntry {
+  projected_dollar_value: number;
+  projected_surplus: number;
+}
+
 interface AdjustmentsTableProps {
   players: SurplusPlayer[];
   existingAdjustments: Record<string, AdjustmentEntry>;
+  projectedValues: Record<string, ProjectedValueEntry>;
 }
 
 const POSITIONS = ["ALL", "QB", "RB", "WR", "TE"];
@@ -23,6 +29,9 @@ type SortKey =
   | "price"
   | "dollar_value"
   | "surplus"
+  | "proj_value"
+  | "proj_surplus"
+  | "proj_delta"
   | "adjustment"
   | "adj_value"
   | "adj_surplus";
@@ -42,6 +51,7 @@ function calculateAge(birthDate: string | null | undefined): number | null {
 export default function AdjustmentsTable({
   players,
   existingAdjustments,
+  projectedValues,
 }: AdjustmentsTableProps) {
   const [adjustments, setAdjustments] = useState<Record<string, AdjustmentEntry>>(() => {
     const init: Record<string, AdjustmentEntry> = {};
@@ -92,6 +102,9 @@ export default function AdjustmentsTable({
     return Array.from(teams).sort();
   }, [players]);
 
+  const getProj = (playerId: string) =>
+    projectedValues[playerId] ?? { projected_dollar_value: 0, projected_surplus: 0 };
+
   const filteredPlayers = useMemo(() => {
     const filtered = players
       .filter((p) => filterPos === "ALL" || p.position === filterPos)
@@ -105,6 +118,8 @@ export default function AdjustmentsTable({
     return filtered.sort((a, b) => {
       const adj_a = adjustments[a.player_id] ?? { adjustment: 0, notes: "" };
       const adj_b = adjustments[b.player_id] ?? { adjustment: 0, notes: "" };
+      const proj_a = getProj(a.player_id);
+      const proj_b = getProj(b.player_id);
       let va: number | string;
       let vb: number | string;
 
@@ -137,6 +152,18 @@ export default function AdjustmentsTable({
           va = a.surplus;
           vb = b.surplus;
           break;
+        case "proj_value":
+          va = proj_a.projected_dollar_value;
+          vb = proj_b.projected_dollar_value;
+          break;
+        case "proj_surplus":
+          va = proj_a.projected_surplus;
+          vb = proj_b.projected_surplus;
+          break;
+        case "proj_delta":
+          va = proj_a.projected_dollar_value - a.dollar_value;
+          vb = proj_b.projected_dollar_value - b.dollar_value;
+          break;
         case "adjustment":
           va = adj_a.adjustment;
           vb = adj_b.adjustment;
@@ -161,7 +188,7 @@ export default function AdjustmentsTable({
       const diff = (va as number) - (vb as number);
       return sortDir === "asc" ? diff : -diff;
     });
-  }, [players, filterPos, filterTeam, filterModified, adjustments, sortKey, sortDir]);
+  }, [players, filterPos, filterTeam, filterModified, adjustments, projectedValues, sortKey, sortDir]);
 
   const updateAdjustment = (playerId: string, value: number) => {
     setAdjustments((prev) => ({
@@ -223,6 +250,9 @@ export default function AdjustmentsTable({
   const thClass =
     "px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap cursor-pointer select-none hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors";
 
+  const projThClass =
+    "px-3 py-2 text-left font-semibold text-purple-700 dark:text-purple-300 whitespace-nowrap cursor-pointer select-none hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors";
+
   return (
     <div className="space-y-4">
       {/* Controls bar */}
@@ -234,8 +264,8 @@ export default function AdjustmentsTable({
               key={pos}
               onClick={() => setFilterPos(pos)}
               className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${filterPos === pos
-                  ? "bg-blue-600 text-white"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                ? "bg-blue-600 text-white"
+                : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
                 }`}
             >
               {pos}
@@ -287,9 +317,9 @@ export default function AdjustmentsTable({
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+      <div className="overflow-auto max-h-[75vh] rounded-lg border border-slate-200 dark:border-slate-800">
         <table className="min-w-full text-sm">
-          <thead>
+          <thead className="sticky top-0 z-10">
             <tr className="bg-slate-100 dark:bg-slate-800">
               <th className={thClass} onClick={() => toggleSort("name")}>
                 Player{sortIndicator("name")}
@@ -311,6 +341,15 @@ export default function AdjustmentsTable({
               </th>
               <th className={thClass} onClick={() => toggleSort("surplus")}>
                 Raw Surplus{sortIndicator("surplus")}
+              </th>
+              <th className={projThClass} onClick={() => toggleSort("proj_value")}>
+                Proj. Value{sortIndicator("proj_value")}
+              </th>
+              <th className={projThClass} onClick={() => toggleSort("proj_surplus")}>
+                Proj. Surplus{sortIndicator("proj_surplus")}
+              </th>
+              <th className={projThClass} onClick={() => toggleSort("proj_delta")}>
+                Δ Value{sortIndicator("proj_delta")}
               </th>
               <th className={thClass} onClick={() => toggleSort("adjustment")}>
                 Adjustment ($){sortIndicator("adjustment")}
@@ -334,6 +373,9 @@ export default function AdjustmentsTable({
                 adj.adjustment !== origAdj.adjustment || adj.notes !== origAdj.notes;
               const isSavedNonZero = !isUnsaved && adj.adjustment !== 0;
               const age = calculateAge(player.birth_date);
+              const proj = getProj(player.player_id);
+              const projDelta = proj.projected_dollar_value - player.dollar_value;
+              const hasProjection = projectedValues[player.player_id] !== undefined;
 
               const rowClass = isUnsaved
                 ? "bg-yellow-50 dark:bg-yellow-950/20"
@@ -371,13 +413,42 @@ export default function AdjustmentsTable({
                   </td>
                   <td
                     className={`px-3 py-2 whitespace-nowrap font-medium ${player.surplus >= 0
-                        ? "text-green-700 dark:text-green-400"
-                        : "text-red-700 dark:text-red-400"
+                      ? "text-green-700 dark:text-green-400"
+                      : "text-red-700 dark:text-red-400"
                       }`}
                   >
                     {player.surplus >= 0 ? "+" : ""}
                     {player.surplus}
                   </td>
+                  {/* Projected columns */}
+                  <td className="px-3 py-2 text-purple-700 dark:text-purple-300 whitespace-nowrap">
+                    {hasProjection ? `$${proj.projected_dollar_value}` : "—"}
+                  </td>
+                  <td
+                    className={`px-3 py-2 whitespace-nowrap font-medium ${!hasProjection
+                      ? "text-slate-400 dark:text-slate-600"
+                      : proj.projected_surplus >= 0
+                        ? "text-green-700 dark:text-green-400"
+                        : "text-red-700 dark:text-red-400"
+                      }`}
+                  >
+                    {hasProjection
+                      ? `${proj.projected_surplus >= 0 ? "+" : ""}${proj.projected_surplus}`
+                      : "—"}
+                  </td>
+                  <td
+                    className={`px-3 py-2 whitespace-nowrap text-xs font-medium ${!hasProjection
+                      ? "text-slate-400 dark:text-slate-600"
+                      : projDelta >= 0
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-red-600 dark:text-red-400"
+                      }`}
+                  >
+                    {hasProjection
+                      ? `${projDelta >= 0 ? "+" : ""}${projDelta}`
+                      : "—"}
+                  </td>
+                  {/* Adjustment columns */}
                   <td className="px-3 py-2 whitespace-nowrap">
                     <input
                       type="number"
@@ -397,8 +468,8 @@ export default function AdjustmentsTable({
                   </td>
                   <td
                     className={`px-3 py-2 whitespace-nowrap font-medium ${adjSurplus >= 0
-                        ? "text-green-700 dark:text-green-400"
-                        : "text-red-700 dark:text-red-400"
+                      ? "text-green-700 dark:text-green-400"
+                      : "text-red-700 dark:text-red-400"
                       }`}
                   >
                     {adjSurplus >= 0 ? "+" : ""}
@@ -426,7 +497,8 @@ export default function AdjustmentsTable({
         {" "}unsaved changes.{" "}
         <span className="inline-block w-2 h-2 rounded-sm bg-blue-100 dark:bg-blue-950 border border-blue-300 mr-0.5" />
         {" "}saved non-zero adjustment.{" "}
-        ★ = your team.
+        ★ = your team.{" "}
+        <span className="text-purple-600 dark:text-purple-400">Purple columns</span> = 2026 projected values.
       </p>
     </div>
   );

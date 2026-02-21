@@ -1,4 +1,4 @@
-import { fetchAndMergeData, calculateSurplus, SEASON, LEAGUE_ID } from "@/lib/analysis";
+import { fetchAndMergeData, fetchAndMergeProjectedData, calculateSurplus, SEASON, LEAGUE_ID, DEFAULT_PROJECTION_YEAR } from "@/lib/analysis";
 import { supabase } from "@/lib/supabase";
 import AdjustmentsTable from "./AdjustmentsTable";
 import Link from "next/link";
@@ -6,8 +6,9 @@ import Link from "next/link";
 export const revalidate = 0;
 
 export default async function SurplusAdjustmentsPage() {
-  const [allPlayers, adjRes] = await Promise.all([
+  const [allPlayers, projectedPlayers, adjRes] = await Promise.all([
     fetchAndMergeData(),
+    fetchAndMergeProjectedData(DEFAULT_PROJECTION_YEAR),
     supabase
       .from("surplus_adjustments")
       .select("player_id, adjustment, notes")
@@ -17,6 +18,18 @@ export default async function SurplusAdjustmentsPage() {
   const surplusPlayers = calculateSurplus(allPlayers).filter(
     (p) => p.position !== "K"
   );
+
+  // Build projected surplus values for comparison
+  const projectedSurplus = calculateSurplus(projectedPlayers).filter(
+    (p) => p.position !== "K"
+  );
+  const projectedValues: Record<string, { projected_dollar_value: number; projected_surplus: number }> = {};
+  for (const p of projectedSurplus) {
+    projectedValues[p.player_id] = {
+      projected_dollar_value: p.dollar_value,
+      projected_surplus: p.surplus,
+    };
+  }
 
   const existingAdjustments: Record<string, { adjustment: number; notes: string }> = {};
   for (const row of adjRes.data ?? []) {
@@ -51,6 +64,10 @@ export default async function SurplusAdjustmentsPage() {
             </Link>{" "}
             pages by toggling to &ldquo;Adjusted&rdquo; mode.
           </p>
+          <p className="text-slate-400 dark:text-slate-500 mt-1 text-sm">
+            <strong>Proj. Value</strong> and <strong>Proj. Surplus</strong> show {DEFAULT_PROJECTION_YEAR} projected
+            dollar values based on recency-weighted PPG projections. <strong>Δ</strong> = projected minus observed value.
+          </p>
         </header>
 
         {savedCount > 0 && (
@@ -62,6 +79,7 @@ export default async function SurplusAdjustmentsPage() {
         <AdjustmentsTable
           players={surplusPlayers}
           existingAdjustments={existingAdjustments}
+          projectedValues={projectedValues}
         />
       </div>
     </main>
