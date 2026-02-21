@@ -2,11 +2,9 @@ import { supabase } from "./supabase";
 import {
   LEAGUE_ID,
   SEASON,
-  HISTORICAL_SEASONS,
   Player,
 } from "./arb-logic";
-import { WeightedAveragePPG, RookieTrajectoryPPG, SeasonData } from "./projection-methods";
-import type { MultiSeasonStats } from "./types";
+import type { BacktestPlayer } from "./types";
 
 export * from "./arb-logic";
 
@@ -66,61 +64,24 @@ export async function fetchAndMergeData(): Promise<Player[]> {
 
 // === Multi-Season Projection ===
 
-export async function fetchMultiSeasonStats(
-  seasons: number[] = HISTORICAL_SEASONS
-): Promise<MultiSeasonStats[]> {
-  const res = await supabase
-    .from("player_stats")
-    .select("player_id, season, ppg, games_played, h1_snaps, h1_games, h2_snaps, h2_games")
-    .in("season", seasons);
-
-  if (!res.data) return [];
-
-  return res.data.map((row) => ({
-    player_id: String(row.player_id),
-    season: Number(row.season),
-    ppg: Number(row.ppg) || 0,
-    games_played: Number(row.games_played) || 0,
-    h1_snaps: row.h1_snaps != null ? Number(row.h1_snaps) : undefined,
-    h1_games: row.h1_games != null ? Number(row.h1_games) : undefined,
-    h2_snaps: row.h2_snaps != null ? Number(row.h2_snaps) : undefined,
-    h2_games: row.h2_games != null ? Number(row.h2_games) : undefined,
-  }));
-}
-
 /**
- * Build a player_id → { ppg, method } map using composite projection:
- * - 1-season players: RookieTrajectoryPPG
- * - 2+ season players: WeightedAveragePPG
+ * Build a player_id → { ppg, method } map using data from player_projections table.
  */
-function buildProjectionMap(
-  multiSeasonStats: MultiSeasonStats[]
-): Map<string, { ppg: number; method: string }> {
-  const rookieMethod = new RookieTrajectoryPPG();
-  const veteranMethod = new WeightedAveragePPG();
-  const grouped = new Map<string, SeasonData[]>();
+async function buildProjectionMap(
+  season: number
+): Promise<Map<string, { ppg: number; method: string }>> {
+  const { data: projectionsData, error: projectionsError } = await supabase
+    .from("player_projections")
+    .select("player_id, projected_ppg, projection_method")
+    .eq("season", season);
 
-  for (const row of multiSeasonStats) {
-    const existing = grouped.get(row.player_id) ?? [];
-    existing.push({
-      season: row.season,
-      ppg: row.ppg,
-      games_played: row.games_played,
-      h1_snaps: row.h1_snaps,
-      h1_games: row.h1_games,
-      h2_snaps: row.h2_snaps,
-      h2_games: row.h2_games,
-    });
-    grouped.set(row.player_id, existing);
-  }
+  if (projectionsError) throw projectionsError;
 
   const projections = new Map<string, { ppg: number; method: string }>();
-  for (const [playerId, history] of grouped.entries()) {
-    const chosenMethod = history.length === 1 ? rookieMethod : veteranMethod;
-    const projected = chosenMethod.projectPpg(history);
-    if (projected !== null) {
-      projections.set(playerId, { ppg: projected, method: chosenMethod.name });
-    }
+  if (projectionsData) {
+    projectionsData.forEach(p => {
+      projections.set(p.player_id, { ppg: p.projected_ppg, method: p.projection_method });
+    });
   }
 
   return projections;
@@ -133,29 +94,20 @@ export interface ProjectedPlayer extends Player {
 
 // === Backtest / Projection Accuracy ===
 
-import type { BacktestPlayer } from "./types";
-
 const ALL_DB_SEASONS = [2022, 2023, 2024, 2025];
 
 /**
- * Fetch current-season data + multi-season history, apply composite projections
- * (RookieTrajectoryPPG for 1-season players, WeightedAveragePPG for veterans),
- * and return Player[] with ppg = projected PPG where available, observed PPG
- * otherwise. All rostered players are included (no exclusions).
- *
- * Drop-in compatible with fetchAndMergeData() — returns Player[] not ProjectedPlayer[].
+ * Fetch current-season data + db projections.
+ * All rostered players are included.
  */
 export async function fetchPlayersWithProjectedPpg(): Promise<Player[]> {
-  const [currentPlayers, multiSeasonStats] = await Promise.all([
-    fetchAndMergeData(),
-    fetchMultiSeasonStats(),
-  ]);
+  const currentPlayers = await fetchAndMergeData();
 
-  if (currentPlayers.length === 0 || multiSeasonStats.length === 0) {
+  if (currentPlayers.length === 0) {
     return currentPlayers;
   }
 
-  const projectionMap = buildProjectionMap(multiSeasonStats);
+  const projectionMap = await buildProjectionMap(SEASON);
 
   return currentPlayers.map((player) => {
     const projEntry = projectionMap.get(player.player_id);
@@ -165,16 +117,12 @@ export async function fetchPlayersWithProjectedPpg(): Promise<Player[]> {
 }
 
 /**
- * Fetch historical + target-season data and apply WeightedAveragePPG projections
- * to produce per-player projected vs actual PPG for backtesting.
+ * Fetch historical + target-season data from DB and calculate error for backtesting.
  */
 export async function fetchBacktestData(
   targetSeason: number
 ): Promise<BacktestPlayer[]> {
-  const histSeasons = ALL_DB_SEASONS.filter((s) => s < targetSeason).slice(-3);
-  if (histSeasons.length === 0) return [];
-
-  const [playersRes, targetStatsRes, histStatsRes, pricesRes] =
+  const [playersRes, targetStatsRes, pricesRes] =
     await Promise.all([
       supabase.from("players").select("id, name, position, nfl_team"),
       supabase
@@ -182,17 +130,13 @@ export async function fetchBacktestData(
         .select("player_id, ppg, games_played")
         .eq("season", targetSeason),
       supabase
-        .from("player_stats")
-        .select("player_id, season, ppg, games_played, h1_snaps, h1_games, h2_snaps, h2_games")
-        .in("season", histSeasons),
-      supabase
         .from("league_prices")
         .select("player_id, price, team_name")
         .eq("league_id", LEAGUE_ID)
         .eq("season", targetSeason),
     ]);
 
-  if (!playersRes.data || !targetStatsRes.data || !histStatsRes.data) return [];
+  if (!playersRes.data || !targetStatsRes.data) return [];
 
   const playerMap = new Map(
     playersRes.data.map((p) => [String(p.id), p])
@@ -203,45 +147,21 @@ export async function fetchBacktestData(
   const pricesMap = new Map(
     (pricesRes.data ?? []).map((p) => [String(p.player_id), p])
   );
-
-  // Group history stats by player_id (include H1/H2 snap fields for rookie projection)
-  const historyByPlayer = new Map<string, SeasonData[]>();
-  for (const row of histStatsRes.data) {
-    const playerId = String(row.player_id);
-    const existing = historyByPlayer.get(playerId) ?? [];
-    existing.push({
-      season: Number(row.season),
-      ppg: Number(row.ppg) || 0,
-      games_played: Number(row.games_played) || 0,
-      h1_snaps: row.h1_snaps != null ? Number(row.h1_snaps) : undefined,
-      h1_games: row.h1_games != null ? Number(row.h1_games) : undefined,
-      h2_snaps: row.h2_snaps != null ? Number(row.h2_snaps) : undefined,
-      h2_games: row.h2_games != null ? Number(row.h2_games) : undefined,
-    });
-    historyByPlayer.set(playerId, existing);
-  }
-
-  const rookieMethod = new RookieTrajectoryPPG();
-  const veteranMethod = new WeightedAveragePPG();
+  
+  const projectionMap = await buildProjectionMap(targetSeason);
   const result: BacktestPlayer[] = [];
 
-  for (const [playerId, history] of historyByPlayer.entries()) {
-    const chosenMethod = history.length === 1 ? rookieMethod : veteranMethod;
-    const projected = chosenMethod.projectPpg(history);
-    if (projected === null) continue;
-
-    const targetStats = targetStatsMap.get(playerId);
-    if (!targetStats) continue; // player had no stats in target season
-
+  for (const [playerId, targetStats] of targetStatsMap.entries()) {
     const player = playerMap.get(playerId);
     if (!player) continue;
+    
+    const projEntry = projectionMap.get(playerId);
+    if (!projEntry) continue; // Skip players with no projection
 
     const priceRow = pricesMap.get(playerId);
     const actual_ppg = Number(targetStats.ppg) || 0;
+    const projected = projEntry.ppg;
     const error = actual_ppg - projected;
-    const sortedSeasons = [...history]
-      .sort((a, b) => a.season - b.season)
-      .map((h) => h.season);
 
     result.push({
       player_id: playerId,
@@ -254,9 +174,9 @@ export async function fetchBacktestData(
       actual_ppg,
       error,
       abs_error: Math.abs(error),
-      seasons_used: sortedSeasons.join(", "),
+      seasons_used: 'N/A', // Deprecated stat now that it's in DB
       games_played: Number(targetStats.games_played) || 0,
-      projection_method: chosenMethod.name,
+      projection_method: projEntry.method,
     });
   }
 
@@ -264,33 +184,22 @@ export async function fetchBacktestData(
 }
 
 /**
- * Fetch current-season data + multi-season history, apply WeightedAveragePPG
- * projections, and return players with ppg = projected_ppg and observed_ppg
- * preserved for display.
- *
+ * Fetch current-season data + projections.
  * Players with no projection history are excluded.
  */
 export async function fetchAndMergeProjectedData(
   projectionYear: number = DEFAULT_PROJECTION_YEAR
 ): Promise<ProjectedPlayer[]> {
-  const historicalSeasons = getHistoricalSeasonsForYear(projectionYear);
-  const [currentPlayers, multiSeasonStats] = await Promise.all([
-    fetchAndMergeData(),
-    fetchMultiSeasonStats(historicalSeasons),
-  ]);
+  const currentPlayers = await fetchAndMergeData();
 
   if (currentPlayers.length === 0) return [];
-  if (multiSeasonStats.length === 0) {
-    // No history available — fall back to observed PPG
-    return currentPlayers.map((p) => ({ ...p, observed_ppg: p.ppg }));
-  }
 
-  const projectionMap = buildProjectionMap(multiSeasonStats);
+  const projectionMap = await buildProjectionMap(projectionYear);
 
   const projected: ProjectedPlayer[] = [];
   for (const player of currentPlayers) {
     const projEntry = projectionMap.get(player.player_id);
-    if (projEntry === undefined) continue; // exclude players with no history
+    if (projEntry === undefined) continue; // exclude players with no projection
 
     projected.push({
       ...player,

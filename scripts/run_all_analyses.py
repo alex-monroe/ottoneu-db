@@ -27,13 +27,27 @@ def main():
     # Run analyses in dependency order
     reports = []
 
-    print('\n[2/7] Projected Salary Analysis...')
+    # New Step: Update projections
+    print("\n" + "="*50)
+    print("STEP 0: Updating Player Projections")
+    print("="*50)
+    try:
+        subprocess.run(["python", "scripts/update_projections.py"], check=True)
+        print("Player projections updated successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"ERROR: Failed to update player projections: {e}")
+        sys.exit(1)
+    except FileNotFoundError:
+        print("ERROR: 'python' command not found. Ensure Python is in your PATH or specify full path to python executable.")
+        sys.exit(1)
+
+    print('\n[2/8] Projected Salary Analysis...') # Updated step count
     from analyze_projected_salary import analyze_projected_salary, generate_report as ps_report
     ps_result = analyze_projected_salary(merged)
     if not ps_result.empty:
         reports.append(ps_report(ps_result))
 
-    print('\n[3/7] VORP Analysis...')
+    print('\n[3/8] VORP Analysis...') # Updated step count
     from analyze_vorp import calculate_vorp, generate_report as vorp_report
     vorp_result, rpg, replacement_n = calculate_vorp(merged)
     if not vorp_result.empty:
