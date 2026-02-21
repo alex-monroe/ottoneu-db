@@ -317,7 +317,7 @@ export default function AdjustmentsTable({
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+      <div className="overflow-auto max-h-[75vh] rounded-lg border border-slate-200 dark:border-slate-800">
         <table className="min-w-full text-sm">
           <thead className="sticky top-0 z-10">
             <tr className="bg-slate-100 dark:bg-slate-800">
