@@ -38,7 +38,6 @@ const PRIVATE_GROUPS = [
     label: "Arbitration",
     links: [
       { href: "/arbitration", label: "Arbitration" },
-      { href: "/projected-arbitration", label: "Proj. Arbitration" },
       { href: "/arbitration-simulation", label: "Arb Simulation" },
     ],
   },
@@ -78,11 +77,10 @@ function NavDropdown({
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className={`inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${
-          hasActiveChild
+        className={`inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${hasActiveChild
             ? "bg-blue-600 text-white"
             : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
-        }`}
+          }`}
       >
         <Lock size={12} className={hasActiveChild ? "opacity-80" : "opacity-60"} />
         {label}
@@ -100,11 +98,10 @@ function NavDropdown({
                 key={link.href}
                 href={link.href}
                 onClick={() => setOpen(false)}
-                className={`block px-4 py-2 text-sm transition-colors ${
-                  isActive
+                className={`block px-4 py-2 text-sm transition-colors ${isActive
                     ? "bg-blue-600 text-white"
                     : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                }`}
+                  }`}
               >
                 {link.label}
               </Link>
@@ -149,11 +146,10 @@ export default function Navigation({ isAuthenticated }: NavigationProps) {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${
-                    isActive
+                  className={`px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${isActive
                       ? "bg-blue-600 text-white"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
-                  }`}
+                    }`}
                 >
                   {link.label}
                 </Link>

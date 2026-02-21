@@ -45,11 +45,7 @@ export default async function SurplusAdjustmentsPage() {
             <Link href="/arbitration?mode=adjusted" className="text-blue-600 dark:text-blue-400 underline">
               Arbitration
             </Link>
-            ,{" "}
-            <Link href="/projected-arbitration?mode=adjusted" className="text-blue-600 dark:text-blue-400 underline">
-              Projected Arbitration
-            </Link>
-            , and{" "}
+            {" "}and{" "}
             <Link href="/arbitration-simulation?mode=adjusted" className="text-blue-600 dark:text-blue-400 underline">
               Arb Simulation
             </Link>{" "}
