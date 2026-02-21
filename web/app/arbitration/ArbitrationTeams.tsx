@@ -10,6 +10,8 @@ interface TeamPlayer {
   dollar_value: number;
   surplus: number;
   surplus_after_arb: number;
+  observed_ppg?: number;
+  ppg?: number;
   [key: string]: string | number | null | undefined;
 }
 
@@ -19,7 +21,7 @@ interface TeamGroup {
   players: TeamPlayer[];
 }
 
-const TEAM_COLUMNS: Column[] = [
+const BASE_COLUMNS: Column[] = [
   { key: "name", label: "Player" },
   { key: "position", label: "Pos" },
   { key: "price", label: "Salary", format: "currency" },
@@ -28,8 +30,25 @@ const TEAM_COLUMNS: Column[] = [
   { key: "surplus_after_arb", label: "Surplus (Post-Arb)", format: "currency" },
 ];
 
-export default function ArbitrationTeams({ teams }: { teams: TeamGroup[] }) {
+const PROJECTED_COLUMNS: Column[] = [
+  { key: "name", label: "Player" },
+  { key: "position", label: "Pos" },
+  { key: "price", label: "Salary", format: "currency" },
+  { key: "observed_ppg", label: "Obs PPG", format: "decimal" },
+  { key: "ppg", label: "Proj PPG", format: "decimal" },
+  { key: "dollar_value", label: "Value", format: "currency" },
+  { key: "surplus", label: "Surplus", format: "currency" },
+  { key: "surplus_after_arb", label: "Surplus (Post-Arb)", format: "currency" },
+];
+
+interface ArbitrationTeamsProps {
+  teams: TeamGroup[];
+  showProjectionColumns?: boolean;
+}
+
+export default function ArbitrationTeams({ teams, showProjectionColumns = false }: ArbitrationTeamsProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const columns = showProjectionColumns ? PROJECTED_COLUMNS : BASE_COLUMNS;
 
   const toggle = (team: string) => {
     setExpanded((prev) => {
@@ -69,7 +88,7 @@ export default function ArbitrationTeams({ teams }: { teams: TeamGroup[] }) {
             {isOpen && (
               <div className="p-4">
                 <DataTable
-                  columns={TEAM_COLUMNS}
+                  columns={columns}
                   data={players}
                   highlightRow={(row) => {
                     const s = row.surplus_after_arb as number;

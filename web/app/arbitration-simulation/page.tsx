@@ -1,7 +1,13 @@
-import { fetchAndMergeData, SEASON, LEAGUE_ID } from "@/lib/analysis";
+import {
+  fetchAndMergeData,
+  fetchAndMergeProjectedData,
+  SEASON,
+  LEAGUE_ID,
+  DEFAULT_PROJECTION_YEAR,
+} from "@/lib/analysis";
 import { supabase } from "@/lib/supabase";
 import SimulationControls from "./SimulationControls";
-import ModeToggle from "@/components/ModeToggle";
+import ModeToggle, { ValueMode } from "@/components/ModeToggle";
 
 interface Props {
   searchParams: Promise<{ mode?: string }>;
@@ -9,10 +15,19 @@ interface Props {
 
 export default async function ArbitrationSimulationPage({ searchParams }: Props) {
   const params = await searchParams;
-  const isAdjusted = params.mode === "adjusted";
+  const mode: ValueMode =
+    params.mode === "adjusted"
+      ? "adjusted"
+      : params.mode === "projected"
+        ? "projected"
+        : "raw";
+  const isAdjusted = mode === "adjusted";
+  const isProjected = mode === "projected";
 
-  const [allPlayers, adjRes] = await Promise.all([
-    fetchAndMergeData(),
+  const [rawPlayers, adjRes] = await Promise.all([
+    isProjected
+      ? fetchAndMergeProjectedData(DEFAULT_PROJECTION_YEAR)
+      : fetchAndMergeData(),
     supabase
       .from("surplus_adjustments")
       .select("player_id, adjustment")
@@ -29,6 +44,8 @@ export default async function ArbitrationSimulationPage({ searchParams }: Props)
     );
   }
 
+  const label = isProjected ? DEFAULT_PROJECTION_YEAR : SEASON;
+
   return (
     <main className="min-h-screen bg-white dark:bg-black p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -36,15 +53,20 @@ export default async function ArbitrationSimulationPage({ searchParams }: Props)
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-                Arbitration Simulation ({SEASON})
+                Arbitration Simulation ({label})
               </h1>
               <p className="text-slate-500 dark:text-slate-400 mt-2">
                 Monte Carlo simulation of how all 12 teams will allocate their arbitration budgets.
-                Adjust parameters below to explore different scenarios.
+                {isProjected && (
+                  <> Using <strong>projected PPG</strong> values.</>
+                )}
+                {!isProjected && (
+                  <> Adjust parameters below to explore different scenarios.</>
+                )}
               </p>
             </div>
             <ModeToggle
-              currentMode={isAdjusted ? "adjusted" : "raw"}
+              currentMode={mode}
               basePath="/arbitration-simulation"
               hasAdjustments={hasAdjustments}
             />
@@ -57,7 +79,7 @@ export default async function ArbitrationSimulationPage({ searchParams }: Props)
         </header>
 
         <SimulationControls
-          initialPlayers={allPlayers}
+          initialPlayers={rawPlayers}
           initialAdjustments={initialAdjustments}
         />
       </div>
