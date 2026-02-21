@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
-import { Lock, ExternalLink } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Lock, ExternalLink, ChevronDown } from "lucide-react";
 
 const PUBLIC_LINKS = [
   { href: "/", label: "Player Efficiency" },
@@ -17,17 +17,104 @@ const SOFA_LEAGUE_LINK = {
   isExternal: true,
 };
 
-const PRIVATE_LINKS = [
-  { href: "/projected-salary", label: "Projected Salary" },
-  { href: "/projections", label: "Projections" },
-  { href: "/projection-accuracy", label: "Proj. Accuracy" },
-  { href: "/vorp", label: "VORP" },
-  { href: "/surplus-value", label: "Surplus Value" },
-  { href: "/surplus-adjustments", label: "Adjustments" },
-  { href: "/arbitration", label: "Arbitration" },
-  { href: "/projected-arbitration", label: "Proj. Arbitration" },
-  { href: "/arbitration-simulation", label: "Arb Simulation" },
+const PRIVATE_GROUPS = [
+  {
+    label: "Projections",
+    links: [
+      { href: "/projected-salary", label: "Projected Salary" },
+      { href: "/projections", label: "Projections" },
+      { href: "/projection-accuracy", label: "Proj. Accuracy" },
+    ],
+  },
+  {
+    label: "Value",
+    links: [
+      { href: "/vorp", label: "VORP" },
+      { href: "/surplus-value", label: "Surplus Value" },
+      { href: "/surplus-adjustments", label: "Adjustments" },
+    ],
+  },
+  {
+    label: "Arbitration",
+    links: [
+      { href: "/arbitration", label: "Arbitration" },
+      { href: "/projected-arbitration", label: "Proj. Arbitration" },
+      { href: "/arbitration-simulation", label: "Arb Simulation" },
+    ],
+  },
 ];
+
+function NavDropdown({
+  label,
+  links,
+  pathname,
+}: {
+  label: string;
+  links: { href: string; label: string }[];
+  pathname: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const hasActiveChild = links.some((l) => pathname === l.href);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className={`inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${
+          hasActiveChild
+            ? "bg-blue-600 text-white"
+            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
+        }`}
+      >
+        <Lock size={12} className={hasActiveChild ? "opacity-80" : "opacity-60"} />
+        {label}
+        <ChevronDown
+          size={14}
+          className={`transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-1 z-50 min-w-[180px] rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg py-1">
+          {links.map((link) => {
+            const isActive = pathname === link.href;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setOpen(false)}
+                className={`block px-4 py-2 text-sm transition-colors ${
+                  isActive
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                }`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface NavigationProps {
   isAuthenticated: boolean;
@@ -54,7 +141,7 @@ export default function Navigation({ isAuthenticated }: NavigationProps) {
     <nav className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-black">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
-          <div className="flex items-center gap-1 overflow-x-auto">
+          <div className="flex items-center gap-1">
             {/* Public links */}
             {PUBLIC_LINKS.map((link) => {
               const isActive = pathname === link.href;
@@ -84,25 +171,16 @@ export default function Navigation({ isAuthenticated }: NavigationProps) {
               <ExternalLink size={14} />
             </a>
 
-            {/* Protected links (only if authenticated) */}
+            {/* Protected dropdown groups (only if authenticated) */}
             {isAuthenticated &&
-              PRIVATE_LINKS.map((link) => {
-                const isActive = pathname === link.href;
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${
-                      isActive
-                        ? "bg-blue-600 text-white"
-                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
-                    }`}
-                  >
-                    <Lock size={12} className="opacity-60" />
-                    {link.label}
-                  </Link>
-                );
-              })}
+              PRIVATE_GROUPS.map((group) => (
+                <NavDropdown
+                  key={group.label}
+                  label={group.label}
+                  links={group.links}
+                  pathname={pathname}
+                />
+              ))}
           </div>
           {isAuthenticated ? (
             <button
