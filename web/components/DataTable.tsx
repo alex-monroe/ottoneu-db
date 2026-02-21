@@ -111,6 +111,16 @@ export default function DataTable<T extends TableRow = TableRow>({
           </tr>
         </thead>
         <tbody>
+          {sorted.length === 0 && (
+            <tr>
+              <td
+                colSpan={columns.length}
+                className="px-3 py-6 text-center text-slate-500 dark:text-slate-400"
+              >
+                No data
+              </td>
+            </tr>
+          )}
           {sorted.map((row, i) => {
             const highlight =
               highlightRow?.(row) ??

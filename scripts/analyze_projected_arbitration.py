@@ -16,7 +16,7 @@ from analysis_utils import (
     ensure_reports_dir, fetch_all_data, fetch_multi_season_stats, merge_data,
 )
 from analyze_arbitration import analyze_arbitration
-from projection_methods import WeightedAveragePPG, SeasonData
+from projection_methods import WeightedAveragePPG, RookieTrajectoryPPG, SeasonData
 
 
 def build_projection_map(multi_season_df: pd.DataFrame) -> dict[str, float]:
@@ -28,18 +28,24 @@ def build_projection_map(multi_season_df: pd.DataFrame) -> dict[str, float]:
         Dict mapping player_id (str) → projected PPG. Players with insufficient
         data (all games = 0) are excluded.
     """
-    method = WeightedAveragePPG()
+    rookie_method = RookieTrajectoryPPG()
+    veteran_method = WeightedAveragePPG()
     projection_map: dict[str, float] = {}
 
     for player_id, group in multi_season_df.groupby('player_id'):
-        history: list[SeasonData] = [
-            {
+        history: list[SeasonData] = []
+        for _, row in group.iterrows():
+            entry: SeasonData = {
                 'season': int(row['season']),
                 'ppg': float(row['ppg']),
                 'games_played': int(row['games_played']),
             }
-            for _, row in group.iterrows()
-        ]
+            for field in ('h1_snaps', 'h1_games', 'h2_snaps', 'h2_games'):
+                if field in row and pd.notna(row[field]):
+                    entry[field] = int(row[field])  # type: ignore[literal-required]
+            history.append(entry)
+
+        method = rookie_method if len(history) == 1 else veteran_method
         projected = method.project_ppg(history)
         if projected is not None:
             projection_map[str(player_id)] = projected
