@@ -8,11 +8,16 @@ import {
   ARB_MAX_PER_PLAYER_PER_TEAM,
   NUM_TEAMS,
   SEASON,
+  LEAGUE_ID,
 } from "@/lib/analysis";
+import { supabase } from "@/lib/supabase";
 import DataTable, { Column, HighlightRule } from "@/components/DataTable";
 import ArbitrationTeams from "./ArbitrationTeams";
+import ModeToggle from "@/components/ModeToggle";
 
-export const revalidate = 3600;
+interface Props {
+  searchParams: Promise<{ mode?: string }>;
+}
 
 const TARGET_COLUMNS: Column[] = [
   { key: "name", label: "Player" },
@@ -30,9 +35,29 @@ const ARB_TARGET_RULES: HighlightRule[] = [
   { key: "surplus_after_arb", op: "lt", value: 0, className: "bg-red-50 dark:bg-red-950/30" },
 ];
 
-export default async function ArbitrationPage() {
+export default async function ArbitrationPage({ searchParams }: Props) {
+  const params = await searchParams;
+  const isAdjusted = params.mode === "adjusted";
+
   const allPlayers = await fetchPlayersWithProjectedPpg();
-  const targets = analyzeArbitration(allPlayers);
+
+  let adjustments: Map<string, number> | undefined;
+
+  const adjRes = await supabase
+    .from("surplus_adjustments")
+    .select("player_id, adjustment")
+    .eq("league_id", LEAGUE_ID)
+    .neq("adjustment", 0);
+
+  const hasAdjustments = (adjRes.data?.length ?? 0) > 0;
+
+  if (isAdjusted && adjRes.data && adjRes.data.length > 0) {
+    adjustments = new Map(
+      adjRes.data.map((r) => [String(r.player_id), Number(r.adjustment)])
+    );
+  }
+
+  const targets = analyzeArbitration(allPlayers, adjustments);
 
   if (targets.length === 0) {
     return (
@@ -46,20 +71,33 @@ export default async function ArbitrationPage() {
     );
   }
 
-  // Sort teams by number of targets (most first)
   const sortedTeams = allocateArbitrationBudget(targets);
 
   return (
     <main className="min-h-screen bg-white dark:bg-black p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         <header>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Arbitration Targets ({SEASON})
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">
-            Opponents&apos; players most vulnerable to a ${ARB_MAX_PER_PLAYER_PER_TEAM}{" "}
-            arbitration raise. Negative surplus after arb = likely cut.
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                Arbitration Targets ({SEASON})
+              </h1>
+              <p className="text-slate-500 dark:text-slate-400 mt-2">
+                Opponents&apos; players most vulnerable to a ${ARB_MAX_PER_PLAYER_PER_TEAM}{" "}
+                arbitration raise. Negative surplus after arb = likely cut.
+              </p>
+            </div>
+            <ModeToggle
+              currentMode={isAdjusted ? "adjusted" : "raw"}
+              basePath="/arbitration"
+              hasAdjustments={hasAdjustments}
+            />
+          </div>
+          {isAdjusted && hasAdjustments && (
+            <div className="mt-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-2 text-sm text-blue-800 dark:text-blue-300">
+              Showing results with your manual surplus adjustments applied.
+            </div>
+          )}
         </header>
 
         {/* Budget Info */}

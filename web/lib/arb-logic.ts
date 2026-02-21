@@ -182,7 +182,10 @@ export function calculateVorp(
     return { players: vorpPlayers, replacementPpg, replacementN };
 }
 
-export function calculateSurplus(players: Player[]): SurplusPlayer[] {
+export function calculateSurplus(
+    players: Player[],
+    adjustments?: Map<string, number>
+): SurplusPlayer[] {
     const { players: vorpPlayers } = calculateVorp(players);
     if (vorpPlayers.length === 0) return [];
 
@@ -198,7 +201,9 @@ export function calculateSurplus(players: Player[]): SurplusPlayer[] {
 
     return vorpPlayers.map((p) => {
         const rawDollarValue = p.full_season_vorp * dollarPerVorp;
-        const dollarValue = Math.round(Math.max(rawDollarValue, 1));
+        const baseDollarValue = Math.round(Math.max(rawDollarValue, 1));
+        const adjustment = adjustments?.get(p.player_id) ?? 0;
+        const dollarValue = Math.round(Math.max(baseDollarValue + adjustment, 1));
         return {
             ...p,
             dollar_value: dollarValue,
@@ -228,8 +233,11 @@ export function analyzeProjectedSalary(
     });
 }
 
-export function analyzeArbitration(allPlayers: Player[]): ArbitrationTarget[] {
-    const surplusPlayers = calculateSurplus(allPlayers);
+export function analyzeArbitration(
+    allPlayers: Player[],
+    adjustments?: Map<string, number>
+): ArbitrationTarget[] {
+    const surplusPlayers = calculateSurplus(allPlayers, adjustments);
     if (surplusPlayers.length === 0) return [];
 
     // Filter to opponents' rostered players only (exclude kickers)
@@ -492,9 +500,10 @@ function allocateTeamBudget(
 export function runArbitrationSimulation(
     players: Player[],
     numSims: number = NUM_SIMULATIONS,
-    valueVariation: number = VALUE_VARIATION
+    valueVariation: number = VALUE_VARIATION,
+    adjustments?: Map<string, number>
 ): SimulationResult[] {
-    const surplusPlayers = calculateSurplus(players);
+    const surplusPlayers = calculateSurplus(players, adjustments);
     if (surplusPlayers.length === 0) return [];
 
     // Exclude kickers from arbitration simulation

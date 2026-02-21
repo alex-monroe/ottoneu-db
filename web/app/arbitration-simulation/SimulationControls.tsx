@@ -15,6 +15,8 @@ import SimulationTeams from "./SimulationTeams";
 
 interface SimulationControlsProps {
   initialPlayers: Player[];
+  /** Serialized adjustments from the server (Record is JSON-safe, Map is not) */
+  initialAdjustments?: Record<string, number>;
 }
 
 const MY_ROSTER_COLUMNS: Column[] = [
@@ -63,7 +65,7 @@ const CUT_CANDIDATE_RULES: HighlightRule[] = [
   { key: "surplus_after_arb", op: "lt", value: -10, className: "bg-red-50 dark:bg-red-950/30" },
 ];
 
-export default function SimulationControls({ initialPlayers }: SimulationControlsProps) {
+export default function SimulationControls({ initialPlayers, initialAdjustments }: SimulationControlsProps) {
   const [numSimulations, setNumSimulations] = useState(NUM_SIMULATIONS);
   const [valueVariation, setValueVariation] = useState(VALUE_VARIATION);
   const [simResults, setSimResults] = useState<SimulationResult[]>([]);
@@ -72,10 +74,13 @@ export default function SimulationControls({ initialPlayers }: SimulationControl
   // Run simulation when parameters change
   useEffect(() => {
     setIsRunning(true);
-    const results = runArbitrationSimulation(initialPlayers, numSimulations, valueVariation);
+    const adjMap = initialAdjustments
+      ? new Map(Object.entries(initialAdjustments))
+      : undefined;
+    const results = runArbitrationSimulation(initialPlayers, numSimulations, valueVariation, adjMap);
     setSimResults(results);
     setIsRunning(false);
-  }, [initialPlayers, numSimulations, valueVariation]);
+  }, [initialPlayers, initialAdjustments, numSimulations, valueVariation]);
 
   const myRoster = simResults
     .filter((p) => p.team_name === MY_TEAM)
