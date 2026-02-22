@@ -23,6 +23,7 @@ HISTORICAL_SEASONS = [2022, 2023, 2024]
 NUM_TEAMS = 12
 CAP_PER_TEAM = 400
 POSITIONS = ["QB", "RB", "WR", "TE", "K"]
+COLLEGE_POSITIONS = ["QB", "RB", "WR", "TE"]
 
 # === Analysis Configuration ===
 MIN_GAMES = 4
@@ -46,6 +47,17 @@ ARB_MIN_PER_TEAM = 1
 ARB_MAX_PER_TEAM = 8
 ARB_MAX_PER_PLAYER_PER_TEAM = 4
 ARB_MAX_PER_PLAYER_LEAGUE = 44  # max from all teams combined
+
+# === NFL Team Codes ===
+# All 32 NFL team abbreviations as used by Ottoneu (note: "LA" for Rams, "JAC" for Jaguars).
+# Used to distinguish college players (whose nfl_team field contains a college name).
+NFL_TEAM_CODES = {
+    "ARI", "ATL", "BAL", "BUF", "CAR", "CHI", "CIN", "CLE",
+    "DAL", "DEN", "DET", "GB", "HOU", "IND", "JAC", "KC",
+    "LA", "LAC", "LV", "MIA", "MIN", "NE", "NO", "NYG",
+    "NYJ", "PHI", "PIT", "SEA", "SF", "TB", "TEN", "WAS",
+    "FA",
+}
 
 
 def get_supabase_client() -> Client:

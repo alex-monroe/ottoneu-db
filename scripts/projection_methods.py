@@ -108,3 +108,31 @@ class RookieTrajectoryPPG:
             return float(s["ppg"])
         factor = min(max(h2_spg / h1_spg, self.MIN_FACTOR), self.MAX_FACTOR)
         return s["ppg"] * factor
+
+
+class CollegeProspectPPG:
+    """Projection for college players with no NFL history.
+
+    Uses the average PPG of first-year NFL players (rookies) at the same
+    position as the projected value. Requires a pre-computed map of
+    position -> average rookie PPG passed at construction time.
+    """
+
+    name = "college_prospect"
+
+    def __init__(self, avg_rookie_ppg_by_position: dict[str, float]):
+        self._avg_ppg = avg_rookie_ppg_by_position
+
+    def project_ppg(self, history: list[SeasonData], position: str | None = None) -> Optional[float]:
+        """Return the average rookie PPG for the given position.
+
+        Args:
+            history: Ignored for college players (they have no NFL history).
+            position: The player's position (QB, RB, WR, TE).
+
+        Returns:
+            Average rookie PPG at position, or None if position is unknown.
+        """
+        if not position:
+            return None
+        return self._avg_ppg.get(position)

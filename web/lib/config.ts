@@ -51,3 +51,18 @@ export const POSITION_COLORS: Record<string, string> = {
     TE: "#F59E0B",
     K: "#8B5CF6",
 };
+
+// All 32 NFL team abbreviations as used by Ottoneu (note: "LA" for Rams, "JAC" for Jaguars).
+// Used to distinguish college players (whose nfl_team field contains a college name).
+export const NFL_TEAM_CODES = new Set([
+    "ARI", "ATL", "BAL", "BUF", "CAR", "CHI", "CIN", "CLE",
+    "DAL", "DEN", "DET", "GB", "HOU", "IND", "JAC", "KC",
+    "LA", "LAC", "LV", "MIA", "MIN", "NE", "NO", "NYG",
+    "NYJ", "PHI", "PIT", "SEA", "SF", "TB", "TEN", "WAS",
+    "FA",
+]);
+
+/** Returns true if the nfl_team value represents a college rather than an NFL team. */
+export function isCollegePlayer(nflTeam: string): boolean {
+    return nflTeam !== "Unknown" && !NFL_TEAM_CODES.has(nflTeam);
+}

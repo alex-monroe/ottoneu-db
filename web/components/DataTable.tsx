@@ -15,7 +15,7 @@ export interface HighlightRule {
   className: string;
 }
 
-export type TableRow = Record<string, string | number | null | undefined>;
+export type TableRow = Record<string, string | number | boolean | null | undefined>;
 
 interface DataTableProps<T extends TableRow = TableRow> {
   columns: Column[];

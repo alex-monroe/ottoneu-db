@@ -26,12 +26,13 @@ export interface Player {
     price: number;
     team_name: string | null;
     birth_date: string | null;
+    is_college?: boolean;
     total_points: number;
     games_played: number;
     snaps: number;
     ppg: number;
     pps: number;
-    [key: string]: string | number | null | undefined;
+    [key: string]: string | number | boolean | null | undefined;
 }
 
 export interface VorpPlayer extends Player {
@@ -96,8 +97,12 @@ export function calculateVorp(
     players: Player[],
     minGames: number = MIN_GAMES
 ): { players: VorpPlayer[]; replacementPpg: Record<string, number>; replacementN: Record<string, number> } {
-    // Exclude kickers from VORP analysis
-    const qualified = players.filter((p) => p.games_played >= minGames && p.position !== 'K');
+    // Exclude kickers from VORP analysis.
+    // College players (is_college=true) are included even with 0 games
+    // when they have a projected PPG from the college_prospect method.
+    const qualified = players.filter(
+        (p) => (p.games_played >= minGames || p.is_college) && p.position !== 'K'
+    );
     if (qualified.length === 0) return { players: [], replacementPpg: {}, replacementN: {} };
 
     // Determine replacement-level PPG per position using salary-implied method.

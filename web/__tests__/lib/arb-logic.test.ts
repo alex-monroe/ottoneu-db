@@ -26,6 +26,7 @@ function makePlayer(overrides: Partial<Player> & { player_id: string; name: stri
         price: 10,
         team_name: "Team A",
         birth_date: null,
+        is_college: false,
         total_points: 100,
         games_played: 10,
         snaps: 200,
@@ -122,6 +123,52 @@ describe("calculateVorp", () => {
         const result = calculateVorp([goodPlayer, lowGamesPlayer], 4);
         expect(result.players).toHaveLength(1);
         expect(result.players[0].name).toBe("Starter");
+    });
+
+    it("includes college players with 0 games when is_college is true", () => {
+        const nflPlayer = makePlayer({
+            player_id: "1",
+            name: "NFL QB",
+            position: "QB",
+            games_played: 10,
+            ppg: 15,
+        });
+        const collegePlayer = makePlayer({
+            player_id: "2",
+            name: "College QB",
+            position: "QB",
+            nfl_team: "Colorado",
+            is_college: true,
+            games_played: 0,
+            ppg: 12, // projected PPG from college_prospect method
+            total_points: 0,
+            snaps: 0,
+        });
+        const result = calculateVorp([nflPlayer, collegePlayer], 4);
+        expect(result.players).toHaveLength(2);
+        const names = result.players.map((p) => p.name);
+        expect(names).toContain("College QB");
+    });
+
+    it("does not include non-college players with 0 games", () => {
+        const nflPlayer = makePlayer({
+            player_id: "1",
+            name: "NFL QB",
+            position: "QB",
+            games_played: 10,
+            ppg: 15,
+        });
+        const injuredPlayer = makePlayer({
+            player_id: "2",
+            name: "Injured QB",
+            position: "QB",
+            is_college: false,
+            games_played: 0,
+            ppg: 0,
+        });
+        const result = calculateVorp([nflPlayer, injuredPlayer], 4);
+        expect(result.players).toHaveLength(1);
+        expect(result.players[0].name).toBe("NFL QB");
     });
 
     it("calculates expected VORP fields", () => {

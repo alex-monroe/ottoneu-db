@@ -19,9 +19,15 @@ def calculate_vorp(merged_df: pd.DataFrame, min_games: int = MIN_GAMES) -> tuple
     Returns:
         DataFrame with added columns: replacement_ppg, vorp_per_game, full_season_vorp.
     """
-    # Exclude kickers from VORP analysis
+    # Exclude kickers from VORP analysis.
+    # College players (is_college=True) are included even with 0 games
+    # when they have a projected PPG from the college_prospect method.
+    has_college = 'is_college' in merged_df.columns
+    games_filter = merged_df['games_played'] >= min_games
+    if has_college:
+        games_filter = games_filter | (merged_df['is_college'] == True)  # noqa: E712
     qualified = merged_df[
-        (merged_df['games_played'] >= min_games) &
+        games_filter &
         (merged_df['position'] != 'K')
     ].copy()
     if qualified.empty:

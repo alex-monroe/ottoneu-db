@@ -12,7 +12,7 @@ from supabase import create_client
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from scripts.tasks import PULL_NFL_STATS, PULL_PLAYER_STATS, SCRAPE_ROSTER, SCRAPE_PLAYER_CARD
-from scripts.config import POSITIONS, SEASON as DEFAULT_SEASON, LEAGUE_ID as DEFAULT_LEAGUE_ID, HISTORICAL_SEASONS, get_supabase_client as get_supabase
+from scripts.config import POSITIONS, COLLEGE_POSITIONS, SEASON as DEFAULT_SEASON, LEAGUE_ID as DEFAULT_LEAGUE_ID, HISTORICAL_SEASONS, get_supabase_client as get_supabase
 
 load_dotenv()
 
@@ -63,25 +63,47 @@ def enqueue_batch(args):
         job_id = result.data[0]["id"]
         print(f"Enqueued scrape_roster({pos}) (id: {job_id[:8]}...)")
 
-    print(f"\nBatch {batch_id[:8]}... created with 7 jobs.")
+    # 4. College roster scrape jobs (depend on NFL stats, lower priority)
+    for pos in COLLEGE_POSITIONS:
+        college_job = {
+            "task_type": SCRAPE_ROSTER,
+            "params": json.dumps({
+                "position": pos,
+                "season": season,
+                "league_id": league_id,
+                "level": "college",
+            }),
+            "priority": 3,
+            "batch_id": batch_id,
+            "depends_on": nfl_job_id,
+        }
+        result = supabase.table("scraper_jobs").insert(college_job).execute()
+        job_id = result.data[0]["id"]
+        print(f"Enqueued scrape_roster({pos}, college) (id: {job_id[:8]}...)")
+
+    total_jobs = 2 + len(POSITIONS) + len(COLLEGE_POSITIONS)
+    print(f"\nBatch {batch_id[:8]}... created with {total_jobs} jobs.")
     print(f"Run: python scripts/worker.py")
 
 
 def enqueue_roster(args):
     """Enqueue a single position scrape."""
     supabase = get_supabase()
+    level = getattr(args, "level", "pro")
     job = {
         "task_type": SCRAPE_ROSTER,
         "params": json.dumps({
             "position": args.position,
             "season": args.season,
             "league_id": args.league_id,
+            "level": level,
         }),
         "priority": 5,
     }
     result = supabase.table("scraper_jobs").insert(job).execute()
     job_id = result.data[0]["id"]
-    print(f"Enqueued scrape_roster({args.position}) (id: {job_id[:8]}...)")
+    level_label = "college" if level == "college" else "NFL"
+    print(f"Enqueued scrape_roster({args.position}, {level_label}) (id: {job_id[:8]}...)")
     print(f"Note: NFL stats won't be available unless pull_nfl_stats ran first.")
 
 
@@ -168,7 +190,8 @@ def show_status(args):
         params = job["params"] if isinstance(job["params"], dict) else json.loads(job["params"])
         # Add position suffix for roster jobs
         if task_type == SCRAPE_ROSTER and "position" in params:
-            task_type += f"({params['position']})"
+            level_suffix = ",col" if params.get("level") == "college" else ""
+            task_type += f"({params['position']}{level_suffix})"
         elif task_type == SCRAPE_PLAYER_CARD and "player_name" in params:
             name = params["player_name"]
             if len(name) > 12:
@@ -194,6 +217,8 @@ def main():
     # roster
     roster_parser = subparsers.add_parser("roster", help="Enqueue single position scrape")
     roster_parser.add_argument("--position", required=True, choices=POSITIONS)
+    roster_parser.add_argument("--level", default="pro", choices=["pro", "college", "both"],
+                               help="Player level to scrape (default: pro)")
 
     # player
     player_parser = subparsers.add_parser("player", help="Enqueue single player card scrape")
