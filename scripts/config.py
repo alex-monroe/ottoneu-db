@@ -23,6 +23,7 @@ HISTORICAL_SEASONS = [2022, 2023, 2024]
 NUM_TEAMS = 12
 CAP_PER_TEAM = 400
 POSITIONS = ["QB", "RB", "WR", "TE", "K"]
+COLLEGE_POSITIONS = ["QB", "RB", "WR", "TE"]
 
 # === Analysis Configuration ===
 MIN_GAMES = 4
