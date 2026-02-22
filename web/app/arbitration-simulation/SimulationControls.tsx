@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import {
   runArbitrationSimulation,
   MY_TEAM,
-  SEASON,
   NUM_SIMULATIONS,
   VALUE_VARIATION,
   Player,
-  SimulationResult,
 } from "@/lib/analysis";
 import DataTable, { Column, HighlightRule } from "@/components/DataTable";
 import SimulationTeams from "./SimulationTeams";
@@ -68,18 +66,11 @@ const CUT_CANDIDATE_RULES: HighlightRule[] = [
 export default function SimulationControls({ initialPlayers, initialAdjustments }: SimulationControlsProps) {
   const [numSimulations, setNumSimulations] = useState(NUM_SIMULATIONS);
   const [valueVariation, setValueVariation] = useState(VALUE_VARIATION);
-  const [simResults, setSimResults] = useState<SimulationResult[]>([]);
-  const [isRunning, setIsRunning] = useState(false);
-
-  // Run simulation when parameters change
-  useEffect(() => {
-    setIsRunning(true);
+  const simResults = useMemo(() => {
     const adjMap = initialAdjustments
       ? new Map(Object.entries(initialAdjustments))
       : undefined;
-    const results = runArbitrationSimulation(initialPlayers, numSimulations, valueVariation, adjMap);
-    setSimResults(results);
-    setIsRunning(false);
+    return runArbitrationSimulation(initialPlayers, numSimulations, valueVariation, adjMap);
   }, [initialPlayers, initialAdjustments, numSimulations, valueVariation]);
 
   const myRoster = simResults
@@ -183,13 +174,7 @@ export default function SimulationControls({ initialPlayers, initialAdjustments 
         </div>
       </div>
 
-      {isRunning && (
-        <div className="text-center py-8">
-          <p className="text-slate-600 dark:text-slate-400">Running simulation...</p>
-        </div>
-      )}
-
-      {!isRunning && simResults.length > 0 && (
+      {simResults.length > 0 && (
         <>
           {/* My Roster */}
           <section>

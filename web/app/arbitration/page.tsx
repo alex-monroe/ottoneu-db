@@ -1,6 +1,5 @@
 import {
   fetchPlayersWithProjectedPpg,
-  fetchAndMergeData,
   fetchAndMergeProjectedData,
   analyzeArbitration,
   allocateArbitrationBudget,
@@ -11,7 +10,6 @@ import {
   NUM_TEAMS,
   SEASON,
   LEAGUE_ID,
-  PROJECTION_YEARS,
   DEFAULT_PROJECTION_YEAR,
   getHistoricalSeasonsForYear,
 } from "@/lib/analysis";

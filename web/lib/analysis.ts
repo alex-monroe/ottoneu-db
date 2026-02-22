@@ -94,8 +94,6 @@ export interface ProjectedPlayer extends Player {
 
 // === Backtest / Projection Accuracy ===
 
-const ALL_DB_SEASONS = [2022, 2023, 2024, 2025];
-
 /**
  * Fetch current-season data + db projections.
  * All rostered players are included.
@@ -147,14 +145,14 @@ export async function fetchBacktestData(
   const pricesMap = new Map(
     (pricesRes.data ?? []).map((p) => [String(p.player_id), p])
   );
-  
+
   const projectionMap = await buildProjectionMap(targetSeason);
   const result: BacktestPlayer[] = [];
 
   for (const [playerId, targetStats] of targetStatsMap.entries()) {
     const player = playerMap.get(playerId);
     if (!player) continue;
-    
+
     const projEntry = projectionMap.get(playerId);
     if (!projEntry) continue; // Skip players with no projection
 
