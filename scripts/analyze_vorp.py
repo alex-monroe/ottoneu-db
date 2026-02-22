@@ -39,11 +39,12 @@ def calculate_vorp(merged_df: pd.DataFrame, min_games: int = MIN_GAMES) -> tuple
     # by manager consensus. Falls back to fixed-rank method when data is sparse.
     replacement_ppg = {}
     replacement_n = {}
+    non_college = qualified[~qualified['is_college']] if has_college else qualified
     for pos, rank in REPLACEMENT_LEVEL.items():
-        rostered = qualified[
-            (qualified['position'] == pos) &
-            (qualified['team_name'].notna()) &
-            (~qualified['team_name'].isin(['FA', '']))
+        rostered = non_college[
+            (non_college['position'] == pos) &
+            (non_college['team_name'].notna()) &
+            (~non_college['team_name'].isin(['FA', '']))
         ]
         if len(rostered) >= MIN_SALARY_PLAYERS:
             threshold = rostered['price'].quantile(SALARY_REPLACEMENT_PERCENTILE)
@@ -54,7 +55,7 @@ def calculate_vorp(merged_df: pd.DataFrame, min_games: int = MIN_GAMES) -> tuple
                 continue
 
         # Fallback: fixed rank by total points
-        pos_players = qualified[qualified['position'] == pos].sort_values(
+        pos_players = non_college[non_college['position'] == pos].sort_values(
             'total_points', ascending=False
         )
         if len(pos_players) >= rank:

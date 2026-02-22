@@ -129,3 +129,25 @@ class TestCalculateVorp:
         assert "QB" in rpg
         # Should use fixed-rank fallback
         assert rpg["QB"] == 10.0  # last player's PPG (only 2 < rank 24)
+
+    def test_college_players_excluded_from_replacement_ppg(self):
+        """College players should not influence replacement PPG calculation."""
+        nfl_rows = [
+            {"name": f"QB{i}", "position": "QB", "ppg": 10.0 + i * 2, "games_played": 10,
+             "total_points": (10 + i * 2) * 10, "team_name": f"Team {chr(65 + i)}",
+             "is_college": False}
+            for i in range(5)
+        ]
+        # College player with very low PPG — should NOT pull down replacement
+        college_rows = [
+            {"name": "College QB", "position": "QB", "ppg": 0.5, "games_played": 0,
+             "total_points": 0, "team_name": "Team Z", "is_college": True},
+        ]
+        df = _make_merged_df(nfl_rows + college_rows)
+        _, rpg_with_college, _ = calculate_vorp(df)
+
+        df_nfl_only = _make_merged_df(nfl_rows)
+        _, rpg_nfl_only, _ = calculate_vorp(df_nfl_only)
+
+        # Replacement PPG should be the same whether college players are present or not
+        assert rpg_with_college["QB"] == rpg_nfl_only["QB"]
