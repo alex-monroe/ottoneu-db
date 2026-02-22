@@ -139,6 +139,7 @@ export default function ProjectionsClient({ initialData, projectionYear }: Props
                 : "bg-slate-50 dark:bg-slate-900";
 
               const isRookie = row.projection_method === "rookie_trajectory";
+              const isCollege = row.projection_method === "college_prospect";
 
               return (
                 <tr
@@ -150,6 +151,11 @@ export default function ProjectionsClient({ initialData, projectionYear }: Props
                     {isRookie && (
                       <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
                         Rookie
+                      </span>
+                    )}
+                    {isCollege && (
+                      <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300">
+                        College
                       </span>
                     )}
                   </td>

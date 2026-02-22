@@ -5,6 +5,7 @@ create table players (
   name text not null,
   position text,
   nfl_team text,
+  is_college boolean not null default false,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );

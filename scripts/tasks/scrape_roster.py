@@ -6,6 +6,7 @@ import re
 
 import pandas as pd
 
+from scripts.config import NFL_TEAM_CODES
 from scripts.name_utils import normalize_player_name
 from scripts.tasks import SCRAPE_PLAYER_CARD, TaskResult
 
@@ -88,29 +89,47 @@ async def run(params: dict, context, supabase, nfl_stats: pd.DataFrame) -> TaskR
     position = params["position"]
     season = params.get("season", 2025)
     league_id = params.get("league_id", 309)
+    level = params.get("level", "pro")  # "pro" or "college"
 
     search_url = OTTONEU_SEARCH_URL_TEMPLATE.format(league_id=league_id)
     child_jobs = []
+    level_label = "College" if level == "college" else "NFL"
 
     page = await context.new_page()
     try:
-        print(f"\n--- Scraping Position: {position} ---")
+        print(f"\n--- Scraping Position: {position} ({level_label}) ---")
         await page.goto(search_url, timeout=60000)
         await page.wait_for_selector("a.top_players", timeout=30000)
 
-        # Click position filter
-        pos_link = page.locator("a.top_players").filter(
-            has_text=re.compile(f"^{position}$")
-        ).first
+        if level != "pro":
+            # College/both: use form dropdowns + submit
+            await page.select_option("#search_level", level)
+            await page.select_option("#search_position", position)
+            print(f"Submitting search for {position} ({level_label})...")
+            await page.click("#submit_search")
+            # College search returns thousands of rows — wait for rows to appear
+            try:
+                await page.wait_for_selector(
+                    ".table-container table tbody tr",
+                    state="visible", timeout=120000,
+                )
+            except Exception:
+                # Table might be empty if no players exist at this level
+                print(f"  No table rows appeared for {position} ({level_label})")
+            await page.wait_for_timeout(2000)
+        else:
+            # NFL (default): use quick-filter links
+            pos_link = page.locator("a.top_players").filter(
+                has_text=re.compile(f"^{position}$")
+            ).first
 
-        if await pos_link.count() == 0:
-            return TaskResult(success=False, error=f"Could not find filter for {position}")
+            if await pos_link.count() == 0:
+                return TaskResult(success=False, error=f"Could not find filter for {position}")
 
-        print(f"Clicking '{position}' filter...")
-        await pos_link.click()
-
-        await page.wait_for_selector(".table-container table", state="visible")
-        await page.wait_for_timeout(2000)
+            print(f"Clicking '{position}' filter...")
+            await pos_link.click()
+            await page.wait_for_selector(".table-container table", state="visible")
+            await page.wait_for_timeout(2000)
 
         rows = await page.query_selector_all(".table-container table tbody tr")
         print(f"Found {len(rows)} rows for {position}.")
@@ -121,7 +140,7 @@ async def run(params: dict, context, supabase, nfl_stats: pd.DataFrame) -> TaskR
             try:
                 result = await _process_row(
                     row, page, context, supabase, nfl_stats,
-                    position, season, league_id
+                    position, season, league_id, level
                 )
                 if result:
                     processed += 1
@@ -140,7 +159,8 @@ async def run(params: dict, context, supabase, nfl_stats: pd.DataFrame) -> TaskR
 
 
 async def _process_row(row, page, context, supabase, nfl_stats,
-                       filter_position, season, league_id) -> dict | None:
+                       filter_position, season, league_id,
+                       level="pro") -> dict | None:
     """Process a single table row. Returns dict with player info and optional child_job."""
 
     # Name and href
@@ -166,11 +186,17 @@ async def _process_row(row, page, context, supabase, nfl_stats,
         return None
 
     # Team / Position
+    # College format: span shows "COLLEGE_ABBREV CLASS_YEAR" (e.g., "HOU JR")
+    # NFL format: span shows "NFL_TEAM POSITION" (e.g., "KC QB")
     span_el = await name_cell.query_selector("span.smaller")
     if span_el:
         pos_team_text = await span_el.inner_text()
         parts = pos_team_text.split()
-        if len(parts) >= 2:
+        if level == "college":
+            # College: first part is college abbreviation, use filter_position
+            nfl_team = parts[0] if parts else "Unknown"
+            position = filter_position
+        elif len(parts) >= 2:
             nfl_team = parts[0]
             position = parts[1]
         elif len(parts) == 1:
@@ -181,7 +207,7 @@ async def _process_row(row, page, context, supabase, nfl_stats,
             position = "Unknown"
     else:
         nfl_team = "Unknown"
-        position = "Unknown"
+        position = filter_position if level == "college" else "Unknown"
 
     # Fantasy team (3rd column)
     team_cell = await row.query_selector("td:nth-child(3)")
@@ -194,6 +220,11 @@ async def _process_row(row, page, context, supabase, nfl_stats,
             text = await team_cell.inner_text()
             if "FA" in text:
                 fantasy_team = "FA"
+
+    # Skip unrostered college players — there are thousands and we only
+    # want the ones actually owned by a fantasy team in this league
+    if level == "college" and fantasy_team == "FA":
+        return None
 
     # Salary (4th column)
     salary_cell = await row.query_selector("td:nth-child(4)")
@@ -216,11 +247,13 @@ async def _process_row(row, page, context, supabase, nfl_stats,
             total_points = 0.0
 
     # Upsert player
+    is_college = level == "college" or (nfl_team not in NFL_TEAM_CODES and nfl_team != "Unknown")
     player_data = {
         "ottoneu_id": ottoneu_id,
         "name": name,
         "position": position,
         "nfl_team": nfl_team,
+        "is_college": is_college,
     }
     data, _ = supabase.table("players").upsert(
         player_data, on_conflict="ottoneu_id"
@@ -288,8 +321,9 @@ async def _process_row(row, page, context, supabase, nfl_stats,
     ).execute()
 
     # Create child job to scrape player card for transaction history
+    # Skip for college players — they have no transaction history
     child_job = None
-    if href:
+    if href and not is_college:
         child_job = {
             "task_type": SCRAPE_PLAYER_CARD,
             "params": {
