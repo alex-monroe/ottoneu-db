@@ -13,6 +13,63 @@ from scripts.tasks import SCRAPE_PLAYER_CARD, TaskResult
 OTTONEU_SEARCH_URL_TEMPLATE = "https://ottoneu.fangraphs.com/football/{league_id}/search"
 
 
+def build_stats_data(
+    player_uuid: str, season: int, total_points: float,
+    player_stats_row: pd.DataFrame,
+) -> dict:
+    """Build the stats upsert payload from snap count data.
+
+    When snap count data is found (player_stats_row is not empty), returns a full
+    payload with games_played, snaps, ppg, pps, and half-season splits.
+
+    When snap count data is missing, returns a minimal payload with only
+    player_id, season, and total_points — preserving any existing stats in the DB.
+
+    Args:
+        player_uuid: Player UUID from the players table.
+        season: Target season year.
+        total_points: Fantasy points from the Ottoneu search page.
+        player_stats_row: DataFrame of matched NFL snap count rows (may be empty).
+
+    Returns:
+        Dict suitable for upsert into player_stats.
+    """
+    if not player_stats_row.empty:
+        # Snap count data found — write full stats
+        games_played = int(player_stats_row["games_played"].sum())
+        snaps = int(player_stats_row["total_snaps"].sum())
+        h1_snaps = h1_games = h2_snaps = h2_games = 0
+        if "h1_snaps" in player_stats_row.columns:
+            h1_snaps = int(player_stats_row["h1_snaps"].sum())
+            h1_games = int(player_stats_row["h1_games"].sum())
+            h2_snaps = int(player_stats_row["h2_snaps"].sum())
+            h2_games = int(player_stats_row["h2_games"].sum())
+
+        ppg = round(total_points / games_played, 2) if games_played > 0 else 0.0
+        pps = round(total_points / snaps, 4) if snaps > 0 else 0.0
+
+        return {
+            "player_id": player_uuid,
+            "season": season,
+            "total_points": total_points,
+            "games_played": games_played,
+            "snaps": snaps,
+            "ppg": ppg,
+            "pps": pps,
+            "h1_snaps": h1_snaps,
+            "h1_games": h1_games,
+            "h2_snaps": h2_snaps,
+            "h2_games": h2_games,
+        }
+    else:
+        # No snap count data — only update total_points, preserve existing stats
+        return {
+            "player_id": player_uuid,
+            "season": season,
+            "total_points": total_points,
+        }
+
+
 async def run(params: dict, context, supabase, nfl_stats: pd.DataFrame) -> TaskResult:
     """Scrape one position's roster from the Ottoneu search page.
 
@@ -212,34 +269,20 @@ async def _process_row(row, page, context, supabase, nfl_stats,
     else:
         player_stats_row = pd.DataFrame()
 
-    games_played = 0
-    snaps = 0
-    h1_snaps = h1_games = h2_snaps = h2_games = 0
-    if not player_stats_row.empty:
-        games_played = int(player_stats_row["games_played"].sum())
-        snaps = int(player_stats_row["total_snaps"].sum())
-        if "h1_snaps" in player_stats_row.columns:
-            h1_snaps = int(player_stats_row["h1_snaps"].sum())
-            h1_games = int(player_stats_row["h1_games"].sum())
-            h2_snaps = int(player_stats_row["h2_snaps"].sum())
-            h2_games = int(player_stats_row["h2_games"].sum())
+    stats_data = build_stats_data(
+        player_uuid, season, total_points, player_stats_row
+    )
 
-    ppg = round(total_points / games_played, 2) if games_played > 0 else 0.0
-    pps = round(total_points / snaps, 4) if snaps > 0 else 0.0
+    # If no snap data, try to recalculate ppg from existing DB games_played
+    if "games_played" not in stats_data:
+        existing = supabase.table("player_stats").select("games_played").eq(
+            "player_id", player_uuid
+        ).eq("season", season).maybe_single().execute()
+        existing_data = existing.data if hasattr(existing, "data") else None
+        if existing_data and existing_data.get("games_played"):
+            gp = existing_data["games_played"]
+            stats_data["ppg"] = round(total_points / gp, 2) if gp > 0 else 0.0
 
-    stats_data = {
-        "player_id": player_uuid,
-        "season": season,
-        "total_points": total_points,
-        "games_played": games_played,
-        "snaps": snaps,
-        "ppg": ppg,
-        "pps": pps,
-        "h1_snaps": h1_snaps,
-        "h1_games": h1_games,
-        "h2_snaps": h2_snaps,
-        "h2_games": h2_games,
-    }
     supabase.table("player_stats").upsert(
         stats_data, on_conflict="player_id, season"
     ).execute()
