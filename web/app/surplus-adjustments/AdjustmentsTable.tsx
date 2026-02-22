@@ -67,6 +67,7 @@ export default function AdjustmentsTable({
   const [filterPos, setFilterPos] = useState("ALL");
   const [filterTeam, setFilterTeam] = useState("ALL");
   const [filterModified, setFilterModified] = useState(false);
+  const [filterCollege, setFilterCollege] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
   const [sortKey, setSortKey] = useState<SortKey>("surplus");
@@ -114,7 +115,8 @@ export default function AdjustmentsTable({
       .filter((p) => {
         if (!filterModified) return true;
         return (adjustments[p.player_id]?.adjustment ?? 0) !== 0;
-      });
+      })
+      .filter((p) => !filterCollege || p.is_college === true);
 
     // Sort
     return filtered.sort((a, b) => {
@@ -190,7 +192,7 @@ export default function AdjustmentsTable({
       const diff = (va as number) - (vb as number);
       return sortDir === "asc" ? diff : -diff;
     });
-  }, [players, filterPos, filterTeam, filterModified, adjustments, sortKey, sortDir, getProj]);
+  }, [players, filterPos, filterTeam, filterModified, filterCollege, adjustments, sortKey, sortDir, getProj]);
 
   const updateAdjustment = (playerId: string, value: number) => {
     setAdjustments((prev) => ({
@@ -242,6 +244,11 @@ export default function AdjustmentsTable({
   const totalModified = useMemo(
     () => players.filter((p) => (adjustments[p.player_id]?.adjustment ?? 0) !== 0).length,
     [players, adjustments]
+  );
+
+  const totalCollege = useMemo(
+    () => players.filter((p) => p.is_college === true).length,
+    [players]
   );
 
   const sortIndicator = (key: SortKey) => {
@@ -298,6 +305,17 @@ export default function AdjustmentsTable({
             className="rounded"
           />
           Modified only ({totalModified})
+        </label>
+
+        {/* College filter */}
+        <label className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={filterCollege}
+            onChange={(e) => setFilterCollege(e.target.checked)}
+            className="rounded"
+          />
+          College only ({totalCollege})
         </label>
 
         {/* Save button */}
