@@ -1,0 +1,26 @@
+[project]
+name = "ottoneu-db"
+version = "0.1.0"
+description = "Database and analytics platform for Ottoneu Fantasy Football League 309"
+requires-python = ">=3.9"
+dependencies = [
+    "playwright==1.57.0",
+    "supabase==2.27.2",
+    "python-dotenv==1.2.1",
+    "nfl_data_py==0.3.3",
+    "pandas==1.5.3",
+    "numpy==1.26.4",
+    "streamlit==1.50.0",
+    "plotly==6.5.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.4.2",
+    "pytest-cov==7.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["scripts/tests"]
+python_files = ["test_*.py"]
+addopts = "--cov=scripts --cov-report=term-missing"

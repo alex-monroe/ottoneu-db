@@ -105,6 +105,8 @@ Shared type definitions in `web/lib/types.ts`:
 
 **CRITICAL: All changes MUST be submitted as pull requests. NEVER commit directly to `main`.**
 
+**CRITICAL: Always conclude your work by creating a pull request.** Every task—no matter how small—must end with a branch pushed and a PR created via `gh pr create --fill`. Do not leave changes uncommitted or on a local branch without a PR.
+
 ### Starting a New Task
 
 Before beginning ANY new task or change, always follow this workflow:
