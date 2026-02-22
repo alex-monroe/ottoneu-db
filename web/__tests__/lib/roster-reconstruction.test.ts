@@ -14,10 +14,6 @@ import {
     getRosterForTeam,
 } from "@/lib/roster-reconstruction";
 
-import type {
-    RosterData,
-} from "@/lib/roster-reconstruction";
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------

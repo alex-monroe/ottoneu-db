@@ -3,7 +3,7 @@
  */
 import "@testing-library/jest-dom";
 import { render, screen, fireEvent } from "@testing-library/react";
-import DataTable, { Column, HighlightRule, TableRow } from "@/components/DataTable";
+import DataTable, { Column, TableRow } from "@/components/DataTable";
 
 const columns: Column[] = [
     { key: "name", label: "Name" },

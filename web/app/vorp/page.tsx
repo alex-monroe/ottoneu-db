@@ -86,8 +86,7 @@ export default async function VorpPage() {
               In a keeper league with {NUM_TEAMS} teams × 20 roster spots, the waiver wire is
               nearly empty of useful players — managers hoard backups and handcuffs. Instead of
               using a fixed rank (which would assume the Nth-best player is freely available),
-              we use a <em>salary-implied</em> replacement level: the auction market itself
-              identifies which players are "replacement tier" by pricing them at minimum salary.
+              This analysis uses a dynamically calculated replacement level based on the number of non-Kicker players rostered on teams. Because there are empty roster spots on teams, there is effectively a &quot;free&quot; or &quot;salary implied&quot; player available.t minimum salary.
               Kickers are excluded from VORP analysis.
             </p>
           </div>

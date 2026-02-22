@@ -102,8 +102,10 @@ export default function AdjustmentsTable({
     return Array.from(teams).sort();
   }, [players]);
 
-  const getProj = (playerId: string) =>
-    projectedValues[playerId] ?? { projected_dollar_value: 0, projected_surplus: 0 };
+  const getProj = useCallback((playerId: string) =>
+    projectedValues[playerId] ?? { projected_dollar_value: 0, projected_surplus: 0 },
+    [projectedValues]
+  );
 
   const filteredPlayers = useMemo(() => {
     const filtered = players
@@ -188,7 +190,7 @@ export default function AdjustmentsTable({
       const diff = (va as number) - (vb as number);
       return sortDir === "asc" ? diff : -diff;
     });
-  }, [players, filterPos, filterTeam, filterModified, adjustments, projectedValues, sortKey, sortDir]);
+  }, [players, filterPos, filterTeam, filterModified, adjustments, sortKey, sortDir, getProj]);
 
   const updateAdjustment = (playerId: string, value: number) => {
     setAdjustments((prev) => ({

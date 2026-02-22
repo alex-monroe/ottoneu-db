@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { SimulationResult, MY_TEAM, ARB_MAX_PER_TEAM, ARB_MIN_PER_TEAM } from "@/lib/analysis";
+import { SimulationResult } from "@/lib/analysis";
 import DataTable, { Column } from "@/components/DataTable";
 
 interface SimulationTeamsProps {
