@@ -47,6 +47,17 @@ ARB_MAX_PER_TEAM = 8
 ARB_MAX_PER_PLAYER_PER_TEAM = 4
 ARB_MAX_PER_PLAYER_LEAGUE = 44  # max from all teams combined
 
+# === NFL Team Codes ===
+# All 32 NFL team abbreviations as used by Ottoneu (note: "LA" for Rams, "JAC" for Jaguars).
+# Used to distinguish college players (whose nfl_team field contains a college name).
+NFL_TEAM_CODES = {
+    "ARI", "ATL", "BAL", "BUF", "CAR", "CHI", "CIN", "CLE",
+    "DAL", "DEN", "DET", "GB", "HOU", "IND", "JAC", "KC",
+    "LA", "LAC", "LV", "MIA", "MIN", "NE", "NO", "NYG",
+    "NYJ", "PHI", "PIT", "SEA", "SF", "TB", "TEN", "WAS",
+    "FA",
+}
+
 
 def get_supabase_client() -> Client:
     """Return a configured Supabase client.

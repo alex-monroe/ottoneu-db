@@ -6,6 +6,7 @@ import re
 
 import pandas as pd
 
+from scripts.config import NFL_TEAM_CODES
 from scripts.name_utils import normalize_player_name
 from scripts.tasks import SCRAPE_PLAYER_CARD, TaskResult
 
@@ -159,11 +160,13 @@ async def _process_row(row, page, context, supabase, nfl_stats,
             total_points = 0.0
 
     # Upsert player
+    is_college = nfl_team not in NFL_TEAM_CODES and nfl_team != "Unknown"
     player_data = {
         "ottoneu_id": ottoneu_id,
         "name": name,
         "position": position,
         "nfl_team": nfl_team,
+        "is_college": is_college,
     }
     data, _ = supabase.table("players").upsert(
         player_data, on_conflict="ottoneu_id"

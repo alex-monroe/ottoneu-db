@@ -1,10 +1,15 @@
 """
-Unit tests for projection methods — WeightedAveragePPG and RookieTrajectoryPPG.
+Unit tests for projection methods — WeightedAveragePPG, RookieTrajectoryPPG,
+and CollegeProspectPPG.
 
 These are pure functions with no DB or network dependencies.
 """
 import pytest
-from scripts.projection_methods import WeightedAveragePPG, RookieTrajectoryPPG
+from scripts.projection_methods import (
+    CollegeProspectPPG,
+    WeightedAveragePPG,
+    RookieTrajectoryPPG,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -198,3 +203,46 @@ class TestRookieTrajectoryPPG:
 
     def test_method_name(self):
         assert self.method.name == "rookie_trajectory"
+
+
+# ---------------------------------------------------------------------------
+# CollegeProspectPPG
+# ---------------------------------------------------------------------------
+
+class TestCollegeProspectPPG:
+    """Tests for the college prospect projection method."""
+
+    def setup_method(self):
+        self.avg_ppg = {"QB": 14.5, "RB": 8.2, "WR": 7.0, "TE": 5.5}
+        self.method = CollegeProspectPPG(self.avg_ppg)
+
+    def test_returns_avg_ppg_for_known_position(self):
+        result = self.method.project_ppg([], position="QB")
+        assert result == pytest.approx(14.5)
+
+    def test_returns_avg_ppg_for_each_position(self):
+        for pos, expected in self.avg_ppg.items():
+            result = self.method.project_ppg([], position=pos)
+            assert result == pytest.approx(expected)
+
+    def test_returns_none_for_unknown_position(self):
+        result = self.method.project_ppg([], position="K")
+        assert result is None
+
+    def test_returns_none_when_no_position(self):
+        result = self.method.project_ppg([])
+        assert result is None
+
+    def test_ignores_history(self):
+        """History is ignored for college players — only position matters."""
+        history = [{"season": 2024, "ppg": 20.0, "games_played": 17}]
+        result = self.method.project_ppg(history, position="RB")
+        assert result == pytest.approx(8.2)
+
+    def test_empty_avg_map(self):
+        """With no avg data available, returns None for all positions."""
+        empty_method = CollegeProspectPPG({})
+        assert empty_method.project_ppg([], position="QB") is None
+
+    def test_method_name(self):
+        assert self.method.name == "college_prospect"

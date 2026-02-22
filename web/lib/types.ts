@@ -14,6 +14,7 @@ export interface Player {
   nfl_team: string;
   price: number;
   team_name: string | null;
+  is_college?: boolean;
   total_points: number;
   games_played: number;
   snaps: number;

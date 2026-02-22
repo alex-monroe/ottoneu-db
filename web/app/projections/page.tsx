@@ -81,7 +81,7 @@ export default async function ProjectionsPage({ searchParams }: Props) {
             Methodology
           </h2>
           <p>
-            Two methods are applied based on the player&apos;s history depth:
+            Three methods are applied based on the player&apos;s history depth:
           </p>
           <ul className="list-disc list-inside space-y-1">
             <li>
@@ -101,6 +101,15 @@ export default async function ProjectionsPage({ searchParams }: Props) {
               Season PPG scaled by a usage trajectory factor derived from
               H2 vs H1 snaps-per-game, clamped to ±50%. Rising H2 usage
               projects higher; falling H2 usage projects lower.
+            </li>
+            <li>
+              <strong>College Prospect (shown as{" "}
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300">
+                College
+              </span>):</strong>{" "}
+              Average PPG of first-year NFL players at the same position.
+              No individual NFL history is available, so the positional
+              rookie average serves as a baseline projection.
             </li>
             <li>
               <strong>{SEASON} PPG</strong> — actual {SEASON} season
