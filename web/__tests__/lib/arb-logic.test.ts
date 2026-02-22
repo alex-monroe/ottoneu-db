@@ -218,6 +218,30 @@ describe("calculateVorp", () => {
         // The FA (ppg=5) is included and has the least total_points.
         expect(result.replacementPpg["QB"]).toBe(5);
     });
+
+    it("excludes college players from replacement PPG calculation", () => {
+        const nflPlayers = [
+            makePlayer({ player_id: "1", name: "QB1", position: "QB", ppg: 20, games_played: 10, total_points: 200 }),
+            makePlayer({ player_id: "2", name: "QB2", position: "QB", ppg: 10, games_played: 10, total_points: 100 }),
+            makePlayer({ player_id: "3", name: "QB3", position: "QB", ppg: 5, games_played: 10, total_points: 50 }),
+        ];
+        const collegePlayer = makePlayer({
+            player_id: "99",
+            name: "College QB",
+            position: "QB",
+            ppg: 0.5,
+            games_played: 0,
+            total_points: 0,
+            is_college: true,
+            nfl_team: "Colorado",
+        });
+
+        const resultWithCollege = calculateVorp([...nflPlayers, collegePlayer]);
+        const resultWithoutCollege = calculateVorp(nflPlayers);
+
+        // Replacement PPG should be the same whether college players are present or not
+        expect(resultWithCollege.replacementPpg["QB"]).toBe(resultWithoutCollege.replacementPpg["QB"]);
+    });
 });
 
 // ---------------------------------------------------------------------------

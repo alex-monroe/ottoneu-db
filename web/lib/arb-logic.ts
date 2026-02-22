@@ -111,8 +111,10 @@ export function calculateVorp(
     const replacementPpg: Record<string, number> = {};
     const replacementN: Record<string, number> = {};
 
+    const nonCollege = qualified.filter((p) => !p.is_college);
+
     for (const [pos, rank] of Object.entries(REPLACEMENT_LEVEL)) {
-        const rostered = qualified.filter(
+        const rostered = nonCollege.filter(
             (p) => p.position === pos && p.team_name != null && p.team_name !== 'FA' && p.team_name !== ''
         );
 
@@ -130,7 +132,7 @@ export function calculateVorp(
         }
 
         // Fallback: fixed rank by total points
-        const posPlayers = qualified
+        const posPlayers = nonCollege
             .filter((p) => p.position === pos)
             .sort((a, b) => b.total_points - a.total_points);
 
