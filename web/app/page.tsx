@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import PlayerScatterChart from '@/components/ScatterChart'
+import PlayerEfficiencyClient from '@/components/PlayerEfficiencyClient'
 import { ChartPoint } from '@/lib/types'
 
 export const revalidate = 3600 // Revalidate every hour
@@ -59,9 +59,7 @@ export default async function Home() {
           </p>
         </header>
 
-        <section>
-          <PlayerScatterChart data={data} />
-        </section>
+        <PlayerEfficiencyClient data={data} />
 
         <section className="bg-slate-50 dark:bg-slate-900 rounded-lg p-6 border border-slate-200 dark:border-slate-800">
           <h2 className="text-xl font-semibold mb-4 text-slate-900 dark:text-white">Analysis Notes</h2>

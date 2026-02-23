@@ -49,6 +49,25 @@ export interface ChartPoint {
   snaps: number;
 }
 
+// === Tier Breakdown Types ===
+
+export interface TierStat {
+  label: string;     // "#1", "#12", "#24", "#36"
+  tierSize: number;  // requested rank (1, 12, 24, 36)
+  n: number;         // actual player count at this position (0 = no player at this rank)
+  ppg: number;       // PPG of the Nth-ranked player
+  price: number;     // salary of the Nth-ranked player
+}
+
+export interface PositionTierData {
+  position: Position;
+  tiers: TierStat[];
+}
+
+export interface FlexTierData {
+  top36: TierStat;  // composite RB + WR + TE pool, top 36 by PPG
+}
+
 export interface TooltipProps {
   active?: boolean;
   payload?: Array<{ payload: ChartPoint }>;
