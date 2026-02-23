@@ -7,6 +7,7 @@ import PositionFilter from './PositionFilter'
 
 interface ScatterChartProps {
     data: ChartPoint[]
+    onMinGamesChange?: (n: number) => void
 }
 
 const CustomTooltip = ({ active, payload, metric }: TooltipProps & { metric?: 'PPG' | 'PPS' }) => {
@@ -40,7 +41,7 @@ const CustomTooltip = ({ active, payload, metric }: TooltipProps & { metric?: 'P
     return null
 }
 
-export default function PlayerScatterChart({ data }: ScatterChartProps) {
+export default function PlayerScatterChart({ data, onMinGamesChange }: ScatterChartProps) {
     // Basic interaction state if needed, simpler to just use Recharts default for now.
     // Group data by position for the legend to work naturally with colors
     const [selectedPositions, setSelectedPositions] = useState<Position[]>([...POSITIONS]);
@@ -87,7 +88,7 @@ export default function PlayerScatterChart({ data }: ScatterChartProps) {
                             min="0"
                             max="17"
                             value={minGames}
-                            onChange={(e) => setMinGames(Number(e.target.value))}
+                            onChange={(e) => { const n = Number(e.target.value); setMinGames(n); onMinGamesChange?.(n) }}
                             className="w-24 accent-blue-600"
                         />
                     </div>
