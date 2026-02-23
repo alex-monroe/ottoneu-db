@@ -11,8 +11,8 @@ function TierTable({ tiers }: { tiers: TierStat[] }) {
       <thead>
         <tr className="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
           <th className="py-2 text-left font-medium">Tier</th>
-          <th className="py-2 text-right font-medium">Avg PPG</th>
-          <th className="py-2 text-right font-medium">Avg Salary</th>
+          <th className="py-2 text-right font-medium">PPG</th>
+          <th className="py-2 text-right font-medium">Salary</th>
         </tr>
       </thead>
       <tbody>
@@ -21,19 +21,12 @@ function TierTable({ tiers }: { tiers: TierStat[] }) {
             key={tier.label}
             className="border-b border-slate-100 dark:border-slate-800 last:border-0"
           >
-            <td className="py-1.5 text-slate-700 dark:text-slate-300">
-              {tier.label}
-              {tier.n < tier.tierSize && tier.n > 0 && (
-                <span className="ml-1 text-xs text-slate-400 dark:text-slate-500">
-                  (n={tier.n})
-                </span>
-              )}
+            <td className="py-1.5 text-slate-700 dark:text-slate-300">{tier.label}</td>
+            <td className="py-1.5 text-right font-mono text-slate-800 dark:text-slate-200">
+              {tier.n >= tier.tierSize ? tier.ppg.toFixed(2) : '—'}
             </td>
             <td className="py-1.5 text-right font-mono text-slate-800 dark:text-slate-200">
-              {tier.n > 0 ? tier.avgPpg.toFixed(2) : '—'}
-            </td>
-            <td className="py-1.5 text-right font-mono text-slate-800 dark:text-slate-200">
-              {tier.n > 0 ? `$${tier.avgPrice.toFixed(1)}` : '—'}
+              {tier.n >= tier.tierSize ? `$${tier.price}` : '—'}
             </td>
           </tr>
         ))}

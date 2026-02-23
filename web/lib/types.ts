@@ -52,11 +52,11 @@ export interface ChartPoint {
 // === Tier Breakdown Types ===
 
 export interface TierStat {
-  label: string;     // "Top 1", "Top 12", "Top 24", "Top 36"
-  tierSize: number;  // requested size (1, 12, 24, 36)
-  n: number;         // actual player count (may be < tierSize)
-  avgPpg: number;
-  avgPrice: number;
+  label: string;     // "#1", "#12", "#24", "#36"
+  tierSize: number;  // requested rank (1, 12, 24, 36)
+  n: number;         // actual player count at this position (0 = no player at this rank)
+  ppg: number;       // PPG of the Nth-ranked player
+  price: number;     // salary of the Nth-ranked player
 }
 
 export interface PositionTierData {

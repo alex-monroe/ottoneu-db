@@ -5,7 +5,6 @@ import { ChartPoint, PositionTierData, FlexTierData, TierStat, Position, POSITIO
 import PlayerScatterChart from './ScatterChart'
 import PositionTierBreakdown from './PositionTierBreakdown'
 
-const TIER_LABELS: Record<number, string> = { 1: 'Top 1', 12: 'Top 12', 24: 'Top 24', 36: 'Top 36' }
 const TIER_SIZES: Record<Position, number[]> = {
   QB: [1, 12, 24],
   RB: [1, 12, 24],
@@ -14,15 +13,14 @@ const TIER_SIZES: Record<Position, number[]> = {
   K:  [1, 12],
 }
 
-function computeTier(players: ChartPoint[], size: number): TierStat {
-  const slice = players.slice(0, size)
-  const n = slice.length
+function computeTier(players: ChartPoint[], rank: number): TierStat {
+  const player = players[rank - 1] // Nth-ranked player (1-indexed)
   return {
-    label: TIER_LABELS[size],
-    tierSize: size,
-    n,
-    avgPpg: n > 0 ? slice.reduce((s, p) => s + p.ppg, 0) / n : 0,
-    avgPrice: n > 0 ? slice.reduce((s, p) => s + p.price, 0) / n : 0,
+    label: `#${rank}`,
+    tierSize: rank,
+    n: players.length,
+    ppg: player?.ppg ?? 0,
+    price: player?.price ?? 0,
   }
 }
 
