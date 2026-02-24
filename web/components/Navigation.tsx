@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
-import { Lock, ExternalLink, ChevronDown } from "lucide-react";
+import { Lock, ExternalLink, ChevronDown, Menu, X } from "lucide-react";
+import { ThemeToggle } from "./ThemeToggle";
 
 const PUBLIC_LINKS = [
   { href: "/", label: "Player Efficiency" },
@@ -121,6 +122,7 @@ export default function Navigation({ isAuthenticated }: NavigationProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -134,11 +136,17 @@ export default function Navigation({ isAuthenticated }: NavigationProps) {
     }
   };
 
+  const linkClass = (isActive: boolean) => `block px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${isActive
+      ? "bg-blue-600 text-white"
+      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
+    }`;
+
   return (
-    <nav className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-black">
+    <nav className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-black sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
-          <div className="flex items-center gap-1">
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-1">
             {/* Public links */}
             {PUBLIC_LINKS.map((link) => {
               const isActive = pathname === link.href;
@@ -146,10 +154,7 @@ export default function Navigation({ isAuthenticated }: NavigationProps) {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${isActive
-                      ? "bg-blue-600 text-white"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
-                    }`}
+                  className={linkClass(isActive)}
                 >
                   {link.label}
                 </Link>
@@ -178,24 +183,122 @@ export default function Navigation({ isAuthenticated }: NavigationProps) {
                 />
               ))}
           </div>
-          {isAuthenticated ? (
+
+          {/* Mobile Menu Button & Brand */}
+          <div className="md:hidden flex items-center gap-2">
             <button
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              className="ml-4 px-3 py-1.5 text-sm font-medium rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="p-2 -ml-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md"
+              aria-label="Toggle menu"
             >
-              {isLoggingOut ? "Signing out..." : "Sign Out"}
+              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
-          ) : (
-            <Link
-              href="/login"
-              className="ml-4 px-3 py-1.5 text-sm font-medium rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors whitespace-nowrap"
-            >
-              Sign In
-            </Link>
-          )}
+            <span className="font-bold text-lg text-slate-900 dark:text-white">Ottoneu Analytics</span>
+          </div>
+
+          <div className="flex items-center gap-2 ml-4">
+            <ThemeToggle />
+            {/* Desktop Auth Button */}
+            <div className="hidden md:block">
+              {isAuthenticated ? (
+                <button
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                  className="px-3 py-1.5 text-sm font-medium rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  {isLoggingOut ? "Signing out..." : "Sign Out"}
+                </button>
+              ) : (
+                <Link
+                  href="/login"
+                  className="px-3 py-1.5 text-sm font-medium rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors whitespace-nowrap"
+                >
+                  Sign In
+                </Link>
+              )}
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Mobile Menu Content */}
+      {isMenuOpen && (
+        <div className="md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-black overflow-y-auto max-h-[calc(100vh-3.5rem)]">
+          <div className="px-2 pt-2 pb-3 space-y-1">
+            {PUBLIC_LINKS.map((link) => {
+              const isActive = pathname === link.href;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={linkClass(isActive)}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+
+            <a
+              href={SOFA_LEAGUE_LINK.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
+            >
+              {SOFA_LEAGUE_LINK.label}
+              <ExternalLink size={14} />
+            </a>
+
+            {isAuthenticated &&
+              PRIVATE_GROUPS.map((group) => (
+                <div key={group.label} className="pt-2">
+                  <div className="px-3 pb-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    {group.label}
+                  </div>
+                  {group.links.map((link) => {
+                    const isActive = pathname === link.href;
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        onClick={() => setIsMenuOpen(false)}
+                        className={`block px-3 py-2 text-sm font-medium rounded-md transition-colors ml-2 ${isActive
+                            ? "bg-blue-600 text-white"
+                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
+                          }`}
+                      >
+                        {link.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              ))}
+
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-800 mt-2">
+              {isAuthenticated ? (
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setIsMenuOpen(false);
+                  }}
+                  disabled={isLoggingOut}
+                  className="w-full text-left px-3 py-2 text-sm font-medium rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
+                >
+                  {isLoggingOut ? "Signing out..." : "Sign Out"}
+                </button>
+              ) : (
+                <Link
+                  href="/login"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="block w-full px-3 py-2 text-sm font-medium rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
+                >
+                  Sign In
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
