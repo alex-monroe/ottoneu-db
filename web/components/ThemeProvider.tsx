@@ -28,13 +28,16 @@ export function ThemeProvider({
   storageKey = "vite-ui-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(defaultTheme);
+  const [theme, setThemeState] = useState<Theme>(defaultTheme);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem(storageKey) as Theme | null;
     if (savedTheme) {
-      setTheme(savedTheme);
+      setThemeState(savedTheme);
+    } else {
+        const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        setThemeState(systemTheme);
     }
     setMounted(true);
   }, [storageKey]);
@@ -44,31 +47,16 @@ export function ThemeProvider({
 
     const root = window.document.documentElement;
     root.classList.remove("light", "dark");
-
-    if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-        .matches
-        ? "dark"
-        : "light";
-      root.classList.add(systemTheme);
-      return;
-    }
-
     root.classList.add(theme);
   }, [theme, mounted]);
 
   const value = {
     theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme);
-      setTheme(theme);
+    setTheme: (newTheme: Theme) => {
+      localStorage.setItem(storageKey, newTheme);
+      setThemeState(newTheme);
     },
   };
-
-  // Avoid hydration mismatch by rendering children without theme context initially if needed,
-  // but here we just render children. The class application happens in useEffect.
-  // There might be a flash of incorrect theme.
-  // To avoid flash, we need a script in layout.tsx.
 
   return (
     <ThemeProviderContext.Provider {...props} value={value}>
