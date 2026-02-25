@@ -48,73 +48,13 @@ graph TD
     end
 ```
 
-## Database Entity Relationship
+**Data pipeline:**
+Job queue pattern. `scripts/enqueue.py` → `scraper_jobs` table → `scripts/worker.py` dispatches tasks from `scripts/tasks/`. Three task types: `pull_nfl_stats`, `scrape_roster`, `scrape_player_card`.
+Jobs support dependencies, retries (up to 3 attempts), and batch grouping. `ottoneu_scraper.py` is a backward-compatible wrapper that enqueues a batch and runs the worker. Data is upserted into three tables: `players`, `player_stats`, `league_prices`.
 
-```mermaid
-erDiagram
-    players {
-        uuid id PK
-        int ottoneu_id UK
-        text name
-        text position
-        text nfl_team
-        date birth_date
-    }
+**Worker task modules** (`scripts/tasks/`): Each task type lives in its own module. `__init__.py` defines task type constants and `TaskResult` dataclass. The worker caches NFL stats in memory so roster scrapes can match snap counts by player name.
 
-    player_stats {
-        uuid id PK
-        uuid player_id FK
-        int season
-        numeric total_points
-        int games_played
-        int snaps
-        numeric ppg
-        numeric pps
-    }
-
-    league_prices {
-        uuid id PK
-        uuid player_id FK
-        int league_id
-        int price
-        text team_name
-    }
-
-    transactions {
-        uuid id PK
-        uuid player_id FK
-        int league_id
-        int season
-        text transaction_type
-        text team_name
-        int salary
-        date transaction_date
-    }
-
-    surplus_adjustments {
-        uuid id PK
-        uuid player_id FK
-        int league_id
-        numeric adjustment
-        text notes
-    }
-
-    player_projections {
-        uuid id PK
-        uuid player_id FK
-        int season
-        numeric projected_ppg
-        text projection_method
-    }
-
-    players ||--o{ player_stats : "has seasons"
-    players ||--o{ league_prices : "has prices"
-    players ||--o{ transactions : "has transactions"
-    players ||--o{ surplus_adjustments : "has adjustments"
-    players ||--o{ player_projections : "has projections"
-```
-
-## Analysis Pipeline Dependency Order
+## Analysis Pipeline
 
 ```mermaid
 graph LR
@@ -130,12 +70,14 @@ graph LR
     style SIM fill:#8B5CF6,color:#fff
 ```
 
+**Analysis pipeline:** `scripts/run_all_analyses.py` orchestrates in dependency order: projected salary → VORP → surplus value → arbitration → arbitration simulation. Shared config in `scripts/analysis_utils.py`.
+
 Key dependencies:
 - `analyze_vorp.py` exports `calculate_vorp()` used by surplus value
 - `analyze_surplus_value.py` exports `calculate_surplus()` used by arbitration
 - All scripts share config from `scripts/config.py` and helpers from `scripts/analysis_utils.py`
 
-## Frontend Component Hierarchy
+## Frontend Structure
 
 ```mermaid
 graph TD
@@ -177,6 +119,8 @@ graph TD
         CO[lib/columns.ts]
     end
 ```
+
+**Frontend structure** (`web/`): Next.js App Router with five pages. Shared `Navigation.tsx` nav bar and `DataTable.tsx` sortable table component. Analysis math is ported to `web/lib/analysis.ts` (TS equivalent of `analysis_utils.py`). All pages are server components that fetch live data from Supabase (revalidate every hour) with client wrappers for interactivity.
 
 ## Configuration Sync
 
