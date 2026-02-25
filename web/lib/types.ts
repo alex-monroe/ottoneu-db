@@ -151,6 +151,23 @@ export interface BacktestPlayer {
   [key: string]: string | number | null | undefined;
 }
 
+// === DataTable Types ===
+
+export interface Column {
+  key: string;
+  label: string;
+  format?: "currency" | "number" | "decimal" | "percent";
+}
+
+export interface HighlightRule {
+  key: string;
+  op: "lt" | "gt" | "gte" | "lte" | "eq";
+  value: number | string;
+  className: string;
+}
+
+export type TableRow = Record<string, string | number | boolean | null | undefined>;
+
 // === Position Constants ===
 
 export type Position = 'QB' | 'RB' | 'WR' | 'TE' | 'K';

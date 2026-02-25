@@ -5,7 +5,7 @@
  * analysis pages and reduce duplication.
  */
 
-import { Column } from "@/components/DataTable";
+import { Column } from "@/lib/types";
 
 export const CORE_PLAYER_COLUMNS: Column[] = [
   { key: "name", label: "Player" },

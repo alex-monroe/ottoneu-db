@@ -13,7 +13,7 @@ import uuid
 import pandas as pd
 from dotenv import load_dotenv
 from playwright.async_api import async_playwright
-from supabase import create_client, Client
+from supabase import Client
 
 # Add project root to path so scripts.tasks imports work
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -27,6 +27,7 @@ from scripts.tasks import (
     TaskResult,
 )
 from scripts.tasks import pull_nfl_stats, pull_player_stats, scrape_roster, scrape_player_card
+from scripts.config import get_supabase_client
 
 load_dotenv()
 
@@ -35,12 +36,7 @@ class ScraperWorker:
     """Polls the scraper_jobs table and executes tasks."""
 
     def __init__(self):
-        url = os.getenv("SUPABASE_URL")
-        key = os.getenv("SUPABASE_KEY")
-        if not url or not key:
-            raise RuntimeError("SUPABASE_URL and SUPABASE_KEY must be set in .env")
-
-        self.supabase: Client = create_client(url, key)
+        self.supabase: Client = get_supabase_client()
         self.playwright = None
         self.browser = None
         self.browser_context = None

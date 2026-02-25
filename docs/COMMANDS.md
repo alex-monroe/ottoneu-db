@@ -49,6 +49,9 @@ make lint          # ESLint
 make typecheck     # TypeScript type check
 make build         # Production build
 make dev           # Start dev server
+make check-arch    # Run architectural/structural tests only
+make check-docs    # Check documentation freshness
+make ci            # Full CI suite (lint + typecheck + tests + doc checks)
 ```
 
 ## Daily Scheduling (cron)

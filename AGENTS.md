@@ -41,6 +41,21 @@ docs/
     └── ottoneu-rules.md               # Scoring, roster, salary cap, arbitration rules
 ```
 
+## Architectural Rules (Enforced by Tests)
+
+These rules are mechanically enforced by structural tests in `scripts/tests/test_architecture.py` and `web/__tests__/lib/architecture.test.ts`. If you violate them, tests will fail with a teaching message explaining the fix.
+
+- **No hardcoded constants:** Import league constants from `scripts.config` (Python) or `@/lib/config` (TypeScript). Never use literal values like `309`, `400`, etc.
+- **Use the shared Supabase client:** Always use `get_supabase_client()` from `scripts.config` — never call `create_client()` directly.
+- **Config sync:** When adding a key to `config.json`, also add it to `scripts/config.py` AND `web/lib/config.ts`.
+- **Dependency direction:** Analysis scripts must NOT import from `scripts/tasks/`. Query the database instead.
+- **Frontend layers:** `web/lib/` must NOT import from `web/components/`. Flow: types → config → lib → components → pages.
+- **Shared types:** Define interfaces in `web/lib/types.ts`, not in component files.
+- **No wildcard imports:** Use explicit named imports (`from module import X, Y`).
+- **Documentation exists:** All docs referenced in this file must exist and have content.
+
+Run `make check-arch` to validate these rules locally.
+
 ## Critical Rules
 
 - **Update documentation:** Always try to update the agent documentation after completing a task. Update existing documents or add new documents and sections as needed to reflect architectural or contextual changes.
