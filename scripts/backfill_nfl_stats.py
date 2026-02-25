@@ -453,6 +453,34 @@ def backfill_seasons(
         sample = sorted(unmatched_names)[:15]
         print(f"  Unmatched sample: {sample}")
 
+    # Deduplicate by (player_id, season): different display name variants can
+    # map to the same player_id after normalization. Aggregate by summing stats
+    # and recalculating points/ppg, then convert back to list of dicts.
+    if upsert_rows:
+        stat_sum_cols = [
+            "games_played", "passing_yards", "passing_tds", "interceptions",
+            "rushing_yards", "rushing_tds", "rushing_attempts",
+            "receptions", "targets", "receiving_yards", "receiving_tds",
+            "fg_made_0_39", "fg_made_40_49", "fg_made_50_plus", "pat_made",
+            "offense_snaps", "defense_snaps", "st_snaps", "total_snaps",
+        ]
+        dedup_df = pd.DataFrame(upsert_rows)
+        present_sum = [c for c in stat_sum_cols if c in dedup_df.columns]
+        agg_dict = {c: "sum" for c in present_sum}
+        dedup_df = dedup_df.groupby(["player_id", "season"], as_index=False).agg(agg_dict)
+        # Recalculate total_points and ppg after summing
+        dedup_df["total_points"] = dedup_df.apply(
+            lambda r: round(calc_half_ppr_points(r.to_dict()), 2), axis=1
+        )
+        dedup_df["games_played"] = dedup_df["games_played"].apply(_safe_int)
+        dedup_df["ppg"] = dedup_df.apply(
+            lambda r: round(r["total_points"] / r["games_played"], 2)
+            if r.get("games_played") else 0.0,
+            axis=1,
+        )
+        upsert_rows = dedup_df.to_dict(orient="records")
+        print(f"  After dedup: {len(upsert_rows)} unique player/season rows")
+
     if dry_run:
         print(f"\n[DRY RUN] Would upsert {len(upsert_rows)} rows to nfl_stats.")
         # Show a sample
