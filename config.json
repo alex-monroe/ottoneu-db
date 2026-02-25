@@ -1,0 +1,32 @@
+{
+  "LEAGUE_ID": 309,
+  "SEASON": 2025,
+  "MY_TEAM": "The Witchcraft",
+  "HISTORICAL_SEASONS": [2022, 2023, 2024],
+  "NUM_TEAMS": 12,
+  "CAP_PER_TEAM": 400,
+  "POSITIONS": ["QB", "RB", "WR", "TE", "K"],
+  "COLLEGE_POSITIONS": ["QB", "RB", "WR", "TE"],
+  "MIN_GAMES": 4,
+  "REPLACEMENT_LEVEL": {
+    "QB": 24,
+    "RB": 30,
+    "WR": 30,
+    "TE": 20,
+    "K": 13
+  },
+  "SALARY_REPLACEMENT_PERCENTILE": 0.25,
+  "MIN_SALARY_PLAYERS": 3,
+  "ARB_BUDGET_PER_TEAM": 60,
+  "ARB_MIN_PER_TEAM": 1,
+  "ARB_MAX_PER_TEAM": 8,
+  "ARB_MAX_PER_PLAYER_PER_TEAM": 4,
+  "ARB_MAX_PER_PLAYER_LEAGUE": 44,
+  "NFL_TEAM_CODES": [
+    "ARI", "ATL", "BAL", "BUF", "CAR", "CHI", "CIN", "CLE",
+    "DAL", "DEN", "DET", "GB", "HOU", "IND", "JAC", "KC",
+    "LA", "LAC", "LV", "MIA", "MIN", "NE", "NO", "NYG",
+    "NYJ", "PHI", "PIT", "SEA", "SF", "TB", "TEN", "WAS",
+    "FA"
+  ]
+}

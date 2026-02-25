@@ -3,61 +3,65 @@
 This module consolidates all configuration constants and provides a shared
 Supabase client factory to eliminate duplication across scripts.
 
-NOTE: These constants must stay in sync with web/lib/config.ts.
-When updating league settings or analysis parameters, update both files.
+Configuration values are loaded from the shared config.json in the repo root.
 """
 
 import os
+import json
+from pathlib import Path
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
 load_dotenv()
 
+# Load configuration from shared JSON file
+# Resolve path relative to this file: ../config.json
+CONFIG_PATH = Path(__file__).parent.parent / "config.json"
+
+try:
+    with open(CONFIG_PATH, "r") as f:
+        _config = json.load(f)
+except FileNotFoundError:
+    raise FileNotFoundError(f"Could not find shared config file at {CONFIG_PATH}")
+except json.JSONDecodeError as e:
+    raise ValueError(f"Invalid JSON in config file at {CONFIG_PATH}: {e}")
+
 # === League Configuration ===
-LEAGUE_ID = 309
-SEASON = 2025
-MY_TEAM = "The Witchcraft"
-HISTORICAL_SEASONS = [2022, 2023, 2024]
+LEAGUE_ID = _config["LEAGUE_ID"]
+SEASON = _config["SEASON"]
+MY_TEAM = _config["MY_TEAM"]
+HISTORICAL_SEASONS = _config["HISTORICAL_SEASONS"]
 
 # === Fantasy League Rules ===
-NUM_TEAMS = 12
-CAP_PER_TEAM = 400
-POSITIONS = ["QB", "RB", "WR", "TE", "K"]
-COLLEGE_POSITIONS = ["QB", "RB", "WR", "TE"]
+NUM_TEAMS = _config["NUM_TEAMS"]
+CAP_PER_TEAM = _config["CAP_PER_TEAM"]
+POSITIONS = _config["POSITIONS"]
+COLLEGE_POSITIONS = _config["COLLEGE_POSITIONS"]
 
 # === Analysis Configuration ===
-MIN_GAMES = 4
+MIN_GAMES = _config["MIN_GAMES"]
 
 # Replacement level: approximate number of fantasy-relevant players per position
-# in a 12-team superflex league (accounts for 2 QBs starting per team).
-# Used as fallback when salary-implied method lacks sufficient data.
-REPLACEMENT_LEVEL = {'QB': 24, 'RB': 30, 'WR': 30, 'TE': 20, 'K': 13}
+REPLACEMENT_LEVEL = _config["REPLACEMENT_LEVEL"]
 
-# Salary-implied replacement level: players priced in the bottom quartile of
-# rostered salaries are treated as "replacement tier" by market consensus.
-SALARY_REPLACEMENT_PERCENTILE = 0.25  # bottom quartile of rostered salaries
-MIN_SALARY_PLAYERS = 3                # min players needed to use salary method
+# Salary-implied replacement level
+SALARY_REPLACEMENT_PERCENTILE = _config["SALARY_REPLACEMENT_PERCENTILE"]
+MIN_SALARY_PLAYERS = _config["MIN_SALARY_PLAYERS"]
 
 # NOTE: Database salaries already reflect the end-of-season $4/$1 bump.
 # No additional salary projection is needed.
 
 # === Arbitration Constants ===
-ARB_BUDGET_PER_TEAM = 60
-ARB_MIN_PER_TEAM = 1
-ARB_MAX_PER_TEAM = 8
-ARB_MAX_PER_PLAYER_PER_TEAM = 4
-ARB_MAX_PER_PLAYER_LEAGUE = 44  # max from all teams combined
+ARB_BUDGET_PER_TEAM = _config["ARB_BUDGET_PER_TEAM"]
+ARB_MIN_PER_TEAM = _config["ARB_MIN_PER_TEAM"]
+ARB_MAX_PER_TEAM = _config["ARB_MAX_PER_TEAM"]
+ARB_MAX_PER_PLAYER_PER_TEAM = _config["ARB_MAX_PER_PLAYER_PER_TEAM"]
+ARB_MAX_PER_PLAYER_LEAGUE = _config["ARB_MAX_PER_PLAYER_LEAGUE"]
 
 # === NFL Team Codes ===
-# All 32 NFL team abbreviations as used by Ottoneu (note: "LA" for Rams, "JAC" for Jaguars).
 # Used to distinguish college players (whose nfl_team field contains a college name).
-NFL_TEAM_CODES = {
-    "ARI", "ATL", "BAL", "BUF", "CAR", "CHI", "CIN", "CLE",
-    "DAL", "DEN", "DET", "GB", "HOU", "IND", "JAC", "KC",
-    "LA", "LAC", "LV", "MIA", "MIN", "NE", "NO", "NYG",
-    "NYJ", "PHI", "PIT", "SEA", "SF", "TB", "TEN", "WAS",
-    "FA",
-}
+# Convert list back to set for O(1) lookups
+NFL_TEAM_CODES = set(_config["NFL_TEAM_CODES"])
 
 
 def get_supabase_client() -> Client:

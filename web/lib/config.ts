@@ -1,48 +1,43 @@
 /**
  * Frontend configuration constants for Ottoneu League 309.
  *
- * NOTE: These constants must stay in sync with scripts/config.py.
- * When updating league settings or analysis parameters, update both files.
+ * Configuration values are loaded from the shared config.json in the repo root.
  */
 
-export const LEAGUE_ID = 309;
-export const SEASON = 2025;
-export const HISTORICAL_SEASONS = [2022, 2023, 2024];
-export const MY_TEAM = "The Witchcraft";
-export const NUM_TEAMS = 12;
-export const CAP_PER_TEAM = 400;
-export const MIN_GAMES = 4;
+import config from "../../config.json";
+
+export const LEAGUE_ID = config.LEAGUE_ID;
+export const SEASON = config.SEASON;
+export const HISTORICAL_SEASONS = config.HISTORICAL_SEASONS;
+export const MY_TEAM = config.MY_TEAM;
+export const NUM_TEAMS = config.NUM_TEAMS;
+export const CAP_PER_TEAM = config.CAP_PER_TEAM;
+export const MIN_GAMES = config.MIN_GAMES;
 
 // Replacement level: approximate number of fantasy-relevant players per position
 // in a 12-team superflex league (accounts for 2 QBs starting per team).
 // Used as fallback when salary-implied method lacks sufficient data.
-export const REPLACEMENT_LEVEL: Record<string, number> = {
-    QB: 24,
-    RB: 30,
-    WR: 30,
-    TE: 20,
-    K: 13,
-};
+export const REPLACEMENT_LEVEL: Record<string, number> = config.REPLACEMENT_LEVEL;
 
 // Salary-implied replacement level constants
-export const SALARY_REPLACEMENT_PERCENTILE = 0.25; // bottom quartile of rostered salaries
-export const MIN_SALARY_PLAYERS = 3;               // min players needed to use salary method
+export const SALARY_REPLACEMENT_PERCENTILE = config.SALARY_REPLACEMENT_PERCENTILE;
+export const MIN_SALARY_PLAYERS = config.MIN_SALARY_PLAYERS;
 
 // NOTE: Database salaries already reflect the end-of-season $4/$1 bump.
 // No additional salary projection is needed.
 
 // Arbitration constants
-export const ARB_BUDGET_PER_TEAM = 60;
-export const ARB_MIN_PER_TEAM = 1;
-export const ARB_MAX_PER_TEAM = 8;
-export const ARB_MAX_PER_PLAYER_PER_TEAM = 4;
-export const ARB_MAX_PER_PLAYER_LEAGUE = 44;
+export const ARB_BUDGET_PER_TEAM = config.ARB_BUDGET_PER_TEAM;
+export const ARB_MIN_PER_TEAM = config.ARB_MIN_PER_TEAM;
+export const ARB_MAX_PER_TEAM = config.ARB_MAX_PER_TEAM;
+export const ARB_MAX_PER_PLAYER_PER_TEAM = config.ARB_MAX_PER_PLAYER_PER_TEAM;
+export const ARB_MAX_PER_PLAYER_LEAGUE = config.ARB_MAX_PER_PLAYER_LEAGUE;
 
 // Simulation parameters
 export const NUM_SIMULATIONS = 100;
 export const VALUE_VARIATION = 0.20; // ±20% value variation per team
 
-export const POSITIONS = ["QB", "RB", "WR", "TE", "K"] as const;
+export const POSITIONS = config.POSITIONS as readonly ["QB", "RB", "WR", "TE", "K"];
 
 export const POSITION_COLORS: Record<string, string> = {
     QB: "#EF4444",
@@ -54,13 +49,7 @@ export const POSITION_COLORS: Record<string, string> = {
 
 // All 32 NFL team abbreviations as used by Ottoneu (note: "LA" for Rams, "JAC" for Jaguars).
 // Used to distinguish college players (whose nfl_team field contains a college name).
-export const NFL_TEAM_CODES = new Set([
-    "ARI", "ATL", "BAL", "BUF", "CAR", "CHI", "CIN", "CLE",
-    "DAL", "DEN", "DET", "GB", "HOU", "IND", "JAC", "KC",
-    "LA", "LAC", "LV", "MIA", "MIN", "NE", "NO", "NYG",
-    "NYJ", "PHI", "PIT", "SEA", "SF", "TB", "TEN", "WAS",
-    "FA",
-]);
+export const NFL_TEAM_CODES = new Set(config.NFL_TEAM_CODES);
 
 /** Returns true if the nfl_team value represents a college rather than an NFL team. */
 export function isCollegePlayer(nflTeam: string): boolean {
