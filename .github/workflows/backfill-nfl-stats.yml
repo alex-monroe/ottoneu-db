@@ -35,7 +35,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install supabase python-dotenv nfl_data_py pandas numpy pyarrow
+          pip install supabase python-dotenv pandas numpy pyarrow
 
       - name: Create .env
         run: |
