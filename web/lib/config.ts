@@ -37,7 +37,7 @@ export const ARB_MAX_PER_PLAYER_LEAGUE = config.ARB_MAX_PER_PLAYER_LEAGUE;
 export const NUM_SIMULATIONS = 100;
 export const VALUE_VARIATION = 0.20; // ±20% value variation per team
 
-export const POSITIONS = config.POSITIONS as readonly ["QB", "RB", "WR", "TE", "K"];
+export const POSITIONS = config.POSITIONS as unknown as readonly ["QB", "RB", "WR", "TE", "K"];
 
 export const POSITION_COLORS: Record<string, string> = {
     QB: "#EF4444",
