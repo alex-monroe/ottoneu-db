@@ -56,9 +56,9 @@ describe("PositionFilter", () => {
         const wrButton = screen.getByText("WR");
         const rbButton = screen.getByText("RB");
 
-        expect(qbButton).toHaveStyle(`background-color: ${POSITION_COLORS["QB"]}`);
-        expect(wrButton).toHaveStyle(`background-color: ${POSITION_COLORS["WR"]}`);
-        expect(rbButton).not.toHaveStyle("background-color");
+        expect(qbButton).toHaveStyle({ backgroundColor: POSITION_COLORS["QB"] });
+        expect(wrButton).toHaveStyle({ backgroundColor: POSITION_COLORS["WR"] });
+        expect(rbButton).not.toHaveStyle({ backgroundColor: POSITION_COLORS["RB"] });
     });
 
     it("does not render the All button when showAll is false", () => {
