@@ -472,7 +472,9 @@ def backfill_seasons(
         dedup_df["total_points"] = dedup_df.apply(
             lambda r: round(calc_half_ppr_points(r.to_dict()), 2), axis=1
         )
-        dedup_df["games_played"] = dedup_df["games_played"].apply(_safe_int)
+        # pandas sum() promotes int columns with NaN to float64 — cast back to int|None
+        for col in present_sum:
+            dedup_df[col] = dedup_df[col].apply(_safe_int)
         dedup_df["ppg"] = dedup_df.apply(
             lambda r: round(r["total_points"] / r["games_played"], 2)
             if r.get("games_played") else 0.0,
