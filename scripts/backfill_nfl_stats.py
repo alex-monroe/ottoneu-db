@@ -260,21 +260,21 @@ def create_missing_players(
         if name_col not in rdf.columns:
             continue
         pid_col = "player_id" if "player_id" in rdf.columns else "gsis_id"
-        for _, row in rdf.iterrows():
-            rname = str(row.get(name_col, ""))
+        for row in rdf.itertuples(index=False):
+            rname = str(getattr(row, name_col, ""))
             norm = normalize_player_name(rname)
             if norm not in roster_info:
-                pos = str(row.get("position", "")) if pd.notna(row.get("position")) else ""
-                team = str(row.get("team", "")) if pd.notna(row.get("team")) else "FA"
-                pid = str(row.get(pid_col, "")) if pd.notna(row.get(pid_col)) else ""
+                pos = str(getattr(row, "position", "")) if pd.notna(getattr(row, "position", None)) else ""
+                team = str(getattr(row, "team", "")) if pd.notna(getattr(row, "team", None)) else "FA"
+                pid = str(getattr(row, pid_col, "")) if pd.notna(getattr(row, pid_col, None)) else ""
                 roster_info[norm] = {"position": pos, "team": team, "nflverse_id": pid}
 
     # Also collect position info from the stats dataframe itself
     stats_position_info: dict[str, str] = {}
     if "position" in stats_df.columns:
-        for _, row in stats_df[["player_display_name", "position"]].drop_duplicates().iterrows():
-            norm = normalize_player_name(str(row["player_display_name"]))
-            pos = str(row["position"]) if pd.notna(row.get("position")) else ""
+        for row in stats_df[["player_display_name", "position"]].drop_duplicates().itertuples(index=False):
+            norm = normalize_player_name(str(row.player_display_name))
+            pos = str(row.position) if pd.notna(getattr(row, "position", None)) else ""
             if pos:
                 stats_position_info[norm] = pos
 
@@ -386,19 +386,20 @@ def backfill_seasons(
     print(f"  Aggregated to {len(processed)} player/season rows.")
 
     # Process snap counts per season and merge
-    snap_by_season: dict[int, pd.DataFrame] = {}
+    snap_by_season: dict[int, dict[str, dict]] = {}
     for year, snaps_df in all_snap_frames.items():
         snap_agg = process_snap_counts(snaps_df)
         if not snap_agg.empty:
-            snap_by_season[year] = snap_agg
+            # Store as dict for O(1) lookup: player_normalized -> snap_row_dict
+            snap_by_season[year] = snap_agg.set_index("player_normalized").to_dict("index")
 
     # Build upsert rows
     matched = 0
     unmatched_names: set[str] = set()
     upsert_rows: list[dict] = []
 
-    for _, row in processed.iterrows():
-        raw_name = str(row.get("player_display_name", ""))
+    for row in processed.itertuples(index=False):
+        raw_name = str(getattr(row, "player_display_name", ""))
         norm_name = normalize_player_name(raw_name)
         player_uuid = player_lookup.get(norm_name)
 
@@ -406,26 +407,26 @@ def backfill_seasons(
             unmatched_names.add(raw_name)
             continue
 
-        season = int(row["season"])
+        season = int(row.season)
 
         stat_row: dict = {
             "player_id": player_uuid,
             "season": season,
-            "games_played": _safe_int(row.get("games_played")),
-            "passing_yards": _safe_int(row.get("passing_yards")),
-            "passing_tds": _safe_int(row.get("passing_tds")),
-            "interceptions": _safe_int(row.get("interceptions")),
-            "rushing_yards": _safe_int(row.get("rushing_yards")),
-            "rushing_tds": _safe_int(row.get("rushing_tds")),
-            "rushing_attempts": _safe_int(row.get("rushing_attempts")),
-            "receptions": _safe_int(row.get("receptions")),
-            "receiving_yards": _safe_int(row.get("receiving_yards")),
-            "receiving_tds": _safe_int(row.get("receiving_tds")),
-            "targets": _safe_int(row.get("targets")),
-            "fg_made_0_39": _safe_int(row.get("fg_made_0_39")),
-            "fg_made_40_49": _safe_int(row.get("fg_made_40_49")),
-            "fg_made_50_plus": _safe_int(row.get("fg_made_50_plus")),
-            "pat_made": _safe_int(row.get("pat_made")),
+            "games_played": _safe_int(getattr(row, "games_played", None)),
+            "passing_yards": _safe_int(getattr(row, "passing_yards", None)),
+            "passing_tds": _safe_int(getattr(row, "passing_tds", None)),
+            "interceptions": _safe_int(getattr(row, "interceptions", None)),
+            "rushing_yards": _safe_int(getattr(row, "rushing_yards", None)),
+            "rushing_tds": _safe_int(getattr(row, "rushing_tds", None)),
+            "rushing_attempts": _safe_int(getattr(row, "rushing_attempts", None)),
+            "receptions": _safe_int(getattr(row, "receptions", None)),
+            "receiving_yards": _safe_int(getattr(row, "receiving_yards", None)),
+            "receiving_tds": _safe_int(getattr(row, "receiving_tds", None)),
+            "targets": _safe_int(getattr(row, "targets", None)),
+            "fg_made_0_39": _safe_int(getattr(row, "fg_made_0_39", None)),
+            "fg_made_40_49": _safe_int(getattr(row, "fg_made_40_49", None)),
+            "fg_made_50_plus": _safe_int(getattr(row, "fg_made_50_plus", None)),
+            "pat_made": _safe_int(getattr(row, "pat_made", None)),
         }
 
         # Calculate fantasy points
@@ -433,12 +434,11 @@ def backfill_seasons(
         games = stat_row.get("games_played") or 0
         stat_row["ppg"] = round(stat_row["total_points"] / games, 2) if games > 0 else 0.0
 
-        # Merge snap counts if available
-        snap_data = snap_by_season.get(season)
-        if snap_data is not None and not snap_data.empty:
-            snap_match = snap_data[snap_data["player_normalized"] == norm_name]
-            if not snap_match.empty:
-                snap_row = snap_match.iloc[0]
+        # Merge snap counts if available (O(1) lookup)
+        season_snaps = snap_by_season.get(season)
+        if season_snaps:
+            snap_row = season_snaps.get(norm_name)
+            if snap_row:
                 stat_row["offense_snaps"] = _safe_int(snap_row.get("offense_snaps"))
                 stat_row["defense_snaps"] = _safe_int(snap_row.get("defense_snaps"))
                 stat_row["st_snaps"] = _safe_int(snap_row.get("st_snaps"))
