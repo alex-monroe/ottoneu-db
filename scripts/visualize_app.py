@@ -2,7 +2,7 @@ import os
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from supabase import create_client, Client
+from supabase import create_client
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -54,7 +54,7 @@ def load_data(league_id=309, season=2025):
     final_df['total_points'] = pd.to_numeric(final_df['total_points'], errors='coerce').fillna(0)
     final_df['price'] = pd.to_numeric(final_df['price'], errors='coerce').fillna(0)
     
-    # $/PPG: If PPG is 0, this is technically infinite, but practically we might want to just set it to 0 or NaN for plotting
+    # $/PPG: If PPG is 0, set to 0 for plotting (infinite cost is not useful)
     # For visualization, let's filter out 0 PPG or handle it. 
     # Or maybe user wants to see 0 ppg players with high salary (bad value).
     # Let's calculate it, handling 0.
@@ -96,7 +96,7 @@ else:
         df_filtered,
         x="total_points",
         y="cost_per_ppg",
-        size="price", # Bubble size = Price? Or maybe just consistent? User didn't specify. Let's make it price to show cost weight.
+        size="price",  # Bubble size = salary to show cost weight
         color="position",
         hover_name="name",
         hover_data=["nfl_team", "price", "ppg", "games_played"],
@@ -117,4 +117,6 @@ else:
 
     # Data Table
     st.subheader("Player Data")
-    st.dataframe(df_filtered[['name', 'position', 'nfl_team', 'price', 'total_points', 'ppg', 'cost_per_ppg', 'games_played']].sort_values('total_points', ascending=False))
+    cols = ['name', 'position', 'nfl_team', 'price',
+            'total_points', 'ppg', 'cost_per_ppg', 'games_played']
+    st.dataframe(df_filtered[cols].sort_values('total_points', ascending=False))

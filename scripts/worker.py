@@ -8,7 +8,6 @@ import json
 import os
 import sys
 import time
-import uuid
 
 import pandas as pd
 from dotenv import load_dotenv
@@ -118,7 +117,8 @@ class ScraperWorker:
 
             job["attempts"] += 1
             job["status"] = "running"
-            print(f"\nClaimed job {job['id'][:8]}... [{job['task_type']}] (attempt {job['attempts']}/{job['max_attempts']})")
+            print(f"\nClaimed job {job['id'][:8]}... [{job['task_type']}] "
+                  f"(attempt {job['attempts']}/{job['max_attempts']})")
             return job
 
         return None
@@ -193,7 +193,7 @@ class ScraperWorker:
                 "last_error": error,
                 "completed_at": "now()",
             }).eq("id", job["id"]).execute()
-            print(f"  Max attempts reached. Marked as failed.")
+            print("  Max attempts reached. Marked as failed.")
 
     def _enqueue_child_jobs(self, child_jobs: list[dict], parent_job: dict):
         """Insert child jobs into the queue."""

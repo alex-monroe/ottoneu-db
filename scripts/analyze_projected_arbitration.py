@@ -12,15 +12,11 @@ import pandas as pd
 from config import (
     get_supabase_client,
     SEASON,
-    REPLACEMENT_LEVELS,
     ARBITRATION_BUDGET,
-    LEAGUE_PARAMS,
-    ARBITRATION_MAX_RAISE,
-    ARBITRATION_MIN_SURPLUS
+    LEAGUE_PARAMS
 )
 from analysis_utils import (
-    MY_TEAM,
-    ensure_reports_dir, fetch_all_data, merge_data, fetch_player_data, calculate_vorp
+    ensure_reports_dir, fetch_all_data, merge_data
 )
 from analyze_arbitration import analyze_arbitration
 
@@ -63,9 +59,12 @@ def generate_report(targets: pd.DataFrame) -> str:
         f.write('`ppg` = projected PPG, `observed_ppg` = actual 2024 PPG.\n')
         f.write('`surplus` = projected dollar_value − current salary.\n')
         f.write('`surplus_after_arb` = projected dollar_value − salary after $4 raise.\n\n')
+        min_team = LEAGUE_PARAMS["ARBITRATION_MIN_PER_TEAM"]
+        max_team = LEAGUE_PARAMS["ARBITRATION_MAX_PER_TEAM"]
+        max_player = LEAGUE_PARAMS["ARBITRATION_MAX_PER_PLAYER_PER_TEAM"]
         f.write(f'**Budget:** ${ARBITRATION_BUDGET} total, '
-                f'${LEAGUE_PARAMS["ARBITRATION_MIN_PER_TEAM"]}–${LEAGUE_PARAMS["ARBITRATION_MAX_PER_TEAM"]} per opposing team, '
-                f'max ${LEAGUE_PARAMS["ARBITRATION_MAX_PER_PLAYER_PER_TEAM"]} per player from you.\n\n')
+                f'${min_team}–${max_team} per opposing team, '
+                f'max ${max_player} per player from you.\n\n')
 
         f.write('## Top 20 Projected Arbitration Targets\n\n')
         top = targets.head(20)
@@ -113,7 +112,9 @@ if __name__ == '__main__':
 
     print(f"Fetching {SEASON} projections from database...")
     supabase = get_supabase_client()
-    res = supabase.table('player_projections').select('player_id,projected_ppg,projection_method').eq('season', SEASON).execute()
+    res = (supabase.table('player_projections')
+           .select('player_id,projected_ppg,projection_method')
+           .eq('season', SEASON).execute())
 
     projections: dict[str, tuple[float, str]] = {}
     for row in res.data:

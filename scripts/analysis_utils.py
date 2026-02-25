@@ -4,21 +4,7 @@ import os
 import pandas as pd
 
 from config import (
-    LEAGUE_ID,
     SEASON,
-    HISTORICAL_SEASONS,
-    MY_TEAM,
-    NUM_TEAMS,
-    CAP_PER_TEAM,
-    MIN_GAMES,
-    REPLACEMENT_LEVEL,
-    SALARY_REPLACEMENT_PERCENTILE,
-    MIN_SALARY_PLAYERS,
-    ARB_BUDGET_PER_TEAM,
-    ARB_MIN_PER_TEAM,
-    ARB_MAX_PER_TEAM,
-    ARB_MAX_PER_PLAYER_PER_TEAM,
-    ARB_MAX_PER_PLAYER_LEAGUE,
     get_supabase_client,
 )
 

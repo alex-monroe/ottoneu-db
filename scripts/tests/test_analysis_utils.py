@@ -1,6 +1,5 @@
 
 import pandas as pd
-import pytest
 from scripts.analysis_utils import merge_data
 
 def test_merge_data_basic():

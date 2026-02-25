@@ -1,7 +1,6 @@
 """Task: Pull NFL snap counts via nfl_data_py (sync, no browser needed)."""
 
 import nfl_data_py as nfl
-import pandas as pd
 
 from scripts.tasks import TaskResult
 

@@ -7,16 +7,15 @@ TypeScript frontend to simply read the precalculated values without duplicating 
 import os
 import sys
 import pandas as pd
-from datetime import datetime
 
 # Setup paths
 script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from config import get_supabase_client, MIN_GAMES, SEASON
-from analysis_utils import fetch_multi_season_stats
-from projection_methods import CollegeProspectPPG, WeightedAveragePPG, RookieTrajectoryPPG
+from config import get_supabase_client, MIN_GAMES  # noqa: E402
+from analysis_utils import fetch_multi_season_stats  # noqa: E402
+from projection_methods import CollegeProspectPPG, WeightedAveragePPG, RookieTrajectoryPPG  # noqa: E402
 
 # Generate projections for current season and previous seasons to support backtesting
 TARGET_SEASONS = [2024, 2025, 2026]
@@ -159,8 +158,8 @@ def update_projections() -> None:
     batch_size = 500
     for i in range(0, len(all_records), batch_size):
         batch = all_records[i:i+batch_size]
-        res = supabase.table('player_projections').upsert(
-            batch, 
+        supabase.table('player_projections').upsert(
+            batch,
             on_conflict='player_id,season'
         ).execute()
         print(f"  Upserted batch {i//batch_size + 1} ({len(batch)} records)")

@@ -7,12 +7,15 @@ import sys
 import uuid
 
 from dotenv import load_dotenv
-from supabase import create_client
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from scripts.tasks import PULL_NFL_STATS, PULL_PLAYER_STATS, SCRAPE_ROSTER, SCRAPE_PLAYER_CARD
-from scripts.config import POSITIONS, COLLEGE_POSITIONS, SEASON as DEFAULT_SEASON, LEAGUE_ID as DEFAULT_LEAGUE_ID, HISTORICAL_SEASONS, get_supabase_client as get_supabase
+from scripts.config import (
+    POSITIONS, COLLEGE_POSITIONS, SEASON as DEFAULT_SEASON,
+    LEAGUE_ID as DEFAULT_LEAGUE_ID, HISTORICAL_SEASONS,
+    get_supabase_client as get_supabase,
+)
 
 load_dotenv()
 
@@ -83,7 +86,7 @@ def enqueue_batch(args):
 
     total_jobs = 2 + len(POSITIONS) + len(COLLEGE_POSITIONS)
     print(f"\nBatch {batch_id[:8]}... created with {total_jobs} jobs.")
-    print(f"Run: python scripts/worker.py")
+    print("Run: python scripts/worker.py")
 
 
 def enqueue_roster(args):
@@ -104,7 +107,7 @@ def enqueue_roster(args):
     job_id = result.data[0]["id"]
     level_label = "college" if level == "college" else "NFL"
     print(f"Enqueued scrape_roster({args.position}, {level_label}) (id: {job_id[:8]}...)")
-    print(f"Note: NFL stats won't be available unless pull_nfl_stats ran first.")
+    print("Note: NFL stats won't be available unless pull_nfl_stats ran first.")
 
 
 def enqueue_player(args):
@@ -152,7 +155,7 @@ def enqueue_player_stats(args):
     result = supabase.table("scraper_jobs").insert(job).execute()
     job_id = result.data[0]["id"]
     print(f"Enqueued pull_player_stats({seasons}) (id: {job_id[:8]}...)")
-    print(f"Run: python scripts/worker.py")
+    print("Run: python scripts/worker.py")
 
 
 def show_status(args):

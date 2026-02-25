@@ -85,7 +85,6 @@ def generate_report(targets: pd.DataFrame) -> str:
             f.write('## Targets by Opponent Team\n\n')
             f.write('Suggested allocation strategy (must give each team $1-$8):\n\n')
 
-            opponent_teams = sorted(targets['team_name'].unique())
             num_opponents = NUM_TEAMS - 1  # excluding my team
             base_allocation = ARB_MIN_PER_TEAM  # $1 minimum per team
             remaining_budget = ARB_BUDGET_PER_TEAM - (num_opponents * base_allocation)

@@ -18,9 +18,18 @@ dependencies = [
 dev = [
     "pytest==8.4.2",
     "pytest-cov==7.0.0",
+    "ruff>=0.8.0",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["scripts/tests"]
 python_files = ["test_*.py"]
 addopts = "--cov=scripts --cov-report=term-missing"
+
+[tool.ruff]
+target-version = "py39"
+line-length = 120
+
+[tool.ruff.lint]
+# Minimal rules: catch real bugs, not style preferences
+select = ["E", "F"]

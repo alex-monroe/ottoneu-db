@@ -1,7 +1,5 @@
-import os
 from typing import Optional
 import pandas as pd
-from config import SEASON
 from analysis_utils import fetch_all_data, merge_data
 
 def analyze_efficiency(merged_df: pd.DataFrame) -> Optional[pd.DataFrame]:
@@ -31,7 +29,7 @@ def analyze_efficiency(merged_df: pd.DataFrame) -> Optional[pd.DataFrame]:
     # Avoid division by zero
     # We want valid players only. Let's say:
     # - Must have played > 0 games or have > 0 points
-    # - Price > 0 (Free players are infinitely efficient or irrelevant for "spending" analysis, but technically $0 cost. 
+    # - Price > 0 (Free players are irrelevant for "spending" analysis.
     #   Let's focus on players with a cost first, or handle $0 as $1 for math? 
     #   Usually people want to know who to BUY. $1 is min cost usually in auctions if drafted.
     #   Let's filter for Price >= 1 and PPG > 0.

@@ -29,7 +29,9 @@ def check_database() -> None:
         for i, row in enumerate(rows, 1):
             player = row['players']
             if player: # Ensure player data exists
-                print(f"{i}. {player['name']} ({player['position']} - {player['nfl_team']}): ${row['price']} [Owner: {row['team_name']}]")
+                print(f"{i}. {player['name']} ({player['position']} - "
+                      f"{player['nfl_team']}): ${row['price']} "
+                      f"[Owner: {row['team_name']}]")
             else:
                 print(f"{i}. Unknown Player: ${row['price']}")
                 

@@ -1,7 +1,7 @@
 # Makefile — Common commands for the Ottoneu DB project
 # Usage: make <target>
 
-.PHONY: install dev build lint typecheck test test-python test-web scrape analyze check-db help
+.PHONY: install dev build lint lint-python lint-web typecheck test test-python test-web scrape analyze check-db ci help
 
 # ──────────────────────────────────────────────
 # Setup
@@ -23,7 +23,12 @@ dev: ## Start Next.js dev server on localhost:3000
 build: ## Production build (validates correctness)
 	cd web && npm run build
 
-lint: ## Run ESLint on web/
+lint: lint-python lint-web ## Run all linters (Python + web)
+
+lint-python: ## Run ruff on Python scripts
+	. venv/bin/activate && ruff check scripts/
+
+lint-web: ## Run ESLint on web/
 	cd web && npm run lint
 
 typecheck: ## TypeScript type checking
@@ -58,7 +63,7 @@ check-db: ## Verify database contents
 # CI validation (mimics GitHub Actions)
 # ──────────────────────────────────────────────
 
-ci: lint typecheck test ## Run full CI suite locally
+ci: lint typecheck test build ## Run full CI suite locally
 
 # ──────────────────────────────────────────────
 # Help

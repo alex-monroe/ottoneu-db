@@ -1,7 +1,6 @@
 """
 Unit tests for player name normalization utilities.
 """
-import pytest
 from scripts.name_utils import normalize_player_name
 
 

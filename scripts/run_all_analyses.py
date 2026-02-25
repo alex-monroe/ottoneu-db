@@ -1,5 +1,6 @@
 """Orchestrator — runs all analysis scripts in dependency order."""
 
+import subprocess
 import sys
 import time
 from analysis_utils import fetch_all_data, merge_data, ensure_reports_dir, fetch_multi_season_stats
@@ -22,7 +23,7 @@ def main():
     print(f'  -> {len(merged)} player records loaded.')
 
     # Ensure reports directory exists
-    reports_dir = ensure_reports_dir()
+    ensure_reports_dir()
 
     # Run analyses in dependency order
     reports = []
@@ -38,7 +39,8 @@ def main():
         print(f"ERROR: Failed to update player projections: {e}")
         sys.exit(1)
     except FileNotFoundError:
-        print("ERROR: 'python' command not found. Ensure Python is in your PATH or specify full path to python executable.")
+        print("ERROR: 'python' command not found. "
+              "Ensure Python is in your PATH.")
         sys.exit(1)
 
     print('\n[2/8] Projected Salary Analysis...') # Updated step count
@@ -82,7 +84,6 @@ def main():
         projected_merged = apply_projections(merged, projection_map)
         parb_result = _analyze_arb(projected_merged)
         if not parb_result.empty:
-            import pandas as pd
             if 'observed_ppg' in projected_merged.columns:
                 obs_ppg = projected_merged.set_index('player_id')['observed_ppg']
                 parb_result['observed_ppg'] = parb_result['player_id'].map(obs_ppg)

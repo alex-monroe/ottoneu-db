@@ -4,132 +4,81 @@ Universal instructions for AI coding agents working on this repository.
 
 ## Project Overview
 
-Comprehensive database and analytics platform for Ottoneu Fantasy Football League 309 (12-team Superflex Half PPR). Python scripts scrape player data and NFL stats into a Supabase PostgreSQL database. A Next.js frontend provides interactive analytics and visualizations.
+Ottoneu Fantasy Football League 309 analytics platform. Python scripts scrape data into Supabase (PostgreSQL). Next.js frontend provides interactive visualizations.
 
-**Tech stack:** Python 3.9+ · Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Supabase (PostgreSQL) · Playwright · pandas · Recharts
+**Tech stack:** Python 3.9+ · Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Supabase · Playwright · pandas · Recharts
 
 ## Commands
 
-### Frontend (run from `web/`)
 ```bash
-npm run dev          # Dev server on localhost:3000
-npm run build        # Production build (validates correctness)
-npm run lint         # ESLint
-npx tsc --noEmit     # TypeScript type checking
-npm test             # Jest tests
+# Frontend (from web/)
+npm run dev                    # Dev server
+npm run build                  # Production build
+npm run lint                   # ESLint
+npx tsc --noEmit               # TypeScript type check
+npm test                       # Jest tests
+
+# Backend (from root, venv active)
+python -m pytest               # Python tests
+python scripts/enqueue.py batch && python scripts/worker.py  # Scrape pipeline
+python scripts/run_all_analyses.py   # All analysis scripts
+
+# Makefile shortcuts
+make ci                        # Full CI suite (lint + typecheck + test + build)
+make test                      # All tests (Python + web)
+make lint                      # All linting (Python + web)
 ```
 
-### Backend (run from project root, venv must be active)
-```bash
-source venv/bin/activate
-python -m pytest                          # Run all Python tests
-python scripts/ottoneu_scraper.py         # Full scrape pipeline
-python scripts/enqueue.py batch           # Enqueue all jobs
-python scripts/worker.py                  # Process job queue
-python scripts/run_all_analyses.py        # Run all analysis scripts
-python scripts/check_db.py               # Verify database contents
-```
+## Verification
 
-### Using the Makefile
-```bash
-make test          # Run all tests (Python + web)
-make lint          # ESLint
-make typecheck     # TypeScript type check
-make build         # Production build
-make dev           # Start dev server
-```
+**Before creating a PR, run `make ci` to validate all checks pass.** This mirrors the GitHub Actions pipeline exactly.
 
 ## Git Workflow
 
-**CRITICAL: Never commit directly to `main`. All changes must go through pull requests.**
-
-**CRITICAL: Always conclude your work by creating a pull request.** Every task—no matter how small—must end with a branch pushed and a PR created via `gh pr create --fill`. Do not leave changes uncommitted or on a local branch without a PR.
+**CRITICAL: Never commit directly to `main`. All changes go through pull requests.**
 
 ```bash
-git checkout main && git pull origin main   # 1. Start from latest main
-git checkout -b descriptive-branch-name     # 2. Create feature branch
+git checkout main && git pull origin main
+git checkout -b descriptive-branch-name
 # ... make changes ...
-git add . && git commit -m "Description"    # 3. Commit
-git push -u origin descriptive-branch-name  # 4. Push
-gh pr create --fill                         # 5. Create PR (ALWAYS do this)
+git add . && git commit -m "Description"
+git push -u origin descriptive-branch-name
+gh pr create --fill              # ALWAYS create a PR
 ```
-
-## Architecture
-
-```
-Python Scripts (scripts/)
-        │ upsert via supabase-py
-        ▼
-   Supabase (PostgreSQL)
-        │ queried via @supabase/supabase-js
-        ▼
-   Next.js App (web/)
-```
-
-**Data pipeline:** Job queue pattern. `scripts/enqueue.py` → `scraper_jobs` table → `scripts/worker.py` dispatches tasks from `scripts/tasks/`. Three task types: `pull_nfl_stats`, `scrape_roster`, `scrape_player_card`.
-
-**Analysis pipeline:** `scripts/run_all_analyses.py` orchestrates in dependency order: projected salary → VORP → surplus value → arbitration → arbitration simulation. Shared config in `scripts/analysis_utils.py`.
 
 ## Key File Locations
 
-| Area | Path | Purpose |
+| Area | Path | Details |
 |------|------|---------|
-| Python config | `scripts/config.py` | All league constants, Supabase client factory |
-| TS config | `web/lib/config.ts` | Frontend constants (**must stay in sync with `config.py`**) |
+| Python config | `scripts/config.py` | All constants. **Must stay in sync with `web/lib/config.ts`** (enforced by `test_config_sync.py`) |
+| TS config | `web/lib/config.ts` | Frontend constants (synced with above) |
 | TS types | `web/lib/types.ts` | All shared TypeScript interfaces |
-| Analysis math | `web/lib/analysis.ts` | TS port of `scripts/analysis_utils.py` |
-| Arb logic | `web/lib/arb-logic.ts` | Arbitration simulation logic |
-| DB schema | `schema.sql` | Canonical schema definition |
+| DB schema | `schema.sql` | Canonical DDL |
 | Migrations | `migrations/` | Numbered SQL migration files |
 | Components | `web/components/` | Reusable React components |
 | Pages | `web/app/` | Next.js App Router pages |
-| CI/CD | `.github/workflows/` | GitHub Actions (tests, scraping, projections) |
+| CI/CD | `.github/workflows/` | GitHub Actions |
 
-## Database Schema
+## Deep Reference Docs
 
-Six tables, all with UUID primary keys:
+| Doc | What it covers |
+|-----|---------------|
+| `docs/database-schema.md` | All tables, columns, constraints, relationships |
+| `docs/domain-rules.md` | Ottoneu league rules: scoring, roster, salary cap, arbitration |
+| `docs/testing-guide.md` | Test frameworks, file locations, patterns, CI pipeline |
+| `ARCHITECTURE.md` | System architecture, data flow diagrams, pipeline design |
+| `docs/market-projections-plan.md` | Market projection feature design |
 
-- **`players`** — Player metadata. Unique on `ottoneu_id`.
-- **`player_stats`** — Season statistics. FK to `players`, unique on `(player_id, season)`.
-- **`league_prices`** — Current salaries. FK to `players`, unique on `(player_id, league_id)`.
-- **`transactions`** — Event log of all roster moves (adds, cuts, trades, auctions).
-- **`surplus_adjustments`** — Manual value overrides per player per league.
-- **`player_projections`** — Calculated projection outputs from Python backend.
+## Architecture (summary)
 
-See `schema.sql` for full DDL and `migrations/` for incremental changes.
+```
+Python Scripts (scripts/) → Supabase (PostgreSQL) → Next.js App (web/)
+```
+
+- **Data pipeline:** `enqueue.py` → `scraper_jobs` table → `worker.py` → `scripts/tasks/`
+- **Analysis pipeline:** `run_all_analyses.py` orchestrates: projected salary → VORP → surplus value → arbitration → simulation
+- **Config sync:** `scripts/config.py` ↔ `web/lib/config.ts` — enforced by structural test in CI
 
 ## Environment Variables
 
-**Root `.env`** (for Python scripts):
-- `SUPABASE_URL` — Supabase project URL
-- `SUPABASE_KEY` — Supabase anon/service key
-
-**`web/.env.local`** (for Next.js):
-- `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon key
-- `SUPABASE_SERVICE_ROLE_KEY` — Service role key (server-side only)
-
-See `.env.example` and `web/.env.local.example` for templates.
-
-## Testing
-
-**Python tests** (from `scripts/` directory):
-- Test files in `scripts/tests/`
-- Config in `pyproject.toml` (or `scripts/pytest.ini`)
-- Run: `python -m pytest` from project root
-
-**Web tests** (from `web/` directory):
-- Test files in `web/__tests__/`
-- Config in `web/jest.config.ts`
-- Run: `npm test` from `web/`
-
-**CI:** GitHub Actions runs both test suites on every PR (`.github/workflows/run-tests.yml`).
-
-## Domain Rules (Ottoneu League 309)
-
-- **12-team Superflex Half PPR** — QBs are highly valuable (almost always start 2)
-- **$400 salary cap** per team, 20 roster spots
-- **Arbitration (Feb 15–Mar 31):** $60 budget per team, $1–$8 per opponent, max $4 per player per team
-- **Annual raises:** +$4 active players, +$1 inactive
-- **Cut penalty:** Half salary (rounded up), 30-day re-acquisition block
-- **Key metrics:** PPG, PPS, VORP, Surplus Value, Dollar Value
+See `.env.example` (Python) and `web/.env.local.example` (Next.js) for required Supabase credentials.

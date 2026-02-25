@@ -4,7 +4,6 @@ Unit tests for calculate_vorp() from analyze_vorp.py.
 Tests use mock DataFrames — no Supabase calls.
 """
 import pandas as pd
-import pytest
 from scripts.analyze_vorp import calculate_vorp
 
 

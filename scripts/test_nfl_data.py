@@ -1,5 +1,4 @@
 import nfl_data_py as nfl
-import pandas as pd
 
 try:
     print("Fetching 2025 snap counts...")
