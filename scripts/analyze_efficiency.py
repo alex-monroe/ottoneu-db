@@ -1,6 +1,7 @@
 import os
 from typing import Optional
 import pandas as pd
+import numpy as np
 from config import SEASON
 from analysis_utils import fetch_all_data, merge_data
 
@@ -41,9 +42,12 @@ def analyze_efficiency(merged_df: pd.DataFrame) -> Optional[pd.DataFrame]:
     analysis_df['cost_per_ppg'] = analysis_df['price'] / analysis_df['ppg']
     
     # For PPS, protect against 0 PPS again just in case
-    analysis_df['cost_per_pps'] = analysis_df.apply(
-        lambda row: row['price'] / row['pps'] if row['pps'] > 0 else 9999.0, axis=1
-    )
+    with np.errstate(divide='ignore', invalid='ignore'):
+        analysis_df['cost_per_pps'] = np.where(
+            analysis_df['pps'] > 0,
+            analysis_df['price'] / analysis_df['pps'],
+            9999.0
+        )
     
     # Rounding
     analysis_df['cost_per_ppg'] = analysis_df['cost_per_ppg'].round(2)
