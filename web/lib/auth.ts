@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 
 const AUTH_COOKIE_NAME = "ottoneu_auth";
@@ -12,7 +13,11 @@ export function validatePassword(password: string): boolean {
     console.error("ACCESS_PASSWORD environment variable not set");
     return false;
   }
-  return password === correctPassword;
+
+  const passwordHash = createHash("sha256").update(password).digest();
+  const correctHash = createHash("sha256").update(correctPassword).digest();
+
+  return timingSafeEqual(passwordHash, correctHash);
 }
 
 /**
