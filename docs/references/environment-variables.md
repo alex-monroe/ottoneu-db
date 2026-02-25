@@ -14,6 +14,7 @@
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role key (server-side only) |
+| `ACCESS_PASSWORD` | Password for site access (server-side only) |
 
 ## Templates
 
