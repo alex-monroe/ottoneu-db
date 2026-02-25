@@ -69,8 +69,8 @@ describe("PlayerSearch", () => {
     it("filters by position", () => {
         render(<PlayerSearch players={mockPlayers} />);
 
-        // Assuming buttons will be identifiable by text content
-        const qbButton = screen.getByText("QB");
+        // Target the button specifically
+        const qbButton = screen.getByRole("button", { name: "QB" });
         fireEvent.click(qbButton);
 
         expect(screen.getByText("Player One")).toBeInTheDocument();

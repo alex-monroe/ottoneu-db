@@ -90,7 +90,7 @@ export default function PlayerSearch({ players }: PlayerSearchProps) {
                     <div className="p-8 text-center text-slate-500 dark:text-slate-400">
                         <p className="text-lg font-medium mb-1">No players found</p>
                         <p className="text-sm">
-                            Try adjusting your search for "{query}" or changing the position filter.
+                            Try adjusting your search for &quot;{query}&quot; or changing the position filter.
                         </p>
                     </div>
                 ) : (
