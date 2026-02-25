@@ -41,6 +41,7 @@ docs/
 
 ## Critical Rules
 
+- **Update documentation:** Always try to update the agent documentation after completing a task. Update existing documents or add new documents and sections as needed to reflect architectural or contextual changes.
 - **Never commit directly to `main`.** All changes go through pull requests.
 - **Always create a PR.** Every task must end with `gh pr create --fill`.
 - **Start from updated main:** `git checkout main && git pull origin main` before branching.
