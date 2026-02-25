@@ -28,7 +28,7 @@ export default function PlayerSearch({ players }: PlayerSearchProps) {
             {/* Search + Filters */}
             <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" aria-hidden="true" />
                     <input
                         type="text"
                         placeholder="Search by name or team…"
@@ -43,14 +43,14 @@ export default function PlayerSearch({ players }: PlayerSearchProps) {
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none focus:text-slate-600 dark:focus:text-slate-200"
                             aria-label="Clear search"
                         >
-                            <X className="h-4 w-4" />
+                            <X className="h-4 w-4" aria-hidden="true" />
                         </button>
                     )}
                 </div>
                 <div className="flex gap-1.5 flex-wrap">
                     <button
                         onClick={() => setPosition("ALL")}
-                        aria-pressed={position === "ALL"}
+                        aria-pressed={position === "ALL" ? "true" : "false"}
                         className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${position === "ALL"
                                 ? "bg-slate-800 text-white dark:bg-white dark:text-black"
                                 : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
@@ -62,7 +62,7 @@ export default function PlayerSearch({ players }: PlayerSearchProps) {
                         <button
                             key={pos}
                             onClick={() => setPosition(pos)}
-                            aria-pressed={position === pos}
+                            aria-pressed={position === pos ? "true" : "false"}
                             className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${position === pos
                                     ? "text-white"
                                     : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
