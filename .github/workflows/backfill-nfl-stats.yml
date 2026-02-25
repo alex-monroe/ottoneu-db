@@ -40,7 +40,7 @@ jobs:
       - name: Create .env
         run: |
           echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
-          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> .env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" >> .env
 
       - name: Run NFL stats backfill
         run: |
