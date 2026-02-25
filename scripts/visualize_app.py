@@ -1,29 +1,18 @@
-import os
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from supabase import create_client, Client
-from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+from scripts.config import get_supabase_client, LEAGUE_ID, SEASON
 
-# Supabase Setup
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-
-if not SUPABASE_URL or not SUPABASE_KEY:
-    st.error("Supabase URL and Key must be set in .env file")
-    st.stop()
 
 @st.cache_resource
 def init_supabase():
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
+    return get_supabase_client()
 
 supabase = init_supabase()
 
 @st.cache_data(ttl=600)
-def load_data(league_id=309, season=2025):
+def load_data(league_id=LEAGUE_ID, season=SEASON):
     # Fetch Players
     players_resp = supabase.table('players').select('*').execute()
     players_df = pd.DataFrame(players_resp.data)
@@ -67,7 +56,7 @@ st.title("Ottoneu Player Efficiency Visualization")
 
 # Sidebar Filters
 st.sidebar.header("Filters")
-selected_season = st.sidebar.number_input("Season", min_value=2020, max_value=2030, value=2025)
+selected_season = st.sidebar.number_input("Season", min_value=2020, max_value=2030, value=SEASON)
 min_games = st.sidebar.slider("Minimum Games Played", 0, 17, 1)
 
 # Load Data

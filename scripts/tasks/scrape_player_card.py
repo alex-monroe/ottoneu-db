@@ -3,6 +3,7 @@
 import re
 from datetime import datetime
 
+from scripts.config import LEAGUE_ID, SEASON
 from scripts.tasks import TaskResult
 
 
@@ -27,8 +28,8 @@ async def run(params: dict, context, supabase) -> TaskResult:
     player_name = params.get("player_name", "Unknown")
     player_uuid = params["player_uuid"]
     href = params["href"]
-    default_season = params.get("season", 2025)
-    league_id = params.get("league_id", 309)
+    default_season = params.get("season", SEASON)
+    league_id = params.get("league_id", LEAGUE_ID)
     fantasy_team = params.get("fantasy_team", "FA")
 
     if href.startswith("http"):

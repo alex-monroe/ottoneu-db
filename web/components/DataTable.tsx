@@ -1,21 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import type { Column, HighlightRule, TableRow } from "@/lib/types";
 
-export interface Column {
-  key: string;
-  label: string;
-  format?: "currency" | "number" | "decimal" | "percent";
-}
-
-export interface HighlightRule {
-  key: string;
-  op: "lt" | "gt" | "gte" | "lte" | "eq";
-  value: number | string;
-  className: string;
-}
-
-export type TableRow = Record<string, string | number | boolean | null | undefined>;
+// Re-export types for backward compatibility with existing imports
+export type { Column, HighlightRule, TableRow };
 
 interface DataTableProps<T extends TableRow = TableRow> {
   columns: Column[];

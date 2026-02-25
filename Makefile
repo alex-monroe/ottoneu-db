@@ -1,7 +1,7 @@
 # Makefile — Common commands for the Ottoneu DB project
 # Usage: make <target>
 
-.PHONY: install dev build lint typecheck test test-python test-web scrape analyze check-db help
+.PHONY: install dev build lint typecheck test test-python test-web scrape analyze check-db check-docs check-arch ci help
 
 # ──────────────────────────────────────────────
 # Setup
@@ -55,10 +55,21 @@ check-db: ## Verify database contents
 	. venv/bin/activate && python scripts/check_db.py
 
 # ──────────────────────────────────────────────
+# Harness checks (architectural enforcement)
+# ──────────────────────────────────────────────
+
+check-arch: ## Run architectural/structural tests only
+	. venv/bin/activate && python -m pytest scripts/tests/test_architecture.py -v
+	cd web && npx jest __tests__/lib/architecture.test.ts --no-coverage
+
+check-docs: ## Check documentation freshness
+	. venv/bin/activate && python scripts/check_docs_freshness.py
+
+# ──────────────────────────────────────────────
 # CI validation (mimics GitHub Actions)
 # ──────────────────────────────────────────────
 
-ci: lint typecheck test ## Run full CI suite locally
+ci: lint typecheck test check-docs ## Run full CI suite locally
 
 # ──────────────────────────────────────────────
 # Help

@@ -26,6 +26,9 @@ jobs:
       run: |
         python -m pytest --cov=. --cov-report=term-missing --cov-report=html:coverage-html
 
+    - name: Check documentation freshness
+      run: python scripts/check_docs_freshness.py
+
     - name: Upload Python coverage report
       if: always()
       uses: actions/upload-artifact@v4

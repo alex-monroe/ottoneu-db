@@ -7,7 +7,6 @@ import sys
 import uuid
 
 from dotenv import load_dotenv
-from supabase import create_client
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
