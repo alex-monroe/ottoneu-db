@@ -1,0 +1,51 @@
+name: Backfill NFL Stats
+
+on:
+  workflow_dispatch:
+    inputs:
+      seasons:
+        description: "Season year(s) to backfill — space-separated (e.g. '2010 2011 2012 ... 2024')"
+        required: true
+        default: "2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024"
+        type: string
+      dry_run:
+        description: "Dry run (parse data without writing to DB)"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install supabase python-dotenv nfl_data_py pandas numpy pyarrow
+
+      - name: Create .env
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> .env
+
+      - name: Run NFL stats backfill
+        run: |
+          ARGS="--seasons ${{ inputs.seasons }}"
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          python scripts/backfill_nfl_stats.py $ARGS

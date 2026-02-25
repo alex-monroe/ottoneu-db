@@ -79,6 +79,38 @@ create table player_projections (
   unique(player_id, season)
 );
 
+-- NFL stats: pure NFL statistical data from nflverse-data (2010-present)
+-- Separate from player_stats which tracks Ottoneu fantasy data
+create table nfl_stats (
+  id uuid default gen_random_uuid() primary key,
+  player_id uuid references players(id) not null,
+  season integer not null,
+  games_played integer,
+  passing_yards integer,
+  passing_tds integer,
+  interceptions integer,
+  rushing_yards integer,
+  rushing_tds integer,
+  rushing_attempts integer,
+  receptions integer,
+  targets integer,
+  receiving_yards integer,
+  receiving_tds integer,
+  fg_made_0_39 integer,
+  fg_made_40_49 integer,
+  fg_made_50_plus integer,
+  pat_made integer,
+  offense_snaps integer,
+  defense_snaps integer,
+  st_snaps integer,
+  total_snaps integer,
+  total_points numeric,
+  ppg numeric,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  unique(player_id, season)
+);
+
 -- Create indexes for performance
 create index idx_surplus_adjustments_league on surplus_adjustments(league_id);
 create index idx_surplus_adjustments_player on surplus_adjustments(player_id);
@@ -89,3 +121,5 @@ create index idx_league_prices_player_id on league_prices(player_id);
 create index idx_transactions_player_league on transactions(player_id, league_id, season);
 create index idx_player_projections_season on player_projections(season);
 create index idx_player_projections_player_id on player_projections(player_id);
+create index idx_nfl_stats_season on nfl_stats(season);
+create index idx_nfl_stats_player_id on nfl_stats(player_id);
