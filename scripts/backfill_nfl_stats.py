@@ -3,9 +3,11 @@
 Standalone script (not a queue task) that:
 1. Pulls per-season regular-season stats from nflverse-data parquet files
 2. Pulls snap count data from nflverse-data
-3. Creates players rows for historical NFL players not already in the DB
-4. Calculates Ottoneu Half PPR fantasy points
-5. Upserts everything into the nfl_stats table
+3. Calculates Ottoneu Half PPR fantasy points
+4. Upserts rows into nfl_stats for players already in the DB
+
+Note: Only players already in the `players` table will have stats backfilled.
+New players are added via the Ottoneu scraper (scrape-players GitHub Action).
 
 Usage:
     python scripts/backfill_nfl_stats.py                           # All seasons 2010-2024
@@ -16,7 +18,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import hashlib
 import math
 import os
 import sys
@@ -42,11 +43,6 @@ _STATS_PLAYER_URL = (
 _SNAP_COUNTS_URL = (
     "https://github.com/nflverse/nflverse-data/releases/download/"
     "snap_counts/snap_counts_{year}.parquet"
-)
-
-_ROSTERS_URL = (
-    "https://github.com/nflverse/nflverse-data/releases/download/"
-    "rosters/roster_{year}.parquet"
 )
 
 
@@ -84,19 +80,6 @@ def _safe_int(val: Any) -> int | None:
         return None
 
 
-def _generate_synthetic_ottoneu_id(nflverse_player_id: str) -> int:
-    """Generate a stable negative ottoneu_id from an nflverse player ID.
-
-    Uses a hash to produce a deterministic negative integer that won't
-    collide with real Ottoneu IDs (which are positive).
-    """
-    h = hashlib.md5(nflverse_player_id.encode()).hexdigest()
-    # Use first 7 hex chars -> up to ~268 million unique values
-    return -abs(int(h[:7], 16))
-
-
-VALID_POSITIONS = {"QB", "RB", "WR", "TE", "K"}
-
 
 # --- Data Loading ---
 
@@ -125,17 +108,6 @@ def load_snap_counts(year: int) -> pd.DataFrame | None:
         return None
 
 
-def load_rosters(year: int) -> pd.DataFrame | None:
-    """Fetch roster data for a season from nflverse-data."""
-    url = _ROSTERS_URL.format(year=year)
-    try:
-        df = pd.read_parquet(url)
-        return df
-    except Exception as e:
-        print(f"    SKIP rosters for {year}: {e}")
-        return None
-
-
 # --- Player Lookup ---
 
 def build_player_lookup(supabase) -> dict[str, str]:
@@ -147,12 +119,6 @@ def build_player_lookup(supabase) -> dict[str, str]:
         norm = normalize_player_name(p["name"])
         lookup[norm] = p["id"]
     return lookup
-
-
-def build_ottoneu_id_set(supabase) -> set[int]:
-    """Fetch all existing ottoneu_ids to avoid collisions."""
-    result = supabase.table("players").select("ottoneu_id").execute()
-    return {r["ottoneu_id"] for r in (result.data or [])}
 
 
 # --- Core Logic ---
@@ -224,109 +190,6 @@ def process_snap_counts(snaps_df: pd.DataFrame) -> pd.DataFrame:
     return agg
 
 
-def create_missing_players(
-    stats_df: pd.DataFrame,
-    roster_dfs: dict[int, pd.DataFrame],
-    player_lookup: dict[str, str],
-    existing_ottoneu_ids: set[int],
-    supabase,
-    dry_run: bool = False,
-) -> dict[str, str]:
-    """Create players rows for NFL players not already in the database.
-
-    Returns updated player_lookup dict.
-    """
-    # Collect all unique player names from stats
-    all_names = set(stats_df["player_display_name"].dropna().unique())
-    missing_names: set[str] = set()
-
-    for name in all_names:
-        norm = normalize_player_name(str(name))
-        if norm not in player_lookup:
-            missing_names.add(str(name))
-
-    if not missing_names:
-        print(f"  All {len(all_names)} players already in DB.")
-        return player_lookup
-
-    print(f"  Found {len(missing_names)} players not in DB. Creating...")
-
-    # Build a roster lookup for position/team info
-    roster_info: dict[str, dict[str, str]] = {}
-    for year, rdf in roster_dfs.items():
-        if rdf is None:
-            continue
-        name_col = "player_name" if "player_name" in rdf.columns else "full_name"
-        if name_col not in rdf.columns:
-            continue
-        pid_col = "player_id" if "player_id" in rdf.columns else "gsis_id"
-        for _, row in rdf.iterrows():
-            rname = str(row.get(name_col, ""))
-            norm = normalize_player_name(rname)
-            if norm not in roster_info:
-                pos = str(row.get("position", "")) if pd.notna(row.get("position")) else ""
-                team = str(row.get("team", "")) if pd.notna(row.get("team")) else "FA"
-                pid = str(row.get(pid_col, "")) if pd.notna(row.get(pid_col)) else ""
-                roster_info[norm] = {"position": pos, "team": team, "nflverse_id": pid}
-
-    # Also collect position info from the stats dataframe itself
-    stats_position_info: dict[str, str] = {}
-    if "position" in stats_df.columns:
-        for _, row in stats_df[["player_display_name", "position"]].drop_duplicates().iterrows():
-            norm = normalize_player_name(str(row["player_display_name"]))
-            pos = str(row["position"]) if pd.notna(row.get("position")) else ""
-            if pos:
-                stats_position_info[norm] = pos
-
-    new_players: list[dict] = []
-    for name in missing_names:
-        norm = normalize_player_name(name)
-        info = roster_info.get(norm, {})
-        position = info.get("position", stats_position_info.get(norm, ""))
-        team = info.get("team", "FA")
-        nflverse_id = info.get("nflverse_id", name)
-
-        # Only create players at fantasy-relevant positions
-        if position not in VALID_POSITIONS:
-            continue
-
-        synthetic_id = _generate_synthetic_ottoneu_id(nflverse_id if nflverse_id else name)
-        # Handle collision (extremely unlikely but be safe)
-        while synthetic_id in existing_ottoneu_ids:
-            synthetic_id -= 1
-
-        existing_ottoneu_ids.add(synthetic_id)
-        new_players.append({
-            "ottoneu_id": synthetic_id,
-            "name": name,
-            "position": position,
-            "nfl_team": team,
-            "is_college": False,
-        })
-
-    if dry_run:
-        print(f"  [DRY RUN] Would create {len(new_players)} new player rows.")
-        sample = new_players[:5]
-        for p in sample:
-            print(f"    {p['name']} ({p['position']}, {p['nfl_team']}, ottoneu_id={p['ottoneu_id']})")
-        return player_lookup
-
-    # Batch upsert new players
-    batch_size = 200
-    created = 0
-    for i in range(0, len(new_players), batch_size):
-        batch = new_players[i:i + batch_size]
-        result = supabase.table("players").upsert(
-            batch, on_conflict="ottoneu_id"
-        ).execute()
-        returned = result.data or []
-        for p in returned:
-            norm = normalize_player_name(p["name"])
-            player_lookup[norm] = p["id"]
-            created += 1
-
-    print(f"  Created {created} new player rows.")
-    return player_lookup
 
 
 def backfill_seasons(
@@ -338,14 +201,12 @@ def backfill_seasons(
 
     print("Building player lookup from DB...")
     player_lookup = build_player_lookup(supabase)
-    existing_ottoneu_ids = build_ottoneu_id_set(supabase)
     print(f"  {len(player_lookup)} players in DB.")
 
     # Phase 1: Load all data
     print(f"\n=== Phase 1: Loading data for {len(seasons)} seasons ===")
     all_stats_frames: list[pd.DataFrame] = []
     all_snap_frames: dict[int, pd.DataFrame] = {}
-    all_roster_frames: dict[int, pd.DataFrame] = {}
 
     for year in seasons:
         print(f"\n  Season {year}:")
@@ -360,25 +221,12 @@ def backfill_seasons(
             all_snap_frames[year] = snaps
             print(f"    Snaps: {len(snaps)} rows")
 
-        rosters = load_rosters(year)
-        if rosters is not None:
-            all_roster_frames[year] = rosters
-            print(f"    Rosters: {len(rosters)} rows")
-
     if not all_stats_frames:
         print("No stats data loaded. Exiting.")
         return
 
     combined_stats = pd.concat(all_stats_frames, ignore_index=True)
     print(f"\n  Total raw stats rows: {len(combined_stats)}")
-
-    # Phase 2: Create missing players
-    print("\n=== Phase 2: Creating missing players ===")
-    player_lookup = create_missing_players(
-        combined_stats, all_roster_frames,
-        player_lookup, existing_ottoneu_ids,
-        supabase, dry_run=dry_run,
-    )
 
     # Phase 3: Process and upsert stats
     print("\n=== Phase 3: Processing stats ===")
