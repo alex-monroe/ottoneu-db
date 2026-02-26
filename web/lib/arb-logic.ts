@@ -536,12 +536,12 @@ export function runArbitrationSimulation(
     // Aggregate simulation results
     const results: SimulationResult[] = [];
 
-    for (const [key, amounts] of arbResults.entries()) {
-        const [playerName, teamName] = key.split('|');
+    const playerLookupMap = new Map(
+        surplusPlayersNoKickers.map(p => [`${p.name}|${p.team_name}`, p])
+    );
 
-        const playerData = surplusPlayersNoKickers.find(
-            p => p.name === playerName && p.team_name === teamName
-        );
+    for (const [key, amounts] of arbResults.entries()) {
+        const playerData = playerLookupMap.get(key);
 
         if (!playerData) continue;
 

@@ -34,11 +34,14 @@ export async function fetchAndMergeData(): Promise<Player[]> {
 
   if (!players || !stats || !prices) return [];
 
+  const statsMap = new Map(stats.map((s) => [String(s.player_id), s]));
+  const pricesMap = new Map(prices.map((p) => [String(p.player_id), p]));
+
   const merged: Player[] = [];
 
   for (const player of players) {
-    const pStats = stats.find((s) => s.player_id === player.id);
-    const pPrice = prices.find((p) => p.player_id === player.id);
+    const pStats = statsMap.get(String(player.id));
+    const pPrice = pricesMap.get(String(player.id));
 
     // Include all players that have stats, even if no price (free agents)
     if (!pStats) continue;
