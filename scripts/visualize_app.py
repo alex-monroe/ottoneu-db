@@ -1,24 +1,17 @@
 import os
+import sys
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from supabase import create_client, Client
-from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Add project root to path so absolute imports work
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Supabase Setup
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-
-if not SUPABASE_URL or not SUPABASE_KEY:
-    st.error("Supabase URL and Key must be set in .env file")
-    st.stop()
+from scripts.config import get_supabase_client
 
 @st.cache_resource
 def init_supabase():
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
+    return get_supabase_client()
 
 supabase = init_supabase()
 

@@ -1,18 +1,14 @@
 
 import os
-from supabase import create_client, Client
-from dotenv import load_dotenv
+import sys
+from supabase import Client
 
-load_dotenv()
+# Add project root to path so absolute imports work
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+from scripts.config import get_supabase_client
 
-if not SUPABASE_URL or not SUPABASE_KEY:
-    print("Error: SUPABASE_URL and SUPABASE_KEY must be set in .env")
-    exit(1)
-
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase: Client = get_supabase_client()
 
 def check_data():
     print("Checking database for player stats and prices...")
