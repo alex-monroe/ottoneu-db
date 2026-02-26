@@ -55,6 +55,7 @@ function NavDropdown({
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const hasActiveChild = links.some((l) => pathname === l.href);
+  const dropdownId = `nav-dropdown-${label.toLowerCase().replace(/\s+/g, '-')}`;
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -77,20 +78,27 @@ function NavDropdown({
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-haspopup="true"
+        aria-controls={dropdownId}
         className={`inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${hasActiveChild
             ? "bg-blue-600 text-white"
             : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
           }`}
       >
-        <Lock size={12} className={hasActiveChild ? "opacity-80" : "opacity-60"} />
+        <Lock size={12} className={hasActiveChild ? "opacity-80" : "opacity-60"} aria-hidden="true" />
         {label}
         <ChevronDown
           size={14}
           className={`transition-transform ${open ? "rotate-180" : ""}`}
+          aria-hidden="true"
         />
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-50 min-w-[180px] rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg py-1">
+        <div
+          id={dropdownId}
+          className="absolute left-0 top-full mt-1 z-50 min-w-[180px] rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg py-1"
+        >
           {links.map((link) => {
             const isActive = pathname === link.href;
             return (
