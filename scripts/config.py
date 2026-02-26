@@ -37,6 +37,7 @@ NUM_TEAMS = _config["NUM_TEAMS"]
 CAP_PER_TEAM = _config["CAP_PER_TEAM"]
 POSITIONS = _config["POSITIONS"]
 COLLEGE_POSITIONS = _config["COLLEGE_POSITIONS"]
+SCORING_SETTINGS = _config["SCORING_SETTINGS"]
 
 # === Analysis Configuration ===
 MIN_GAMES = _config["MIN_GAMES"]

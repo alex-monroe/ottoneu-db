@@ -12,6 +12,7 @@ export const HISTORICAL_SEASONS = config.HISTORICAL_SEASONS;
 export const MY_TEAM = config.MY_TEAM;
 export const NUM_TEAMS = config.NUM_TEAMS;
 export const CAP_PER_TEAM = config.CAP_PER_TEAM;
+export const SCORING_SETTINGS = config.SCORING_SETTINGS;
 export const MIN_GAMES = config.MIN_GAMES;
 
 // Replacement level: approximate number of fantasy-relevant players per position

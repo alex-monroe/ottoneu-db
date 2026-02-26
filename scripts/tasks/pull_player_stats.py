@@ -20,6 +20,7 @@ from supabase import Client
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
+from scripts.config import SCORING_SETTINGS
 from scripts.tasks import TaskResult
 from scripts.name_utils import normalize_player_name
 
@@ -31,20 +32,10 @@ _STATS_PLAYER_URL = (
 
 def _calc_points(row: dict) -> float:
     """Calculate Ottoneu fantasy points from raw stats using Half PPR scoring."""
-    return (
-        (row.get("passing_yards") or 0) * 0.04 +
-        (row.get("passing_tds") or 0) * 4 +
-        (row.get("interceptions") or 0) * -2 +
-        (row.get("rushing_yards") or 0) * 0.1 +
-        (row.get("rushing_tds") or 0) * 6 +
-        (row.get("receptions") or 0) * 0.5 +
-        (row.get("receiving_yards") or 0) * 0.1 +
-        (row.get("receiving_tds") or 0) * 6 +
-        (row.get("fg_made_0_39") or 0) * 3 +
-        (row.get("fg_made_40_49") or 0) * 4 +
-        (row.get("fg_made_50_plus") or 0) * 5 +
-        (row.get("pat_made") or 0) * 1
-    )
+    points = 0.0
+    for stat, multiplier in SCORING_SETTINGS.items():
+        points += (row.get(stat) or 0) * multiplier
+    return points
 
 
 def _build_player_lookup(supabase: Client) -> dict[str, str]:
