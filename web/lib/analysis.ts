@@ -6,6 +6,7 @@ import {
 import type { Player, BacktestPlayer } from "./types";
 
 export * from "./arb-logic";
+export type { Player, SimulationResult } from "./types";
 
 // === Projection Year Config ===
 export const PROJECTION_YEARS = [2025, 2026] as const;

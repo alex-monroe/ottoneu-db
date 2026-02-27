@@ -6,8 +6,8 @@ import {
   MY_TEAM,
   NUM_SIMULATIONS,
   VALUE_VARIATION,
-  Player,
 } from "@/lib/analysis";
+import { Player } from "@/lib/types";
 import DataTable, { Column, HighlightRule } from "@/components/DataTable";
 import SimulationTeams from "./SimulationTeams";
 
