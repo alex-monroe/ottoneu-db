@@ -27,6 +27,7 @@ export default function PositionFilter({
       {showAll && onToggleAll && (
         <button
           onClick={onToggleAll}
+          aria-pressed={selectedPositions.length === positions.length ? "true" : "false"}
           className={`px-3 py-1 rounded-full text-sm font-medium transition-colors border ${
             selectedPositions.length === positions.length
               ? "bg-slate-700 text-white border-transparent"
@@ -40,6 +41,7 @@ export default function PositionFilter({
         <button
           key={pos}
           onClick={() => onToggle(pos)}
+          aria-pressed={selectedPositions.includes(pos) ? "true" : "false"}
           className={`px-3 py-1 rounded-full text-sm font-medium transition-colors border ${
             selectedPositions.includes(pos)
               ? "text-white border-transparent"
