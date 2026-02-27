@@ -2,9 +2,8 @@ import { supabase } from "./supabase";
 import {
   LEAGUE_ID,
   SEASON,
-  Player,
 } from "./arb-logic";
-import type { BacktestPlayer } from "./types";
+import type { Player, BacktestPlayer } from "./types";
 
 export * from "./arb-logic";
 

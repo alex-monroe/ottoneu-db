@@ -14,12 +14,14 @@ export interface Player {
   nfl_team: string;
   price: number;
   team_name: string | null;
+  birth_date?: string | null;
   is_college?: boolean;
   total_points: number;
   games_played: number;
   snaps: number;
   ppg: number;
   pps: number;
+  [key: string]: string | number | boolean | null | undefined;
 }
 
 export interface VorpPlayer extends Player {
@@ -31,6 +33,38 @@ export interface VorpPlayer extends Player {
 export interface SurplusPlayer extends VorpPlayer {
   dollar_value: number;
   surplus: number;
+}
+
+export interface ProjectedSalaryPlayer extends SurplusPlayer {
+  recommendation: string;
+}
+
+export interface ArbitrationTarget extends SurplusPlayer {
+  salary_after_arb: number;
+  surplus_after_arb: number;
+}
+
+export interface TeamAllocation {
+  team: string;
+  suggested: number;
+  players: {
+    name: string;
+    position: string;
+    price: number;
+    dollar_value: number;
+    surplus: number;
+    surplus_after_arb: number;
+  }[];
+}
+
+export interface SimulationResult extends SurplusPlayer {
+  mean_arb: number;
+  std_arb: number;
+  min_arb: number;
+  max_arb: number;
+  pct_protected: number;
+  salary_after_arb: number;
+  surplus_after_arb: number;
 }
 
 // === Chart Types ===

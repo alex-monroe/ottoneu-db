@@ -13,7 +13,7 @@ import {
   DEFAULT_PROJECTION_YEAR,
   getHistoricalSeasonsForYear,
 } from "@/lib/analysis";
-import { ArbitrationTarget } from "@/lib/arb-logic";
+import { ArbitrationTarget } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import DataTable, { Column, HighlightRule } from "@/components/DataTable";
 import ArbitrationTeams from "./ArbitrationTeams";
