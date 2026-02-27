@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { SurplusPlayer, MY_TEAM } from "@/lib/arb-logic";
+import { MY_TEAM } from "@/lib/arb-logic";
+import { SurplusPlayer } from "@/lib/types";
 
 interface AdjustmentEntry {
   adjustment: number;

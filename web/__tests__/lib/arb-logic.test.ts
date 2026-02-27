@@ -11,9 +11,12 @@ import {
     allocateArbitrationBudget,
     analyzeProjectedSalary,
     runArbitrationSimulation,
+} from "@/lib/arb-logic";
+
+import {
     Player,
     ArbitrationTarget,
-} from "@/lib/arb-logic";
+} from "@/lib/types";
 
 // ---------------------------------------------------------------------------
 // Helpers
