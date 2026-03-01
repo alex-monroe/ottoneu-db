@@ -15,6 +15,10 @@ import {
 
 import { calculateSurplus } from "./surplus";
 
+/**
+ * Analyzes opposing rosters to identify potential arbitration targets.
+ * Focuses on players with positive surplus even after applying the $4 arbitration bump.
+ */
 export function analyzeArbitration(
     allPlayers: Player[],
     adjustments?: Map<string, number>
@@ -53,6 +57,10 @@ export function analyzeArbitration(
         .sort((a, b) => b.surplus - a.surplus);
 }
 
+/**
+ * Distributes the $60 team arbitration budget proportionally among opponent teams
+ * based on the surplus value of their top targets, ensuring minimum and maximum bounds.
+ */
 export function allocateArbitrationBudget(targets: ArbitrationTarget[]): TeamAllocation[] {
     // Group targets by team
     const teamTargets = new Map<string, ArbitrationTarget[]>();

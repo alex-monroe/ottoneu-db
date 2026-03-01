@@ -14,6 +14,11 @@ function percentile(sorted: number[], p: number): number {
     return sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo);
 }
 
+/**
+ * Calculates Value Over Replacement Player (VORP) for a given list of players.
+ * It determines positional replacement levels either by the salary-implied bottom quartile
+ * or by fixed rank fallbacks, then assigns VORP fields to each player.
+ */
 export function calculateVorp(
     players: Player[],
     minGames: number = MIN_GAMES

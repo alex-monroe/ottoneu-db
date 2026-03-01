@@ -2,6 +2,10 @@ import { NUM_TEAMS, CAP_PER_TEAM, MY_TEAM } from "./config";
 import { Player, SurplusPlayer, ProjectedSalaryPlayer } from "./types";
 import { calculateVorp } from "./vorp";
 
+/**
+ * Calculates the surplus value (dollar_value - salary) for each player based on their VORP.
+ * Allocates a percentage of the total league cap across all positive VORP production.
+ */
 export function calculateSurplus(
     players: Player[],
     adjustments?: Map<string, number>
@@ -32,6 +36,10 @@ export function calculateSurplus(
     });
 }
 
+/**
+ * Analyzes MY_TEAM's projected salary by categorizing players into keep/cut
+ * classifications based on surplus value thresholds.
+ */
 export function analyzeProjectedSalary(
     allPlayers: Player[]
 ): ProjectedSalaryPlayer[] {
