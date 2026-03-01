@@ -39,6 +39,7 @@ const PRIVATE_GROUPS = [
     links: [
       { href: "/arbitration", label: "Arbitration" },
       { href: "/arbitration-simulation", label: "Arb Simulation" },
+      { href: "/arbitration-planner", label: "Arb Planner" },
     ],
   },
 ];

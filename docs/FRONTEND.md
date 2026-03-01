@@ -13,6 +13,7 @@ Next.js App Router with five pages. All pages are server components that fetch l
 | `/vorp` | VORP analysis with bar chart and filterable table |
 | `/surplus-value` | Surplus value rankings, bargains, overpaid, team summaries |
 | `/arbitration` | Arbitration targets with per-opponent breakdown |
+| `/arbitration-planner` | Interactive planner to allocate $60 arbitration budget across opponents, save/compare plans |
 
 ## Reusable Components
 
@@ -35,7 +36,7 @@ Shared type definitions in `web/lib/types.ts`:
 
 ## Analysis Logic
 
-Analysis math is ported to `web/lib/analysis.ts` (TS equivalent of `scripts/analysis_utils.py`). Arbitration simulation logic lives in `web/lib/arb-logic.ts`.
+Analysis math is ported to `web/lib/analysis.ts` (TS equivalent of `scripts/analysis_utils.py`). Arbitration logic is split across `web/lib/vorp.ts`, `web/lib/surplus.ts`, `web/lib/arbitration.ts`, and `web/lib/simulation.ts`, re-exported from `web/lib/arb-logic.ts`.
 
 ## Configuration
 

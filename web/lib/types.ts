@@ -185,6 +185,36 @@ export interface BacktestPlayer {
   [key: string]: string | number | null | undefined;
 }
 
+// === Arbitration Planner Types ===
+
+export interface ArbitrationPlan {
+  id: string;
+  league_id: number;
+  name: string;
+  created_at: string;
+  updated_at: string;
+  allocations: Record<string, number>; // player_id -> amount (1-4)
+}
+
+export interface PlannerPlayer {
+  player_id: string;
+  name: string;
+  position: string;
+  nfl_team: string;
+  price: number;
+  team_name: string;
+  dollar_value: number;
+  surplus: number;
+  adjusted_surplus: number;
+  [key: string]: string | number | boolean | null | undefined;
+}
+
+export interface PlannerTeam {
+  team_name: string;
+  players: PlannerPlayer[];
+  total_salary: number;
+}
+
 // === DataTable Types ===
 
 export interface Column {

@@ -111,6 +111,46 @@ create table nfl_stats (
   unique(player_id, season)
 );
 
+-- Stores saved arbitration plans for manual allocation strategies
+create table arbitration_plans (
+  id uuid default gen_random_uuid() primary key,
+  league_id integer not null,
+  name text not null,
+  created_at timestamp with time zone default now() not null,
+  updated_at timestamp with time zone default now() not null,
+  unique(league_id, name)
+);
+
+-- Stores per-player dollar allocations within an arbitration plan
+create table arbitration_plan_allocations (
+  id uuid default gen_random_uuid() primary key,
+  plan_id uuid references arbitration_plans(id) on delete cascade not null,
+  player_id uuid references players(id) not null,
+  amount integer not null check (amount >= 1 and amount <= 4),
+  created_at timestamp with time zone default now() not null,
+  unique(plan_id, player_id)
+);
+
+-- Stores saved arbitration plans for comparing allocation strategies
+create table arbitration_plans (
+  id uuid default gen_random_uuid() primary key,
+  league_id integer not null,
+  name text not null,
+  created_at timestamp with time zone default now() not null,
+  updated_at timestamp with time zone default now() not null,
+  unique(league_id, name)
+);
+
+-- Stores per-player dollar allocations within an arbitration plan
+create table arbitration_plan_allocations (
+  id uuid default gen_random_uuid() primary key,
+  plan_id uuid references arbitration_plans(id) on delete cascade not null,
+  player_id uuid references players(id) not null,
+  amount integer not null check (amount >= 1 and amount <= 4),
+  created_at timestamp with time zone default now() not null,
+  unique(plan_id, player_id)
+);
+
 -- Create indexes for performance
 create index idx_surplus_adjustments_league on surplus_adjustments(league_id);
 create index idx_surplus_adjustments_player on surplus_adjustments(player_id);
@@ -123,3 +163,6 @@ create index idx_player_projections_season on player_projections(season);
 create index idx_player_projections_player_id on player_projections(player_id);
 create index idx_nfl_stats_season on nfl_stats(season);
 create index idx_nfl_stats_player_id on nfl_stats(player_id);
+create index idx_arb_plans_league on arbitration_plans(league_id);
+create index idx_arb_plan_allocs_plan on arbitration_plan_allocations(plan_id);
+create index idx_arb_plan_allocs_player on arbitration_plan_allocations(player_id);

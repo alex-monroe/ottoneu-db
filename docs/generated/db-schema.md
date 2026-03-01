@@ -1,6 +1,6 @@
 # Database Schema
 
-Six tables, all with UUID primary keys.
+Nine tables, all with UUID primary keys.
 
 ## Tables
 
@@ -13,6 +13,8 @@ Six tables, all with UUID primary keys.
 | `transactions` | Event log of all roster moves (adds, cuts, trades, auctions) | — |
 | `surplus_adjustments` | Manual value overrides per player per league | — |
 | `player_projections` | Calculated projection outputs from Python backend | — |
+| `arbitration_plans` | Saved arbitration allocation plans per league | `(league_id, name)` |
+| `arbitration_plan_allocations` | Per-player dollar allocations within a plan (FK → `arbitration_plans`, `players`) | `(plan_id, player_id)` |
 
 ## Schema Files
 
@@ -25,3 +27,5 @@ Six tables, all with UUID primary keys.
 - `player_stats.player_id` → `players.id`
 - `nfl_stats.player_id` → `players.id`
 - `league_prices.player_id` → `players.id`
+- `arbitration_plan_allocations.plan_id` → `arbitration_plans.id` (CASCADE DELETE)
+- `arbitration_plan_allocations.player_id` → `players.id`
