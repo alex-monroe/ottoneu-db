@@ -60,9 +60,10 @@ export default function PlayerScatterChart({ data, onMinGamesChange }: ScatterCh
         <div className="w-full h-[600px] bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 flex flex-col">
             <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
                 <div className="flex flex-wrap items-center gap-4">
-                    <div className="flex bg-slate-200 dark:bg-slate-800 rounded-lg p-1">
+                    <div className="flex bg-slate-200 dark:bg-slate-800 rounded-lg p-1" role="group" aria-label="Metric Toggle">
                         <button
                             onClick={() => setMetric('PPG')}
+                            aria-pressed={metric === 'PPG'}
                             className={`px-3 py-1 text-sm font-medium rounded-md transition-all ${metric === 'PPG'
                                 ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
                                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
@@ -72,6 +73,7 @@ export default function PlayerScatterChart({ data, onMinGamesChange }: ScatterCh
                         </button>
                         <button
                             onClick={() => setMetric('PPS')}
+                            aria-pressed={metric === 'PPS'}
                             className={`px-3 py-1 text-sm font-medium rounded-md transition-all ${metric === 'PPS'
                                 ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
                                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
@@ -82,8 +84,9 @@ export default function PlayerScatterChart({ data, onMinGamesChange }: ScatterCh
                     </div>
 
                     <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
-                        <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Min Games: {minGames}</span>
+                        <label htmlFor="min-games" className="text-sm font-medium text-slate-600 dark:text-slate-300">Min Games: {minGames}</label>
                         <input
+                            id="min-games"
                             type="range"
                             min="0"
                             max="17"
