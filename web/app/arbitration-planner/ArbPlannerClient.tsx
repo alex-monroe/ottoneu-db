@@ -265,16 +265,10 @@ export default function ArbPlannerClient({
     setSavedAllocations(newAllocations);
   };
 
-  // Sort teams: teams with allocations first, then alphabetically
+  // Stable alphabetical order — no re-sorting on allocation changes
   const sortedTeams = useMemo(() => {
-    return [...opponentTeams].sort((a, b) => {
-      const allocA = teamAllocated.get(a) ?? 0;
-      const allocB = teamAllocated.get(b) ?? 0;
-      if (allocA > 0 && allocB === 0) return -1;
-      if (allocA === 0 && allocB > 0) return 1;
-      return a.localeCompare(b);
-    });
-  }, [opponentTeams, teamAllocated]);
+    return [...opponentTeams].sort((a, b) => a.localeCompare(b));
+  }, [opponentTeams]);
 
   return (
     <div className="space-y-6">
