@@ -74,13 +74,14 @@ class ScraperWorker:
         Eligible = status 'pending', attempts < max_attempts,
         dependency (if any) is completed.
         """
-        # Get all pending jobs ordered by priority desc, created_at asc
+        # Get up to 10 pending jobs ordered by priority desc, created_at asc
         result = (
             self.supabase.table("scraper_jobs")
             .select("*")
             .eq("status", "pending")
             .order("priority", desc=True)
             .order("created_at")
+            .limit(10)
             .execute()
         )
 
