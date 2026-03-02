@@ -17,19 +17,16 @@ export default async function ArbitrationPlannerPage() {
   // Fetch player data and compute targets
   const allPlayers = await fetchPlayersWithProjectedPpg();
 
-  // Fetch surplus adjustments
+  // Fetch surplus adjustments (applied separately in client, not baked into targets)
   const adjRes = await supabase
     .from("surplus_adjustments")
     .select("player_id, adjustment")
     .eq("league_id", LEAGUE_ID)
     .neq("adjustment", 0);
 
-  const adjustments =
-    adjRes.data && adjRes.data.length > 0
-      ? new Map(adjRes.data.map((r) => [String(r.player_id), Number(r.adjustment)]))
-      : undefined;
-
-  const targets = analyzeArbitration(allPlayers, adjustments);
+  // Use raw values (no adjustments) so Value/Surplus columns match the arbitration page.
+  // Adjustments are shown separately in the "Adj. Surplus" column.
+  const targets = analyzeArbitration(allPlayers);
   const suggestedAllocations = allocateArbitrationBudget(targets);
 
   // Get unique opponent team names
