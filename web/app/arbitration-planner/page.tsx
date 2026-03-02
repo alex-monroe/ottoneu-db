@@ -1,5 +1,5 @@
 import {
-  fetchPlayersWithProjectedPpg,
+  fetchAndMergeData,
   analyzeArbitration,
   allocateArbitrationBudget,
   LEAGUE_ID,
@@ -14,8 +14,8 @@ import { supabase } from "@/lib/supabase";
 import ArbPlannerClient from "./ArbPlannerClient";
 
 export default async function ArbitrationPlannerPage() {
-  // Fetch player data and compute targets
-  const allPlayers = await fetchPlayersWithProjectedPpg();
+  // Fetch observed stats — matches the surplus value page's data source
+  const allPlayers = await fetchAndMergeData();
 
   // Fetch surplus adjustments (applied separately in client, not baked into targets)
   const adjRes = await supabase
