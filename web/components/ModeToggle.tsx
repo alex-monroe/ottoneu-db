@@ -34,20 +34,33 @@ export default function ModeToggle({
   return (
     <div className="flex items-center gap-2">
       <span className="text-sm text-slate-600 dark:text-slate-400">Values:</span>
-      <div className="flex rounded-md overflow-hidden border border-slate-200 dark:border-slate-700 text-sm font-medium">
-        <Link href={buildUrl("raw")} className={btnClass("raw")}>
+      <div
+        className="flex rounded-md overflow-hidden border border-slate-200 dark:border-slate-700 text-sm font-medium"
+        role="group"
+        aria-label="Value Modes"
+      >
+        <Link
+          href={buildUrl("raw")}
+          className={btnClass("raw")}
+          aria-current={currentMode === "raw" ? "page" : undefined}
+        >
           Raw
         </Link>
         <Link
           href={buildUrl("adjusted")}
           className={`${btnClass("adjusted")} flex items-center gap-1.5`}
+          aria-current={currentMode === "adjusted" ? "page" : undefined}
         >
           Adjusted
           {hasAdjustments && currentMode !== "adjusted" && (
-            <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
+            <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" aria-hidden="true" />
           )}
         </Link>
-        <Link href={buildUrl("projected")} className={btnClass("projected")}>
+        <Link
+          href={buildUrl("projected")}
+          className={btnClass("projected")}
+          aria-current={currentMode === "projected" ? "page" : undefined}
+        >
           Projected
         </Link>
       </div>
