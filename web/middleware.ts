@@ -27,7 +27,9 @@ export async function middleware(request: NextRequest) {
   }
 
   const isApiRoute = pathname.startsWith("/api");
-  const isPublicApiRoute = PUBLIC_API_ROUTES.some((route) => pathname.startsWith(route));
+  const isPublicApiRoute = PUBLIC_API_ROUTES.some((route) =>
+    pathname === route || pathname.startsWith(route + "/") || pathname.startsWith(route + "?")
+  );
 
   // Allow public API routes
   if (isApiRoute && isPublicApiRoute) {
