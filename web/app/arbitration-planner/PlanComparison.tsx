@@ -12,7 +12,7 @@ interface PlanComparisonProps {
 export default function PlanComparison({
   plans,
   playerMap,
-  playerTeamMap,
+  playerTeamMap: _playerTeamMap,
 }: PlanComparisonProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [loadedPlans, setLoadedPlans] = useState<Map<string, ArbitrationPlanWithAllocations>>(new Map());
