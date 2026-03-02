@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifySession } from "./lib/session";
 
-const PROTECTED_ROUTES = [
+export const PROTECTED_ROUTES = [
   "/projected-salary",
   "/vorp",
   "/surplus-value",
@@ -13,7 +13,7 @@ const PROTECTED_ROUTES = [
   "/projection-accuracy",
 ];
 
-const PUBLIC_API_ROUTES = [
+export const PUBLIC_API_ROUTES = [
   "/api/auth/login",
   "/api/auth/logout",
 ];
