@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { verifySession } from "./lib/session";
 
 const PROTECTED_ROUTES = [
   "/projected-salary",
@@ -12,7 +13,7 @@ const PROTECTED_ROUTES = [
   "/projection-accuracy",
 ];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow API routes and public assets
@@ -31,7 +32,7 @@ export function middleware(request: NextRequest) {
 
   // Check for authentication cookie
   const authCookie = request.cookies.get("ottoneu_auth");
-  const isAuthenticated = authCookie?.value === "authenticated";
+  const isAuthenticated = await verifySession(authCookie?.value);
 
   if (!isAuthenticated) {
     // Redirect to login with original path as redirect parameter

@@ -1,5 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
+import { signSession, verifySession } from "./session";
 
 const AUTH_COOKIE_NAME = "ottoneu_auth";
 const COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
@@ -25,7 +26,8 @@ export function validatePassword(password: string): boolean {
  */
 export async function setAuthCookie(): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.set(AUTH_COOKIE_NAME, "authenticated", {
+  const token = await signSession();
+  cookieStore.set(AUTH_COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -48,5 +50,5 @@ export async function clearAuthCookie(): Promise<void> {
 export async function isAuthenticated(): Promise<boolean> {
   const cookieStore = await cookies();
   const authCookie = cookieStore.get(AUTH_COOKIE_NAME);
-  return authCookie?.value === "authenticated";
+  return verifySession(authCookie?.value);
 }
