@@ -34,7 +34,8 @@ function bufferToBase64Url(buffer: ArrayBuffer): string {
 function base64UrlToBuffer(base64Url: string): ArrayBuffer {
   // Pad the string with '=' to make its length a multiple of 4
   let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-  while (base64.length % 4) {
+  const originalLength = base64.length;
+  while (base64.length % 4 && base64.length < originalLength + 3) {
     base64 += '=';
   }
 
@@ -55,7 +56,8 @@ function stringToBase64Url(str: string): string {
 
 function base64UrlToString(base64Url: string): string {
   let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-  while (base64.length % 4) {
+  const originalLength = base64.length;
+  while (base64.length % 4 && base64.length < originalLength + 3) {
     base64 += '=';
   }
   return atob(base64);
