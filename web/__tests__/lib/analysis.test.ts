@@ -1,4 +1,7 @@
 // Mock the supabase client to prevent real initialization in Jest
+// We place this at the top level for Jest's hoisting, as is done in roster-reconstruction.test.ts
+// Note: bun test will fail on this file if Supabase dependencies are not installed,
+// but since jest is the official CI framework, it works identically to `roster-reconstruction.test.ts`.
 // @ts-ignore
 if (typeof jest !== "undefined" && typeof jest.mock === "function") {
     // @ts-ignore
