@@ -13,32 +13,54 @@ const PROTECTED_ROUTES = [
   "/projection-accuracy",
 ];
 
+const PUBLIC_API_ROUTES = [
+  "/api/auth/login",
+  "/api/auth/logout",
+];
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow API routes and public assets
-  if (pathname.startsWith("/api") || pathname.startsWith("/_next")) {
+  // Allow public assets
+  if (pathname.startsWith("/_next")) {
     return NextResponse.next();
   }
 
-  // Check if route is protected
-  const isProtectedRoute = PROTECTED_ROUTES.some((route) =>
+  const isApiRoute = pathname.startsWith("/api");
+  const isPublicApiRoute = PUBLIC_API_ROUTES.some((route) => pathname.startsWith(route));
+
+  // Allow public API routes
+  if (isApiRoute && isPublicApiRoute) {
+    return NextResponse.next();
+  }
+
+  // Check if UI route is protected
+  const isProtectedUiRoute = !isApiRoute && PROTECTED_ROUTES.some((route) =>
     pathname.startsWith(route)
   );
 
-  if (!isProtectedRoute) {
+  // If it's not an API route and not a protected UI route, allow it
+  if (!isApiRoute && !isProtectedUiRoute) {
     return NextResponse.next();
   }
+
+  // At this point, the route is either a protected UI route or a non-public API route.
+  // Both require authentication.
 
   // Check for authentication cookie
   const authCookie = request.cookies.get("ottoneu_auth");
   const isAuthenticated = await verifySession(authCookie?.value);
 
   if (!isAuthenticated) {
-    // Redirect to login with original path as redirect parameter
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(loginUrl);
+    if (isApiRoute) {
+      // Return 401 for unauthorized API requests
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    } else {
+      // Redirect to login with original path as redirect parameter for UI requests
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
   }
 
   return NextResponse.next();
