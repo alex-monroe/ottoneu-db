@@ -13,6 +13,7 @@ Next.js App Router with five pages. All pages are server components that fetch l
 | `/vorp` | VORP analysis with bar chart and filterable table |
 | `/surplus-value` | Surplus value rankings, bargains, overpaid, team summaries |
 | `/arbitration` | Arbitration targets with per-opponent breakdown |
+| `/arbitration-planner` | Plan and save arbitration budget allocations |
 
 ## Reusable Components
 

@@ -7,6 +7,7 @@ const PROTECTED_ROUTES = [
   "/surplus-value",
   "/arbitration",
   "/arbitration-simulation",
+  "/arbitration-planner",
   "/projections",
   "/projection-accuracy",
 ];

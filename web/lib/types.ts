@@ -185,6 +185,26 @@ export interface BacktestPlayer {
   [key: string]: string | number | null | undefined;
 }
 
+// === Arbitration Planner Types ===
+
+export interface ArbitrationPlan {
+  id: string;
+  name: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ArbitrationPlanWithAllocations extends ArbitrationPlan {
+  allocations: Record<string, number>; // player_id -> amount (0-4)
+}
+
+export interface TeamBudgetStatus {
+  team_name: string;
+  allocated: number;
+  isValid: boolean;
+}
+
 // === DataTable Types ===
 
 export interface Column {
