@@ -12,15 +12,13 @@ import pandas as pd
 from config import (
     get_supabase_client,
     SEASON,
-    REPLACEMENT_LEVELS,
-    ARBITRATION_BUDGET,
-    LEAGUE_PARAMS,
-    ARBITRATION_MAX_RAISE,
-    ARBITRATION_MIN_SURPLUS
+    REPLACEMENT_LEVEL,
+    ARB_BUDGET_PER_TEAM,
+    NUM_TEAMS, ARB_MIN_PER_TEAM, ARB_MAX_PER_TEAM, ARB_MAX_PER_PLAYER_PER_TEAM,
 )
 from analysis_utils import (
     MY_TEAM,
-    ensure_reports_dir, fetch_all_data, merge_data, fetch_player_data, calculate_vorp
+    ensure_reports_dir, fetch_all_data, merge_data,
 )
 from analyze_arbitration import analyze_arbitration
 
@@ -63,9 +61,9 @@ def generate_report(targets: pd.DataFrame) -> str:
         f.write('`ppg` = projected PPG, `observed_ppg` = actual 2024 PPG.\n')
         f.write('`surplus` = projected dollar_value − current salary.\n')
         f.write('`surplus_after_arb` = projected dollar_value − salary after $4 raise.\n\n')
-        f.write(f'**Budget:** ${ARBITRATION_BUDGET} total, '
-                f'${LEAGUE_PARAMS["ARBITRATION_MIN_PER_TEAM"]}–${LEAGUE_PARAMS["ARBITRATION_MAX_PER_TEAM"]} per opposing team, '
-                f'max ${LEAGUE_PARAMS["ARBITRATION_MAX_PER_PLAYER_PER_TEAM"]} per player from you.\n\n')
+        f.write(f'**Budget:** ${ARB_BUDGET_PER_TEAM} total, '
+                f'${ARB_MIN_PER_TEAM}–${ARB_MAX_PER_TEAM} per opposing team, '
+                f'max ${ARB_MAX_PER_PLAYER_PER_TEAM} per player from you.\n\n')
 
         f.write('## Top 20 Projected Arbitration Targets\n\n')
         top = targets.head(20)
@@ -79,9 +77,9 @@ def generate_report(targets: pd.DataFrame) -> str:
             f.write('## Targets by Opponent Team\n\n')
             f.write('Suggested allocation strategy (must give each team $1–$8):\n\n')
 
-            num_opponents = LEAGUE_PARAMS['NUM_TEAMS'] - 1
-            base_allocation = LEAGUE_PARAMS['ARBITRATION_MIN_PER_TEAM']
-            remaining_budget = ARBITRATION_BUDGET - (num_opponents * base_allocation)
+            num_opponents = NUM_TEAMS - 1
+            base_allocation = ARB_MIN_PER_TEAM
+            remaining_budget = ARB_BUDGET_PER_TEAM - (num_opponents * base_allocation)
             team_target_counts = targets.groupby('team_name').size().sort_values(ascending=False)
             team_cols = ['name', 'position', 'price', 'observed_ppg', 'ppg',
                          'dollar_value', 'surplus', 'surplus_after_arb', 'projection_method']
@@ -91,7 +89,7 @@ def generate_report(targets: pd.DataFrame) -> str:
                 team_targets = targets[targets['team_name'] == team].head(5)
                 n_targets = len(team_targets)
                 suggested = min(
-                    LEAGUE_PARAMS['ARBITRATION_MAX_PER_TEAM'],
+                    ARB_MAX_PER_TEAM,
                     base_allocation + min(remaining_budget, n_targets * 2)
                 )
                 f.write(f'### {team} (suggested: ${suggested:.0f})\n\n')
