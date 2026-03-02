@@ -26,7 +26,7 @@ export function validatePassword(password: string): boolean {
  */
 export async function setAuthCookie(): Promise<void> {
   const cookieStore = await cookies();
-  const token = await signSession("authenticated");
+  const token = await signSession();
   cookieStore.set(AUTH_COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
