@@ -3,11 +3,9 @@
 // Note: bun test will fail on this file if Supabase dependencies are not installed,
 // but since jest is the official CI framework, it works identically to `roster-reconstruction.test.ts`.
 
-if (typeof jest !== "undefined" && typeof jest.mock === "function") {
-    jest.mock("@/lib/supabase", () => ({
-        supabase: {},
-    }));
-}
+jest.mock("@/lib/supabase", () => ({
+    supabase: {},
+}));
 
 import { getHistoricalSeasonsForYear } from "@/lib/analysis";
 
