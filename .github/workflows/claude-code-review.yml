@@ -66,3 +66,7 @@ jobs:
             - Performance issues
             - Consistency with existing patterns in the codebase
             Post your review as comments on the pull request.
+            For any fixes or suggestions you make that should be addressed 
+            before the PR merges, create a separate PR comment for each that 
+            starts with "@jules" to inform the Jules Agent that there's more 
+            work to do
