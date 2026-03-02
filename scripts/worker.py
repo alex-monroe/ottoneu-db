@@ -11,7 +11,6 @@ import time
 import uuid
 
 import pandas as pd
-from dotenv import load_dotenv
 from playwright.async_api import async_playwright
 from supabase import Client
 
@@ -29,7 +28,6 @@ from scripts.tasks import (
 from scripts.tasks import pull_nfl_stats, pull_player_stats, scrape_roster, scrape_player_card
 from scripts.config import get_supabase_client
 
-load_dotenv()
 
 
 class ScraperWorker:
