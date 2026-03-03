@@ -23,13 +23,28 @@ def check_data():
         
         print("\nSampling data integrity...")
         prices_data = supabase.table('league_prices').select('*').limit(5).execute()
+
+        # Get all player_ids from the prices
+        player_ids = [row['player_id'] for row in prices_data.data]
+
+        if not player_ids:
+            print("No prices found to sample.")
+            return
+
+        # Fetch stats and players in bulk
+        stat_res = supabase.table('player_stats').select('*').in_('player_id', player_ids).execute()
+        player_res = supabase.table('players').select('*').in_('id', player_ids).execute()
+
+        # Create lookup dictionaries for O(1) access
+        stats_by_player_id = {row['player_id']: row for row in stat_res.data}
+        players_by_id = {row['id']: row for row in player_res.data}
+
         for price_row in prices_data.data:
             player_id = price_row['player_id']
-            stat_res = supabase.table('player_stats').select('*').eq('player_id', player_id).execute()
-            player_res = supabase.table('players').select('*').eq('id', player_id).execute()
+            stat_data = stats_by_player_id.get(player_id)
+            player_data = players_by_id.get(player_id)
             
-            p_name = player_res.data[0]['name'] if player_res.data else "Unknown"
-            stat_data = stat_res.data[0] if stat_res.data else None
+            p_name = player_data['name'] if player_data else "Unknown"
             
             print(f"Player: {p_name}, Price: ${price_row['price']}, Stats Found: {stat_data is not None}")
             if stat_data:
