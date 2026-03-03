@@ -20,11 +20,12 @@ export default function ProjectionYearSelector({ currentYear, years }: Props) {
   return (
     <div className="flex items-center gap-2">
       <span className="text-sm text-slate-500 dark:text-slate-400">Year:</span>
-      <div className="flex gap-1">
+      <div className="flex gap-1" role="group" aria-label="Select Projection Year">
         {years.map((year) => (
           <button
             key={year}
             onClick={() => handleYearChange(year)}
+            aria-pressed={year === currentYear}
             className={`px-3 py-1 rounded-full text-sm font-medium transition-colors border ${
               year === currentYear
                 ? "bg-slate-700 text-white border-transparent dark:bg-slate-200 dark:text-slate-900"

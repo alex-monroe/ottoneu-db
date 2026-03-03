@@ -8,3 +8,7 @@
 ## 2026-03-01 - [Navigation Modes Accessibility]
 **Learning:** Mode toggles that update the URL via `Link` components act as navigation tabs. Wrapping them in a `role="group"` with an `aria-label` and utilizing `aria-current="page"` on the active `Link` provides vital context to screen reader users about which data mode they are currently viewing.
 **Action:** When creating grouped navigation buttons or mode switchers, ensure the active state is communicated via `aria-current="page"` or `aria-current="true"` instead of relying solely on visual styling.
+
+## 2026-03-03 - Added aria-sort and aria-pressed
+**Learning:** Table components with sortable headers need `aria-sort` on the `<th>` elements to indicate sort direction to screen readers. Groups of toggle buttons acting like tabs or filters (like Year Selectors) should be wrapped in `role="group"` with an `aria-label`, and the buttons themselves should use `aria-pressed`.
+**Action:** When working on sortable tables, ensure `aria-sort="ascending" | "descending"` is conditionally applied. When working on toggle button groups, use `role="group"` and `aria-pressed`.
