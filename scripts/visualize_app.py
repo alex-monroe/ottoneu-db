@@ -102,7 +102,7 @@ else:
     # Add a tooltip for better UX
     fig.update_traces(marker=dict(line=dict(width=1, color='DarkSlateGrey')))
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 
     # Data Table
     st.subheader("Player Data")
