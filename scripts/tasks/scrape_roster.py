@@ -134,12 +134,19 @@ async def run(params: dict, context, supabase, nfl_stats: pd.DataFrame) -> TaskR
         rows = await page.query_selector_all(".table-container table tbody tr")
         print(f"Found {len(rows)} rows for {position}.")
 
+        # Pre-process nfl_stats once for the entire position
+        if not nfl_stats.empty:
+            nfl_stats_opt = nfl_stats.copy()
+            nfl_stats_opt["player_normalized"] = nfl_stats_opt["player"].apply(normalize_player_name)
+        else:
+            nfl_stats_opt = pd.DataFrame()
+
         processed = 0
 
         for row in rows:
             try:
                 result = await _process_row(
-                    row, page, context, supabase, nfl_stats,
+                    row, page, context, supabase, nfl_stats_opt,
                     position, season, league_id, level
                 )
                 if result:
@@ -278,15 +285,11 @@ async def _process_row(row, page, context, supabase, nfl_stats,
 
     # Match NFL stats — sum across all teams for traded players
     if not nfl_stats.empty:
-        # Normalize both Ottoneu name and NFL names for matching
+        # Normalize Ottoneu name for matching
         normalized_name = normalize_player_name(name)
 
-        # Create temporary normalized column for matching
-        nfl_stats_temp = nfl_stats.copy()
-        nfl_stats_temp["player_normalized"] = nfl_stats_temp["player"].apply(normalize_player_name)
-
-        # Match on normalized names
-        player_stats_row = nfl_stats_temp[nfl_stats_temp["player_normalized"] == normalized_name]
+        # Match on normalized names (nfl_stats already has player_normalized column)
+        player_stats_row = nfl_stats[nfl_stats["player_normalized"] == normalized_name]
 
         # Existing disambiguation logic (unchanged)
         if len(player_stats_row) > 1:
