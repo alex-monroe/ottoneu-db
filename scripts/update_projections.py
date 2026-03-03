@@ -6,6 +6,7 @@ TypeScript frontend to simply read the precalculated values without duplicating 
 
 import os
 import sys
+from typing import Tuple
 import pandas as pd
 from datetime import datetime
 
@@ -21,7 +22,7 @@ from projection_methods import CollegeProspectPPG, WeightedAveragePPG, RookieTra
 # Generate projections for current season and previous seasons to support backtesting
 TARGET_SEASONS = [2024, 2025, 2026]
 
-def generate_projections_for_season(target_season: int, max_history: int = 3) -> pd.DataFrame:
+def generate_projections_for_season(target_season: int, max_history: int = 3) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Generate projections for a target season using historical data prior to that season."""
     historical_seasons = list(range(target_season - max_history, target_season))
     print(f"Generating {target_season} projections using history from {historical_seasons}...")
@@ -29,7 +30,7 @@ def generate_projections_for_season(target_season: int, max_history: int = 3) ->
     multi_season_df = fetch_multi_season_stats(historical_seasons)
     if multi_season_df.empty:
         print(f"  No historical data found for {historical_seasons}")
-        return pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame()
         
     rookie_method = RookieTrajectoryPPG()
     veteran_method = WeightedAveragePPG()
@@ -60,8 +61,7 @@ def generate_projections_for_season(target_season: int, max_history: int = 3) ->
                 'projection_method': method.name
             })
             
-    return pd.DataFrame(records)
-
+    return pd.DataFrame(records), multi_season_df
 
 def compute_avg_rookie_ppg(multi_season_df: pd.DataFrame, players_df: pd.DataFrame,
                            min_games: int = MIN_GAMES) -> dict[str, float]:
@@ -93,7 +93,6 @@ def compute_avg_rookie_ppg(multi_season_df: pd.DataFrame, players_df: pd.DataFra
 
     return {pos: sum(ppgs) / len(ppgs) for pos, ppgs in rookie_ppgs.items() if ppgs}
 
-
 def generate_college_projections(avg_rookie_ppg: dict[str, float],
                                   supabase, target_season: int) -> pd.DataFrame:
     """Generate projections for college players using average rookie PPG."""
@@ -121,7 +120,6 @@ def generate_college_projections(avg_rookie_ppg: dict[str, float],
     print(f"  Generated {len(records)} college player projections for {target_season}.")
     return pd.DataFrame(records)
 
-
 def update_projections() -> None:
     """Calculate projections and upsert them into the database."""
     supabase = get_supabase_client()
@@ -133,13 +131,11 @@ def update_projections() -> None:
 
     all_records = []
     for season in TARGET_SEASONS:
-        df = generate_projections_for_season(season)
+        df, multi_season_df = generate_projections_for_season(season)
         if not df.empty:
             all_records.extend(df.to_dict('records'))
 
         # Compute average rookie PPG from the same historical data
-        historical_seasons = list(range(season - 3, season))
-        multi_season_df = fetch_multi_season_stats(historical_seasons)
         avg_rookie_ppg = compute_avg_rookie_ppg(multi_season_df, players_df)
         if avg_rookie_ppg:
             print(f"  Avg rookie PPG for {season}: {avg_rookie_ppg}")
