@@ -94,13 +94,11 @@ def compute_avg_rookie_ppg(multi_season_df: pd.DataFrame, players_df: pd.DataFra
     return {pos: sum(ppgs) / len(ppgs) for pos, ppgs in rookie_ppgs.items() if ppgs}
 
 def generate_college_projections(avg_rookie_ppg: dict[str, float],
-                                  supabase, target_season: int) -> pd.DataFrame:
+                                  college_players: list[dict], target_season: int) -> pd.DataFrame:
     """Generate projections for college players using average rookie PPG."""
     if not avg_rookie_ppg:
         return pd.DataFrame()
 
-    res = supabase.table('players').select('id, position').eq('is_college', True).execute()
-    college_players = res.data or []
     if not college_players:
         print(f"  No college players found for {target_season}.")
         return pd.DataFrame()
@@ -125,9 +123,16 @@ def update_projections() -> None:
     supabase = get_supabase_client()
 
     # Fetch players table once for position mapping (used by college projections)
-    players_res = supabase.table('players').select('id, position').execute()
+    players_res = supabase.table('players').select('id, position, is_college').execute()
     players_df = pd.DataFrame(players_res.data or [])
     players_df = players_df.rename(columns={'id': 'player_id_ref'})
+
+    # Extract college players directly from players_df to avoid a second query
+    college_players = []
+    if not players_df.empty and 'is_college' in players_df.columns:
+        college_df = players_df[players_df['is_college'] == True]
+        for _, row in college_df.iterrows():
+            college_players.append({'id': row['player_id_ref'], 'position': row['position']})
 
     all_records = []
     for season in TARGET_SEASONS:
@@ -139,7 +144,7 @@ def update_projections() -> None:
         avg_rookie_ppg = compute_avg_rookie_ppg(multi_season_df, players_df)
         if avg_rookie_ppg:
             print(f"  Avg rookie PPG for {season}: {avg_rookie_ppg}")
-            college_df = generate_college_projections(avg_rookie_ppg, supabase, season)
+            college_df = generate_college_projections(avg_rookie_ppg, college_players, season)
             if not college_df.empty:
                 all_records.extend(college_df.to_dict('records'))
 
