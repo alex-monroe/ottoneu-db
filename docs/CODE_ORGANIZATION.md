@@ -5,7 +5,7 @@
 | Area | Path | Purpose |
 |------|------|---------|
 | Python config | `scripts/config.py` | All league constants, Supabase client factory |
-| TS config | `web/lib/config.ts` | Frontend constants (**must stay in sync with `config.py`**) |
+| TS config | `web/lib/config.ts` | Frontend constants (**must stay in sync with `scripts/config.py`**) |
 | TS types | `web/lib/types.ts` | All shared TypeScript interfaces |
 | Analysis math | `web/lib/analysis.ts` | TS port of `scripts/analysis_utils.py` |
 | Arb logic | `web/lib/arb-logic.ts` | Arbitration simulation logic |
@@ -24,4 +24,4 @@ All configuration constants live here:
 - Arbitration constants
 - Shared Supabase client via `get_supabase_client()`
 
-All scripts import from `config.py` to eliminate duplication and ensure consistency.
+All scripts import from `scripts/config.py` to eliminate duplication and ensure consistency.

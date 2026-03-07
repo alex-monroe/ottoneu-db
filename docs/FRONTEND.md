@@ -14,6 +14,14 @@ Next.js App Router with five pages. All pages are server components that fetch l
 | `/surplus-value` | Surplus value rankings, bargains, overpaid, team summaries |
 | `/arbitration` | Arbitration targets with per-opponent breakdown |
 | `/arbitration-planner` | Plan and save arbitration budget allocations |
+| `/api` | Backend API routes |
+| `/arbitration-simulation` | Simulate arbitration spending |
+| `/login` | User login page |
+| `/players` | Player cards and search |
+| `/projection-accuracy` | Review projection accuracy |
+| `/projections` | Player projections view |
+| `/rosters` | Team roster reconstruction |
+| `/surplus-adjustments` | Adjust player surplus values manually |
 
 ## Reusable Components
 
