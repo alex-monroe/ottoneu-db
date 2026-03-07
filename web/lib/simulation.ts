@@ -23,6 +23,8 @@ import { calculateSurplus } from "./surplus";
  */
 export class SeededRandom {
     private seed: number;
+    private hasSpare: boolean = false;
+    private spare: number = 0;
 
     constructor(seed: number) {
         this.seed = seed;
@@ -35,12 +37,22 @@ export class SeededRandom {
 
     /**
      * Box-Muller transform to generate normally distributed random numbers
+     * Caches the second generated value to reduce expensive Math calls
      */
     normalRandom(mean: number = 0, std: number = 1): number {
-        const u1 = this.next();
-        const u2 = this.next();
-        const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
-        return z0 * std + mean;
+        if (this.hasSpare) {
+            this.hasSpare = false;
+            return this.spare * std + mean;
+        } else {
+            const u1 = this.next();
+            const u2 = this.next();
+            const R = Math.sqrt(-2.0 * Math.log(u1));
+            const theta = 2.0 * Math.PI * u2;
+            const z0 = R * Math.cos(theta);
+            this.spare = R * Math.sin(theta);
+            this.hasSpare = true;
+            return z0 * std + mean;
+        }
     }
 
     /**
@@ -110,17 +122,32 @@ export function allocateTeamBudget(
 
     let remainingBudget = budget - (opponents.length * minPerTeam);
 
-    // Get all opponent players with positive surplus
-    const opponentPlayers = [];
+    // Get top 30 opponent players with highest positive surplus
+    const topOpponentPlayers: SurplusPlayer[] = [];
     for (let i = 0; i < teamValuations.length; i++) {
         const p = teamValuations[i];
         if (opponentSet.has(p.team_name!) && p.dollar_value > 1 && p.surplus > 0) {
-            opponentPlayers.push(p);
+            const surplus = p.surplus;
+
+            // Maintain sorted array of top 30 elements to avoid full array sort
+            if (topOpponentPlayers.length < 30) {
+                let j = topOpponentPlayers.length - 1;
+                topOpponentPlayers.push(p); // Add element at end temporarily
+                while (j >= 0 && surplus > topOpponentPlayers[j].surplus) {
+                    topOpponentPlayers[j + 1] = topOpponentPlayers[j];
+                    j--;
+                }
+                topOpponentPlayers[j + 1] = p;
+            } else if (surplus > topOpponentPlayers[29].surplus) {
+                let j = 28;
+                while (j >= 0 && surplus > topOpponentPlayers[j].surplus) {
+                    topOpponentPlayers[j + 1] = topOpponentPlayers[j];
+                    j--;
+                }
+                topOpponentPlayers[j + 1] = p;
+            }
         }
     }
-    opponentPlayers.sort((a, b) => b.surplus - a.surplus);
-
-    const topOpponentPlayers = opponentPlayers.slice(0, 30);
 
     // Optimization: Keep track of allocations to each opponent team
     // instead of calling .entries() and .filter() and .reduce() repeatedly.
