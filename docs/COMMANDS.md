@@ -29,6 +29,7 @@ python scripts/worker.py --poll                      # Process jobs continuously
 # Analysis
 python scripts/analyze_efficiency.py                 # Calculate efficiency metrics
 python scripts/run_all_analyses.py                   # Run full analysis suite
+python scripts/update_projections.py               # Update market-based projections
 python scripts/analyze_projected_salary.py           # Keep vs cut decisions for The Witchcraft
 python scripts/analyze_vorp.py                       # Positional scarcity / Value Over Replacement
 python scripts/analyze_surplus_value.py              # Dollar value vs salary for all players
