@@ -7,6 +7,7 @@ export default async function NavigationWrapper() {
     <Navigation
       isAuthenticated={user !== null}
       isAdmin={user?.isAdmin ?? false}
+      hasProjectionsAccess={user?.hasProjectionsAccess ?? false}
     />
   );
 }

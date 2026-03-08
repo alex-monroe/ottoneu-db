@@ -83,8 +83,8 @@ function NavDropdown({
         aria-haspopup="true"
         aria-controls={dropdownId}
         className={`inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${hasActiveChild
-            ? "bg-blue-600 text-white"
-            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
+          ? "bg-blue-600 text-white"
+          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
           }`}
       >
         <Lock size={12} className={hasActiveChild ? "opacity-80" : "opacity-60"} aria-hidden="true" />
@@ -108,8 +108,8 @@ function NavDropdown({
                 href={link.href}
                 onClick={() => setOpen(false)}
                 className={`block px-4 py-2 text-sm transition-colors ${isActive
-                    ? "bg-blue-600 text-white"
-                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  ? "bg-blue-600 text-white"
+                  : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                   }`}
               >
                 {link.label}
@@ -125,9 +125,10 @@ function NavDropdown({
 interface NavigationProps {
   isAuthenticated: boolean;
   isAdmin: boolean;
+  hasProjectionsAccess: boolean;
 }
 
-export default function Navigation({ isAuthenticated, isAdmin }: NavigationProps) {
+export default function Navigation({ isAuthenticated, isAdmin, hasProjectionsAccess }: NavigationProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -157,8 +158,8 @@ export default function Navigation({ isAuthenticated, isAdmin }: NavigationProps
                   key={link.href}
                   href={link.href}
                   className={`px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${isActive
-                      ? "bg-blue-600 text-white"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
                     }`}
                 >
                   {link.label}
@@ -177,8 +178,8 @@ export default function Navigation({ isAuthenticated, isAdmin }: NavigationProps
               <ExternalLink size={14} />
             </a>
 
-            {/* Protected dropdown groups (only if authenticated) */}
-            {isAuthenticated &&
+            {/* Protected dropdown groups (only if user has projections access) */}
+            {hasProjectionsAccess &&
               PRIVATE_GROUPS.map((group) => (
                 <NavDropdown
                   key={group.label}
@@ -193,8 +194,8 @@ export default function Navigation({ isAuthenticated, isAdmin }: NavigationProps
               <Link
                 href="/admin"
                 className={`inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${pathname === "/admin"
-                    ? "bg-blue-600 text-white"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
+                  ? "bg-blue-600 text-white"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
                   }`}
               >
                 <Shield size={12} className={pathname === "/admin" ? "opacity-80" : "opacity-60"} aria-hidden="true" />
