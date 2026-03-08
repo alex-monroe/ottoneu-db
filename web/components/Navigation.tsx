@@ -136,6 +136,7 @@ export default function Navigation({ isAuthenticated, isAdmin }: NavigationProps
     setIsLoggingOut(true);
     try {
       await fetch("/api/auth/logout", { method: "POST" });
+      setIsLoggingOut(false);
       router.push("/");
       router.refresh();
     } catch (error) {
