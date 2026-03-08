@@ -18,6 +18,7 @@ export const ADMIN_ROUTES = ["/admin"];
 export const PUBLIC_API_ROUTES = [
   "/api/auth/login",
   "/api/auth/logout",
+  "/api/auth/register",
 ];
 
 export async function middleware(request: NextRequest) {
