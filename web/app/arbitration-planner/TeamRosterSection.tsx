@@ -41,13 +41,12 @@ export default function TeamRosterSection({
         </span>
         <span className="flex items-center gap-3">
           <span
-            className={`text-sm font-medium ${
-              teamAllocated > 8
+            className={`text-sm font-medium ${teamAllocated > 8
                 ? "text-red-600 dark:text-red-400"
                 : teamAllocated >= 1 && teamAllocated <= 8
                   ? "text-green-600 dark:text-green-400"
                   : "text-slate-500 dark:text-slate-400"
-            }`}
+              }`}
           >
             ${teamAllocated} / $8
           </span>
@@ -76,6 +75,12 @@ export default function TeamRosterSection({
                 </th>
                 <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
                   Surplus
+                </th>
+                <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
+                  2025 PPG
+                </th>
+                <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
+                  GP
                 </th>
                 {adjustedSurplus && (
                   <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
@@ -122,21 +127,25 @@ export default function TeamRosterSection({
                       ${p.dollar_value}
                     </td>
                     <td
-                      className={`px-3 py-2 text-right font-medium ${
-                        p.surplus >= 0
+                      className={`px-3 py-2 text-right font-medium ${p.surplus >= 0
                           ? "text-green-600 dark:text-green-400"
                           : "text-red-600 dark:text-red-400"
-                      }`}
+                        }`}
                     >
                       ${p.surplus}
                     </td>
+                    <td className="px-3 py-2 text-right text-slate-900 dark:text-white">
+                      {p.ppg.toFixed(2)}
+                    </td>
+                    <td className="px-3 py-2 text-right text-slate-600 dark:text-slate-400">
+                      {p.games_played}
+                    </td>
                     {adjustedSurplus && (
                       <td
-                        className={`px-3 py-2 text-right font-medium ${
-                          (adjSurp ?? p.surplus) >= 0
+                        className={`px-3 py-2 text-right font-medium ${(adjSurp ?? p.surplus) >= 0
                             ? "text-green-600 dark:text-green-400"
                             : "text-red-600 dark:text-red-400"
-                        }`}
+                          }`}
                       >
                         {adjSurp !== undefined ? `$${adjSurp}` : "-"}
                       </td>
