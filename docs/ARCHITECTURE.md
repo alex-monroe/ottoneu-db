@@ -46,7 +46,7 @@ Each task type lives in its own module. `__init__.py` defines task type constant
 `scripts/run_all_analyses.py` orchestrates analysis in dependency order:
 
 ```
-projected salary → VORP → surplus value → arbitration → arbitration simulation
+update projections → projected salary → VORP → surplus value → arbitration → arbitration simulation → projected arbitration
 ```
 
 Shared config and DB helpers in `scripts/analysis_utils.py`. Five analysis scripts produce markdown reports in `reports/` (gitignored). VORP and surplus value expose `calculate_vorp()` and `calculate_surplus()` for import by downstream scripts. Arbitration simulation uses Monte Carlo methods to predict opponent spending patterns (100 runs with ±20% value variation per team).

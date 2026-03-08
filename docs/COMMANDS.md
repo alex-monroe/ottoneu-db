@@ -29,11 +29,13 @@ python scripts/worker.py --poll                      # Process jobs continuously
 # Analysis
 python scripts/analyze_efficiency.py                 # Calculate efficiency metrics
 python scripts/run_all_analyses.py                   # Run full analysis suite
+python scripts/update_projections.py                 # Update player projections
 python scripts/analyze_projected_salary.py           # Keep vs cut decisions for The Witchcraft
 python scripts/analyze_vorp.py                       # Positional scarcity / Value Over Replacement
 python scripts/analyze_surplus_value.py              # Dollar value vs salary for all players
 python scripts/analyze_arbitration.py                # Identify opponents' vulnerable players
 python scripts/analyze_arbitration_simulation.py     # Monte Carlo arbitration simulation (100 runs)
+python scripts/analyze_projected_arbitration.py      # Projected arbitration targets based on historical stats
 
 # Utilities
 python scripts/check_db.py                           # Verify database contents
