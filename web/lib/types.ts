@@ -44,6 +44,18 @@ export interface ArbitrationTarget extends SurplusPlayer {
   surplus_after_arb: number;
 }
 
+export interface PublicArbPlayer {
+  player_id: string;
+  name: string;
+  position: string;
+  nfl_team: string;
+  price: number;
+  team_name: string | null;
+  ppg: number;
+  games_played: number;
+  [key: string]: string | number | boolean | null | undefined;
+}
+
 export interface TeamAllocation {
   team: string;
   suggested: number;

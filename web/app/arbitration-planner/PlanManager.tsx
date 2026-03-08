@@ -14,6 +14,7 @@ interface PlanManagerProps {
   onDeletePlan: (id: string) => void;
   onDuplicatePlan: (id: string, name: string) => void;
   onCreateFromSuggested: () => void;
+  hideCreateFromSuggested?: boolean;
 }
 
 export default function PlanManager({
@@ -27,6 +28,7 @@ export default function PlanManager({
   onDeletePlan,
   onDuplicatePlan,
   onCreateFromSuggested,
+  hideCreateFromSuggested = false,
 }: PlanManagerProps) {
   const [showNew, setShowNew] = useState(false);
   const [newName, setNewName] = useState("");
@@ -120,21 +122,22 @@ export default function PlanManager({
           </>
         )}
 
-        <button
-          onClick={onCreateFromSuggested}
-          className="px-3 py-1.5 text-sm font-medium rounded border border-blue-300 dark:border-blue-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
-        >
-          Create from Suggested
-        </button>
+        {!hideCreateFromSuggested && (
+          <button
+            onClick={onCreateFromSuggested}
+            className="px-3 py-1.5 text-sm font-medium rounded border border-blue-300 dark:border-blue-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
+          >
+            Create from Suggested
+          </button>
+        )}
 
         {/* Save status */}
         {activePlanId && (
           <span
-            className={`text-xs ml-auto ${
-              hasUnsavedChanges
+            className={`text-xs ml-auto ${hasUnsavedChanges
                 ? "text-yellow-600 dark:text-yellow-400"
                 : "text-green-600 dark:text-green-400"
-            }`}
+              }`}
           >
             {hasUnsavedChanges ? "Unsaved changes" : "Saved"}
           </span>
