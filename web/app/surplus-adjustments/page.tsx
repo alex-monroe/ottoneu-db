@@ -1,18 +1,23 @@
 import { fetchAndMergeData, fetchAndMergeProjectedData, calculateSurplus, SEASON, LEAGUE_ID, DEFAULT_PROJECTION_YEAR } from "@/lib/analysis";
 import { supabase } from "@/lib/supabase";
+import { getAuthenticatedUser } from "@/lib/auth";
 import AdjustmentsTable from "./AdjustmentsTable";
 import Link from "next/link";
 
 export const revalidate = 0;
 
 export default async function SurplusAdjustmentsPage() {
+  const user = await getAuthenticatedUser();
   const [allPlayers, projectedPlayers, adjRes] = await Promise.all([
     fetchAndMergeData(),
     fetchAndMergeProjectedData(DEFAULT_PROJECTION_YEAR),
-    supabase
-      .from("surplus_adjustments")
-      .select("player_id, adjustment, notes")
-      .eq("league_id", LEAGUE_ID),
+    user
+      ? supabase
+          .from("surplus_adjustments")
+          .select("player_id, adjustment, notes")
+          .eq("league_id", LEAGUE_ID)
+          .eq("user_id", user.userId)
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   const surplusPlayers = calculateSurplus(allPlayers).filter(
