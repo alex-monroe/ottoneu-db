@@ -4,6 +4,7 @@ import { useState, FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginForm() {
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -23,19 +24,19 @@ export default function LoginForm() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ email, password }),
       });
 
       if (!response.ok) {
         const data = await response.json();
-        setError(data.error || "Invalid password");
+        setError(data.error || "Invalid email or password");
         setIsLoading(false);
         return;
       }
 
       // Success - redirect to original destination or home
       router.push(redirect);
-      router.refresh(); // Refresh to update navigation
+      router.refresh();
     } catch (err) {
       console.error("Login error:", err);
       setError("An error occurred. Please try again.");
@@ -51,11 +52,28 @@ export default function LoginForm() {
             Sign in to continue
           </h2>
           <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
-            Enter password to access protected analysis pages
+            Enter your credentials to access analysis pages
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
+          <div className="rounded-md shadow-sm space-y-3">
+            <div>
+              <label htmlFor="email" className="sr-only">
+                Email
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-slate-300 dark:border-slate-700 placeholder-slate-500 dark:placeholder-slate-400 text-slate-900 dark:text-white bg-white dark:bg-slate-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                placeholder="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
             <div className="relative">
               <label htmlFor="password" className="sr-only">
                 Password

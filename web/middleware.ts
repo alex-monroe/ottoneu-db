@@ -13,6 +13,8 @@ export const PROTECTED_ROUTES = [
   "/projection-accuracy",
 ];
 
+export const ADMIN_ROUTES = ["/admin"];
+
 export const PUBLIC_API_ROUTES = [
   "/api/auth/login",
   "/api/auth/logout",
@@ -36,33 +38,51 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check if UI route is protected
+  // Check if UI route is protected (requires projections access)
   const isProtectedUiRoute = !isApiRoute && PROTECTED_ROUTES.some((route) =>
     pathname.startsWith(route)
   );
 
-  // If it's not an API route and not a protected UI route, allow it
-  if (!isApiRoute && !isProtectedUiRoute) {
+  // Check if UI route is admin-only
+  const isAdminRoute = !isApiRoute && ADMIN_ROUTES.some((route) =>
+    pathname.startsWith(route)
+  );
+
+  // If it's not an API route and not a protected/admin UI route, allow it
+  if (!isApiRoute && !isProtectedUiRoute && !isAdminRoute) {
     return NextResponse.next();
   }
 
-  // At this point, the route is either a protected UI route or a non-public API route.
-  // Both require authentication.
-
-  // Check for authentication cookie
+  // At this point, the route requires authentication.
   const authCookie = request.cookies.get("ottoneu_auth");
-  const isAuthenticated = await verifySession(authCookie?.value);
+  const session = await verifySession(authCookie?.value);
 
-  if (!isAuthenticated) {
+  if (!session.valid) {
     if (isApiRoute) {
-      // Return 401 for unauthorized API requests
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     } else {
-      // Redirect to login with original path as redirect parameter for UI requests
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("redirect", pathname);
       return NextResponse.redirect(loginUrl);
     }
+  }
+
+  // Admin routes require isAdmin
+  if (isAdminRoute && !session.isAdmin) {
+    if (isApiRoute) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  // Protected routes require projections access
+  if (isProtectedUiRoute && !session.hasProjectionsAccess) {
+    if (isApiRoute) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();

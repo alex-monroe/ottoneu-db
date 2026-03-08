@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { LEAGUE_ID } from "@/lib/arb-logic";
+import { getAuthenticatedUser } from "@/lib/auth";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
 export async function POST(req: NextRequest, context: RouteContext) {
+  const user = await getAuthenticatedUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { id } = await context.params;
   const { name } = await req.json();
 
@@ -14,10 +18,20 @@ export async function POST(req: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });
   }
 
+  // Verify ownership of source plan
+  const { data: sourcePlan, error: fetchError } = await supabase
+    .from("arbitration_plans")
+    .select("user_id")
+    .eq("id", id)
+    .single();
+
+  if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 404 });
+  if (sourcePlan.user_id !== user.userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   // Create new plan
   const { data: newPlan, error: planError } = await supabase
     .from("arbitration_plans")
-    .insert({ league_id: LEAGUE_ID, name: name.trim() })
+    .insert({ league_id: LEAGUE_ID, user_id: user.userId, name: name.trim() })
     .select("id, name, notes, created_at, updated_at")
     .single();
 
