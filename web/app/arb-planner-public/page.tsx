@@ -1,16 +1,15 @@
 import { redirect } from "next/navigation";
 import { getAuthenticatedUser } from "@/lib/auth";
-import { fetchPublicArbPlayers } from "@/lib/analysis";
 import {
+    fetchPublicArbPlayers,
     ARB_BUDGET_PER_TEAM,
     ARB_MIN_PER_TEAM,
     ARB_MAX_PER_TEAM,
     ARB_MAX_PER_PLAYER_PER_TEAM,
     NUM_TEAMS,
-    MY_TEAM,
+    LEAGUE_ID,
 } from "@/lib/analysis";
 import { supabase } from "@/lib/supabase";
-import { LEAGUE_ID } from "@/lib/analysis";
 import PublicArbPlannerClient from "./PublicArbPlannerClient";
 
 export default async function PublicArbPlannerPage() {
@@ -19,7 +18,7 @@ export default async function PublicArbPlannerPage() {
 
     const allPlayers = await fetchPublicArbPlayers();
 
-    // Get unique opponent team names
+    // Get all 12 rostered team names (FA excluded, no MY_TEAM exclusion for public planner)
     const opponentTeams = [
         ...new Set(
             allPlayers
@@ -27,8 +26,7 @@ export default async function PublicArbPlannerPage() {
                     (p) =>
                         p.team_name != null &&
                         p.team_name !== "" &&
-                        p.team_name !== "FA" &&
-                        p.team_name !== MY_TEAM
+                        p.team_name !== "FA"
                 )
                 .map((p) => p.team_name!)
         ),

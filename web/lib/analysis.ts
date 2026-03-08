@@ -98,8 +98,8 @@ export async function fetchPublicArbPlayers(): Promise<import("./types").PublicA
 
     const teamName = pPrice?.team_name || null;
 
-    // Filter to opponent-rostered players only (exclude FA and MY_TEAM)
-    if (!teamName || teamName === "" || teamName === "FA" || teamName === MY_TEAM) continue;
+    // Filter to rostered players only (exclude FA/unrostered)
+    if (!teamName || teamName === "" || teamName === "FA") continue;
 
     result.push({
       player_id: String(player.id),
