@@ -11,18 +11,24 @@ import {
   NUM_TEAMS,
 } from "@/lib/analysis";
 import { supabase } from "@/lib/supabase";
+import { getAuthenticatedUser } from "@/lib/auth";
 import ArbPlannerClient from "./ArbPlannerClient";
 
 export default async function ArbitrationPlannerPage() {
+  const user = await getAuthenticatedUser();
+
   // Fetch observed stats — matches the surplus value page's data source
   const allPlayers = await fetchAndMergeData();
 
   // Fetch surplus adjustments (applied separately in client, not baked into targets)
-  const adjRes = await supabase
-    .from("surplus_adjustments")
-    .select("player_id, adjustment")
-    .eq("league_id", LEAGUE_ID)
-    .neq("adjustment", 0);
+  const adjRes = user
+    ? await supabase
+        .from("surplus_adjustments")
+        .select("player_id, adjustment")
+        .eq("league_id", LEAGUE_ID)
+        .eq("user_id", user.userId)
+        .neq("adjustment", 0)
+    : { data: [], error: null };
 
   // Use raw values (no adjustments) so Value/Surplus columns match the arbitration page.
   // Adjustments are shown separately in the "Adj. Surplus" column.
@@ -45,11 +51,14 @@ export default async function ArbitrationPlannerPage() {
   ].sort();
 
   // Fetch saved plans
-  const { data: plans } = await supabase
-    .from("arbitration_plans")
-    .select("id, name, notes, created_at, updated_at")
-    .eq("league_id", LEAGUE_ID)
-    .order("updated_at", { ascending: false });
+  const { data: plans } = user
+    ? await supabase
+        .from("arbitration_plans")
+        .select("id, name, notes, created_at, updated_at")
+        .eq("league_id", LEAGUE_ID)
+        .eq("user_id", user.userId)
+        .order("updated_at", { ascending: false })
+    : { data: [] };
 
   // Serialize adjustments for client
   const adjustedSurplusEntries = (adjRes.data ?? []).map((r) => ({

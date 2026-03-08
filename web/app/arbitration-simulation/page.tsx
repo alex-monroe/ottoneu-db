@@ -6,6 +6,7 @@ import {
   DEFAULT_PROJECTION_YEAR,
 } from "@/lib/analysis";
 import { supabase } from "@/lib/supabase";
+import { getAuthenticatedUser } from "@/lib/auth";
 import SimulationControls from "./SimulationControls";
 import ModeToggle, { ValueMode } from "@/components/ModeToggle";
 
@@ -24,15 +25,19 @@ export default async function ArbitrationSimulationPage({ searchParams }: Props)
   const isAdjusted = mode === "adjusted";
   const isProjected = mode === "projected";
 
+  const user = await getAuthenticatedUser();
   const [rawPlayers, adjRes] = await Promise.all([
     isProjected
       ? fetchAndMergeProjectedData(DEFAULT_PROJECTION_YEAR)
       : fetchAndMergeData(),
-    supabase
-      .from("surplus_adjustments")
-      .select("player_id, adjustment")
-      .eq("league_id", LEAGUE_ID)
-      .neq("adjustment", 0),
+    user
+      ? supabase
+          .from("surplus_adjustments")
+          .select("player_id, adjustment")
+          .eq("league_id", LEAGUE_ID)
+          .eq("user_id", user.userId)
+          .neq("adjustment", 0)
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   const hasAdjustments = (adjRes.data?.length ?? 0) > 0;

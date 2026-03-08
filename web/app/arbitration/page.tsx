@@ -15,6 +15,7 @@ import {
 } from "@/lib/analysis";
 import { ArbitrationTarget } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
+import { getAuthenticatedUser } from "@/lib/auth";
 import DataTable, { Column, HighlightRule } from "@/components/DataTable";
 import ArbitrationTeams from "./ArbitrationTeams";
 import ModeToggle, { ValueMode } from "@/components/ModeToggle";
@@ -69,11 +70,15 @@ export default async function ArbitrationPage({ searchParams }: Props) {
   const isAdjusted = mode === "adjusted";
 
   // Fetch adjustments in all modes (needed for indicator dot)
-  const adjRes = await supabase
-    .from("surplus_adjustments")
-    .select("player_id, adjustment")
-    .eq("league_id", LEAGUE_ID)
-    .neq("adjustment", 0);
+  const user = await getAuthenticatedUser();
+  const adjRes = user
+    ? await supabase
+        .from("surplus_adjustments")
+        .select("player_id, adjustment")
+        .eq("league_id", LEAGUE_ID)
+        .eq("user_id", user.userId)
+        .neq("adjustment", 0)
+    : { data: [], error: null };
 
   const hasAdjustments = (adjRes.data?.length ?? 0) > 0;
 
