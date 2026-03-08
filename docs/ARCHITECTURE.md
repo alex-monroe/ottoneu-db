@@ -58,3 +58,14 @@ Shared config and DB helpers in `scripts/analysis_utils.py`. Five analysis scrip
 - **VORP** (Value Over Replacement) = ppg - replacement_ppg at position
 - **Surplus Value** = dollar_value (from VORP) - salary
 - Chart shows salary (Y-axis) vs. selected metric (X-axis), bubble size = total points
+
+## Authentication & Authorization
+
+User accounts with email/password login stored in the `users` table. Passwords are hashed with bcrypt (`bcryptjs`). Sessions use HMAC-SHA256 signed tokens stored in HTTP-only cookies (7-day expiry). The session payload encodes `userId`, `isAdmin`, and `hasProjectionsAccess` — no DB lookup needed for authorization.
+
+- **`SESSION_SECRET`** env var provides the HMAC signing key
+- **Middleware** (`web/middleware.ts`) enforces route protection:
+  - Protected routes (projections, VORP, surplus, arbitration) require `hasProjectionsAccess`
+  - Admin routes (`/admin`) require `isAdmin`
+- **User-scoped data:** `surplus_adjustments` and `arbitration_plans` are scoped to `user_id` — each user sees only their own data
+- **Admin panel** (`/admin`) allows admins to create users, toggle projections access, and delete users

@@ -1,7 +1,12 @@
-import { isAuthenticated } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/lib/auth";
 import Navigation from "./Navigation";
 
 export default async function NavigationWrapper() {
-  const authenticated = await isAuthenticated();
-  return <Navigation isAuthenticated={authenticated} />;
+  const user = await getAuthenticatedUser();
+  return (
+    <Navigation
+      isAuthenticated={user !== null}
+      isAdmin={user?.isAdmin ?? false}
+    />
+  );
 }

@@ -1,20 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { getAuthenticatedUser } from "@/lib/auth";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
 export async function GET(_req: NextRequest, context: RouteContext) {
+  const user = await getAuthenticatedUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { id } = await context.params;
 
   const { data: plan, error: planError } = await supabase
     .from("arbitration_plans")
-    .select("id, name, notes, created_at, updated_at")
+    .select("id, name, notes, user_id, created_at, updated_at")
     .eq("id", id)
     .single();
 
   if (planError) return NextResponse.json({ error: planError.message }, { status: 404 });
+  if (plan.user_id !== user.userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { data: allocs, error: allocError } = await supabase
     .from("arbitration_plan_allocations")
@@ -28,11 +33,26 @@ export async function GET(_req: NextRequest, context: RouteContext) {
     allocations[a.player_id] = a.amount;
   }
 
-  return NextResponse.json({ ...plan, allocations });
+  const { user_id: _, ...planWithoutUserId } = plan;
+  return NextResponse.json({ ...planWithoutUserId, allocations });
 }
 
 export async function PUT(req: NextRequest, context: RouteContext) {
+  const user = await getAuthenticatedUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { id } = await context.params;
+
+  // Verify ownership
+  const { data: plan, error: fetchError } = await supabase
+    .from("arbitration_plans")
+    .select("user_id")
+    .eq("id", id)
+    .single();
+
+  if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 404 });
+  if (plan.user_id !== user.userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   const { name, notes, allocations } = await req.json();
 
   // Update plan metadata
@@ -54,7 +74,6 @@ export async function PUT(req: NextRequest, context: RouteContext) {
 
   // Upsert allocations if provided
   if (allocations && typeof allocations === "object") {
-    // Delete existing allocations first, then insert new ones
     const { error: delError } = await supabase
       .from("arbitration_plan_allocations")
       .delete()
@@ -83,7 +102,20 @@ export async function PUT(req: NextRequest, context: RouteContext) {
 }
 
 export async function DELETE(_req: NextRequest, context: RouteContext) {
+  const user = await getAuthenticatedUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { id } = await context.params;
+
+  // Verify ownership
+  const { data: plan, error: fetchError } = await supabase
+    .from("arbitration_plans")
+    .select("user_id")
+    .eq("id", id)
+    .single();
+
+  if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 404 });
+  if (plan.user_id !== user.userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { error } = await supabase
     .from("arbitration_plans")

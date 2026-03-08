@@ -1,26 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { validatePassword, setAuthCookie } from "@/lib/auth";
+import { authenticateUser, setAuthCookie } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
-    const { password } = await request.json();
+    const { email, password } = await request.json();
 
-    if (!password) {
+    if (!email || !password) {
       return NextResponse.json(
-        { error: "Password is required" },
+        { error: "Email and password are required" },
         { status: 400 }
       );
     }
 
-    if (!validatePassword(password)) {
+    const user = await authenticateUser(email, password);
+    if (!user) {
       return NextResponse.json(
-        { error: "Invalid password" },
+        { error: "Invalid email or password" },
         { status: 401 }
       );
     }
 
-    // Set authentication cookie
-    await setAuthCookie();
+    await setAuthCookie(user.userId, user.isAdmin, user.hasProjectionsAccess);
 
     return NextResponse.json({ success: true });
   } catch (error) {

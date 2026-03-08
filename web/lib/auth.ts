@@ -1,32 +1,49 @@
-import { createHash, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
-import { signSession, verifySession } from "./session";
+import bcrypt from "bcryptjs";
+import { signSession, verifySession, type SessionInfo } from "./session";
+import { supabase } from "./supabase";
 
 const AUTH_COOKIE_NAME = "ottoneu_auth";
 const COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
 
-/**
- * Validate password against environment variable
- */
-export function validatePassword(password: string): boolean {
-  const correctPassword = process.env.ACCESS_PASSWORD;
-  if (!correctPassword) {
-    console.error("ACCESS_PASSWORD environment variable not set");
-    return false;
-  }
-
-  const passwordHash = createHash("sha256").update(password).digest();
-  const correctHash = createHash("sha256").update(correctPassword).digest();
-
-  return timingSafeEqual(passwordHash, correctHash);
+export interface AuthenticatedUser {
+  userId: string;
+  isAdmin: boolean;
+  hasProjectionsAccess: boolean;
 }
 
 /**
- * Set authentication cookie (7-day expiration, HTTP-only, secure)
+ * Authenticate user by email and password against the database
  */
-export async function setAuthCookie(): Promise<void> {
+export async function authenticateUser(email: string, password: string): Promise<AuthenticatedUser | null> {
+  const { data: user, error } = await supabase
+    .from("users")
+    .select("id, password_hash, is_admin, has_projections_access")
+    .eq("email", email.toLowerCase().trim())
+    .single();
+
+  if (error || !user) {
+    return null;
+  }
+
+  const valid = await bcrypt.compare(password, user.password_hash);
+  if (!valid) {
+    return null;
+  }
+
+  return {
+    userId: user.id,
+    isAdmin: user.is_admin,
+    hasProjectionsAccess: user.has_projections_access,
+  };
+}
+
+/**
+ * Set authentication cookie with user info (7-day expiration, HTTP-only, secure)
+ */
+export async function setAuthCookie(userId: string, isAdmin: boolean, hasProjectionsAccess: boolean): Promise<void> {
   const cookieStore = await cookies();
-  const token = await signSession();
+  const token = await signSession(userId, isAdmin, hasProjectionsAccess);
   cookieStore.set(AUTH_COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -45,10 +62,28 @@ export async function clearAuthCookie(): Promise<void> {
 }
 
 /**
+ * Get authenticated user info from session cookie (no DB call)
+ */
+export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> {
+  const cookieStore = await cookies();
+  const authCookie = cookieStore.get(AUTH_COOKIE_NAME);
+  const session: SessionInfo = await verifySession(authCookie?.value);
+
+  if (!session.valid || !session.userId) {
+    return null;
+  }
+
+  return {
+    userId: session.userId,
+    isAdmin: session.isAdmin ?? false,
+    hasProjectionsAccess: session.hasProjectionsAccess ?? false,
+  };
+}
+
+/**
  * Check if user is authenticated (has valid cookie)
  */
 export async function isAuthenticated(): Promise<boolean> {
-  const cookieStore = await cookies();
-  const authCookie = cookieStore.get(AUTH_COOKIE_NAME);
-  return verifySession(authCookie?.value);
+  const user = await getAuthenticatedUser();
+  return user !== null;
 }

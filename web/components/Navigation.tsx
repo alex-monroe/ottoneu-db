@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
-import { Lock, ExternalLink, ChevronDown } from "lucide-react";
+import { Lock, ExternalLink, ChevronDown, Shield } from "lucide-react";
 
 const PUBLIC_LINKS = [
   { href: "/", label: "Player Efficiency" },
@@ -124,9 +124,10 @@ function NavDropdown({
 
 interface NavigationProps {
   isAuthenticated: boolean;
+  isAdmin: boolean;
 }
 
-export default function Navigation({ isAuthenticated }: NavigationProps) {
+export default function Navigation({ isAuthenticated, isAdmin }: NavigationProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -186,6 +187,20 @@ export default function Navigation({ isAuthenticated }: NavigationProps) {
                   pathname={pathname}
                 />
               ))}
+
+            {/* Admin link */}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className={`inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${pathname === "/admin"
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
+                  }`}
+              >
+                <Shield size={12} className={pathname === "/admin" ? "opacity-80" : "opacity-60"} aria-hidden="true" />
+                Admin
+              </Link>
+            )}
           </div>
           {isAuthenticated ? (
             <button

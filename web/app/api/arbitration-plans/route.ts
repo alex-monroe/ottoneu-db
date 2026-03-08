@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { LEAGUE_ID } from "@/lib/arb-logic";
+import { getAuthenticatedUser } from "@/lib/auth";
 
 export async function GET() {
+  const user = await getAuthenticatedUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { data, error } = await supabase
     .from("arbitration_plans")
     .select("id, name, notes, created_at, updated_at")
     .eq("league_id", LEAGUE_ID)
+    .eq("user_id", user.userId)
     .order("updated_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -14,6 +19,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const user = await getAuthenticatedUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { name, notes } = await req.json();
 
   if (!name || typeof name !== "string" || name.trim().length === 0) {
@@ -22,7 +30,7 @@ export async function POST(req: NextRequest) {
 
   const { data, error } = await supabase
     .from("arbitration_plans")
-    .insert({ league_id: LEAGUE_ID, name: name.trim(), notes: notes ?? null })
+    .insert({ league_id: LEAGUE_ID, user_id: user.userId, name: name.trim(), notes: notes ?? null })
     .select("id, name, notes, created_at, updated_at")
     .single();
 
