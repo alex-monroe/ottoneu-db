@@ -3,9 +3,13 @@
 import { useState, FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+type Mode = "login" | "register";
+
 export default function LoginForm() {
+  const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -13,23 +17,42 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/";
 
+  const isRegister = mode === "register";
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (isRegister) {
+      if (password.length < 6) {
+        setError("Password must be at least 6 characters");
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError("Passwords do not match");
+        return;
+      }
+    }
+
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/auth/login", {
+      const endpoint = isRegister ? "/api/auth/register" : "/api/auth/login";
+      const body = isRegister
+        ? { email, password, confirmPassword }
+        : { email, password };
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
         const data = await response.json();
-        setError(data.error || "Invalid email or password");
+        setError(data.error || (isRegister ? "Registration failed" : "Invalid email or password"));
         setIsLoading(false);
         return;
       }
@@ -38,10 +61,16 @@ export default function LoginForm() {
       router.push(redirect);
       router.refresh();
     } catch (err) {
-      console.error("Login error:", err);
+      console.error(`${isRegister ? "Registration" : "Login"} error:`, err);
       setError("An error occurred. Please try again.");
       setIsLoading(false);
     }
+  };
+
+  const toggleMode = () => {
+    setMode(isRegister ? "login" : "register");
+    setError("");
+    setConfirmPassword("");
   };
 
   return (
@@ -49,10 +78,12 @@ export default function LoginForm() {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-bold text-slate-900 dark:text-white">
-            Sign in to continue
+            {isRegister ? "Create an account" : "Sign in to continue"}
           </h2>
           <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
-            Enter your credentials to access analysis pages
+            {isRegister
+              ? "Sign up to get started"
+              : "Enter your credentials to access analysis pages"}
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -82,7 +113,7 @@ export default function LoginForm() {
                 id="password"
                 name="password"
                 type={showPassword ? "text" : "password"}
-                autoComplete="current-password"
+                autoComplete={isRegister ? "new-password" : "current-password"}
                 required
                 className="appearance-none rounded-md relative block w-full px-3 py-2 border border-slate-300 dark:border-slate-700 placeholder-slate-500 dark:placeholder-slate-400 text-slate-900 dark:text-white bg-white dark:bg-slate-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                 placeholder="Password"
@@ -132,6 +163,25 @@ export default function LoginForm() {
                 )}
               </button>
             </div>
+            {isRegister && (
+              <div>
+                <label htmlFor="confirmPassword" className="sr-only">
+                  Confirm Password
+                </label>
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  required
+                  className="appearance-none rounded-md relative block w-full px-3 py-2 border border-slate-300 dark:border-slate-700 placeholder-slate-500 dark:placeholder-slate-400 text-slate-900 dark:text-white bg-white dark:bg-slate-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                  placeholder="Confirm password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+            )}
           </div>
 
           {error && (
@@ -165,10 +215,28 @@ export default function LoginForm() {
               disabled={isLoading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {isLoading ? "Signing in..." : "Sign in"}
+              {isLoading
+                ? isRegister
+                  ? "Creating account..."
+                  : "Signing in..."
+                : isRegister
+                  ? "Create account"
+                  : "Sign in"}
             </button>
           </div>
         </form>
+
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={toggleMode}
+            className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition-colors"
+          >
+            {isRegister
+              ? "Already have an account? Sign in"
+              : "Don\u2019t have an account? Create one"}
+          </button>
+        </div>
       </div>
     </div>
   );
