@@ -17,6 +17,10 @@ const SOFA_LEAGUE_LINK = {
   isExternal: true,
 };
 
+const AUTHENTICATED_LINKS = [
+  { href: "/arb-planner-public", label: "Arb Planner" },
+];
+
 const PRIVATE_GROUPS = [
   {
     label: "Projections",
@@ -83,8 +87,8 @@ function NavDropdown({
         aria-haspopup="true"
         aria-controls={dropdownId}
         className={`inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${hasActiveChild
-            ? "bg-blue-600 text-white"
-            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
+          ? "bg-blue-600 text-white"
+          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
           }`}
       >
         <Lock size={12} className={hasActiveChild ? "opacity-80" : "opacity-60"} aria-hidden="true" />
@@ -108,8 +112,8 @@ function NavDropdown({
                 href={link.href}
                 onClick={() => setOpen(false)}
                 className={`block px-4 py-2 text-sm transition-colors ${isActive
-                    ? "bg-blue-600 text-white"
-                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  ? "bg-blue-600 text-white"
+                  : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                   }`}
               >
                 {link.label}
@@ -158,8 +162,8 @@ export default function Navigation({ isAuthenticated, isAdmin }: NavigationProps
                   key={link.href}
                   href={link.href}
                   className={`px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${isActive
-                      ? "bg-blue-600 text-white"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
                     }`}
                 >
                   {link.label}
@@ -178,6 +182,24 @@ export default function Navigation({ isAuthenticated, isAdmin }: NavigationProps
               <ExternalLink size={14} />
             </a>
 
+            {/* Authenticated-only plain links (e.g. public Arb Planner) */}
+            {isAuthenticated &&
+              AUTHENTICATED_LINKS.map((link) => {
+                const isActive = pathname === link.href;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${isActive
+                        ? "bg-blue-600 text-white"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
+                      }`}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
+
             {/* Protected dropdown groups (only if authenticated) */}
             {isAuthenticated &&
               PRIVATE_GROUPS.map((group) => (
@@ -194,8 +216,8 @@ export default function Navigation({ isAuthenticated, isAdmin }: NavigationProps
               <Link
                 href="/admin"
                 className={`inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${pathname === "/admin"
-                    ? "bg-blue-600 text-white"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
+                  ? "bg-blue-600 text-white"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
                   }`}
               >
                 <Shield size={12} className={pathname === "/admin" ? "opacity-80" : "opacity-60"} aria-hidden="true" />
