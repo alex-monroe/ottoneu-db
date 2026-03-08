@@ -76,6 +76,7 @@ export default function LoginForm() {
                 type="button"
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? (
                   <svg
@@ -117,7 +118,7 @@ export default function LoginForm() {
           </div>
 
           {error && (
-            <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4">
+            <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4" role="alert" aria-live="assertive">
               <div className="flex">
                 <div className="flex-shrink-0">
                   <svg
