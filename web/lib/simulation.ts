@@ -87,10 +87,28 @@ export function generateTeamValuations(
         for (let j = 0; j < players.length; j++) {
             const p = players[j];
             const multiplier = rng.lognormalRandom(variation);
-            const teamValueEstimate = Math.max(0, p.dollar_value * multiplier);
+            const rawValue = p.dollar_value * multiplier;
+            const teamValueEstimate = rawValue < 0 ? 0 : rawValue;
 
+            // Bolt Optimization: Avoid object spread in hot loop (~18M calls)
+            // Extract explicitly defined enumerable properties to avoid object
+            // spread syntax which has significant performance overhead during V8 optimization
             teamPlayers[j] = {
-                ...p,
+                player_id: p.player_id,
+                name: p.name,
+                position: p.position,
+                nfl_team: p.nfl_team,
+                price: p.price,
+                team_name: p.team_name,
+                birth_date: p.birth_date,
+                is_college: p.is_college,
+                total_points: p.total_points,
+                games_played: p.games_played,
+                snaps: p.snaps,
+                ppg: p.ppg,
+                pps: p.pps,
+                vorp: p.vorp,
+                replacement_ppg: p.replacement_ppg,
                 dollar_value: Math.round(teamValueEstimate),
                 surplus: Math.round(teamValueEstimate) - p.price,
             };
@@ -152,8 +170,8 @@ export function allocateTeamBudget(
     // Optimization: Keep track of allocations to each opponent team
     // instead of calling .entries() and .filter() and .reduce() repeatedly.
     const currentToTeamMap = new Map<string, number>();
-    for (const opponent of opponents) {
-        currentToTeamMap.set(opponent, 0);
+    for (let i = 0; i < opponents.length; i++) {
+        currentToTeamMap.set(opponents[i], 0);
     }
 
     // Distribute budget across high-surplus targets
@@ -182,7 +200,8 @@ export function allocateTeamBudget(
     }
 
     // Ensure minimum allocation to all opponents
-    for (const opponent of opponents) {
+    for (let i = 0; i < opponents.length; i++) {
+        const opponent = opponents[i];
         const currentToTeam = currentToTeamMap.get(opponent) || 0;
 
         if (currentToTeam < minPerTeam) {
