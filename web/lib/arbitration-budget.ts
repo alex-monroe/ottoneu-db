@@ -1,6 +1,4 @@
 import {
-    MY_TEAM,
-    ARB_MAX_PER_PLAYER_PER_TEAM,
     ARB_BUDGET_PER_TEAM,
     ARB_MIN_PER_TEAM,
     ARB_MAX_PER_TEAM,
@@ -8,54 +6,9 @@ import {
 } from "./config";
 
 import {
-    Player,
     ArbitrationTarget,
     TeamAllocation
 } from "./types";
-
-import { calculateSurplus } from "./surplus";
-
-/**
- * Analyzes opposing rosters to identify potential arbitration targets.
- * Focuses on players with positive surplus even after applying the $4 arbitration bump.
- */
-export function analyzeArbitration(
-    allPlayers: Player[],
-    adjustments?: Map<string, number>
-): ArbitrationTarget[] {
-    const surplusPlayers = calculateSurplus(allPlayers, adjustments);
-    if (surplusPlayers.length === 0) return [];
-
-    // Filter to opponents' rostered players only (exclude kickers)
-    const opponents = surplusPlayers.filter(
-        (p) =>
-            p.team_name != null &&
-            p.team_name !== "" &&
-            p.team_name !== "FA" &&
-            p.team_name !== MY_TEAM &&
-            p.position !== "K"
-    );
-
-    // DB salaries already include the end-of-season bump.
-    // Arbitration adds up to $4 on top of current salary.
-    const targets: ArbitrationTarget[] = opponents.map((p) => {
-        const salaryAfterArb = p.price + ARB_MAX_PER_PLAYER_PER_TEAM;
-        const surplusAfterArb = p.dollar_value - salaryAfterArb;
-
-        return {
-            ...p,
-            salary_after_arb: salaryAfterArb,
-            surplus_after_arb: surplusAfterArb,
-        };
-    });
-
-    // Focus on danger zone: surplus between -10 and +15
-    return targets
-        .filter(
-            (t) => t.surplus >= -10 && t.dollar_value > 1
-        )
-        .sort((a, b) => b.surplus - a.surplus);
-}
 
 /**
  * Distributes the $60 team arbitration budget proportionally among opponent teams

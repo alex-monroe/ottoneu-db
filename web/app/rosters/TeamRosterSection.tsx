@@ -3,7 +3,7 @@
 import { useState } from "react";
 import DataTable, { Column } from "@/components/DataTable";
 import { type TeamRoster } from "@/lib/roster-reconstruction";
-import { MY_TEAM, CAP_PER_TEAM } from "@/lib/arb-logic";
+import { LEAGUE_ID, MY_TEAM, CAP_PER_TEAM } from "@/lib/analysis";
 
 const ROSTER_COLUMNS: Column[] = [
   { key: "name", label: "Player" },

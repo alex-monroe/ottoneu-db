@@ -1,4 +1,4 @@
-import { fetchAndMergeData, fetchAndMergeProjectedData, calculateSurplus, SEASON, LEAGUE_ID, DEFAULT_PROJECTION_YEAR } from "@/lib/analysis";
+import { fetchAndMergeData, fetchAndMergeProjectedData, fetchSurplusData, SEASON, LEAGUE_ID, DEFAULT_PROJECTION_YEAR } from "@/lib/analysis";
 import { supabase } from "@/lib/supabase";
 import AdjustmentsTable from "./AdjustmentsTable";
 import Link from "next/link";
@@ -15,12 +15,12 @@ export default async function SurplusAdjustmentsPage() {
       .eq("league_id", LEAGUE_ID),
   ]);
 
-  const surplusPlayers = calculateSurplus(allPlayers).filter(
+  const surplusPlayers = (await fetchSurplusData(allPlayers)).filter(
     (p) => p.position !== "K"
   );
 
   // Build projected surplus values for comparison
-  const projectedSurplus = calculateSurplus(projectedPlayers).filter(
+  const projectedSurplus = (await fetchSurplusData(projectedPlayers, DEFAULT_PROJECTION_YEAR)).filter(
     (p) => p.position !== "K"
   );
   const projectedValues: Record<string, { projected_dollar_value: number; projected_surplus: number }> = {};

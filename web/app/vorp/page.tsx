@@ -1,6 +1,5 @@
 import {
-  fetchAndMergeData,
-  calculateVorp,
+  fetchVorpData,
   POSITIONS,
   SEASON,
   MIN_GAMES,
@@ -12,8 +11,7 @@ import VorpClient from "./VorpClient";
 export const revalidate = 3600;
 
 export default async function VorpPage() {
-  const allPlayers = await fetchAndMergeData();
-  const { players, replacementPpg, replacementN } = calculateVorp(allPlayers);
+  const { players, replacementPpg, replacementN } = await fetchVorpData();
 
   if (players.length === 0) {
     return (

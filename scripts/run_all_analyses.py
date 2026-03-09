@@ -27,6 +27,7 @@ def main():
     # Run analyses in dependency order
     reports = []
 
+    import subprocess
     # New Step: Update projections
     print("\n" + "="*50)
     print("STEP 0: Updating Player Projections")
@@ -48,40 +49,63 @@ def main():
         reports.append(ps_report(ps_result))
 
     print('\n[3/8] VORP Analysis...') # Updated step count
-    from analyze_vorp import calculate_vorp, generate_report as vorp_report
+    from analyze_vorp import calculate_vorp, upsert_vorp, generate_report as vorp_report
     vorp_result, rpg, replacement_n = calculate_vorp(merged)
     if not vorp_result.empty:
+        upsert_vorp(vorp_result, target_season=None) # Uses config.SEASON
         reports.append(vorp_report(vorp_result, rpg, replacement_n))
 
-    print('\n[4/7] Surplus Value Analysis...')
-    from analyze_surplus_value import calculate_surplus, generate_report as sv_report
+    print('\n[4/8] Surplus Value Analysis...')
+    from analyze_surplus_value import calculate_surplus, upsert_surplus, generate_report as sv_report
     sv_result = calculate_surplus(merged)
     if not sv_result.empty:
+        upsert_surplus(sv_result, target_season=None)
         reports.append(sv_report(sv_result))
 
-    print('\n[5/7] Arbitration Targets...')
-    from analyze_arbitration import analyze_arbitration, generate_report as arb_report
+    print('\n[5/8] Arbitration Targets...')
+    from analyze_arbitration import analyze_arbitration, upsert_arbitration_targets, generate_report as arb_report
     arb_result = analyze_arbitration(merged)
     if not arb_result.empty:
+        upsert_arbitration_targets(arb_result, target_season=None)
         reports.append(arb_report(arb_result))
 
-    print('\n[6/7] Arbitration Simulation...')
+    print('\n[6/8] Arbitration Simulation...')
     from analyze_arbitration_simulation import run_simulation, generate_simulation_report
     sim_result = run_simulation(sv_result)
     if not sim_result.empty:
         reports.append(generate_simulation_report(sim_result))
 
-    print('\n[7/7] Projected Arbitration Targets...')
+    print('\n[7/8] Projected Arbitration Targets (and Metrics Calculation)...')
     from analyze_projected_arbitration import (
         build_projection_map, apply_projections, generate_report as parb_report,
     )
     from analyze_arbitration import analyze_arbitration as _analyze_arb
+
+    # We also need to upsert VORP and Surplus for the projected season.
+    # The projected season is essentially SEASON + 1 (e.g., 2026).
+    # Since we are precalculating, we should compute VORP, Surplus, and Arbitration using projected data.
+    from config import SEASON
+    target_projected_season = SEASON + 1
+
     multi_season_df = fetch_multi_season_stats(HISTORICAL_SEASONS)
     if not multi_season_df.empty:
         projection_map = build_projection_map(multi_season_df)
         projected_merged = apply_projections(merged, projection_map)
+
+        # Calculate and Upsert Projected VORP
+        p_vorp_result, _, _ = calculate_vorp(projected_merged)
+        if not p_vorp_result.empty:
+            upsert_vorp(p_vorp_result, target_season=target_projected_season)
+
+        # Calculate and Upsert Projected Surplus
+        p_sv_result = calculate_surplus(projected_merged)
+        if not p_sv_result.empty:
+            upsert_surplus(p_sv_result, target_season=target_projected_season)
+
+        # Calculate and Upsert Projected Arbitration Targets
         parb_result = _analyze_arb(projected_merged)
         if not parb_result.empty:
+            upsert_arbitration_targets(parb_result, target_season=target_projected_season)
             import pandas as pd
             if 'observed_ppg' in projected_merged.columns:
                 obs_ppg = projected_merged.set_index('player_id')['observed_ppg']

@@ -1,6 +1,6 @@
 import {
   fetchAndMergeData,
-  analyzeArbitration,
+  fetchArbitrationData,
   allocateArbitrationBudget,
   LEAGUE_ID,
   MY_TEAM,
@@ -26,7 +26,7 @@ export default async function ArbitrationPlannerPage() {
 
   // Use raw values (no adjustments) so Value/Surplus columns match the arbitration page.
   // Adjustments are shown separately in the "Adj. Surplus" column.
-  const targets = analyzeArbitration(allPlayers);
+  const targets = await fetchArbitrationData(allPlayers);
   const suggestedAllocations = allocateArbitrationBudget(targets);
 
   // Get unique opponent team names

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { LEAGUE_ID } from "@/lib/arb-logic";
+import { LEAGUE_ID } from "@/lib/analysis";
+
 
 export async function GET() {
   const { data, error } = await supabase

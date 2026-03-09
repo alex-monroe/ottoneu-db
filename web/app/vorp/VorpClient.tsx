@@ -121,7 +121,7 @@ export default function VorpClient({ top15, tableData }: Props) {
                 {top15.map((entry, i) => (
                   <Cell
                     key={i}
-                    fill={POSITION_COLORS[entry.position] ?? "#6366f1"}
+                    fill={POSITION_COLORS[entry.position as Position] ?? "#6366f1"}
                   />
                 ))}
               </Bar>

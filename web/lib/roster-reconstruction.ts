@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import { LEAGUE_ID, SEASON, CAP_PER_TEAM } from "./arb-logic";
+import { LEAGUE_ID, SEASON, CAP_PER_TEAM } from "./config";
 
 // === Types ===
 

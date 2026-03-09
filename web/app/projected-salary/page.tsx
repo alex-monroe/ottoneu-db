@@ -1,5 +1,5 @@
 import {
-  fetchAndMergeData,
+  fetchSurplusData,
   analyzeProjectedSalary,
   CAP_PER_TEAM,
   POSITIONS,
@@ -11,7 +11,7 @@ import SummaryCard from "@/components/SummaryCard";
 export const revalidate = 3600;
 
 export default async function ProjectedSalaryPage() {
-  const allPlayers = await fetchAndMergeData();
+  const allPlayers = await fetchSurplusData();
   const roster = analyzeProjectedSalary(allPlayers);
 
   if (roster.length === 0) {

@@ -35,6 +35,36 @@ def calculate_surplus(merged_df: pd.DataFrame) -> pd.DataFrame:
     return vorp_df
 
 
+def upsert_surplus(df: pd.DataFrame, target_season: int = None) -> None:
+    """Upsert surplus results into the player_surplus table in Supabase."""
+    from config import get_supabase_client
+    supabase = get_supabase_client()
+
+    season_to_use = target_season if target_season is not None else SEASON
+    records = []
+    for _, row in df.iterrows():
+        records.append({
+            'player_id': str(row['player_id']),
+            'season': season_to_use,
+            'dollar_value': float(row['dollar_value']),
+            'surplus': float(row['surplus'])
+        })
+
+    if not records:
+        print("No surplus records to upsert.")
+        return
+
+    print(f"Upserting {len(records)} surplus records to player_surplus table...")
+    batch_size = 500
+    for i in range(0, len(records), batch_size):
+        batch = records[i:i+batch_size]
+        supabase.table('player_surplus').upsert(
+            batch,
+            on_conflict='player_id,season'
+        ).execute()
+        print(f"  Upserted batch {i//batch_size + 1} ({len(batch)} records)")
+    print("Successfully updated player surplus.")
+
 def generate_report(df: pd.DataFrame) -> str:
     """Write surplus value report to reports/surplus_value.md."""
     reports_dir = ensure_reports_dir()
@@ -113,4 +143,5 @@ if __name__ == '__main__':
     merged = merge_data(prices_df, stats_df, players_df)
     result = calculate_surplus(merged)
     if not result.empty:
+        upsert_surplus(result)
         generate_report(result)

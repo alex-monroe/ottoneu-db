@@ -9,12 +9,9 @@ import {
 } from "./config";
 
 import {
-    Player,
     SurplusPlayer,
     SimulationResult
 } from "./types";
-
-import { calculateSurplus } from "./surplus";
 
 // === Arbitration Simulation ===
 
@@ -211,16 +208,27 @@ export function allocateTeamBudget(
  * Run arbitration simulation
  */
 export function runArbitrationSimulation(
-    players: Player[],
+    surplusPlayers: SurplusPlayer[],
     numSims: number = NUM_SIMULATIONS,
     valueVariation: number = VALUE_VARIATION,
     adjustments?: Map<string, number>
 ): SimulationResult[] {
-    const surplusPlayers = calculateSurplus(players, adjustments);
     if (surplusPlayers.length === 0) return [];
 
     // Exclude kickers from arbitration simulation
-    const surplusPlayersNoKickers = surplusPlayers.filter(p => p.position !== 'K');
+    let surplusPlayersNoKickers = surplusPlayers.filter(p => p.position !== 'K');
+
+    // Apply adjustments if present
+    if (adjustments) {
+        surplusPlayersNoKickers = surplusPlayersNoKickers.map(p => {
+            const adj = adjustments.get(p.player_id) ?? 0;
+            return {
+                ...p,
+                dollar_value: p.dollar_value + adj,
+                surplus: p.surplus + adj
+            };
+        });
+    }
 
     const allTeamsSet = new Set<string>();
     for (let i = 0; i < surplusPlayersNoKickers.length; i++) {

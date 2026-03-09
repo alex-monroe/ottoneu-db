@@ -2,11 +2,17 @@ import { supabase } from "./supabase";
 import {
   LEAGUE_ID,
   SEASON,
-} from "./arb-logic";
-import type { Player, BacktestPlayer } from "./types";
+} from "./config";
+import type { Player, BacktestPlayer, VorpPlayer, SurplusPlayer, ArbitrationTarget } from "./types";
 
-export * from "./arb-logic";
+import { allocateArbitrationBudget } from "./arbitration-budget";
 export type { Player, SimulationResult } from "./types";
+export { allocateArbitrationBudget };
+export { runArbitrationSimulation } from "./simulation";
+export { analyzeProjectedSalary } from "./salary-analysis";
+export { NUM_SIMULATIONS, VALUE_VARIATION } from "./config";
+export { SEASON, LEAGUE_ID, ARB_BUDGET_PER_TEAM, ARB_MIN_PER_TEAM, ARB_MAX_PER_TEAM, ARB_MAX_PER_PLAYER_PER_TEAM, NUM_TEAMS, CAP_PER_TEAM, MIN_GAMES, MY_TEAM } from "./config";
+export { POSITIONS, POSITION_COLORS } from "./types";
 
 // === Projection Year Config ===
 export const PROJECTION_YEARS = [2025, 2026] as const;
@@ -183,6 +189,153 @@ export async function fetchBacktestData(
   }
 
   return result;
+}
+
+// === Analysis Metrics Fetching ===
+
+/**
+ * Fetch VORP data and merge with player data.
+ */
+export async function fetchVorpData(
+  playersInput?: Player[],
+  season: number = SEASON
+): Promise<{ players: VorpPlayer[], replacementPpg: Record<string, number>, replacementN: Record<string, number> }> {
+  const currentPlayers = playersInput ?? await fetchAndMergeData();
+  if (currentPlayers.length === 0) return { players: [], replacementPpg: {}, replacementN: {} };
+
+  const { data: vorpData, error } = await supabase
+    .from("player_vorp")
+    .select("*")
+    .eq("season", season);
+
+  if (error) throw error;
+
+  const vorpMap = new Map(vorpData.map((v) => [v.player_id, v]));
+  const players = [];
+  const replacementPpg: Record<string, number> = {};
+  const replacementN: Record<string, number> = {}; // Not stored in DB directly right now, but we can return empty or derive
+
+  for (const player of currentPlayers) {
+    const v = vorpMap.get(player.player_id);
+    if (!v) continue;
+
+    players.push({
+      ...player,
+      replacement_ppg: Number(v.replacement_ppg),
+      vorp_per_game: Number(v.vorp_per_game),
+      full_season_vorp: Number(v.full_season_vorp),
+    });
+
+    // Naively extract replacement PPG from the data
+    if (!replacementPpg[player.position]) {
+      replacementPpg[player.position] = Number(v.replacement_ppg);
+    }
+  }
+
+  return { players, replacementPpg, replacementN };
+}
+
+/**
+ * Fetch Surplus data and merge with player data.
+ */
+export async function fetchSurplusData(
+  playersInput?: Player[],
+  season: number = SEASON
+): Promise<SurplusPlayer[]> {
+  const basePlayers = playersInput ?? await fetchAndMergeData();
+  if (basePlayers.length === 0) return [];
+
+  // VORP is required for SurplusPlayer interface
+  const { data: vorpData, error: vorpError } = await supabase
+    .from("player_vorp")
+    .select("*")
+    .eq("season", season);
+  if (vorpError) throw vorpError;
+
+  const { data: surplusData, error } = await supabase
+    .from("player_surplus")
+    .select("*")
+    .eq("season", season);
+
+  if (error) throw error;
+
+  const vorpMap = new Map(vorpData.map((v) => [v.player_id, v]));
+  const surplusMap = new Map(surplusData.map((s) => [s.player_id, s]));
+  const players = [];
+
+  for (const player of basePlayers) {
+    const v = vorpMap.get(player.player_id);
+    const s = surplusMap.get(player.player_id);
+    if (!v || !s) continue;
+
+    players.push({
+      ...player,
+      replacement_ppg: Number(v.replacement_ppg),
+      vorp_per_game: Number(v.vorp_per_game),
+      full_season_vorp: Number(v.full_season_vorp),
+      dollar_value: Number(s.dollar_value),
+      surplus: Number(s.surplus),
+    });
+  }
+
+  return players;
+}
+
+/**
+ * Fetch Arbitration data and merge with player data.
+ */
+export async function fetchArbitrationData(
+  playersInput?: Player[],
+  adjustments?: Map<string, number> | Record<string, number>,
+  season: number = SEASON
+): Promise<ArbitrationTarget[]> {
+  // If the frontend does adjustments, we might need to handle them or just return the DB base.
+  // The backend already calculates the baseline arbitration targets.
+  // Since adjustments are dynamic, we calculate the dynamic values if adjustments are passed.
+  // But for the pure DB fetch, we do this:
+
+  const basePlayers = await fetchSurplusData(playersInput, season);
+  if (basePlayers.length === 0) return [];
+
+  const { data: arbData, error } = await supabase
+    .from("arbitration_targets")
+    .select("*")
+    .eq("season", season);
+
+  if (error) throw error;
+
+  const arbMap = new Map(arbData.map((a) => [a.player_id, a]));
+  const players = [];
+
+  for (const player of basePlayers) {
+    const a = arbMap.get(player.player_id);
+    if (!a) continue; // Only opponents who are arbitration targets have this
+
+    let currentSurplus = player.surplus;
+    let currentDollarValue = player.dollar_value;
+
+    // Apply dynamic adjustments if provided
+    let adj = 0;
+    if (adjustments) {
+        if (adjustments instanceof Map) {
+            adj = adjustments.get(player.player_id) ?? 0;
+        } else {
+            adj = adjustments[player.player_id] ?? 0;
+        }
+    }
+    currentDollarValue += adj;
+    currentSurplus += adj;
+
+    players.push({
+      ...player,
+      dollar_value: currentDollarValue,
+      surplus: currentSurplus,
+      salary_after_arb: Number(a.salary_after_arb),
+      surplus_after_arb: currentSurplus - (Number(a.salary_after_arb) - player.price),
+    });
+  }
+
+  return players.sort((a, b) => b.surplus_after_arb - a.surplus_after_arb);
 }
 
 /**

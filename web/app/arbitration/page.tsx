@@ -1,7 +1,7 @@
 import {
   fetchPlayersWithProjectedPpg,
   fetchAndMergeProjectedData,
-  analyzeArbitration,
+  fetchArbitrationData,
   allocateArbitrationBudget,
   ARB_BUDGET_PER_TEAM,
   ARB_MIN_PER_TEAM,
@@ -93,7 +93,8 @@ export default async function ArbitrationPage({ searchParams }: Props) {
     allPlayers = await fetchPlayersWithProjectedPpg();
   }
 
-  const targets = analyzeArbitration(allPlayers, adjustments) as ProjectedTarget[];
+  const season = isProjected ? DEFAULT_PROJECTION_YEAR : SEASON;
+  const targets = (await fetchArbitrationData(allPlayers, adjustments, season)) as ProjectedTarget[];
 
   if (targets.length === 0) {
     return (

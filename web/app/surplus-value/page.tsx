@@ -1,6 +1,5 @@
 import {
-  fetchAndMergeData,
-  calculateSurplus,
+  fetchSurplusData,
   MY_TEAM,
   SEASON,
 } from "@/lib/analysis";
@@ -65,8 +64,7 @@ const TEAM_SUMMARY_RULES: HighlightRule[] = [
 ];
 
 export default async function SurplusValuePage() {
-  const allPlayers = await fetchAndMergeData();
-  const surplusPlayers = calculateSurplus(allPlayers);
+  const surplusPlayers = await fetchSurplusData();
 
   if (surplusPlayers.length === 0) {
     return (

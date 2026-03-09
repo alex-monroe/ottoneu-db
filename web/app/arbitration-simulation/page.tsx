@@ -1,5 +1,5 @@
 import {
-  fetchAndMergeData,
+  fetchSurplusData,
   fetchAndMergeProjectedData,
   SEASON,
   LEAGUE_ID,
@@ -25,9 +25,7 @@ export default async function ArbitrationSimulationPage({ searchParams }: Props)
   const isProjected = mode === "projected";
 
   const [rawPlayers, adjRes] = await Promise.all([
-    isProjected
-      ? fetchAndMergeProjectedData(DEFAULT_PROJECTION_YEAR)
-      : fetchAndMergeData(),
+    isProjected ? fetchSurplusData(await fetchAndMergeProjectedData(DEFAULT_PROJECTION_YEAR), DEFAULT_PROJECTION_YEAR) : fetchSurplusData(),
     supabase
       .from("surplus_adjustments")
       .select("player_id, adjustment")

@@ -52,6 +52,36 @@ def analyze_arbitration(merged_df: pd.DataFrame) -> pd.DataFrame:
     return targets
 
 
+def upsert_arbitration_targets(df: pd.DataFrame, target_season: int = None) -> None:
+    """Upsert arbitration targets results into the arbitration_targets table in Supabase."""
+    from config import get_supabase_client
+    supabase = get_supabase_client()
+
+    season_to_use = target_season if target_season is not None else SEASON
+    records = []
+    for _, row in df.iterrows():
+        records.append({
+            'player_id': str(row['player_id']),
+            'season': season_to_use,
+            'salary_after_arb': float(row['salary_after_arb']),
+            'surplus_after_arb': float(row['surplus_after_arb'])
+        })
+
+    if not records:
+        print("No arbitration target records to upsert.")
+        return
+
+    print(f"Upserting {len(records)} arbitration targets to arbitration_targets table...")
+    batch_size = 500
+    for i in range(0, len(records), batch_size):
+        batch = records[i:i+batch_size]
+        supabase.table('arbitration_targets').upsert(
+            batch,
+            on_conflict='player_id,season'
+        ).execute()
+        print(f"  Upserted batch {i//batch_size + 1} ({len(batch)} records)")
+    print("Successfully updated arbitration targets.")
+
 def generate_report(targets: pd.DataFrame) -> str:
     """Write arbitration targets report to reports/arbitration_targets.md."""
     reports_dir = ensure_reports_dir()
@@ -116,4 +146,5 @@ if __name__ == '__main__':
     merged = merge_data(prices_df, stats_df, players_df)
     targets = analyze_arbitration(merged)
     if not targets.empty:
+        upsert_arbitration_targets(targets)
         generate_report(targets)

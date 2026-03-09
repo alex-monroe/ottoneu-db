@@ -10,9 +10,10 @@ import {
 import { Player } from "@/lib/types";
 import DataTable, { Column, HighlightRule } from "@/components/DataTable";
 import SimulationTeams from "./SimulationTeams";
+import { SurplusPlayer } from "@/lib/types";
 
 interface SimulationControlsProps {
-  initialPlayers: Player[];
+  initialPlayers: SurplusPlayer[];
   /** Serialized adjustments from the server (Record is JSON-safe, Map is not) */
   initialAdjustments?: Record<string, number>;
 }
