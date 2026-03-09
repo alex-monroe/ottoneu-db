@@ -15,9 +15,13 @@ export default async function Home() {
   }
 
   // Merge Data
+  // Bolt Optimization: Replace O(n^2) array searches with O(1) Map lookups
+  const statsMap = new Map(stats.map((s) => [s.player_id, s]));
+  const pricesMap = new Map(prices.map((p) => [p.player_id, p]));
+
   const data = players.map(player => {
-    const pStats = stats.find(s => s.player_id === player.id)
-    const pPrice = prices.find(p => p.player_id === player.id)
+    const pStats = statsMap.get(player.id);
+    const pPrice = pricesMap.get(player.id);
 
     if (!pStats || !pPrice) return null;
 
