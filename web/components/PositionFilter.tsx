@@ -23,7 +23,7 @@ export default function PositionFilter({
   onToggleAll,
 }: PositionFilterProps) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by Position">
       {showAll && onToggleAll && (
         <button
           onClick={onToggleAll}

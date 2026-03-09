@@ -261,7 +261,7 @@ export default function AdjustmentsTable({
       {/* Controls bar */}
       <div className="flex flex-wrap items-center gap-3">
         {/* Position filter */}
-        <div className="flex gap-1">
+        <div className="flex gap-1" role="group" aria-label="Filter by position">
           {POSITIONS.map((pos) => (
             <button
               key={pos}
