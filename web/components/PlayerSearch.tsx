@@ -47,7 +47,7 @@ export default function PlayerSearch({ players }: PlayerSearchProps) {
                         </button>
                     )}
                 </div>
-                <div className="flex gap-1.5 flex-wrap">
+                <div className="flex gap-1.5 flex-wrap" role="group" aria-label="Filter by position">
                     <button
                         onClick={() => setPosition("ALL")}
                         aria-pressed={position === "ALL" ? "true" : "false"}
