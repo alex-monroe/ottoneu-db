@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { isValidRedirect } from "@/lib/utils";
 
 type Mode = "login" | "register";
 
@@ -15,7 +16,8 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get("redirect") || "/";
+  const rawRedirect = searchParams.get("redirect");
+  const redirect = isValidRedirect(rawRedirect) ? rawRedirect! : "/";
 
   const isRegister = mode === "register";
 
