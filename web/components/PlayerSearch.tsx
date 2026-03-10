@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Search, X } from "lucide-react";
 import { PlayerListItem, POSITIONS, Position, POSITION_COLORS } from "@/lib/types";
@@ -12,6 +12,18 @@ interface PlayerSearchProps {
 export default function PlayerSearch({ players }: PlayerSearchProps) {
     const [query, setQuery] = useState("");
     const [position, setPosition] = useState<Position | "ALL">("ALL");
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "/" && document.activeElement?.tagName !== "INPUT" && document.activeElement?.tagName !== "TEXTAREA") {
+                e.preventDefault();
+                inputRef.current?.focus();
+            }
+        };
+        document.addEventListener("keydown", handleKeyDown);
+        return () => document.removeEventListener("keydown", handleKeyDown);
+    }, []);
 
     const filtered = players.filter((p) => {
         const matchesQuery =
@@ -30,6 +42,7 @@ export default function PlayerSearch({ players }: PlayerSearchProps) {
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" aria-hidden="true" />
                     <input
+                        ref={inputRef}
                         type="text"
                         placeholder="Search by name or team…"
                         value={query}
@@ -37,15 +50,24 @@ export default function PlayerSearch({ players }: PlayerSearchProps) {
                         aria-label="Search players"
                         className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     />
-                    {query && (
-                        <button
-                            onClick={() => setQuery("")}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none focus:text-slate-600 dark:focus:text-slate-200"
-                            aria-label="Clear search"
-                        >
-                            <X className="h-4 w-4" aria-hidden="true" />
-                        </button>
-                    )}
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
+                        {!query ? (
+                            <kbd
+                                aria-hidden="true"
+                                className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-medium text-slate-400 border border-slate-200 dark:border-slate-700 rounded bg-slate-50 dark:bg-slate-800 pointer-events-none select-none"
+                            >
+                                /
+                            </kbd>
+                        ) : (
+                            <button
+                                onClick={() => setQuery("")}
+                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none focus:text-slate-600 dark:focus:text-slate-200"
+                                aria-label="Clear search"
+                            >
+                                <X className="h-4 w-4" aria-hidden="true" />
+                            </button>
+                        )}
+                    </div>
                 </div>
                 <div className="flex gap-1.5 flex-wrap" role="group" aria-label="Filter by position">
                     <button

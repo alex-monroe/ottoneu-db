@@ -2,6 +2,7 @@ import { supabase } from "./supabase";
 import {
   LEAGUE_ID,
   SEASON,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   MY_TEAM,
 } from "./arb-logic";
 import type { Player, BacktestPlayer } from "./types";
