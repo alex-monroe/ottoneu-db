@@ -33,7 +33,8 @@ export async function GET(_req: NextRequest, context: RouteContext) {
     allocations[a.player_id] = a.amount;
   }
 
-  const { user_id: _, ...planWithoutUserId } = plan;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { user_id: _unused, ...planWithoutUserId } = plan;
   return NextResponse.json({ ...planWithoutUserId, allocations });
 }
 
