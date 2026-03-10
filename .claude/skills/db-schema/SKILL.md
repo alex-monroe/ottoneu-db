@@ -5,7 +5,7 @@ description: Detailed explanation of the Supabase PostgreSQL database schema.
 
 # Database Schema
 
-The database for the Ottoneu Fantasy Football League 309 contains six main tables, all with UUID primary keys.
+The database for the Ottoneu Fantasy Football League 309 contains ten main tables, all with UUID primary keys.
 
 1. **`players`**: Core metadata for each player.
    - Unique on `ottoneu_id`.
@@ -28,11 +28,30 @@ The database for the Ottoneu Fantasy Football League 309 contains six main table
    - Unique constraint on `(player_id, league_id, transaction_type, transaction_date, salary)` to prevent duplicate entries.
 
 5. **`surplus_adjustments`**: Manual value overrides used to override VORP-calculated dollar values.
-   - Foreign Key: `player_id` references `players(id)`.
-   - Unique on `(player_id, league_id)`.
+   - Foreign Key: `player_id` references `players(id)` and `user_id` references `users(id)`.
+   - Unique on `(player_id, league_id, user_id)`.
    - Fields include `adjustment` (numeric) and `notes`.
 
 6. **`player_projections`**: Calculated projection outputs from the Python backend.
    - Foreign Key: `player_id` references `players(id)`.
    - Unique on `(player_id, season)`.
    - Fields include `projected_ppg` and `projection_method`.
+
+7. **`users`**: User accounts for authentication and access control.
+   - Unique on `email`.
+   - Fields include `password_hash`, `is_admin`, and `has_projections_access`.
+
+8. **`nfl_stats`**: Pure NFL stats from nflverse-data, 2010-present.
+   - Foreign Key: `player_id` references `players(id)`.
+   - Unique on `(player_id, season)`.
+   - Fields include `games_played`, `passing_yards`, `rushing_tds`, `targets`, `snaps`, etc.
+
+9. **`arbitration_plans`**: Named arbitration budget allocation plans per user.
+   - Foreign Key: `user_id` references `users(id)`.
+   - Unique on `(league_id, name, user_id)`.
+   - Fields include `league_id` and `name`.
+
+10. **`arbitration_plan_allocations`**: Per-player dollar allocations within an arbitration plan.
+    - Foreign Key: `plan_id` references `arbitration_plans(id)` and `player_id` references `players(id)`.
+    - Unique on `(plan_id, player_id)`.
+    - Fields include `allocation` (dollar amount).

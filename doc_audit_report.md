@@ -1,30 +1,25 @@
-### ✅ Confirmed accurate
-- All file paths and links in `AGENTS.md` and `CLAUDE.md` accurately reflect existing files, and `schema.sql` matches the structure in `docs/generated/db-schema.md` (implicitly checked by freshness script).
-- Key test configurations (`pyproject.toml`, `web/jest.config.ts`), dependencies (`requirements.txt`, `web/package.json`), and CI scripts (`.github/workflows/run-tests.yml`, `Makefile`) correctly match the testing and build setup described in `docs/TESTING.md`.
-- `docs/references/environment-variables.md` aligns with `.env.example` and the variables used in `web/lib/auth.ts` and `web/lib/session.ts` (e.g. `ACCESS_PASSWORD`).
-- Core python tests and `make` commands work as advertised.
+# Documentation Audit Report
 
-### ⚠️ Needs update
-- **`docs/CODE_ORGANIZATION.md`**
-  - **Claim**: Line 27 refers directly to `` `config.py` ``.
-  - **Reality**: While the file implies the config is in `scripts/config.py`, the backtick reference causes the doc freshness check (`scripts/check_docs_freshness.py`) to search for `config.py` at the project root, resulting in a false-positive path warning.
-  - **Fix**: Update the reference to read `` `scripts/config.py` ``.
+## ✅ Confirmed accurate
+- `AGENTS.md` and `CLAUDE.md` correctly reference `docs/COMMANDS.md`, `docs/FRONTEND.md`, and other existing architecture files. No orphaned or dead links exist.
+- Build and run commands (`npm test`, `npm run dev`, `python scripts/run_all_analyses.py`) accurately map to configurations in `Makefile` and `package.json`. The package manager is `npm`.
+- `docs/CODE_ORGANIZATION.md` accurately points to existing files and directories.
+- Descriptions of the scraping pipeline (`run-scraper/SKILL.md`) correctly reflect `scripts/ottoneu_scraper.py` and job queue patterns in `scripts/worker.py`.
+- Authentication flow descriptions in `docs/ARCHITECTURE.md` are aligned with actual implementations.
 
-- **`AGENTS.md` & `CLAUDE.md`**
-  - **Claim**: Neither file contains an explicit markdown link to `docs/exec-plans/market-projections.md` outside of raw code blocks.
-  - **Reality**: `scripts/check_docs_freshness.py` flags `docs/exec-plans/market-projections.md` as an "Orphan documentation file". The script's regex fails to match the tree output in the map.
-  - **Fix**: Add a markdown link like `[docs/exec-plans/market-projections.md](docs/exec-plans/market-projections.md)` to the "Quick Reference" sections of both files.
+## ⚠️ Needs update
 
-- **`docs/ARCHITECTURE.md`**
-  - **Claim**: The analysis pipeline runs: `projected salary → VORP → surplus value → arbitration → arbitration simulation`.
-  - **Reality**: The orchestrator (`scripts/run_all_analyses.py`) currently executes `update projections` as Step 0 and has added `projected arbitration` as Step 7.
-  - **Fix**: Update the pipeline diagram to: `update projections → projected salary → VORP → surplus value → arbitration → arbitration simulation → projected arbitration`.
+1. **`docs/generated/db-schema.md`**
+   - **Claim:** "Nine tables, all with UUID primary keys."
+   - **Reality:** There are exactly 10 tables explicitly listed in the markdown table, and all 10 have UUID primary keys (plus `scraper_jobs` which also has a UUID primary key, totaling 11 tables with UUID PKs).
+   - **Fix:** Update text to "Ten tables, all with UUID primary keys" (or Eleven). Specifically, the document lists 10. I will update the text to "Ten tables, all with UUID primary keys."
 
-- **`docs/COMMANDS.md`**
-  - **Claim**: Only lists `analyze_efficiency.py`, `run_all_analyses.py`, `analyze_projected_salary.py`, `analyze_vorp.py`, `analyze_surplus_value.py`, `analyze_arbitration.py`, `analyze_arbitration_simulation.py` under Analysis.
-  - **Reality**: Misses `update_projections.py` and `analyze_projected_arbitration.py` which are actively run in `scripts/run_all_analyses.py`.
-  - **Fix**: Add `python scripts/update_projections.py` and `python scripts/analyze_projected_arbitration.py` to the Analysis section of `docs/COMMANDS.md`.
+2. **`.claude/skills/db-schema/SKILL.md`**
+   - **Claim:** "The database ... contains six main tables... 1. players, 2. player_stats, 3. league_prices, 4. transactions, 5. surplus_adjustments, 6. player_projections"
+   - **Reality:** There are 10 main tables in the application logic (`users`, `arbitration_plans`, `arbitration_plan_allocations`, and `nfl_stats` are missing from the numbered list).
+   - **Fix:** Add the missing 4 tables (`users`, `nfl_stats`, `arbitration_plans`, `arbitration_plan_allocations`) and update the intro sentence to say "ten main tables".
 
-### 🔲 Gaps (undocumented but should be)
-- The orchestrator (`scripts/run_all_analyses.py`) has shifted to executing `update_projections.py` inline at the beginning (Step 0), making it a prerequisite step to generating other reports.
-- While `docs/exec-plans/market-projections.md` exists, its role within the main analysis pipeline and frontend surface areas is not completely clear from the main documentation.
+## 🔲 Gaps (undocumented but should be)
+- The existence of the `scraper_jobs` table (which drives the scraping pipeline) is barely mentioned in `.claude/skills/scraper-logic/SKILL.md` and `docs/generated/db-schema.md`, but its schema (with fields like `status`, `task_type`, `depends_on`) is not documented anywhere agents would easily see it.
+- **Testing environment requirements**: The agent memory notes that testing Next.js UI components with `bun test` requires `jsdom` or an equivalent DOM environment setup. This is absent from `docs/TESTING.md`. (Note: Jest is used via `npm test` now, so `bun test` might not be standard anymore, but the `.env.local` vs `.env` test configurations could use clarification).
+
