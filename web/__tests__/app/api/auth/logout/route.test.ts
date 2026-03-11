@@ -1,6 +1,5 @@
 import { POST } from "@/app/api/auth/logout/route";
 import { clearAuthCookie } from "@/lib/auth";
-import { NextResponse } from "next/server";
 
 jest.mock("@/lib/auth", () => ({
   clearAuthCookie: jest.fn(),
