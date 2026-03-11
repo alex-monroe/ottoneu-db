@@ -4,6 +4,9 @@ import re
 from datetime import datetime
 
 from scripts.config import LEAGUE_ID, SEASON
+
+# Regex for cleaning salary strings (e.g., "$1,234" -> "1234")
+SALARY_REGEX = re.compile(r"[^\d]")
 from scripts.tasks import TaskResult
 
 
@@ -74,7 +77,7 @@ async def run(params: dict, context, supabase) -> TaskResult:
                 t_salary_text = await cols[salary_idx].inner_text()
 
                 # Parse salary
-                clean_s = re.sub(r"[^\d]", "", t_salary_text)
+                clean_s = SALARY_REGEX.sub("", t_salary_text)
                 row_salary = int(clean_s) if clean_s else None
 
                 # Parse date (if available)
