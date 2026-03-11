@@ -30,6 +30,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
   }
 
+  if (password.length > 72) {
+    return NextResponse.json({ error: "Password must be at most 72 characters" }, { status: 400 });
+  }
+
   const password_hash = await bcrypt.hash(password, 12);
 
   const { data, error } = await supabase

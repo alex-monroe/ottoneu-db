@@ -21,6 +21,13 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        if (password.length > 72) {
+            return NextResponse.json(
+                { error: "Password must be at most 72 characters" },
+                { status: 400 }
+            );
+        }
+
         if (password !== confirmPassword) {
             return NextResponse.json(
                 { error: "Passwords do not match" },
