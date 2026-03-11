@@ -1,4 +1,4 @@
-## 2024-05-30 - Next.js searchParams Runtime Crash Risk
-**Vulnerability:** Calling string methods (`.startsWith()`) directly on `searchParams.get()` or `params` properties.
-**Learning:** In Next.js Server Components, `searchParams` properties can evaluate to a string array if the parameter is provided multiple times in the URL (e.g., `?redirect=/a&redirect=/b`). Blindly calling string methods on an array causes a `TypeError`, resulting in a 500 Internal Server Error (Denial of Service).
-**Prevention:** Always explicitly check the type of query parameters (`typeof url === 'string'`) before invoking string methods, even when mitigating other vulnerabilities like Open Redirects.
+## 2024-03-11 - Bcrypt DoS via Unbounded Password Length
+**Vulnerability:** The `/api/auth/register` and `/api/admin/users` endpoints accepted unbounded password lengths before hashing them with `bcrypt.hash(password, 12)`.
+**Learning:** Bcrypt is computationally expensive by design, scaling with input length. Allowing unbounded password lengths allows attackers to send massive payloads (e.g., 10MB strings), causing CPU exhaustion and leading to an algorithmic Denial of Service (DoS) attack. Additionally, bcrypt typically truncates inputs after 72 bytes, so characters beyond that do not add security anyway.
+**Prevention:** Always enforce a strict maximum length (e.g., 72 characters) on passwords before hashing them with bcrypt or similar algorithms.
