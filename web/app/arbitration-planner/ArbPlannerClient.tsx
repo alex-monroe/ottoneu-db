@@ -237,14 +237,19 @@ export default function ArbPlannerClient({
 
     // Build allocations from suggested budget allocations
     const newAllocations: Record<string, number> = {};
+
+    // Bolt Optimization: Replace O(N^2) array search inside nested loops with O(1) Map lookup
+    const targetMap = new Map<string, ArbitrationTarget>();
+    for (const t of targets) {
+      targetMap.set(`${t.name}|${t.team_name}`, t);
+    }
+
     for (const team of suggestedAllocations) {
       // Distribute team budget among top players
       let remaining = team.suggested;
       for (const player of team.players) {
         if (remaining <= 0) break;
-        const target = targets.find(
-          (t) => t.name === player.name && t.team_name === team.team
-        );
+        const target = targetMap.get(`${player.name}|${team.team}`);
         if (!target) continue;
         const amount = Math.min(4, remaining);
         newAllocations[target.player_id] = amount;
