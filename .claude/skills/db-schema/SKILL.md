@@ -5,7 +5,7 @@ description: Detailed explanation of the Supabase PostgreSQL database schema.
 
 # Database Schema
 
-The database for the Ottoneu Fantasy Football League 309 contains ten main tables, all with UUID primary keys.
+The database for the Ottoneu Fantasy Football League 309 contains eleven main tables, all with UUID primary keys.
 
 1. **`players`**: Core metadata for each player.
    - Unique on `ottoneu_id`.
@@ -55,3 +55,7 @@ The database for the Ottoneu Fantasy Football League 309 contains ten main table
     - Foreign Key: `plan_id` references `arbitration_plans(id)` and `player_id` references `players(id)`.
     - Unique on `(plan_id, player_id)`.
     - Fields include `allocation` (dollar amount).
+
+11. **`scraper_jobs`**: Persistent job queue for the backend data pipeline.
+    - Used by the Playwright/Python worker to scrape stats and rosters.
+    - Fields include `task_type`, `status`, `depends_on`, `error_message`, and timestamps.
