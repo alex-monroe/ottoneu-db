@@ -8,14 +8,13 @@ import os
 import sys
 from typing import Tuple
 import pandas as pd
-from datetime import datetime
 
 # Setup paths
 script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from config import get_supabase_client, MIN_GAMES, SEASON
+from config import get_supabase_client, MIN_GAMES
 from analysis_utils import fetch_multi_season_stats
 from projection_methods import CollegeProspectPPG, WeightedAveragePPG, RookieTrajectoryPPG
 
