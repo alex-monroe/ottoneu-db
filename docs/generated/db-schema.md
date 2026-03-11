@@ -1,6 +1,6 @@
 # Database Schema
 
-Ten tables, all with UUID primary keys.
+Eleven tables, all with UUID primary keys.
 
 ## Tables
 
@@ -16,6 +16,7 @@ Ten tables, all with UUID primary keys.
 | `player_projections` | Calculated projection outputs from Python backend | `(player_id, season)` |
 | `arbitration_plans` | Named arbitration budget allocation plans per user (FK -> `users`) | `(league_id, name, user_id)` |
 | `arbitration_plan_allocations` | Per-player dollar allocations within a plan (FK -> `arbitration_plans`, `players`) | `(plan_id, player_id)` |
+| `scraper_jobs` | Persistent job queue with status tracking, dependencies, and retry logic | -- |
 
 ## Schema Files
 
