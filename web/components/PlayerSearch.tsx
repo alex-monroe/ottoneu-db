@@ -111,9 +111,20 @@ export default function PlayerSearch({ players }: PlayerSearchProps) {
                 {filtered.length === 0 ? (
                     <div className="p-8 text-center text-slate-500 dark:text-slate-400">
                         <p className="text-lg font-medium mb-1">No players found</p>
-                        <p className="text-sm">
-                            Try adjusting your search for &quot;{query}&quot; or changing the position filter.
+                        <p className="text-sm mb-4">
+                            Try adjusting your search{query ? ` for "${query}"` : ""} or changing the position filter.
                         </p>
+                        <button
+                            onClick={() => {
+                                setQuery("");
+                                setPosition("ALL");
+                                inputRef.current?.focus();
+                            }}
+                            className="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-md shadow-sm text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-slate-900 transition-colors"
+                        >
+                            <X className="h-4 w-4 mr-2" aria-hidden="true" />
+                            Clear filters
+                        </button>
                     </div>
                 ) : (
                     <table className="min-w-full text-sm">
