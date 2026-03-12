@@ -142,7 +142,9 @@ async function buildProjectionMap(
     .select("player_id, projected_ppg, projection_method")
     .eq("season", season);
 
-  if (projectionsError) throw projectionsError;
+  if (projectionsError) {
+    throw new Error(`Failed to fetch player projections: ${projectionsError.message}`);
+  }
 
   const projections = new Map<string, { ppg: number; method: string }>();
   if (projectionsData) {
