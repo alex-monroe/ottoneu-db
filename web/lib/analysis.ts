@@ -30,11 +30,17 @@ export async function fetchAndMergeData(): Promise<Player[]> {
       .eq("league_id", LEAGUE_ID),
   ]);
 
+  if (playersRes.error) throw new Error(`Failed to fetch players: ${playersRes.error.message}`);
+  if (statsRes.error) throw new Error(`Failed to fetch player stats: ${statsRes.error.message}`);
+  if (pricesRes.error) throw new Error(`Failed to fetch league prices: ${pricesRes.error.message}`);
+
   const players = playersRes.data;
   const stats = statsRes.data;
   const prices = pricesRes.data;
 
-  if (!players || !stats || !prices) return [];
+  if (!players || !stats || !prices) {
+    throw new Error("Failed to fetch data: returned null from Supabase");
+  }
 
   const statsMap = new Map(stats.map((s) => [String(s.player_id), s]));
   const pricesMap = new Map(prices.map((p) => [String(p.player_id), p]));
@@ -79,11 +85,17 @@ export async function fetchPublicArbPlayers(): Promise<import("./types").PublicA
     supabase.from("league_prices").select("*").eq("league_id", LEAGUE_ID),
   ]);
 
+  if (playersRes.error) throw new Error(`Failed to fetch players: ${playersRes.error.message}`);
+  if (statsRes.error) throw new Error(`Failed to fetch player stats: ${statsRes.error.message}`);
+  if (pricesRes.error) throw new Error(`Failed to fetch league prices: ${pricesRes.error.message}`);
+
   const players = playersRes.data;
   const stats = statsRes.data;
   const prices = pricesRes.data;
 
-  if (!players || !stats || !prices) return [];
+  if (!players || !stats || !prices) {
+    throw new Error("Failed to fetch data: returned null from Supabase");
+  }
 
   const statsMap = new Map(stats.map((s) => [String(s.player_id), s]));
   const pricesMap = new Map(prices.map((p) => [String(p.player_id), p]));
@@ -157,7 +169,7 @@ export async function fetchPlayersWithProjectedPpg(): Promise<Player[]> {
   const currentPlayers = await fetchAndMergeData();
 
   if (currentPlayers.length === 0) {
-    return currentPlayers;
+    throw new Error("Failed to fetch current players data for projection mapping");
   }
 
   const projectionMap = await buildProjectionMap(SEASON);
@@ -189,7 +201,13 @@ export async function fetchBacktestData(
         .eq("season", targetSeason),
     ]);
 
-  if (!playersRes.data || !targetStatsRes.data) return [];
+  if (playersRes.error) throw new Error(`Failed to fetch players: ${playersRes.error.message}`);
+  if (targetStatsRes.error) throw new Error(`Failed to fetch target season stats: ${targetStatsRes.error.message}`);
+  if (pricesRes.error) throw new Error(`Failed to fetch target season prices: ${pricesRes.error.message}`);
+
+  if (!playersRes.data || !targetStatsRes.data) {
+    throw new Error("Failed to fetch data: returned null from Supabase");
+  }
 
   const playerMap = new Map(
     playersRes.data.map((p) => [String(p.id), p])
@@ -245,7 +263,9 @@ export async function fetchAndMergeProjectedData(
 ): Promise<ProjectedPlayer[]> {
   const currentPlayers = await fetchAndMergeData();
 
-  if (currentPlayers.length === 0) return [];
+  if (currentPlayers.length === 0) {
+    throw new Error("Failed to fetch current players data for projection mapping");
+  }
 
   const projectionMap = await buildProjectionMap(projectionYear);
 
