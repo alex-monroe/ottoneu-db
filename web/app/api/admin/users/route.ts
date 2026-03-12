@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
 
 export async function GET() {
   const user = await getAuthenticatedUser();
   if (!user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabaseAdmin()
     .from("users")
     .select("id, email, is_admin, has_projections_access, created_at")
     .order("created_at", { ascending: true });
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
   const password_hash = await bcrypt.hash(password, 12);
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabaseAdmin()
     .from("users")
     .insert({
       email: email.toLowerCase().trim(),

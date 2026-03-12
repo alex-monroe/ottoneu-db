@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import { setAuthCookie } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
 
         const password_hash = await bcrypt.hash(password, 12);
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabaseAdmin()
             .from("users")
             .insert({
                 email: email.toLowerCase().trim(),

@@ -10,7 +10,7 @@ import {
   ARB_MAX_PER_PLAYER_PER_TEAM,
   NUM_TEAMS,
 } from "@/lib/analysis";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
 import ArbPlannerClient from "./ArbPlannerClient";
 
@@ -22,7 +22,7 @@ export default async function ArbitrationPlannerPage() {
 
   // Fetch surplus adjustments (applied separately in client, not baked into targets)
   const adjRes = user
-    ? await supabase
+    ? await getSupabaseAdmin()
         .from("surplus_adjustments")
         .select("player_id, adjustment")
         .eq("league_id", LEAGUE_ID)
@@ -52,7 +52,7 @@ export default async function ArbitrationPlannerPage() {
 
   // Fetch saved plans
   const { data: plans } = user
-    ? await supabase
+    ? await getSupabaseAdmin()
         .from("arbitration_plans")
         .select("id, name, notes, created_at, updated_at")
         .eq("league_id", LEAGUE_ID)

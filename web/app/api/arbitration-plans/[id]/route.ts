@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
 
 interface RouteContext {
@@ -12,7 +12,7 @@ export async function GET(_req: NextRequest, context: RouteContext) {
 
   const { id } = await context.params;
 
-  const { data: plan, error: planError } = await supabase
+  const { data: plan, error: planError } = await getSupabaseAdmin()
     .from("arbitration_plans")
     .select("id, name, notes, user_id, created_at, updated_at")
     .eq("id", id)
@@ -21,7 +21,7 @@ export async function GET(_req: NextRequest, context: RouteContext) {
   if (planError) return NextResponse.json({ error: planError.message }, { status: 404 });
   if (plan.user_id !== user.userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { data: allocs, error: allocError } = await supabase
+  const { data: allocs, error: allocError } = await getSupabaseAdmin()
     .from("arbitration_plan_allocations")
     .select("player_id, amount")
     .eq("plan_id", id);
@@ -45,7 +45,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
   const { id } = await context.params;
 
   // Verify ownership
-  const { data: plan, error: fetchError } = await supabase
+  const { data: plan, error: fetchError } = await getSupabaseAdmin()
     .from("arbitration_plans")
     .select("user_id")
     .eq("id", id)
@@ -61,7 +61,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
   if (name !== undefined) updates.name = name;
   if (notes !== undefined) updates.notes = notes;
 
-  const { error: planError } = await supabase
+  const { error: planError } = await getSupabaseAdmin()
     .from("arbitration_plans")
     .update(updates)
     .eq("id", id);
@@ -75,7 +75,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
 
   // Upsert allocations if provided
   if (allocations && typeof allocations === "object") {
-    const { error: delError } = await supabase
+    const { error: delError } = await getSupabaseAdmin()
       .from("arbitration_plan_allocations")
       .delete()
       .eq("plan_id", id);
@@ -91,7 +91,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
       }));
 
     if (rows.length > 0) {
-      const { error: insertError } = await supabase
+      const { error: insertError } = await getSupabaseAdmin()
         .from("arbitration_plan_allocations")
         .insert(rows);
 
@@ -109,7 +109,7 @@ export async function DELETE(_req: NextRequest, context: RouteContext) {
   const { id } = await context.params;
 
   // Verify ownership
-  const { data: plan, error: fetchError } = await supabase
+  const { data: plan, error: fetchError } = await getSupabaseAdmin()
     .from("arbitration_plans")
     .select("user_id")
     .eq("id", id)
@@ -118,7 +118,7 @@ export async function DELETE(_req: NextRequest, context: RouteContext) {
   if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 404 });
   if (plan.user_id !== user.userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { error } = await supabase
+  const { error } = await getSupabaseAdmin()
     .from("arbitration_plans")
     .delete()
     .eq("id", id);
