@@ -34,7 +34,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: python-coverage
-        path: scripts/coverage-html/
+        path: coverage-html/
 
   web-tests:
     runs-on: ubuntu-latest
