@@ -13,7 +13,7 @@
 |----------|---------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
-| `SUPABASE_SECRET_KEY` | Supabase secret key — bypasses RLS (server-side only) |
+| `SUPABASE_SECRET_KEY` | Supabase secret key — bypasses RLS (server-side only). Also accepts `OTTONEU_DB_SUPABASE_SECRET_KEY` (Vercel integration) |
 | `SESSION_SECRET` | Random string for HMAC session signing (server-side only) |
 
 ## Templates
