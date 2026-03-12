@@ -12,6 +12,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (password.length > 72) {
+      return NextResponse.json(
+        { error: "Password must be at most 72 characters" },
+        { status: 400 }
+      );
+    }
+
     const user = await authenticateUser(email, password);
     if (!user) {
       return NextResponse.json(
