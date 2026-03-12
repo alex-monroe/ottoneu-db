@@ -74,6 +74,7 @@ export function calculateMetricsByPosition(
   for (let i = 0; i < players.length; i++) {
     const p = players[i];
     const arr = byPosition.get(p.position);
+    // Ignore players with positions not in the requested positions array
     if (arr !== undefined) arr.push(p);
   }
 
