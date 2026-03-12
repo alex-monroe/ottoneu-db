@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import { LEAGUE_ID } from "@/lib/arb-logic";
 import { getAuthenticatedUser } from "@/lib/auth";
 
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
   }
 
   // Verify ownership of source plan
-  const { data: sourcePlan, error: fetchError } = await supabaseAdmin
+  const { data: sourcePlan, error: fetchError } = await getSupabaseAdmin()
     .from("arbitration_plans")
     .select("user_id")
     .eq("id", id)
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
   if (sourcePlan.user_id !== user.userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   // Create new plan
-  const { data: newPlan, error: planError } = await supabaseAdmin
+  const { data: newPlan, error: planError } = await getSupabaseAdmin()
     .from("arbitration_plans")
     .insert({ league_id: LEAGUE_ID, user_id: user.userId, name: name.trim() })
     .select("id, name, notes, created_at, updated_at")
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
   }
 
   // Copy allocations from source plan
-  const { data: sourceAllocs, error: allocError } = await supabaseAdmin
+  const { data: sourceAllocs, error: allocError } = await getSupabaseAdmin()
     .from("arbitration_plan_allocations")
     .select("player_id, amount")
     .eq("plan_id", id);
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
       amount: a.amount,
     }));
 
-    const { error: insertError } = await supabaseAdmin
+    const { error: insertError } = await getSupabaseAdmin()
       .from("arbitration_plan_allocations")
       .insert(rows);
 

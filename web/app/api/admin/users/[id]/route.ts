@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
 
 interface RouteContext {
@@ -16,7 +16,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (has_projections_access !== undefined) updates.has_projections_access = has_projections_access;
 
-  const { error } = await supabaseAdmin
+  const { error } = await getSupabaseAdmin()
     .from("users")
     .update(updates)
     .eq("id", id);
@@ -35,7 +35,7 @@ export async function DELETE(_req: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Cannot delete your own account" }, { status: 400 });
   }
 
-  const { error } = await supabaseAdmin
+  const { error } = await getSupabaseAdmin()
     .from("users")
     .delete()
     .eq("id", id);

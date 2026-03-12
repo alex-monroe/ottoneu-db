@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { signSession, verifySession, type SessionInfo } from "./session";
-import { supabaseAdmin } from "./supabase";
+import { getSupabaseAdmin } from "./supabase";
 
 const AUTH_COOKIE_NAME = "ottoneu_auth";
 const COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
@@ -16,7 +16,7 @@ export interface AuthenticatedUser {
  * Authenticate user by email and password against the database
  */
 export async function authenticateUser(email: string, password: string): Promise<AuthenticatedUser | null> {
-  const { data: user, error } = await supabaseAdmin
+  const { data: user, error } = await getSupabaseAdmin()
     .from("users")
     .select("id, password_hash, is_admin, has_projections_access")
     .eq("email", email.toLowerCase().trim())

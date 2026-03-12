@@ -9,7 +9,7 @@ import {
     NUM_TEAMS,
     LEAGUE_ID,
 } from "@/lib/analysis";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import PublicArbPlannerClient from "./PublicArbPlannerClient";
 
 export default async function PublicArbPlannerPage() {
@@ -33,7 +33,7 @@ export default async function PublicArbPlannerPage() {
     ].sort();
 
     // Fetch saved plans
-    const { data: plans } = await supabaseAdmin
+    const { data: plans } = await getSupabaseAdmin()
         .from("arbitration_plans")
         .select("id, name, notes, created_at, updated_at")
         .eq("league_id", LEAGUE_ID)
