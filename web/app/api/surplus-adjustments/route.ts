@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase";
 import { LEAGUE_ID } from "@/lib/arb-logic";
 import { getAuthenticatedUser } from "@/lib/auth";
 
@@ -7,7 +7,7 @@ export async function GET() {
   const user = await getAuthenticatedUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("surplus_adjustments")
     .select("player_id, adjustment, notes")
     .eq("league_id", LEAGUE_ID)
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     updated_at: new Date().toISOString(),
   }));
 
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from("surplus_adjustments")
     .upsert(rows, { onConflict: "player_id,league_id,user_id" });
 

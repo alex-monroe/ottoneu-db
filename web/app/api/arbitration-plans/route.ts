@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase";
 import { LEAGUE_ID } from "@/lib/arb-logic";
 import { getAuthenticatedUser } from "@/lib/auth";
 
@@ -7,7 +7,7 @@ export async function GET() {
   const user = await getAuthenticatedUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("arbitration_plans")
     .select("id, name, notes, created_at, updated_at")
     .eq("league_id", LEAGUE_ID)
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("arbitration_plans")
     .insert({ league_id: LEAGUE_ID, user_id: user.userId, name: name.trim(), notes: notes ?? null })
     .select("id, name, notes, created_at, updated_at")

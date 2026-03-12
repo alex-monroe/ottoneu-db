@@ -14,7 +14,7 @@ import {
   getHistoricalSeasonsForYear,
 } from "@/lib/analysis";
 import { ArbitrationTarget } from "@/lib/types";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
 import DataTable, { Column, HighlightRule } from "@/components/DataTable";
 import ArbitrationTeams from "./ArbitrationTeams";
@@ -72,7 +72,7 @@ export default async function ArbitrationPage({ searchParams }: Props) {
   // Fetch adjustments in all modes (needed for indicator dot)
   const user = await getAuthenticatedUser();
   const adjRes = user
-    ? await supabase
+    ? await supabaseAdmin
         .from("surplus_adjustments")
         .select("player_id, adjustment")
         .eq("league_id", LEAGUE_ID)

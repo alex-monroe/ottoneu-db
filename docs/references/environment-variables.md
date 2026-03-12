@@ -13,7 +13,7 @@
 |----------|---------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Service role key (server-side only) |
+| `SUPABASE_SECRET_KEY` | Supabase secret key — bypasses RLS (server-side only) |
 | `SESSION_SECRET` | Random string for HMAC session signing (server-side only) |
 
 ## Templates

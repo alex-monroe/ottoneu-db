@@ -5,7 +5,7 @@ import {
   LEAGUE_ID,
   DEFAULT_PROJECTION_YEAR,
 } from "@/lib/analysis";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
 import SimulationControls from "./SimulationControls";
 import ModeToggle, { ValueMode } from "@/components/ModeToggle";
@@ -31,7 +31,7 @@ export default async function ArbitrationSimulationPage({ searchParams }: Props)
       ? fetchAndMergeProjectedData(DEFAULT_PROJECTION_YEAR)
       : fetchAndMergeData(),
     user
-      ? supabase
+      ? supabaseAdmin
           .from("surplus_adjustments")
           .select("player_id, adjustment")
           .eq("league_id", LEAGUE_ID)
