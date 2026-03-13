@@ -3,6 +3,10 @@ Utility functions for normalizing player names across data sources.
 """
 import re
 
+# Bolt Optimization: Pre-compile regexes used in hot loops
+SUFFIX_REGEX = re.compile(r'\s+(Jr\.?|Sr\.?|II|III|IV|V)$', flags=re.IGNORECASE)
+WHITESPACE_REGEX = re.compile(r'\s+')
+
 
 def normalize_player_name(name: str) -> str:
     """
@@ -42,10 +46,10 @@ def normalize_player_name(name: str) -> str:
 
     # Remove suffix patterns (case-insensitive, at end of string only)
     # Matches: Jr, Jr., Sr, Sr., II, III, IV, V
-    name = re.sub(r'\s+(Jr\.?|Sr\.?|II|III|IV|V)$', '', name, flags=re.IGNORECASE)
+    name = SUFFIX_REGEX.sub('', name)
 
     # Normalize whitespace to single space
-    name = re.sub(r'\s+', ' ', name)
+    name = WHITESPACE_REGEX.sub(' ', name)
 
     # Title case for consistency
     name = name.title()
