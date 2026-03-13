@@ -12,6 +12,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (email.length > 254) {
+      return NextResponse.json(
+        { error: "Email must be at most 254 characters" },
+        { status: 400 }
+      );
+    }
+
     if (password.length > 72) {
       return NextResponse.json(
         { error: "Password must be at most 72 characters" },
