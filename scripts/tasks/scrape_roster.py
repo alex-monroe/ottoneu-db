@@ -13,6 +13,11 @@ from scripts.tasks import SCRAPE_PLAYER_CARD, TaskResult
 
 OTTONEU_SEARCH_URL_TEMPLATE = "https://ottoneu.fangraphs.com/football/{league_id}/search"
 
+# Bolt Optimization: Pre-compile regexes used in hot loops
+ID_END_REGEX = re.compile(r"(\d+)$")
+ID_PARAM_REGEX = re.compile(r"id=(\d+)")
+NON_DIGIT_REGEX = re.compile(r"[^\d]")
+
 
 def build_stats_data(
     player_uuid: str, season: int, total_points: float,
@@ -184,9 +189,9 @@ async def _process_row(row, page, context, supabase, nfl_stats,
     # Extract ottoneu ID
     ottoneu_id = 0
     if href:
-        id_match = re.search(r"(\d+)$", href)
+        id_match = ID_END_REGEX.search(href)
         if not id_match:
-            id_match = re.search(r"id=(\d+)", href)
+            id_match = ID_PARAM_REGEX.search(href)
         if id_match:
             ottoneu_id = int(id_match.group(1))
     if not ottoneu_id:
@@ -239,7 +244,7 @@ async def _process_row(row, page, context, supabase, nfl_stats,
     if salary_cell:
         salary_text = await salary_cell.inner_text()
         if "$" in salary_text:
-            clean_price = re.sub(r"[^\d]", "", salary_text)
+            clean_price = NON_DIGIT_REGEX.sub("", salary_text)
             if clean_price:
                 price = int(clean_price)
 
