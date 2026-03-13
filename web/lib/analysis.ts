@@ -57,8 +57,8 @@ export async function fetchAndMergeData(): Promise<Player[]> {
     merged.push({
       player_id: player.id,
       name: player.name,
-      position: player.position,
-      nfl_team: player.nfl_team,
+      position: player.position ?? "",
+      nfl_team: player.nfl_team ?? "",
       price: pPrice ? Number(pPrice.price) || 0 : 0,
       team_name: pPrice?.team_name || null,
       birth_date: player.birth_date ?? null,
@@ -117,8 +117,8 @@ export async function fetchPublicArbPlayers(): Promise<import("./types").PublicA
     result.push({
       player_id: String(player.id),
       name: player.name,
-      position: player.position,
-      nfl_team: player.nfl_team,
+      position: player.position ?? "",
+      nfl_team: player.nfl_team ?? "",
       price: pPrice ? Number(pPrice.price) || 0 : 0,
       team_name: teamName,
       ppg: Number(pStats.ppg) || 0,
@@ -239,8 +239,8 @@ export async function fetchBacktestData(
     result.push({
       player_id: playerId,
       name: player.name,
-      position: player.position,
-      nfl_team: player.nfl_team,
+      position: player.position ?? "",
+      nfl_team: player.nfl_team ?? "",
       team_name: priceRow?.team_name ?? null,
       price: priceRow ? Number(priceRow.price) || 0 : 0,
       projected_ppg: projected,
