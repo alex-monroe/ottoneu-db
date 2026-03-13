@@ -7,7 +7,7 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 /** Public client using the anon/publishable key — subject to RLS policies. */
 import { Database } from "../types/supabase"
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseKey)
+export const supabase = createClient<Database>(supabaseUrl || "http://localhost:54321", supabaseKey || "fake-anon-key")
 
 /**
  * Server-side admin client using the secret key — bypasses RLS.
