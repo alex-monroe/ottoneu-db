@@ -1,0 +1,43 @@
+
+> web@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.3 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+- Environments: .env.local
+
+✓ Starting...
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+✓ Ready in 1533ms
+○ Compiling / ...
+⨯ Error: supabaseKey is required.
+    at module evaluation (lib/supabase.ts:8:37)
+    at module evaluation (lib/auth.ts:4:1)
+    at module evaluation (components/NavigationWrapper.tsx:1:1)
+    at module evaluation (app/layout.tsx:4:1)
+    at module evaluation (.next/dev/server/chunks/ssr/[root-of-the-server]__5a16468b._.js:18:47)
+   6 |
+   7 | /** Public client using the anon/publishable key — subject to RLS policies. */
+>  8 | export const supabase = createClient(supabaseUrl, supabaseKey)
+     |                                     ^
+   9 |
+  10 | /**
+  11 |  * Server-side admin client using the secret key — bypasses RLS.
+⨯ Error: supabaseKey is required.
+    at module evaluation (lib/supabase.ts:8:37)
+    at module evaluation (lib/auth.ts:4:1)
+    at module evaluation (components/NavigationWrapper.tsx:1:1)
+    at module evaluation (app/layout.tsx:4:1)
+    at module evaluation (.next/dev/server/chunks/ssr/[root-of-the-server]__5a16468b._.js:18:47)
+   6 |
+   7 | /** Public client using the anon/publishable key — subject to RLS policies. */
+>  8 | export const supabase = createClient(supabaseUrl, supabaseKey)
+     |                                     ^
+   9 |
+  10 | /**
+  11 |  * Server-side admin client using the secret key — bypasses RLS. {
+  page: '/'
+}
+ GET / 500 in 8.3s (compile: 8.0s, proxy.ts: 97ms, render: 149ms)
+[?25h
