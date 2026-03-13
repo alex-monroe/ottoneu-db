@@ -70,3 +70,9 @@ jobs:
             before the PR merges, create a separate PR comment for each that 
             starts with "@jules" to inform the Jules Agent that there's more 
             work to do
+
+            CRITICAL:
+            For any suggestions that need to be addressed that are marked with @jules,
+            make a SEPARATE PR comment than the main summary comment so that the Jules
+            agent will know to pick up the change. The Jules agent will only pick up
+            work in PR comments that start with @jules
