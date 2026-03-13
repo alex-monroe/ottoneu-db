@@ -5,7 +5,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 /** Public client using the anon/publishable key — subject to RLS policies. */
-export const supabase = createClient(supabaseUrl, supabaseKey)
+import { Database } from "../types/supabase"
+
+export const supabase = createClient<Database>(supabaseUrl, supabaseKey)
 
 /**
  * Server-side admin client using the secret key — bypasses RLS.
@@ -15,9 +17,9 @@ export const supabase = createClient(supabaseUrl, supabaseKey)
  * Lazily initialized to avoid crashing when the env var is not yet set
  * (e.g. during build or in client bundles that tree-shake this away).
  */
-let _supabaseAdmin: SupabaseClient | null = null
+let _supabaseAdmin: SupabaseClient<Database> | null = null
 
-export function getSupabaseAdmin(): SupabaseClient {
+export function getSupabaseAdmin(): SupabaseClient<Database> {
   if (!_supabaseAdmin) {
     const secretKey = process.env.SUPABASE_SECRET_KEY ?? process.env.OTTONEU_DB_SUPABASE_SECRET_KEY
     if (!secretKey) {
@@ -25,7 +27,7 @@ export function getSupabaseAdmin(): SupabaseClient {
         'SUPABASE_SECRET_KEY is not set. Add it to web/.env.local (get it from Supabase Dashboard > Settings > API Keys).'
       )
     }
-    _supabaseAdmin = createClient(supabaseUrl, secretKey, {
+    _supabaseAdmin = createClient<Database>(supabaseUrl, secretKey, {
       auth: {
         persistSession: false,
         autoRefreshToken: false,
