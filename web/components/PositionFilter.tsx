@@ -28,7 +28,7 @@ export default function PositionFilter({
         <button
           onClick={onToggleAll}
           aria-pressed={selectedPositions.length === positions.length ? "true" : "false"}
-          className={`px-3 py-1 rounded-full text-sm font-medium transition-colors border ${
+          className={`px-3 py-1 rounded-full text-sm font-medium transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-900 ${
             selectedPositions.length === positions.length
               ? "bg-slate-700 text-white border-transparent"
               : "bg-transparent text-slate-500 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -42,7 +42,7 @@ export default function PositionFilter({
           key={pos}
           onClick={() => onToggle(pos)}
           aria-pressed={selectedPositions.includes(pos) ? "true" : "false"}
-          className={`px-3 py-1 rounded-full text-sm font-medium transition-colors border ${
+          className={`px-3 py-1 rounded-full text-sm font-medium transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-900 ${
             selectedPositions.includes(pos)
               ? "text-white border-transparent"
               : "bg-transparent text-slate-500 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"

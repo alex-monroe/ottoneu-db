@@ -64,7 +64,7 @@ export default function PlayerScatterChart({ data, onMinGamesChange }: ScatterCh
                         <button
                             onClick={() => setMetric('PPG')}
                             aria-pressed={metric === 'PPG'}
-                            className={`px-3 py-1 text-sm font-medium rounded-md transition-all ${metric === 'PPG'
+                            className={`px-3 py-1 text-sm font-medium rounded-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${metric === 'PPG'
                                 ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
                                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                                 }`}
@@ -74,7 +74,7 @@ export default function PlayerScatterChart({ data, onMinGamesChange }: ScatterCh
                         <button
                             onClick={() => setMetric('PPS')}
                             aria-pressed={metric === 'PPS'}
-                            className={`px-3 py-1 text-sm font-medium rounded-md transition-all ${metric === 'PPS'
+                            className={`px-3 py-1 text-sm font-medium rounded-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${metric === 'PPS'
                                 ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
                                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                                 }`}
