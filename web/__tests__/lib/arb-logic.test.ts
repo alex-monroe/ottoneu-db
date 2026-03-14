@@ -57,8 +57,10 @@ function buildLeaguePlayers(): Player[] {
         for (const pos of positions) {
             // 3 players per position per team = 144 total
             for (let i = 0; i < 3; i++) {
-                const ppg = 5 + Math.random() * 15;
-                const price = Math.round(1 + Math.random() * 50);
+                // Use deterministic formulas based on 'id' instead of Math.random()
+                // id runs from 1 to 144
+                const ppg = 5 + ((id * 17) % 15);
+                const price = Math.round(1 + ((id * 43) % 50));
                 players.push(
                     makePlayer({
                         player_id: String(id++),
