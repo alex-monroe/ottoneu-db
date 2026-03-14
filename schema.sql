@@ -136,3 +136,43 @@ create index idx_player_projections_season on player_projections(season);
 create index idx_player_projections_player_id on player_projections(player_id);
 create index idx_nfl_stats_season on nfl_stats(season);
 create index idx_nfl_stats_player_id on nfl_stats(player_id);
+
+-- Arbitration Plans
+create table arbitration_plans (
+  id uuid default gen_random_uuid() primary key,
+  league_id integer not null,
+  name text not null,
+  notes text,
+  user_id uuid references users(id) not null,
+  created_at timestamptz default now() not null,
+  updated_at timestamptz default now() not null,
+  unique(league_id, name, user_id)
+);
+
+-- Arbitration Plan Allocations
+create table arbitration_plan_allocations (
+  id uuid default gen_random_uuid() primary key,
+  plan_id uuid references arbitration_plans(id) on delete cascade not null,
+  player_id uuid references players(id) on delete cascade not null,
+  amount integer not null default 0 constraint chk_amount_non_negative check (amount >= 0),
+  created_at timestamptz default now() not null,
+  updated_at timestamptz default now() not null,
+  unique(plan_id, player_id)
+);
+
+-- Scraper Jobs
+create table scraper_jobs (
+  id uuid default gen_random_uuid() primary key,
+  task_type text not null,
+  params jsonb not null default '{}',
+  status text not null default 'pending',
+  priority integer not null default 0,
+  attempts integer not null default 0,
+  max_attempts integer not null default 3,
+  last_error text,
+  batch_id uuid,
+  depends_on uuid references scraper_jobs(id),
+  created_at timestamptz default now() not null,
+  started_at timestamptz,
+  completed_at timestamptz
+);
