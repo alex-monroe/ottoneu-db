@@ -1,6 +1,6 @@
 # Database Schema
 
-Eleven tables, all with UUID primary keys.
+Twelve tables, all with UUID primary keys.
 
 ## Tables
 
@@ -18,11 +18,20 @@ Eleven tables, all with UUID primary keys.
 | `arbitration_plan_allocations` | Per-player dollar allocations within a plan (FK -> `arbitration_plans`, `players`) | `(plan_id, player_id)` |
 | `scraper_jobs` | Persistent job queue with status tracking, dependencies, and retry logic | -- |
 
+
 ## Schema Files
 
 - **Canonical schema:** `schema.sql`
 - **Migrations:** `migrations/` (numbered SQL migration files)
 - **Job queue:** `migrations/002_add_scraper_jobs.sql` defines the `scraper_jobs` table for the persistent job queue
+
+### `scraper_jobs` Schema Details
+- **task_type:** 'scrape_roster', 'scrape_player_card', 'pull_nfl_stats'
+- **status:** 'pending', 'running', 'completed', 'failed'
+- **params:** JSONB task-specific parameters
+- **depends_on:** Self-referential FK to coordinate job dependencies
+- **batch_id:** UUID to group jobs from one enqueue call
+
 
 ## Key Relationships
 
