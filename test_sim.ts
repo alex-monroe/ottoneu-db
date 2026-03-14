@@ -23,3 +23,7 @@ console.timeEnd('runArbitrationSimulation (N=1000)');
 console.time('runArbitrationSimulation (N=5000)');
 runArbitrationSimulation(mockPlayers, 5000);
 console.timeEnd('runArbitrationSimulation (N=5000)');
+import { SeededRandom } from "./web/lib/simulation.ts";
+
+const rng = new SeededRandom(1234);
+console.log(rng.next(), rng.next());
