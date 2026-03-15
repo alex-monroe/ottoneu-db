@@ -214,8 +214,7 @@ export async function fetchModelBacktestData(
     supabase
       .from("league_prices")
       .select("player_id, price, team_name")
-      .eq("league_id", LEAGUE_ID)
-      .eq("season", targetSeason),
+      .eq("league_id", LEAGUE_ID),
   ]);
 
   if (playersRes.error) throw new Error(`Failed to fetch players: ${playersRes.error.message}`);
@@ -336,8 +335,7 @@ export async function fetchBacktestData(
       supabase
         .from("league_prices")
         .select("player_id, price, team_name")
-        .eq("league_id", LEAGUE_ID)
-        .eq("season", targetSeason),
+        .eq("league_id", LEAGUE_ID),
     ]);
 
   if (playersRes.error) throw new Error(`Failed to fetch players: ${playersRes.error.message}`);
