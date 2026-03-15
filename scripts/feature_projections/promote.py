@@ -1,0 +1,78 @@
+"""Promote a model's projections to the production player_projections table."""
+
+from __future__ import annotations
+
+import os
+import sys
+
+script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if script_dir not in sys.path:
+    sys.path.insert(0, script_dir)
+
+from config import get_supabase_client
+
+
+def promote_model(model_name: str) -> int:
+    """Copy model_projections → player_projections for the given model.
+
+    Also sets the model's is_active flag and clears it from all other models.
+
+    Returns the number of projections promoted.
+    """
+    supabase = get_supabase_client()
+
+    # Look up model
+    model_res = (
+        supabase.table("projection_models")
+        .select("id, name")
+        .eq("name", model_name)
+        .execute()
+    )
+    if not model_res.data:
+        raise ValueError(f"Model '{model_name}' not found in projection_models table")
+
+    model_id = model_res.data[0]["id"]
+
+    # Fetch all projections for this model
+    proj_res = (
+        supabase.table("model_projections")
+        .select("player_id, season, projected_ppg")
+        .eq("model_id", model_id)
+        .execute()
+    )
+    if not proj_res.data:
+        print(f"No projections found for model '{model_name}'")
+        return 0
+
+    # Convert to player_projections format
+    records = [
+        {
+            "player_id": row["player_id"],
+            "season": row["season"],
+            "projected_ppg": row["projected_ppg"],
+            "projection_method": model_name,
+        }
+        for row in proj_res.data
+    ]
+
+    print(f"Promoting {len(records)} projections from model '{model_name}' to player_projections...")
+
+    # Batch upsert to player_projections
+    batch_size = 500
+    for i in range(0, len(records), batch_size):
+        batch = records[i : i + batch_size]
+        supabase.table("player_projections").upsert(
+            batch, on_conflict="player_id,season"
+        ).execute()
+        print(f"  Upserted batch {i // batch_size + 1} ({len(batch)} records)")
+
+    # Clear is_active from all models, set on promoted model
+    supabase.table("projection_models").update({"is_active": False}).eq(
+        "is_active", True
+    ).execute()
+    supabase.table("projection_models").update({"is_active": True}).eq(
+        "id", model_id
+    ).execute()
+
+    print(f"Model '{model_name}' promoted and set as active.")
+    return len(records)

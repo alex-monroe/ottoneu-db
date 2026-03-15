@@ -1,4 +1,4 @@
-import { fetchBacktestData } from "@/lib/analysis";
+import { fetchBacktestData, fetchAvailableModels, fetchModelBacktestData } from "@/lib/analysis";
 import { calculateMetricsByPosition } from "./metrics";
 import { POSITIONS } from "@/lib/types";
 import ProjectionAccuracyClient from "./ProjectionAccuracyClient";
@@ -8,7 +8,7 @@ export const revalidate = 3600;
 const AVAILABLE_SEASONS = [2024, 2025];
 
 interface Props {
-  searchParams: Promise<{ season?: string }>;
+  searchParams: Promise<{ season?: string; model?: string }>;
 }
 
 export default async function ProjectionAccuracyPage({ searchParams }: Props) {
@@ -18,7 +18,24 @@ export default async function ProjectionAccuracyPage({ searchParams }: Props) {
     ? rawSeason
     : 2025;
 
-  const players = await fetchBacktestData(targetSeason);
+  const selectedModelId = params.model || null;
+
+  // Fetch available models (may be empty if migration hasn't been applied)
+  let models: Awaited<ReturnType<typeof fetchAvailableModels>> = [];
+  try {
+    models = await fetchAvailableModels();
+  } catch {
+    // Table doesn't exist yet — fall back to legacy mode
+  }
+
+  // Fetch backtest data — use model-specific fetch if a model is selected
+  let players;
+  if (selectedModelId && models.length > 0) {
+    players = await fetchModelBacktestData(targetSeason, selectedModelId);
+  } else {
+    players = await fetchBacktestData(targetSeason);
+  }
+
   const allMetrics = calculateMetricsByPosition(players, POSITIONS);
 
   return (
@@ -84,6 +101,8 @@ export default async function ProjectionAccuracyPage({ searchParams }: Props) {
             allMetrics={allMetrics}
             targetSeason={targetSeason}
             availableSeasons={AVAILABLE_SEASONS}
+            models={models}
+            selectedModelId={selectedModelId}
           />
         )}
       </div>

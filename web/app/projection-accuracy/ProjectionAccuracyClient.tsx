@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { BacktestPlayer, Position, POSITIONS } from "@/lib/types";
+import { BacktestPlayer, Position, POSITIONS, ProjectionModel, TableRow } from "@/lib/types";
 import { calculateMetrics, PositionMetrics } from "./metrics";
 import AccuracyScatterChart from "./AccuracyScatterChart";
 import DataTable, { Column } from "@/components/DataTable";
@@ -37,6 +37,8 @@ interface Props {
   allMetrics: PositionMetrics[];
   targetSeason: number;
   availableSeasons: number[];
+  models: ProjectionModel[];
+  selectedModelId: string | null;
 }
 
 export default function ProjectionAccuracyClient({
@@ -44,6 +46,8 @@ export default function ProjectionAccuracyClient({
   allMetrics,
   targetSeason,
   availableSeasons,
+  models,
+  selectedModelId,
 }: Props) {
   const router = useRouter();
   const [selectedPositions, setSelectedPositions] = useState<Position[]>([
@@ -61,6 +65,15 @@ export default function ProjectionAccuracyClient({
     setSelectedPositions(
       selectedPositions.length === POSITIONS.length ? [] : [...POSITIONS]
     );
+  };
+
+  const handleModelChange = (modelId: string) => {
+    const params = new URLSearchParams();
+    params.set("season", String(targetSeason));
+    if (modelId) {
+      params.set("model", modelId);
+    }
+    router.push(`/projection-accuracy?${params.toString()}`);
   };
 
   const rookiePlayers = players.filter(
@@ -82,26 +95,77 @@ export default function ProjectionAccuracyClient({
 
   const overallMetrics = allMetrics[0];
 
+  // Find the selected model for display
+  const selectedModel = models.find((m) => m.id === selectedModelId);
+
   return (
     <div className="space-y-8">
-      {/* Season tabs */}
-      <div className="flex gap-2">
-        {availableSeasons.map((season) => (
-          <button
-            key={season}
-            onClick={() =>
-              router.push(`/projection-accuracy?season=${season}`)
-            }
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
-              season === targetSeason
-                ? "bg-blue-600 text-white border-transparent"
-                : "bg-transparent text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-            }`}
-          >
-            {season}
-          </button>
-        ))}
+      {/* Season tabs + Model selector */}
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex gap-2">
+          {availableSeasons.map((season) => (
+            <button
+              key={season}
+              onClick={() => {
+                const params = new URLSearchParams();
+                params.set("season", String(season));
+                if (selectedModelId) params.set("model", selectedModelId);
+                router.push(`/projection-accuracy?${params.toString()}`);
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                season === targetSeason
+                  ? "bg-blue-600 text-white border-transparent"
+                  : "bg-transparent text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+              }`}
+            >
+              {season}
+            </button>
+          ))}
+        </div>
+
+        {models.length > 0 && (
+          <div className="flex items-center gap-2">
+            <label
+              htmlFor="model-select"
+              className="text-sm font-medium text-slate-600 dark:text-slate-300"
+            >
+              Model:
+            </label>
+            <select
+              id="model-select"
+              value={selectedModelId || ""}
+              onChange={(e) => handleModelChange(e.target.value)}
+              className="text-sm border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+            >
+              <option value="">Default (Legacy)</option>
+              {models.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                  {m.is_active ? " (active)" : ""}
+                  {m.is_baseline ? " (baseline)" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
+
+      {/* Selected model info */}
+      {selectedModel && (
+        <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-sm">
+          <div className="font-medium text-blue-900 dark:text-blue-100">
+            {selectedModel.name} v{selectedModel.version}
+          </div>
+          {selectedModel.description && (
+            <p className="text-blue-700 dark:text-blue-300 mt-1">
+              {selectedModel.description}
+            </p>
+          )}
+          <div className="text-blue-600 dark:text-blue-400 mt-1">
+            Features: {selectedModel.features.join(", ")}
+          </div>
+        </div>
+      )}
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
@@ -196,7 +260,7 @@ export default function ProjectionAccuracyClient({
         </div>
         <DataTable
           columns={PLAYER_COLUMNS}
-          data={filteredPlayers}
+          data={filteredPlayers as unknown as TableRow[]}
           highlightRules={[
             {
               key: "error",
@@ -214,8 +278,8 @@ export default function ProjectionAccuracyClient({
         />
       </section>
 
-      {/* Rookie breakdown */}
-      {rookiePlayers.length > 0 && (
+      {/* Rookie breakdown — only show for legacy mode */}
+      {!selectedModelId && rookiePlayers.length > 0 && (
         <section className="border border-amber-200 dark:border-amber-800 rounded-lg p-5 space-y-4">
           <div>
             <h2 className="text-xl font-semibold text-slate-900 dark:text-white flex items-center gap-2">
@@ -275,7 +339,7 @@ export default function ProjectionAccuracyClient({
           {/* Rookie player table */}
           <DataTable
             columns={PLAYER_COLUMNS}
-            data={filteredRookies}
+            data={filteredRookies as unknown as TableRow[]}
             highlightRules={[
               {
                 key: "error",

@@ -426,6 +426,111 @@ export interface Database {
         }
         Relationships: []
       }
+      projection_models: {
+        Row: {
+          id: string
+          name: string
+          version: number
+          description: string | null
+          features: Json
+          config: Json
+          is_baseline: boolean
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          version?: number
+          description?: string | null
+          features?: Json
+          config?: Json
+          is_baseline?: boolean
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          version?: number
+          description?: string | null
+          features?: Json
+          config?: Json
+          is_baseline?: boolean
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      model_projections: {
+        Row: {
+          id: string
+          model_id: string
+          player_id: string
+          season: number
+          projected_ppg: number
+          feature_values: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          model_id: string
+          player_id: string
+          season: number
+          projected_ppg: number
+          feature_values?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          model_id?: string
+          player_id?: string
+          season?: number
+          projected_ppg?: number
+          feature_values?: Json | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      backtest_results: {
+        Row: {
+          id: string
+          model_id: string
+          season: number
+          position: string | null
+          player_count: number | null
+          mae: number | null
+          bias: number | null
+          r_squared: number | null
+          rmse: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          model_id: string
+          season: number
+          position?: string | null
+          player_count?: number | null
+          mae?: number | null
+          bias?: number | null
+          r_squared?: number | null
+          rmse?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          model_id?: string
+          season?: number
+          position?: string | null
+          player_count?: number | null
+          mae?: number | null
+          bias?: number | null
+          r_squared?: number | null
+          rmse?: number | null
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
