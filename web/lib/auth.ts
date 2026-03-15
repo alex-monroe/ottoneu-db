@@ -12,10 +12,19 @@ export interface AuthenticatedUser {
   hasProjectionsAccess: boolean;
 }
 
+// Pre-computed dummy hash to equalize response times (prevents timing-based username enumeration)
+// Generated via bcrypt.hashSync("dummy_password", 10)
+const DUMMY_HASH = "$2a$10$tMh4zN5G4vP/Tqy.kZ6cyeQ5L8w11h03eB6f/0f3GjHjI39v9m/b2";
+
 /**
  * Authenticate user by email and password against the database
  */
 export async function authenticateUser(email: string, password: string): Promise<AuthenticatedUser | null> {
+  // Prevent DoS via bcrypt CPU exhaustion
+  if (password.length > 72) {
+    return null;
+  }
+
   const { data: user, error } = await getSupabaseAdmin()
     .from("users")
     .select("id, password_hash, is_admin, has_projections_access")
@@ -23,6 +32,8 @@ export async function authenticateUser(email: string, password: string): Promise
     .single();
 
   if (error || !user) {
+    // Perform dummy hash comparison to prevent timing attacks
+    await bcrypt.compare(password, DUMMY_HASH);
     return null;
   }
 
