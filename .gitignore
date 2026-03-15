@@ -6,6 +6,9 @@
 # VS Code
 .vscode/
 
+# Claude Code worktrees
+.claude/worktrees/
+
 # Python / Backend
 venv/
 __pycache__/
