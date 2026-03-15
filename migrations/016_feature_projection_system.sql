@@ -58,3 +58,16 @@ ALTER TABLE backtest_results ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow public read access" ON projection_models FOR SELECT USING (true);
 CREATE POLICY "Allow public read access" ON model_projections FOR SELECT USING (true);
 CREATE POLICY "Allow public read access" ON backtest_results FOR SELECT USING (true);
+
+-- Write policies for Python backend scripts (use anon key)
+CREATE POLICY "Allow anon insert" ON projection_models FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "Allow anon update" ON projection_models FOR UPDATE TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "Allow anon delete" ON projection_models FOR DELETE TO anon USING (true);
+
+CREATE POLICY "Allow anon insert" ON model_projections FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "Allow anon update" ON model_projections FOR UPDATE TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "Allow anon delete" ON model_projections FOR DELETE TO anon USING (true);
+
+CREATE POLICY "Allow anon insert" ON backtest_results FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "Allow anon update" ON backtest_results FOR UPDATE TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "Allow anon delete" ON backtest_results FOR DELETE TO anon USING (true);
