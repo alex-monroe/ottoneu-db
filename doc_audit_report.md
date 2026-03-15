@@ -1,20 +1,17 @@
 # Documentation Audit Report
 
 ### ✅ Confirmed accurate
-- `AGENTS.md` and `CLAUDE.md` accurately reflect the project structure, including the `docs/` folder contents, and contain no broken links.
-- Build and execution commands (e.g., `npm run dev`, `python scripts/run_all_analyses.py`) accurately map to configurations in `Makefile` and `package.json`.
-- The Next.js frontend tech stack and directory structures (e.g., `web/app/`, `web/lib/`, `web/components/`) described in `docs/FRONTEND.md` and `docs/CODE_ORGANIZATION.md` accurately match reality.
-- The Python backend layout and data pipeline overview (e.g., `scripts/worker.py`, `scripts/enqueue.py`) accurately describe the file structure and mechanics.
-- Development environment variables described in `docs/references/environment-variables.md` map perfectly to `.env.example` and `web/.env.local.example`.
+- `AGENTS.md` and `CLAUDE.md` correctly reference available architecture and domain logic files.
+- `docs/COMMANDS.md` correctly lists working CLI commands for frontend dev, testing, linting and building.
+- `.cursorrules` and `.github/copilot-instructions.md` accurately refer to `AGENTS.md`.
+- `docs/ARCHITECTURE.md`, `docs/FRONTEND.md` correctly outline Next.js app structure, Tailwind configurations, and Supabase interaction.
 
 ### ⚠️ Needs update
-There are no major mechanical inaccuracies across the `docs/` files or agent-facing markdowns (`AGENTS.md`, `CLAUDE.md`, `.github/pull_request_template.md`). However:
-- **`docs/generated/db-schema.md`**:
-  - **Claim**: "Ten tables, all with UUID primary keys."
-  - **Reality**: While the file lists ten tables, there is technically an 11th table (`scraper_jobs`) that drives the job queue, which is mentioned in the "Schema Files" section but not in the tables list.
-  - **Fix**: Update the intro sentence or list `scraper_jobs` in the markdown table.
+- **File**: `schema.sql`
+  - **Claim**: `docs/generated/db-schema.md` states the DB schema has "Eleven tables" and includes `arbitration_plans` and `arbitration_plan_allocations`.
+  - **Reality**: `schema.sql` only contains 8 tables. `scraper_jobs` is created in `migrations/002_add_scraper_jobs.sql` but not replicated in `schema.sql`. `arbitration_plans` and `arbitration_plan_allocations` exist in `db-schema.md` and are referenced in migrations (like `012_add_users.sql` and `015_tighten_rls_policies.sql`) but their `CREATE TABLE` definitions are completely missing from `schema.sql`.
+  - **Fix Suggestion**: Add the `CREATE TABLE` statements for `arbitration_plans` and `arbitration_plan_allocations`, and `scraper_jobs` to `schema.sql`.
 
 ### 🔲 Gaps (undocumented but should be)
-- **`scraper_jobs` schema**: The `scraper_jobs` table (which drives the entire backend data pipeline) is mentioned in `docs/ARCHITECTURE.md` and `docs/generated/db-schema.md`, but its schema (e.g., fields like `status`, `task_type`, `depends_on`, `error_message`) is not fully documented in `docs/generated/db-schema.md`.
-- **`.cursorrules` / `.github/copilot-instructions.md`**: These files do not exist. While `AGENTS.md` and `CLAUDE.md` exist and serve AI agents, standardizing across tools by adding a `.cursorrules` that points to `AGENTS.md` could be beneficial.
-- **`package-lock.json`**: There is no explicit instruction to agents to avoid running `npm install` without care or forbidding `npm` usage over a specific package manager, although `npm` seems to be the default based on `Makefile` and `package-lock.json`. (Memory states "Never modify `package.json` or `tsconfig.json` without explicit user instruction.")
+- **File**: `docs/CODE_ORGANIZATION.md`
+  - **Missing**: The `web/__tests__/` directory and its inner structures (e.g., `web/__tests__/lib/arb-logic.test.ts`, `roster-reconstruction.test.ts`) are not mapped in the *Key File Locations* table. Since frontend tests are crucial, pointing agents to where frontend testing files are located is necessary.
