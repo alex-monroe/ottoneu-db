@@ -37,6 +37,13 @@ python scripts/analyze_arbitration.py                # Identify opponents' vulne
 python scripts/analyze_arbitration_simulation.py     # Monte Carlo arbitration simulation (100 runs)
 python scripts/analyze_projected_arbitration.py      # Projected arbitration targets based on historical stats
 
+# Feature-based Projections
+python scripts/feature_projections/cli.py list                                              # List available model definitions
+python scripts/feature_projections/cli.py run --model v1_baseline_weighted_ppg --seasons 2024,2025,2026  # Generate projections
+python scripts/feature_projections/cli.py backtest --model v1_baseline_weighted_ppg --test-seasons 2024,2025  # Backtest against actuals
+python scripts/feature_projections/cli.py compare --models v1_baseline_weighted_ppg,v2_age_adjusted --season 2024  # Compare models
+python scripts/feature_projections/cli.py promote --model v2_age_adjusted                   # Promote model to production
+
 # Utilities
 python scripts/check_db.py                           # Verify database contents
 streamlit run scripts/visualize_app.py               # Streamlit dashboard

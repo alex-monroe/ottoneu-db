@@ -193,8 +193,32 @@ export interface BacktestPlayer {
   abs_error: number;
   seasons_used: string;       // pre-serialized: "2022, 2023, 2024"
   games_played: number;
-  projection_method: string;  // "rookie_trajectory" | "weighted_average_ppg"
-  [key: string]: string | number | null | undefined;
+  projection_method: string;  // "rookie_trajectory" | "weighted_average_ppg" | "model"
+  feature_values?: Record<string, number | null> | null;
+  [key: string]: string | number | boolean | Record<string, number | null> | null | undefined;
+}
+
+// === Projection Model Types ===
+
+export interface ProjectionModel {
+  id: string;
+  name: string;
+  version: number;
+  description: string | null;
+  features: string[];
+  is_baseline: boolean;
+  is_active: boolean;
+}
+
+export interface BacktestMetrics {
+  model_id: string;
+  season: number;
+  position: string | null;
+  player_count: number | null;
+  mae: number | null;
+  bias: number | null;
+  r_squared: number | null;
+  rmse: number | null;
 }
 
 // === Arbitration Planner Types ===

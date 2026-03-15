@@ -5,7 +5,7 @@ import {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   MY_TEAM,
 } from "./arb-logic";
-import type { Player, BacktestPlayer } from "./types";
+import type { Player, BacktestPlayer, ProjectionModel, BacktestMetrics } from "./types";
 
 export * from "./arb-logic";
 export type { Player, SimulationResult } from "./types";
@@ -123,6 +123,143 @@ export async function fetchPublicArbPlayers(): Promise<import("./types").PublicA
       team_name: teamName,
       ppg: Number(pStats.ppg) || 0,
       games_played: Number(pStats.games_played) || 0,
+    });
+  }
+
+  return result;
+}
+
+// === Projection Model Fetching ===
+
+/**
+ * Fetch available projection models from the projection_models table.
+ */
+export async function fetchAvailableModels(): Promise<ProjectionModel[]> {
+  const { data, error } = await supabase
+    .from("projection_models")
+    .select("id, name, version, description, features, is_baseline, is_active")
+    .order("name");
+
+  if (error) throw new Error(`Failed to fetch projection models: ${error.message}`);
+  return (data || []).map((m) => ({
+    id: m.id,
+    name: m.name,
+    version: m.version,
+    description: m.description,
+    features: Array.isArray(m.features) ? m.features as string[] : JSON.parse(String(m.features) || "[]"),
+    is_baseline: m.is_baseline,
+    is_active: m.is_active,
+  }));
+}
+
+/**
+ * Fetch cached backtest results for a model and season.
+ */
+export async function fetchCachedBacktestResults(
+  modelId: string,
+  season: number
+): Promise<BacktestMetrics[]> {
+  const { data, error } = await supabase
+    .from("backtest_results")
+    .select("*")
+    .eq("model_id", modelId)
+    .eq("season", season);
+
+  if (error) throw new Error(`Failed to fetch backtest results: ${error.message}`);
+  return data || [];
+}
+
+/**
+ * Build a projection map from model_projections for a specific model and season.
+ */
+async function buildModelProjectionMap(
+  modelId: string,
+  season: number
+): Promise<Map<string, { ppg: number; featureValues: Record<string, number | null> | null }>> {
+  const { data, error } = await supabase
+    .from("model_projections")
+    .select("player_id, projected_ppg, feature_values")
+    .eq("model_id", modelId)
+    .eq("season", season);
+
+  if (error) throw new Error(`Failed to fetch model projections: ${error.message}`);
+
+  const map = new Map<string, { ppg: number; featureValues: Record<string, number | null> | null }>();
+  if (data) {
+    for (const row of data) {
+      const fv = row.feature_values
+        ? typeof row.feature_values === "string"
+          ? JSON.parse(row.feature_values)
+          : row.feature_values
+        : null;
+      map.set(row.player_id, { ppg: row.projected_ppg, featureValues: fv });
+    }
+  }
+  return map;
+}
+
+/**
+ * Fetch backtest data using a specific projection model instead of player_projections.
+ */
+export async function fetchModelBacktestData(
+  targetSeason: number,
+  modelId: string
+): Promise<BacktestPlayer[]> {
+  const [playersRes, targetStatsRes, pricesRes] = await Promise.all([
+    supabase.from("players").select("id, name, position, nfl_team"),
+    supabase
+      .from("player_stats")
+      .select("player_id, ppg, games_played")
+      .eq("season", targetSeason),
+    supabase
+      .from("league_prices")
+      .select("player_id, price, team_name")
+      .eq("league_id", LEAGUE_ID)
+      .eq("season", targetSeason),
+  ]);
+
+  if (playersRes.error) throw new Error(`Failed to fetch players: ${playersRes.error.message}`);
+  if (targetStatsRes.error) throw new Error(`Failed to fetch target season stats: ${targetStatsRes.error.message}`);
+  if (pricesRes.error) throw new Error(`Failed to fetch target season prices: ${pricesRes.error.message}`);
+
+  if (!playersRes.data || !targetStatsRes.data) {
+    throw new Error("Failed to fetch data: returned null from Supabase");
+  }
+
+  const playerMap = new Map(playersRes.data.map((p) => [String(p.id), p]));
+  const targetStatsMap = new Map(targetStatsRes.data.map((s) => [String(s.player_id), s]));
+  const pricesMap = new Map((pricesRes.data ?? []).map((p) => [String(p.player_id), p]));
+
+  const projectionMap = await buildModelProjectionMap(modelId, targetSeason);
+  const result: BacktestPlayer[] = [];
+
+  for (const [playerId, targetStats] of targetStatsMap.entries()) {
+    const player = playerMap.get(playerId);
+    if (!player) continue;
+
+    const projEntry = projectionMap.get(playerId);
+    if (!projEntry) continue;
+
+    const priceRow = pricesMap.get(playerId);
+    const actual_ppg = Number(targetStats.ppg) || 0;
+    const projected = projEntry.ppg;
+    const error = actual_ppg - projected;
+
+    result.push({
+      player_id: playerId,
+      name: player.name,
+      position: player.position ?? "",
+      nfl_team: player.nfl_team ?? "",
+      team_name: priceRow?.team_name ?? null,
+      price: priceRow ? Number(priceRow.price) || 0 : 0,
+      projected_ppg: projected,
+      actual_ppg,
+      error,
+      abs_error: Math.abs(error),
+      seasons_used: "N/A",
+      games_played: Number(targetStats.games_played) || 0,
+      projection_method: "model",
+      feature_values: projEntry.featureValues,
     });
   }
 
