@@ -1,9 +1,5 @@
-⚡ Optimize Projections Generation
-
-**What:** Modified `generate_projections_for_season` to return both the newly computed projections dataframe and the `multi_season_df` it fetches internally. `update_projections` was updated to unpack this tuple and reuse the returned dataframe.
-
-**Why:** The `update_projections` script previously fetched historical stats twice per season window. `generate_projections_for_season` fetched data for `(target_season - 3)` to calculate base projections, and then immediately after, `update_projections` called `fetch_multi_season_stats` with the exact same season window to compute `avg_rookie_ppg`. This led to a large number of redundant queries to the Supabase database. By passing the data back up, we eliminate 50% of the DB calls.
-
-**Measured Improvement:**
-Before optimization: 3.03s elapsed locally (with 500ms mock DB latency), calling `fetch_multi_season_stats` 6 times across 3 target seasons.
-After optimization: 1.52s elapsed locally (with 500ms mock DB latency), calling `fetch_multi_season_stats` only 3 times. This represents a 50% execution time reduction on DB bound work.
+🚨 **Severity:** MEDIUM
+💡 **Vulnerability:** Several API routes dealing with arbitration plans and surplus adjustments lacked explicit string length validation on user text inputs (like `name` and `notes`). This allowed arbitrarily large string payloads to be sent.
+🎯 **Impact:** Extremely large text inputs could cause application memory exhaustion, database processing overhead, query timeouts, and lead to resource exhaustion / Denial of Service (DoS) attacks.
+🔧 **Fix:** Added strict, explicit maximum length bounds (`maxLength` limits) to string fields in the API route handlers (`name` <= 100 characters, `notes` <= 2000 characters). Invalid inputs now fail early and securely return `400 Bad Request`.
+✅ **Verification:** Verified by running the full test suite via `cd web && npm test` and running static analysis via `make check-arch` and `npm run lint`. Ensure test payloads conform to the new boundaries.

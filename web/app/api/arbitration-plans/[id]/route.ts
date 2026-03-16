@@ -56,6 +56,14 @@ export async function PUT(req: NextRequest, context: RouteContext) {
 
   const { name, notes, allocations } = await req.json();
 
+  if (name !== undefined && (typeof name !== "string" || name.length > 100)) {
+    return NextResponse.json({ error: "Name must be a string of at most 100 characters" }, { status: 400 });
+  }
+
+  if (notes !== undefined && (typeof notes !== "string" || notes.length > 2000)) {
+    return NextResponse.json({ error: "Notes must be a string of at most 2000 characters" }, { status: 400 });
+  }
+
   // Update plan metadata
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (name !== undefined) updates.name = name;

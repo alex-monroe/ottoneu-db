@@ -18,6 +18,10 @@ export async function POST(req: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });
   }
 
+  if (name.length > 100) {
+    return NextResponse.json({ error: "Name must be at most 100 characters" }, { status: 400 });
+  }
+
   // Verify ownership of source plan
   const { data: sourcePlan, error: fetchError } = await getSupabaseAdmin()
     .from("arbitration_plans")

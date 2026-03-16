@@ -29,6 +29,12 @@ export async function POST(req: NextRequest) {
 
   const body: AdjustmentRow[] = await req.json();
 
+  for (const item of body) {
+    if (item.notes && item.notes.length > 2000) {
+      return NextResponse.json({ error: "Notes must be at most 2000 characters" }, { status: 400 });
+    }
+  }
+
   const rows = body.map((item) => ({
     player_id: item.player_id,
     league_id: LEAGUE_ID,

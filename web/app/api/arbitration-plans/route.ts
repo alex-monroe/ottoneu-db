@@ -28,6 +28,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });
   }
 
+  if (name.length > 100) {
+    return NextResponse.json({ error: "Name must be at most 100 characters" }, { status: 400 });
+  }
+
+  if (notes && typeof notes === "string" && notes.length > 2000) {
+    return NextResponse.json({ error: "Notes must be at most 2000 characters" }, { status: 400 });
+  }
+
   const { data, error } = await getSupabaseAdmin()
     .from("arbitration_plans")
     .insert({ league_id: LEAGUE_ID, user_id: user.userId, name: name.trim(), notes: notes ?? null })
