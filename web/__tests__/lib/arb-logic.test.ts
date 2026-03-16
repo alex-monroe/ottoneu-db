@@ -500,4 +500,11 @@ describe("runArbitrationSimulation", () => {
             expect(result[i].mean_arb).toBeLessThanOrEqual(result[i - 1].mean_arb);
         }
     });
+
+    it("matches snapshot for deterministic outputs", () => {
+        const players = buildLeaguePlayers();
+        // Use a fixed number of simulations and a fixed seed so the snapshot is stable
+        const result = runArbitrationSimulation(players, 3, 0.2);
+        expect(result).toMatchSnapshot();
+    });
 });
