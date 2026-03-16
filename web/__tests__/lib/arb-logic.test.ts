@@ -78,6 +78,50 @@ function buildLeaguePlayers(): Player[] {
     return players;
 }
 
+function buildDeterministicPlayers(): Player[] {
+    const teams = [
+        "Team A", "Team B", "Team C", "Team D",
+        "Team E", "Team F", "Team G", "Team H",
+        "Team I", "Team J", "Team K", "The Witchcraft",
+    ];
+    const positions = ["QB", "RB", "WR", "TE"];
+    const players: Player[] = [];
+    let id = 1;
+
+    let prngValue = 1;
+
+    for (const team of teams) {
+        for (const pos of positions) {
+            // 3 players per position per team = 144 total
+            for (let i = 0; i < 3; i++) {
+                // simple predictable cycle instead of Math.random()
+                prngValue = (prngValue * 279470273) % 4294967291;
+                const normRand1 = (prngValue % 1000) / 1000;
+
+                prngValue = (prngValue * 279470273) % 4294967291;
+                const normRand2 = (prngValue % 1000) / 1000;
+
+                const ppg = 5 + normRand1 * 15;
+                const price = Math.round(1 + normRand2 * 50);
+                players.push(
+                    makePlayer({
+                        player_id: String(id++),
+                        name: `${pos}-${team}-${i}`,
+                        position: pos,
+                        team_name: team,
+                        ppg: Math.round(ppg * 100) / 100,
+                        price,
+                        total_points: Math.round(ppg * 10),
+                        games_played: 10,
+                        snaps: 300,
+                    })
+                );
+            }
+        }
+    }
+    return players;
+}
+
 // ---------------------------------------------------------------------------
 // calculateVorp
 // ---------------------------------------------------------------------------
@@ -502,7 +546,7 @@ describe("runArbitrationSimulation", () => {
     });
 
     it("matches snapshot for deterministic outputs", () => {
-        const players = buildLeaguePlayers();
+        const players = buildDeterministicPlayers();
         // Use a fixed number of simulations and a fixed seed so the snapshot is stable
         const result = runArbitrationSimulation(players, 3, 0.2);
         expect(result).toMatchSnapshot();
