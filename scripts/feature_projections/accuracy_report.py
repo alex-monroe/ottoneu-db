@@ -184,8 +184,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Generate projection model accuracy report")
     parser.add_argument(
         "--seasons",
-        default="2024,2025",
-        help="Comma-separated seasons (default: 2024,2025)",
+        default="2022,2023,2024,2025",
+        help="Comma-separated seasons (default: 2022,2023,2024,2025)",
     )
     parser.add_argument(
         "--run-backtest",
