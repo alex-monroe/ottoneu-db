@@ -47,6 +47,11 @@ class StatEfficiencyFeature(ProjectionFeature):
         nfl_stats_df: pd.DataFrame,
         context: dict[str, Any],
     ) -> Optional[float]:
+        # Kickers have no passing/rushing/receiving stats, so stat_projected_ppg
+        # would be 0 while base_ppg is ~7, producing a -7 delta that breaks projections.
+        if position == "K":
+            return None
+
         if nfl_stats_df.empty:
             return None
 
