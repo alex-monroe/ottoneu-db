@@ -184,6 +184,15 @@ class TestStatEfficiencyFeature:
         result = self.feature.compute("p1", "QB", pd.DataFrame(), nfl_df, {})
         assert result is None
 
+    def test_kicker_returns_none(self):
+        """K position has no passing/rushing/receiving stats — always return None."""
+        nfl_df = make_nfl_stats_df([{
+            "season": 2024, "games_played": 17,
+        }])
+        ctx = {"base_ppg": 7.0}
+        result = self.feature.compute("p1", "K", pd.DataFrame(), nfl_df, ctx)
+        assert result is None
+
 
 # ---------------------------------------------------------------------------
 # GamesPlayedFeature
