@@ -1,9 +1,12 @@
-⚡ Optimize Projections Generation
+## What
+Added a visual loading spinner (`Loader2` from `lucide-react`) to the submit button on the login/registration form.
 
-**What:** Modified `generate_projections_for_season` to return both the newly computed projections dataframe and the `multi_season_df` it fetches internally. `update_projections` was updated to unpack this tuple and reuse the returned dataframe.
+## Why
+When users submit the form, the button text changes to "Signing in..." or "Creating account...", but without a visual indicator of movement, the interface can feel frozen during slow network requests. A spinner provides immediate, clear visual feedback that a background process is occurring.
 
-**Why:** The `update_projections` script previously fetched historical stats twice per season window. `generate_projections_for_season` fetched data for `(target_season - 3)` to calculate base projections, and then immediately after, `update_projections` called `fetch_multi_season_stats` with the exact same season window to compute `avg_rookie_ppg`. This led to a large number of redundant queries to the Supabase database. By passing the data back up, we eliminate 50% of the DB calls.
+## Before/After
+Before: Button text updated, but no visual spinner was present.
+After: Button displays the loading text alongside a spinning icon, vertically centered using `items-center`.
 
-**Measured Improvement:**
-Before optimization: 3.03s elapsed locally (with 500ms mock DB latency), calling `fetch_multi_season_stats` 6 times across 3 target seasons.
-After optimization: 1.52s elapsed locally (with 500ms mock DB latency), calling `fetch_multi_season_stats` only 3 times. This represents a 50% execution time reduction on DB bound work.
+## Accessibility
+Added `aria-hidden="true"` to the SVG spinner so screen readers do not announce the purely visual element, as the surrounding text already conveys the "Signing in..." state.
