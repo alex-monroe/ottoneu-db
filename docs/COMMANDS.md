@@ -43,6 +43,9 @@ python scripts/feature_projections/cli.py run --model v1_baseline_weighted_ppg -
 python scripts/feature_projections/cli.py backtest --model v1_baseline_weighted_ppg --test-seasons 2024,2025  # Backtest against actuals
 python scripts/feature_projections/cli.py compare --models v1_baseline_weighted_ppg,v2_age_adjusted --season 2024  # Compare models
 python scripts/feature_projections/cli.py promote --model v2_age_adjusted                   # Promote model to production
+python scripts/feature_projections/accuracy_report.py                                       # Generate accuracy table from cached backtest results
+python scripts/feature_projections/accuracy_report.py --run-backtest                        # Re-run all backtests then generate report
+python scripts/feature_projections/accuracy_report.py --seasons 2024,2025 --output PATH    # Custom seasons or output path
 
 # Utilities
 python scripts/check_db.py                           # Verify database contents

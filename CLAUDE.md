@@ -20,6 +20,7 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 - **Ottoneu rules:** See [docs/references/ottoneu-rules.md](docs/references/ottoneu-rules.md) for scoring, roster, salary cap, and arbitration rules
 - **Environment:** See [docs/references/environment-variables.md](docs/references/environment-variables.md) for `.env` setup
 - **Market Projections:** See [docs/exec-plans/market-projections.md](docs/exec-plans/market-projections.md) for the market-based projection system implementation plan
+- **Projection Accuracy:** Use `/projection-accuracy` skill (or run `python scripts/feature_projections/accuracy_report.py`) to generate a model comparison table. **Required when updating any projection code** — see Projection Model Update Requirements in [AGENTS.md](AGENTS.md).
 
 ## Documentation Map
 
