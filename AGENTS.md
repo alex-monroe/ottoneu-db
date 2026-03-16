@@ -66,3 +66,18 @@ Run `make check-arch` to validate these rules locally.
 - **Always create a PR.** Every task must end with `gh pr create --fill`.
 - **Start from updated main:** `git checkout main && git pull origin main` before branching.
 - See [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) for full details.
+
+## Projection Model Update Requirements
+
+When any task modifies the projection system — including `scripts/feature_projections/`, `scripts/projection_methods.py`, `scripts/update_projections.py`, or `model_config.py` — you MUST:
+
+1. **Recompute the accuracy comparison table** by running:
+   ```
+   source venv/bin/activate && python scripts/feature_projections/accuracy_report.py --run-backtest --seasons 2024,2025
+   ```
+2. **Include the full markdown table** (from `docs/generated/projection-accuracy.md`) in:
+   - The task output / conversation summary
+   - The PR description body under a `## Projection Accuracy` section
+3. **Highlight improvements** — call out which metrics improved vs the baseline (`v1_baseline_weighted_ppg`) in the PR description narrative above the table.
+
+This ensures every projection change is empirically validated before merge.
