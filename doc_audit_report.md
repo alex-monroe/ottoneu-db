@@ -1,20 +1,22 @@
 # Documentation Audit Report
 
 ### ✅ Confirmed accurate
-- `AGENTS.md` and `CLAUDE.md` accurately reflect the project structure, including the `docs/` folder contents, and contain no broken links.
-- Build and execution commands (e.g., `npm run dev`, `python scripts/run_all_analyses.py`) accurately map to configurations in `Makefile` and `package.json`.
-- The Next.js frontend tech stack and directory structures (e.g., `web/app/`, `web/lib/`, `web/components/`) described in `docs/FRONTEND.md` and `docs/CODE_ORGANIZATION.md` accurately match reality.
-- The Python backend layout and data pipeline overview (e.g., `scripts/worker.py`, `scripts/enqueue.py`) accurately describe the file structure and mechanics.
-- Development environment variables described in `docs/references/environment-variables.md` map perfectly to `.env.example` and `web/.env.local.example`.
+- **Commands:** Commands listed in `docs/COMMANDS.md` correspond to real Makefile targets and `web/package.json` scripts.
+- **Testing:** The testing methodology in `docs/TESTING.md` accurately describes `python -m pytest` and `npm test` setup.
+- **Tech Stack:** The tech stack described in `docs/ARCHITECTURE.md` perfectly matches `pyproject.toml` and `web/package.json` (Python 3.9+, Next.js 16, React 19).
+- **Code Organization:** File paths mapped in `docs/CODE_ORGANIZATION.md` are up to date and correctly match actual files like `scripts/config.py` and `web/lib/config.ts`.
+- **Database Schema:** `schema.sql` and the migrations accurately reflect the described tables and architecture.
 
 ### ⚠️ Needs update
-There are no major mechanical inaccuracies across the `docs/` files or agent-facing markdowns (`AGENTS.md`, `CLAUDE.md`, `.github/pull_request_template.md`). However:
-- **`docs/generated/db-schema.md`**:
-  - **Claim**: "Ten tables, all with UUID primary keys."
-  - **Reality**: While the file lists ten tables, there is technically an 11th table (`scraper_jobs`) that drives the job queue, which is mentioned in the "Schema Files" section but not in the tables list.
-  - **Fix**: Update the intro sentence or list `scraper_jobs` in the markdown table.
+- **File:** `CLAUDE.md` and `AGENTS.md`
+  - **Claim:** Pointed to `docs/exec-plans/market-projections.md` for the "market-based projection system implementation plan".
+  - **Reality:** The market-based projection system was never built (`scripts/projections/` does not exist). Instead, a feature-based projection system was built in `scripts/feature_projections/` and documented in `docs/exec-plans/feature-projections.md` which was orphaned.
+  - **Suggested/Applied Fix:** Replaced all references to `docs/exec-plans/market-projections.md` with `docs/exec-plans/feature-projections.md` in `CLAUDE.md` and `AGENTS.md`. `docs/exec-plans/market-projections.md` is now flagged as an orphan file and should be deleted since its contents refer to an unbuilt feature.
 
 ### 🔲 Gaps (undocumented but should be)
-- **`scraper_jobs` schema**: The `scraper_jobs` table (which drives the entire backend data pipeline) is mentioned in `docs/ARCHITECTURE.md` and `docs/generated/db-schema.md`, but its schema (e.g., fields like `status`, `task_type`, `depends_on`, `error_message`) is not fully documented in `docs/generated/db-schema.md`.
-- **`.cursorrules` / `.github/copilot-instructions.md`**: These files do not exist. While `AGENTS.md` and `CLAUDE.md` exist and serve AI agents, standardizing across tools by adding a `.cursorrules` that points to `AGENTS.md` could be beneficial.
-- **`package-lock.json`**: There is no explicit instruction to agents to avoid running `npm install` without care or forbidding `npm` usage over a specific package manager, although `npm` seems to be the default based on `Makefile` and `package-lock.json`. (Memory states "Never modify `package.json` or `tsconfig.json` without explicit user instruction.")
+- **File:** `PROJECTIONS_IMPROVEMENTS.md`
+  - **Issue:** It's in the repo root but not referenced in `AGENTS.md` or `CLAUDE.md` documentation map or anywhere else.
+- **File:** `.claude/commands/`
+  - **Issue:** There are multiple custom Claude commands (e.g. `run-analyses.md`, `projection-accuracy.md`, `run-tests.md`) and `.claude/skills/` built for this project. They are not explicitly listed in the main documentation map in `CLAUDE.md`.
+- **File:** `.cursorrules` and `.github/copilot-instructions.md`
+  - **Issue:** They exist and are accurate but are not mentioned in the overarching documentation map of `AGENTS.md` or `CLAUDE.md`.

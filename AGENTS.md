@@ -21,7 +21,7 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 - **Git workflow:** See [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) for branch and PR requirements
 - **Domain rules:** See [docs/references/ottoneu-rules.md](docs/references/ottoneu-rules.md) for scoring, roster, salary cap, and arbitration
 - **Environment:** See [docs/references/environment-variables.md](docs/references/environment-variables.md) for `.env` setup
-- **Market Projections:** See [docs/exec-plans/market-projections.md](docs/exec-plans/market-projections.md) for the market-based projection system implementation plan
+- **Feature Projections:** See [docs/exec-plans/feature-projections.md](docs/exec-plans/feature-projections.md) for the feature-based projection system implementation plan
 
 ## Documentation Map
 
@@ -36,7 +36,7 @@ docs/
 ├── GIT_WORKFLOW.md                    # Branch strategy, PR requirements
 ├── TESTING.md                         # Python + web test setup and CI
 ├── exec-plans/
-│   └── market-projections.md          # Market-based projection system implementation plan
+│   └── feature-projections.md         # Feature-based projection system implementation plan
 ├── generated/
 │   └── db-schema.md                   # Database tables, keys, relationships
 └── references/
