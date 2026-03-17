@@ -175,6 +175,18 @@ def ingest_fantasypros(seasons: list[int]) -> int:
                 }
             )
 
+        # Deduplicate by player_id — multiple FP rows may fuzzy-match to the same player
+        seen_pids: set[str] = set()
+        deduped: list[dict] = []
+        for r in records:
+            pid = r["player_id"]
+            if pid not in seen_pids:
+                seen_pids.add(pid)
+                deduped.append(r)
+            else:
+                print(f"  Skipping duplicate match for player_id={pid}")
+        records = deduped
+
         print(f"  Generated {len(records)} projection records for {season}")
         _upsert_records(supabase, records)
         total += len(records)
