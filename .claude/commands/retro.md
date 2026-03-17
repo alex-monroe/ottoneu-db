@@ -13,10 +13,11 @@ Review the entire conversation history. Look for:
 - **Repeated lookups** — files or facts you had to re-read because context wasn't documented
 - **Surprises** — things that differed from what the docs or code suggested, causing wasted effort
 - **Missing guardrails** — cases where a rule, architectural constraint, or workflow step wasn't documented but should have been
+- **Manual approval gates** — any time the user had to manually approve a tool call during "accept edits" mode. For each one, consider: was the operation actually safe? Could a permission entry in settings, a different tool choice, or a safer command formulation have avoided the prompt? Propose the least-privilege fix that removes friction without expanding blast radius.
 
 For each friction point, record:
 1. What happened (brief description)
-2. Category: `agent-error` | `user-correction` | `missing-docs` | `missing-skill` | `missing-guardrail` | `other`
+2. Category: `agent-error` | `user-correction` | `missing-docs` | `missing-skill` | `missing-guardrail` | `approval-gate` | `other`
 3. Root cause: what underlying gap caused it?
 4. Proposed fix: a specific change to a doc, skill, AGENTS.md, CLAUDE.md, or new file — or "no action needed" if it was a one-off
 
