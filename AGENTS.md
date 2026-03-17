@@ -44,6 +44,12 @@ docs/
     └── ottoneu-rules.md               # Scoring, roster, salary cap, arbitration rules
 ```
 
+## Python Style
+
+- **Target version: Python 3.9.** Do not use syntax that requires 3.10+.
+- **Type annotations:** Use `Optional[X]` or `Union[X, Y]` from `typing`, not the `X | Y` union shorthand (requires 3.10+). `from __future__ import annotations` defers evaluation but does not make `|` safe in runtime positions (e.g. function bodies, `isinstance` calls).
+- **Existing files** that already import `from __future__ import annotations` may use `X | Y` in *annotation* positions only — do not use it elsewhere.
+
 ## Architectural Rules (Enforced by Tests)
 
 These rules are mechanically enforced by structural tests in `scripts/tests/test_architecture.py` and `web/__tests__/lib/architecture.test.ts`. If you violate them, tests will fail with a teaching message explaining the fix.

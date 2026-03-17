@@ -4,7 +4,8 @@
 
 - **Location:** `scripts/tests/`
 - **Config:** `pyproject.toml` (or `scripts/pytest.ini`)
-- **Run:** `python -m pytest` from project root
+- **Venv path:** `venv/` (not `.venv/`) — activate with `source venv/bin/activate`
+- **Run:** `python -m pytest` from project root (venv must be active), or directly via `venv/bin/pytest`
 
 ## Web Tests
 
