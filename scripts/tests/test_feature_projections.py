@@ -245,6 +245,60 @@ class TestTeamContextFeature:
 
 
 # ---------------------------------------------------------------------------
+# UsageShareFeature
+# ---------------------------------------------------------------------------
+
+class TestUsageShareFeature:
+    def setup_method(self):
+        self.feature = UsageShareFeature()
+
+    def test_qb_excluded(self):
+        """QB should return None — usage share is not meaningful for QBs (GH #232)."""
+        nfl_df = make_nfl_stats_df([
+            {"season": 2023, "games_played": 17, "passing_yards": 4000},
+            {"season": 2024, "games_played": 17, "passing_yards": 4500},
+        ])
+        ctx = {
+            "base_ppg": 20.0,
+            "team_usage": {
+                2023: {"passing_yards": 4200},
+                2024: {"passing_yards": 4600},
+            },
+        }
+        result = self.feature.compute("p1", "QB", pd.DataFrame(), nfl_df, ctx)
+        assert result is None
+
+    def test_wr_increasing_share_positive_delta(self):
+        """WR with increasing target share should get a positive PPG delta."""
+        nfl_df = make_nfl_stats_df([
+            {"season": 2023, "games_played": 17, "targets": 80},
+            {"season": 2024, "games_played": 17, "targets": 120},
+        ])
+        ctx = {
+            "base_ppg": 12.0,
+            "team_usage": {
+                2023: {"targets": 500},
+                2024: {"targets": 500},
+            },
+        }
+        result = self.feature.compute("p1", "WR", pd.DataFrame(), nfl_df, ctx)
+        assert result is not None
+        assert result > 0  # increasing share → positive delta
+
+    def test_insufficient_data_returns_none(self):
+        """With only 1 season, should return None (need >= 2 for trend)."""
+        nfl_df = make_nfl_stats_df([
+            {"season": 2024, "games_played": 17, "targets": 100},
+        ])
+        ctx = {
+            "base_ppg": 10.0,
+            "team_usage": {2024: {"targets": 500}},
+        }
+        result = self.feature.compute("p1", "WR", pd.DataFrame(), nfl_df, ctx)
+        assert result is None
+
+
+# ---------------------------------------------------------------------------
 # Combiner
 # ---------------------------------------------------------------------------
 

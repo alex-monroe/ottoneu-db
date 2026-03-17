@@ -9,8 +9,9 @@ import pandas as pd
 from scripts.feature_projections.features.base import ProjectionFeature
 
 # Which stat represents "usage" for each position
+# QB is excluded: QBs account for nearly all team passing volume,
+# so their share is always ~1.0 with massive swing potential (GH #232)
 USAGE_STAT_BY_POSITION = {
-    "QB": "passing_yards",  # proxy for passing volume
     "RB": "rushing_attempts",
     "WR": "targets",
     "TE": "targets",
