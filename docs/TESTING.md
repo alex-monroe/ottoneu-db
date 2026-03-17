@@ -12,6 +12,16 @@
 - **Config:** `web/jest.config.ts`
 - **Run:** `npm test` from `web/`
 
+### TypeScript type-checking
+
+Use `tsc --noEmit` for local type-checking — **do not use `npm run build`** for this purpose:
+
+```bash
+cd web && ./node_modules/.bin/tsc --noEmit
+```
+
+`npm run build` requires `config.json` (present in CI/production, absent in local dev) and will fail with a "Module not found" error unrelated to your changes.
+
 ## Structural / Architectural Tests
 
 Harness engineering tests that enforce architectural rules mechanically. Each test failure includes a teaching message with the fix.
