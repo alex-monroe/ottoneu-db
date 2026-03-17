@@ -11,6 +11,7 @@ interface DataTableProps<T extends TableRow = TableRow> {
   data: T[];
   highlightRow?: (row: T) => string | undefined;
   highlightRules?: HighlightRule[];
+  renderExpandedRow?: (row: T) => React.ReactNode;
 }
 
 function applyRules<T extends TableRow>(row: T, rules: HighlightRule[]): string | undefined {
@@ -39,9 +40,20 @@ export default function DataTable<T extends TableRow = TableRow>({
   data,
   highlightRow,
   highlightRules,
+  renderExpandedRow,
 }: DataTableProps<T>) {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortAsc, setSortAsc] = useState(true);
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+
+  const toggleExpanded = (i: number) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+  };
 
   const handleSort = (key: string) => {
     if (sortKey === key) {
@@ -85,6 +97,9 @@ export default function DataTable<T extends TableRow = TableRow>({
       <table className="min-w-full text-sm">
         <thead>
           <tr className="bg-slate-100 dark:bg-slate-800">
+            {renderExpandedRow && (
+              <th className="px-2 py-2 w-6" aria-label="expand" />
+            )}
             {columns.map((col) => (
               <th
                 key={col.key}
@@ -122,25 +137,43 @@ export default function DataTable<T extends TableRow = TableRow>({
             const highlight =
               highlightRow?.(row) ??
               (highlightRules ? applyRules(row, highlightRules) : undefined);
+            const isExpanded = expandedRows.has(i);
+            const rowBg =
+              highlight ??
+              (i % 2 === 0
+                ? "bg-white dark:bg-slate-950"
+                : "bg-slate-50 dark:bg-slate-900");
             return (
-              <tr
-                key={i}
-                className={`border-t border-slate-100 dark:border-slate-800 ${
-                  highlight ??
-                  (i % 2 === 0
-                    ? "bg-white dark:bg-slate-950"
-                    : "bg-slate-50 dark:bg-slate-900")
-                }`}
-              >
-                {columns.map((col) => (
-                  <td
-                    key={col.key}
-                    className="px-3 py-2 text-slate-800 dark:text-slate-200 whitespace-nowrap"
-                  >
-                    {formatCell(row[col.key], col.format)}
-                  </td>
-                ))}
-              </tr>
+              <>
+                <tr
+                  key={i}
+                  className={`border-t border-slate-100 dark:border-slate-800 ${rowBg} ${
+                    renderExpandedRow ? "cursor-pointer hover:brightness-95" : ""
+                  }`}
+                  onClick={renderExpandedRow ? () => toggleExpanded(i) : undefined}
+                >
+                  {renderExpandedRow && (
+                    <td className="px-2 py-2 text-slate-400 dark:text-slate-500 text-xs select-none">
+                      {isExpanded ? "▼" : "▶"}
+                    </td>
+                  )}
+                  {columns.map((col) => (
+                    <td
+                      key={col.key}
+                      className="px-3 py-2 text-slate-800 dark:text-slate-200 whitespace-nowrap"
+                    >
+                      {formatCell(row[col.key], col.format)}
+                    </td>
+                  ))}
+                </tr>
+                {renderExpandedRow && isExpanded && (
+                  <tr key={`${i}-expanded`} className={rowBg}>
+                    <td colSpan={columns.length + 1} className="p-0">
+                      {renderExpandedRow(row)}
+                    </td>
+                  </tr>
+                )}
+              </>
             );
           })}
         </tbody>
