@@ -34,7 +34,7 @@ def step1_backfill_nfl_stats(seasons: list[int], dry_run: bool) -> None:
     print(f"\n{'='*60}")
     print(f"STEP 1: Backfill nfl_stats for seasons {seasons}")
     print(f"{'='*60}")
-    backfill_seasons(seasons, dry_run=dry_run)
+    backfill_seasons(seasons, dry_run=dry_run, skip_create_players=True)
 
 
 def step2_backfill_player_stats(seasons: list[int], dry_run: bool) -> None:
