@@ -24,8 +24,12 @@ export async function POST(req: NextRequest) {
 
   const { name, notes } = await req.json();
 
-  if (!name || typeof name !== "string" || name.trim().length === 0) {
-    return NextResponse.json({ error: "Name is required" }, { status: 400 });
+  if (!name || typeof name !== "string" || name.trim().length === 0 || name.length > 255) {
+    return NextResponse.json({ error: "Name must be between 1 and 255 characters" }, { status: 400 });
+  }
+
+  if (notes !== undefined && notes !== null && (typeof notes !== "string" || notes.length > 2000)) {
+    return NextResponse.json({ error: "Notes must be at most 2000 characters" }, { status: 400 });
   }
 
   const { data, error } = await getSupabaseAdmin()

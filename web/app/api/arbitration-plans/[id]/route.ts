@@ -56,9 +56,17 @@ export async function PUT(req: NextRequest, context: RouteContext) {
 
   const { name, notes, allocations } = await req.json();
 
+  if (name !== undefined && (typeof name !== "string" || name.trim().length === 0 || name.length > 255)) {
+    return NextResponse.json({ error: "Name must be between 1 and 255 characters" }, { status: 400 });
+  }
+
+  if (notes !== undefined && notes !== null && (typeof notes !== "string" || notes.length > 2000)) {
+    return NextResponse.json({ error: "Notes must be at most 2000 characters" }, { status: 400 });
+  }
+
   // Update plan metadata
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
-  if (name !== undefined) updates.name = name;
+  if (name !== undefined) updates.name = name.trim();
   if (notes !== undefined) updates.notes = notes;
 
   const { error: planError } = await getSupabaseAdmin()

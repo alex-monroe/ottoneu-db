@@ -14,8 +14,8 @@ export async function POST(req: NextRequest, context: RouteContext) {
   const { id } = await context.params;
   const { name } = await req.json();
 
-  if (!name || typeof name !== "string" || name.trim().length === 0) {
-    return NextResponse.json({ error: "Name is required" }, { status: 400 });
+  if (!name || typeof name !== "string" || name.trim().length === 0 || name.length > 255) {
+    return NextResponse.json({ error: "Name must be between 1 and 255 characters" }, { status: 400 });
   }
 
   // Verify ownership of source plan
