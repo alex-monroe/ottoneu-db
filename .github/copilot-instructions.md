@@ -13,6 +13,11 @@ This repository maintains universal instructions for AI agents in `AGENTS.md`.
 - **Frontend:** See `docs/FRONTEND.md`
 - **Code layout:** See `docs/CODE_ORGANIZATION.md`
 - **Database:** See `docs/generated/db-schema.md`
+- **Testing:** See `docs/TESTING.md`
+- **Git workflow:** See `docs/GIT_WORKFLOW.md`
+- **Feature Projections:** See `docs/exec-plans/feature-projections.md`
+- **Market Projections:** See `docs/exec-plans/market-projections.md`
+- **Projection Accuracy:** See `docs/generated/projection-accuracy.md`
 
 ## Key Directives
 - **Package Manager:** Strictly use `npm` for all frontend tasks (do not use `yarn`, `pnpm`, or `bun`).

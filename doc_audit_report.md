@@ -1,20 +1,17 @@
 # Documentation Audit Report
 
 ### ✅ Confirmed accurate
-- `AGENTS.md` and `CLAUDE.md` accurately reflect the project structure, including the `docs/` folder contents, and contain no broken links.
-- Build and execution commands (e.g., `npm run dev`, `python scripts/run_all_analyses.py`) accurately map to configurations in `Makefile` and `package.json`.
-- The Next.js frontend tech stack and directory structures (e.g., `web/app/`, `web/lib/`, `web/components/`) described in `docs/FRONTEND.md` and `docs/CODE_ORGANIZATION.md` accurately match reality.
-- The Python backend layout and data pipeline overview (e.g., `scripts/worker.py`, `scripts/enqueue.py`) accurately describe the file structure and mechanics.
-- Development environment variables described in `docs/references/environment-variables.md` map perfectly to `.env.example` and `web/.env.local.example`.
+- `docs/COMMANDS.md`, `docs/ARCHITECTURE.md`, `docs/FRONTEND.md`, `docs/CODE_ORGANIZATION.md`, `docs/GIT_WORKFLOW.md`, `docs/TESTING.md`, `docs/exec-plans/market-projections.md`, `docs/generated/db-schema.md`, `docs/references/environment-variables.md`, `docs/references/ottoneu-rules.md` exist and are referenced appropriately.
+- Key file locations in `docs/CODE_ORGANIZATION.md` are accurate.
+- Command rules (e.g., using `npm`) in `.cursorrules` and `.github/copilot-instructions.md` remain valid and important.
 
 ### ⚠️ Needs update
-There are no major mechanical inaccuracies across the `docs/` files or agent-facing markdowns (`AGENTS.md`, `CLAUDE.md`, `.github/pull_request_template.md`). However:
-- **`docs/generated/db-schema.md`**:
-  - **Claim**: "Ten tables, all with UUID primary keys."
-  - **Reality**: While the file lists ten tables, there is technically an 11th table (`scraper_jobs`) that drives the job queue, which is mentioned in the "Schema Files" section but not in the tables list.
-  - **Fix**: Update the intro sentence or list `scraper_jobs` in the markdown table.
+- **Issue:** `docs/exec-plans/feature-projections.md` and `docs/generated/projection-accuracy.md` were flagged as "Orphan documentation files" by `check_docs_freshness.py`.
+  - **Reality:** These files exist but were either not linked or improperly linked in the `AGENTS.md` and `CLAUDE.md` documentation maps. The documentation maps used a code block tree structure that the freshness checker could not parse.
+  - **Fix:** Converted the `## Documentation Map` code blocks in `AGENTS.md` and `CLAUDE.md` into markdown bulleted lists with explicit `[text](path)` links. Included links to both missing files.
+- **Issue:** `.cursorrules` and `.github/copilot-instructions.md` had an outdated/incomplete "Quick Reference" section.
+  - **Reality:** They were missing links to newer and critical docs like `docs/TESTING.md`, `docs/GIT_WORKFLOW.md`, `docs/exec-plans/feature-projections.md`, `docs/exec-plans/market-projections.md`, and `docs/generated/projection-accuracy.md`.
+  - **Fix:** Appended explicit references to these files in the "Quick Reference" section of both files.
 
 ### 🔲 Gaps (undocumented but should be)
-- **`scraper_jobs` schema**: The `scraper_jobs` table (which drives the entire backend data pipeline) is mentioned in `docs/ARCHITECTURE.md` and `docs/generated/db-schema.md`, but its schema (e.g., fields like `status`, `task_type`, `depends_on`, `error_message`) is not fully documented in `docs/generated/db-schema.md`.
-- **`.cursorrules` / `.github/copilot-instructions.md`**: These files do not exist. While `AGENTS.md` and `CLAUDE.md` exist and serve AI agents, standardizing across tools by adding a `.cursorrules` that points to `AGENTS.md` could be beneficial.
-- **`package-lock.json`**: There is no explicit instruction to agents to avoid running `npm install` without care or forbidding `npm` usage over a specific package manager, although `npm` seems to be the default based on `Makefile` and `package-lock.json`. (Memory states "Never modify `package.json` or `tsconfig.json` without explicit user instruction.")
+- No significant new gaps were identified during this review, as the primary issues pertained to linking newly created feature projection and backtesting documentation, which has now been resolved.
