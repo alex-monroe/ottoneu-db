@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { BacktestPlayer, Position, POSITIONS, ProjectionModel, TableRow } from "@/lib/types";
 import { calculateMetrics, PositionMetrics } from "./metrics";
 import AccuracyScatterChart from "./AccuracyScatterChart";
+import FeatureBreakdown from "./FeatureBreakdown";
 import DataTable, { Column } from "@/components/DataTable";
 import PositionFilter from "@/components/PositionFilter";
 import SummaryCard from "@/components/SummaryCard";
@@ -565,6 +566,20 @@ export default function ProjectionAccuracyClient({
               className: "bg-red-50 dark:bg-red-950",
             },
           ]}
+          renderExpandedRow={
+            filteredPlayers.some((p) => p.feature_values)
+              ? (row) => {
+                  const p = row as unknown as BacktestPlayer;
+                  if (!p.feature_values) return null;
+                  return (
+                    <FeatureBreakdown
+                      featureValues={p.feature_values}
+                      projectedPpg={p.projected_ppg}
+                    />
+                  );
+                }
+              : undefined
+          }
         />
       </section>
 
