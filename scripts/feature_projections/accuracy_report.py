@@ -132,50 +132,119 @@ def generate_markdown_table(seasons: list[int]) -> str:
 
     model_names = list(model_data.keys())
 
+    def _render_position_table(
+        lines: list[str],
+        pos: str,
+        get_row_data,  # callable(model_name) -> dict | None
+    ) -> None:
+        """Render a single position table, bolding improvements over baseline."""
+        header_cols = ["Model"] + [m for m, _, _ in METRICS]
+        lines.append("| " + " | ".join(header_cols) + " |")
+        lines.append("| " + " | ".join(["---"] * len(header_cols)) + " |")
+
+        baseline_metrics: dict[str, float | None] = {}
+
+        for model_name in model_names:
+            row_data = get_row_data(model_name)
+            model_def = MODELS[model_name]
+            label = f"`{model_name}`" + (" _(baseline)_" if model_def.is_baseline else "")
+
+            cols = [label]
+            for metric_key, _, fmt in METRICS:
+                val = row_data.get(metric_key) if row_data else None
+                formatted = _format_val(val, fmt)
+
+                if not model_def.is_baseline and metric_key in ("mae", "rmse"):
+                    baseline_val = baseline_metrics.get(metric_key)
+                    if val is not None and baseline_val is not None and val < baseline_val:
+                        formatted = f"**{formatted}**"
+
+                if not model_def.is_baseline and metric_key == "r_squared":
+                    baseline_val = baseline_metrics.get(metric_key)
+                    if val is not None and baseline_val is not None and val > baseline_val:
+                        formatted = f"**{formatted}**"
+
+                cols.append(formatted)
+
+                if model_def.is_baseline:
+                    baseline_metrics[metric_key] = val
+
+            lines.append("| " + " | ".join(cols) + " |")
+
+        lines.append("")
+
     for season in seasons:
         lines.append(f"## Season {season}\n")
 
         for pos in REPORT_POSITIONS:
             lines.append(f"### {pos}\n")
+            _render_position_table(
+                lines,
+                pos,
+                lambda model_name, s=season, p=pos: (
+                    model_data[model_name]["results"].get(s, {}).get(p)
+                ),
+            )
 
-            # Header row
-            header_cols = ["Model"] + [m for m, _, _ in METRICS]
-            lines.append("| " + " | ".join(header_cols) + " |")
-            lines.append("| " + " | ".join(["---"] * len(header_cols)) + " |")
+    # --- Combined totals across all seasons ---
+    lines.append("## All Seasons Combined\n")
+    lines.append(
+        "_Weighted averages across all seasons (weighted by player count N). "
+        "RMSE is approximated as √(weighted average of RMSE²). "
+        "R² is a weighted average and should be interpreted as indicative only._\n"
+    )
 
-            baseline_metrics: dict[str, float | None] = {}
+    def _aggregate(model_name: str, pos: str) -> dict | None:
+        """Compute weighted-average metrics for a model+position across all seasons."""
+        rows = [
+            model_data[model_name]["results"].get(s, {}).get(pos)
+            for s in seasons
+        ]
+        rows = [r for r in rows if r is not None]
+        if not rows:
+            return None
 
-            for model_name in model_names:
-                row_data = model_data[model_name]["results"].get(season, {}).get(pos)
-                model_def = MODELS[model_name]
-                label = f"`{model_name}`" + (" _(baseline)_" if model_def.is_baseline else "")
+        total_n = sum(r.get("player_count") or 0 for r in rows)
+        if total_n == 0:
+            return None
 
-                cols = [label]
-                for metric_key, _, fmt in METRICS:
-                    val = row_data.get(metric_key) if row_data else None
-                    formatted = _format_val(val, fmt)
+        def _wavg(key: str) -> float | None:
+            vals = [(r.get(key), r.get("player_count") or 0) for r in rows]
+            pairs = [(v, w) for v, w in vals if v is not None and w > 0]
+            if not pairs:
+                return None
+            return sum(v * w for v, w in pairs) / sum(w for _, w in pairs)
 
-                    # Bold improvement over baseline for MAE and RMSE (lower is better)
-                    if not model_def.is_baseline and metric_key in ("mae", "rmse"):
-                        baseline_val = baseline_metrics.get(metric_key)
-                        if val is not None and baseline_val is not None and val < baseline_val:
-                            formatted = f"**{formatted}**"
+        mae = _wavg("mae")
+        bias = _wavg("bias")
+        r_sq = _wavg("r_squared")
+        # RMSE: sqrt of weighted average of squared RMSE values
+        rmse_pairs = [
+            (r.get("rmse"), r.get("player_count") or 0)
+            for r in rows
+            if r.get("rmse") is not None and (r.get("player_count") or 0) > 0
+        ]
+        rmse = (
+            (sum(v ** 2 * w for v, w in rmse_pairs) / sum(w for _, w in rmse_pairs)) ** 0.5
+            if rmse_pairs
+            else None
+        )
 
-                    # Bold improvement for R² (higher is better)
-                    if not model_def.is_baseline and metric_key == "r_squared":
-                        baseline_val = baseline_metrics.get(metric_key)
-                        if val is not None and baseline_val is not None and val > baseline_val:
-                            formatted = f"**{formatted}**"
+        return {
+            "mae": mae,
+            "bias": bias,
+            "r_squared": r_sq,
+            "rmse": rmse,
+            "player_count": total_n,
+        }
 
-                    cols.append(formatted)
-
-                    # Store baseline values for comparison
-                    if model_def.is_baseline:
-                        baseline_metrics[metric_key] = val
-
-                lines.append("| " + " | ".join(cols) + " |")
-
-            lines.append("")
+    for pos in REPORT_POSITIONS:
+        lines.append(f"### {pos}\n")
+        _render_position_table(
+            lines,
+            pos,
+            lambda model_name, p=pos: _aggregate(model_name, p),
+        )
 
     return "\n".join(lines)
 
