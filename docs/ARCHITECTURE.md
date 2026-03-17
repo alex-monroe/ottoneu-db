@@ -69,3 +69,41 @@ User accounts with email/password login stored in the `users` table. Passwords a
   - Admin routes (`/admin`) require `isAdmin`
 - **User-scoped data:** `surplus_adjustments` and `arbitration_plans` are scoped to `user_id` — each user sees only their own data
 - **Admin panel** (`/admin`) allows admins to create users, toggle projections access, and delete users
+
+## Feature Projection System (`scripts/feature_projections/`)
+
+Generates season-long player PPG projections from historical data using a stacked feature model. Six progressive models (v1–v6) add features incrementally: weighted PPG baseline, age curve, stat efficiency, games availability, team context, and usage share.
+
+### Projection Pipeline
+
+```
+model_config.py  →  runner.py  →  model_projections table
+    (defines)        (computes)       (stores)
+```
+
+- `model_config.py` — model registry (name, version, features, weights, is_baseline)
+- `runner.py` — fetches historical player_stats + nfl_stats, runs combiner, batch upserts
+- `combiner.py` — base feature PPG + weighted sum of adjustment feature deltas
+- `backtest.py` — compares projected_ppg to actual actuals (MAE, RMSE per model)
+- `accuracy_report.py` — side-by-side model comparison table across all seasons
+
+### External Projection Sources (`external_sources/`)
+
+A separate ingestion pipeline that pulls third-party consensus projections and stores them as named models in `model_projections`, making them directly comparable to internal models via the existing backtest and accuracy_report infrastructure.
+
+```
+external_sources/
+├── __init__.py
+├── fantasypros_fetcher.py  — scrape FP projections by position + year (requests + pd.read_html)
+├── scoring.py              — convert stat totals to Ottoneu Half-PPR PPG
+├── player_matcher.py       — fuzzy name+team matching to players table
+└── ingest_external.py      — register model + upsert to model_projections (standalone script)
+```
+
+**Running FantasyPros ingestion:**
+```
+python scripts/feature_projections/external_sources/ingest_external.py \
+    --source fantasypros --seasons 2022,2023,2024,2025,2026
+```
+
+Model name: `external_fantasypros_v1`. No DB schema changes required — uses existing `model_projections` table with `feature_values` jsonb for raw stat storage.

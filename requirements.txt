@@ -8,3 +8,6 @@ streamlit
 plotly
 pytest
 pytest-cov
+requests
+beautifulsoup4
+lxml
