@@ -57,13 +57,11 @@ Detect the repo's default branch:
 _DEFAULT=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name 2>/dev/null || echo "main")
 ```
 
-Identify the current user:
+Fetch and identify the current user:
 ```bash
 git fetch origin $_DEFAULT --quiet
 git config user.name
 ```
-
-The name returned is **"you"** — the person reading this retro. Use this to orient the narrative.
 
 Parse the argument to determine the time window (default 7 days). Run ALL of these git commands in parallel:
 
@@ -83,13 +81,10 @@ git log origin/$_DEFAULT --since="<window>" --format="" --name-only | grep -v '^
 # 5. PR numbers from commit messages
 git log origin/$_DEFAULT --since="<window>" --format="%s" | grep -oE '#[0-9]+' | sort -un | sed 's/^/#/'
 
-# 6. Per-author commit counts
-git shortlog origin/$_DEFAULT --since="<window>" -sn --no-merges
-
-# 7. Test file count
+# 6. Test file count
 find . -name '*.test.*' -o -name '*.spec.*' -o -name '*_test.*' -o -name '*_spec.*' 2>/dev/null | grep -v node_modules | wc -l
 
-# 8. Test files changed in window
+# 7. Test files changed in window
 git log origin/$_DEFAULT --since="<window>" --format="" --name-only | grep -E '\.(test|spec)\.' | sort -u | wc -l
 ```
 
@@ -98,25 +93,15 @@ git log origin/$_DEFAULT --since="<window>" --format="" --name-only | grep -E '\
 | Metric | Value |
 |--------|-------|
 | Commits | N |
-| Contributors | N |
 | PRs merged | N |
 | Insertions / Deletions | +N / -N |
 | Net LOC | N |
 | Test LOC ratio | N% |
 | Active days | N |
 | Detected sessions | N |
+| AI-assisted commits | N% |
 
-Then show a **per-author leaderboard**:
-
-```
-Contributor         Commits   +/-          Top area
-You (name)              12   +800/-150    scripts/
-collaborator             3   +120/-40     web/
-```
-
-Sort by commits descending. Current user always first, labeled "You (name)".
-
-**AI collaboration note:** If commits have `Co-Authored-By` AI trailers (e.g., `noreply@anthropic.com`), note the AI-assisted commit percentage as a metric. Frame neutrally.
+**AI collaboration note:** If commits have `Co-Authored-By` AI trailers (e.g., `noreply@anthropic.com`), report the AI-assisted commit percentage. Frame neutrally — this is a tool usage metric, not a judgment.
 
 ### Step 5 — Commit time distribution
 
@@ -151,7 +136,7 @@ fix:     10  (50%)  ████████████████████
 chore:    2  (10%)  █████
 ```
 
-Flag if fix ratio exceeds 50% — may indicate review gaps.
+Flag if fix ratio exceeds 50% — may indicate insufficient review before merging.
 
 ### Step 8 — Hotspot analysis
 
@@ -159,9 +144,9 @@ Show top 10 most-changed files. Flag files changed 5+ times (churn hotspots) and
 
 ### Step 9 — Focus score + ship of the week
 
-**Focus score:** Percentage of commits touching the single most-changed top-level directory. Higher = deeper focused work. Report as: "Focus score: 62% (scripts/)"
+**Focus score:** Percentage of commits touching the single most-changed top-level directory. Higher = deeper focused work. Lower = scattered context-switching. Report as: "Focus score: 62% (scripts/)"
 
-**Ship of the week:** Auto-identify the highest-LOC PR/commit in the window. Highlight PR number, title, LOC changed, and why it matters.
+**Ship of the week:** Auto-identify the highest-LOC PR/commit in the window. Highlight PR number, title, LOC changed, and why it matters (infer from commit messages and files touched).
 
 ### Step 10 — Streak tracking
 
@@ -169,10 +154,9 @@ Count consecutive days with at least 1 commit to the default branch, going back 
 
 ```bash
 TZ=America/Los_Angeles git log origin/$_DEFAULT --format="%ad" --date=format:"%Y-%m-%d" | sort -u
-TZ=America/Los_Angeles git log origin/$_DEFAULT --author="<user_name>" --format="%ad" --date=format:"%Y-%m-%d" | sort -u
 ```
 
-Display: "Your shipping streak: N consecutive days"
+Count backward from today — how many consecutive days have at least one commit? Display: "Shipping streak: N consecutive days"
 
 ### Step 11 — Load history and compare
 
@@ -187,6 +171,9 @@ ls -t .context/retros/*.json 2>/dev/null
 Test ratio:         22%    →    41%         ↑19pp
 Sessions:           10     →    14          ↑4
 Commits:            32     →    47          ↑47%
+Deep sessions:      3      →    5           ↑2
+Fix ratio:          54%    →    30%         ↓24pp (improving)
+LOC/hour:           200    →    350         ↑75%
 ```
 
 **If no prior retros:** "First retro recorded — run again next week to see trends."
@@ -197,7 +184,15 @@ Commits:            32     →    47          ↑47%
 mkdir -p .context/retros
 ```
 
-Save a JSON snapshot to `.context/retros/<date>-<seq>.json` with this schema:
+Determine the next sequence number for today:
+```bash
+today=$(TZ=America/Los_Angeles date +%Y-%m-%d)
+existing=$(ls .context/retros/${today}-*.json 2>/dev/null | wc -l | tr -d ' ')
+next=$((existing + 1))
+# Save as .context/retros/${today}-${next}.json
+```
+
+Save a JSON snapshot with this schema:
 
 ```json
 {
@@ -205,7 +200,6 @@ Save a JSON snapshot to `.context/retros/<date>-<seq>.json` with this schema:
   "window": "7d",
   "metrics": {
     "commits": 47,
-    "contributors": 3,
     "prs_merged": 12,
     "insertions": 3200,
     "deletions": 800,
@@ -220,9 +214,6 @@ Save a JSON snapshot to `.context/retros/<date>-<seq>.json` with this schema:
     "fix_pct": 0.30,
     "peak_hour": 22,
     "ai_assisted_commits": 32
-  },
-  "authors": {
-    "Name": { "commits": 12, "insertions": 800, "deletions": 150, "test_ratio": 0.35, "top_area": "scripts/" }
   },
   "streak_days": 47,
   "friction_points": 3
@@ -267,8 +258,11 @@ Week of Mar 17: 47 commits, 3.2k LOC, 38% tests, 12 PRs, peak: 10pm | Streak: 47
 ### Conversation Friction Points
 (from Steps 1–2 — the friction table and proposed fixes)
 
-### 3 Things to Improve
-Specific, actionable items anchored in actual data — mix engineering metrics and process friction. Phrase as "to get even better..."
+### What You Did Well
+2–3 specific things anchored in actual commits from the window. Not "great work" — say exactly what was good. Example: "Shipped the entire projection pipeline refactor in 3 focused sessions with 45% test coverage."
+
+### Where to Level Up
+1–2 specific, actionable suggestions anchored in actual data. Frame as investment, not criticism. Example: "Test ratio was 12% this week — adding coverage to the scraper module before it gets more complex would pay off."
 
 ### 3 Habits for Next Week
 Small, practical, realistic. Each takes <5 minutes to adopt.
@@ -321,13 +315,14 @@ When the user runs `/retro compare` (or `/retro compare 14d`):
 - Encouraging but candid — no coddling, no generic praise
 - Specific and concrete — always anchor in actual commits or conversation events
 - Frame improvements as leveling up, not criticism
-- Praise should feel like something you'd say in a 1:1 — specific, earned, genuine
+- "Great work" is banned — say exactly what was good and why
 - Growth suggestions should feel like investment advice — "this is worth your time because..."
-- Keep total output around 2000–3500 words
+- Keep total output around 1500–2500 words
 - Use markdown tables and code blocks for data, prose for narrative
 
 ## Notes
 
+- This is a solo engineer repo. Do not generate team breakdowns, per-teammate sections, or contributor leaderboards.
 - If there are no actionable friction points, say so clearly in Part A.
 - Do not invent problems. Only surface real friction from this conversation and real patterns from git history.
 - Prefer editing existing docs over creating new files.
