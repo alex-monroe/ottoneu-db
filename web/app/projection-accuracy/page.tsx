@@ -1,6 +1,6 @@
 import { fetchBacktestData, fetchAvailableModels, fetchModelBacktestData } from "@/lib/analysis";
 import { calculateMetricsByPosition } from "./metrics";
-import { POSITIONS } from "@/lib/types";
+import { POSITIONS, BacktestPlayer, ProjectionModel } from "@/lib/types";
 import ProjectionAccuracyClient from "./ProjectionAccuracyClient";
 
 export const revalidate = 3600;
@@ -8,7 +8,7 @@ export const revalidate = 3600;
 const AVAILABLE_SEASONS = [2024, 2025];
 
 interface Props {
-  searchParams: Promise<{ season?: string; model?: string }>;
+  searchParams: Promise<{ season?: string; model?: string; compare?: string }>;
 }
 
 export default async function ProjectionAccuracyPage({ searchParams }: Props) {
@@ -19,6 +19,7 @@ export default async function ProjectionAccuracyPage({ searchParams }: Props) {
     : 2025;
 
   const selectedModelId = params.model || null;
+  const compareModelId = params.compare || null;
 
   // Fetch available models (may be empty if migration hasn't been applied)
   let models: Awaited<ReturnType<typeof fetchAvailableModels>> = [];
@@ -28,15 +29,33 @@ export default async function ProjectionAccuracyPage({ searchParams }: Props) {
     // Table doesn't exist yet — fall back to legacy mode
   }
 
-  // Fetch backtest data — use model-specific fetch if a model is selected
-  let players;
+  // Fetch primary and compare data in parallel when applicable
+  let players: BacktestPlayer[];
+  let comparePlayers: BacktestPlayer[] | null = null;
+  let compareModel: ProjectionModel | null = null;
+
   if (selectedModelId && models.length > 0) {
-    players = await fetchModelBacktestData(targetSeason, selectedModelId);
+    const comparePromise = compareModelId
+      ? fetchModelBacktestData(targetSeason, compareModelId)
+      : null;
+
+    const [primaryData, compareData] = await Promise.all([
+      fetchModelBacktestData(targetSeason, selectedModelId),
+      comparePromise,
+    ]);
+    players = primaryData;
+    comparePlayers = compareData;
+    compareModel = compareModelId
+      ? (models.find((m) => m.id === compareModelId) ?? null)
+      : null;
   } else {
     players = await fetchBacktestData(targetSeason);
   }
 
   const allMetrics = calculateMetricsByPosition(players, POSITIONS);
+  const compareMetrics = comparePlayers
+    ? calculateMetricsByPosition(comparePlayers, POSITIONS)
+    : null;
 
   return (
     <main className="min-h-screen bg-white dark:bg-black p-8">
@@ -103,6 +122,10 @@ export default async function ProjectionAccuracyPage({ searchParams }: Props) {
             availableSeasons={AVAILABLE_SEASONS}
             models={models}
             selectedModelId={selectedModelId}
+            compareModelId={compareModelId}
+            comparePlayers={comparePlayers}
+            compareMetrics={compareMetrics}
+            compareModel={compareModel}
           />
         )}
       </div>
