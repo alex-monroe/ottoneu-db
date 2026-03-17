@@ -332,6 +332,7 @@ def create_missing_players(
 def backfill_seasons(
     seasons: list[int],
     dry_run: bool = False,
+    skip_create_players: bool = False,
 ) -> None:
     """Main backfill function."""
     supabase = get_supabase_client()
@@ -374,11 +375,14 @@ def backfill_seasons(
 
     # Phase 2: Create missing players
     print("\n=== Phase 2: Creating missing players ===")
-    player_lookup = create_missing_players(
-        combined_stats, all_roster_frames,
-        player_lookup, existing_ottoneu_ids,
-        supabase, dry_run=dry_run,
-    )
+    if skip_create_players:
+        print("  Skipping player creation (skip_create_players=True).")
+    else:
+        player_lookup = create_missing_players(
+            combined_stats, all_roster_frames,
+            player_lookup, existing_ottoneu_ids,
+            supabase, dry_run=dry_run,
+        )
 
     # Phase 3: Process and upsert stats
     print("\n=== Phase 3: Processing stats ===")
