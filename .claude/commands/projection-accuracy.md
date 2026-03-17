@@ -5,7 +5,7 @@ Follow these steps to generate a projection accuracy comparison table:
 
 // turbo
 1. Activate the virtual environment and run backtests for all models, then generate the report
-`source venv/bin/activate && python scripts/feature_projections/accuracy_report.py --run-backtest --seasons 2024,2025`
+`source venv/bin/activate && python scripts/feature_projections/accuracy_report.py --run-backtest --seasons 2022,2023,2024,2025`
 
 2. The report is saved to `docs/generated/projection-accuracy.md` and printed to stdout.
    Include the full markdown table in any task output or PR description when this relates to a projection model change.
