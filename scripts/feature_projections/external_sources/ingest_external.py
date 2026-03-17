@@ -16,6 +16,16 @@ import json
 import os
 import sys
 
+try:
+    import lxml  # noqa: F401 — required by pandas.read_html for HTML parsing
+except ImportError:
+    print(
+        "ERROR: lxml is required but not installed.\n"
+        "Run: pip install lxml\n"
+        "(It is listed in requirements.txt — re-run pip install -r requirements.txt)"
+    )
+    sys.exit(1)
+
 import pandas as pd
 
 # Setup paths so imports work when run directly from repo root or this dir

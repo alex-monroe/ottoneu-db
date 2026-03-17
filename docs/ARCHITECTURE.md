@@ -107,3 +107,9 @@ python scripts/feature_projections/external_sources/ingest_external.py \
 ```
 
 Model name: `external_fantasypros_v1`. No DB schema changes required — uses existing `model_projections` table with `feature_values` jsonb for raw stat storage.
+
+**Adding a new external model — checklist:**
+1. **Verify column names before writing parsers.** FP HTML uses multi-level headers; always test-fetch one position and print `df.columns` before finalizing column mappings. The actual flattened names (e.g. `passing_yds`, `receiving_rec`) differ from the raw header labels (`YDS`, `REC`).
+2. **Deduplicate by `player_id` before upserting.** Fuzzy name matching can map two different source rows to the same `player_id`. Postgres's `ON CONFLICT DO UPDATE` rejects duplicate keys within the same batch — deduplicate first.
+3. **Register in `model_config.py`.** `accuracy_report.py` iterates `MODELS` in `model_config.py` to build comparison tables. External models must be added there (with `features=["external"]`) to appear in the report.
+4. **Ensure `lxml` is installed.** `pandas.read_html` requires `lxml` as its HTML parser. It is in `requirements.txt` but must be explicitly installed (`pip install lxml`) if the venv was created before it was added.
