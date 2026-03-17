@@ -12,11 +12,11 @@ from scripts.feature_projections.features.base import ProjectionFeature
 # Derived from NFL career arc research. Peak age is when PPG is highest;
 # decline_per_year is the expected PPG delta per year past peak.
 POSITION_AGE_CURVES = {
-    "QB": {"peak_age": 30, "decline_per_year": 0.3, "growth_per_year": 0.4},
-    "RB": {"peak_age": 25, "decline_per_year": 0.8, "growth_per_year": 0.5},
-    "WR": {"peak_age": 27, "decline_per_year": 0.5, "growth_per_year": 0.4},
-    "TE": {"peak_age": 28, "decline_per_year": 0.4, "growth_per_year": 0.3},
-    "K": {"peak_age": 32, "decline_per_year": 0.1, "growth_per_year": 0.1},
+    "QB": {"peak_age": 30, "decline_per_year": 0.3, "growth_per_year": 0.4, "scale": 0.3},
+    "RB": {"peak_age": 25, "decline_per_year": 0.8, "growth_per_year": 0.5, "scale": 0.3},
+    "WR": {"peak_age": 27, "decline_per_year": 0.5, "growth_per_year": 0.4, "scale": 1.0},
+    "TE": {"peak_age": 28, "decline_per_year": 0.4, "growth_per_year": 0.3, "scale": 0.5},
+    "K":  {"peak_age": 32, "decline_per_year": 0.1, "growth_per_year": 0.1, "scale": 1.0},
 }
 
 
@@ -59,10 +59,13 @@ class AgeCurveFeature(ProjectionFeature):
         peak_age = curve["peak_age"]
         years_from_peak = age - peak_age
 
+        scale = curve.get("scale", 1.0)
         if years_from_peak > 0:
             # Past peak — decline
-            return -curve["decline_per_year"] * years_from_peak
+            delta = -curve["decline_per_year"] * years_from_peak
         else:
             # Pre-peak — growth (diminishing as you approach peak)
             years_to_peak = -years_from_peak
-            return curve["growth_per_year"] * min(years_to_peak, 3.0)
+            delta = curve["growth_per_year"] * min(years_to_peak, 3.0)
+
+        return delta * scale

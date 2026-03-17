@@ -134,16 +134,16 @@ class TestAgeCurveFeature:
         ctx = {"birth_date": "1990-09-01", "target_season": 2025}  # age 35
         result = self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), ctx)
         assert result is not None
-        # 5 years past peak × 0.3 decline = -1.5
-        assert result == pytest.approx(-1.5, abs=0.1)
+        # 5 years past peak × 0.3 decline × 0.3 scale = -0.45
+        assert result == pytest.approx(-0.45, abs=0.05)
 
     def test_rb_young(self):
         """Young RB (age 22) — should get growth boost."""
         ctx = {"birth_date": "2003-09-01", "target_season": 2025}  # age 22
         result = self.feature.compute("p1", "RB", pd.DataFrame(), pd.DataFrame(), ctx)
         assert result is not None
-        # 3 years to peak (25), growth = 0.5 * min(3, 3) = 1.5
-        assert result == pytest.approx(1.5, abs=0.1)
+        # 3 years to peak (25), growth = 0.5 * min(3, 3) * 0.3 scale = 0.45
+        assert result == pytest.approx(0.45, abs=0.05)
 
 
 # ---------------------------------------------------------------------------
