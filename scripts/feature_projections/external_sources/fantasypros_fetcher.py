@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import time
-from typing import Any
 
 import pandas as pd
 import requests
@@ -25,50 +24,29 @@ _HEADERS = {
     "Accept-Language": "en-US,en;q=0.5",
 }
 
-# Column name mappings from FantasyPros HTML to our normalized names.
-# FantasyPros uses nested headers; we join them and normalize.
+# Column name mappings: flattened FP header → our normalized stat name.
+# FP uses two-level headers like (PASSING, YDS) which flatten to "passing_yds".
 _QB_COLS = {
-    "att": "pass_att",
-    "cmp": "pass_cmp",
-    "yds": "pass_yds",
-    "tds": "pass_tds",
-    "ints": "interceptions",
-    "att.1": "rush_att",
-    "yds.1": "rush_yds",
-    "tds.1": "rush_tds",
-    "fl": "fumbles",
-    "fpts": "fpts",
+    "passing_yds": "pass_yds",
+    "passing_tds": "pass_tds",
+    "passing_ints": "interceptions",
+    "rushing_yds": "rush_yds",
+    "rushing_tds": "rush_tds",
 }
 
 _SKILL_COLS = {
-    "att": "rush_att",
-    "yds": "rush_yds",
-    "tds": "rush_tds",
-    "rec": "receptions",
-    "tgt": "targets",
-    "yds.1": "rec_yds",
-    "tds.1": "rec_tds",
-    "fl": "fumbles",
-    "fpts": "fpts",
+    "rushing_yds": "rush_yds",
+    "rushing_tds": "rush_tds",
+    "receiving_rec": "receptions",
+    "receiving_yds": "rec_yds",
+    "receiving_tds": "rec_tds",
 }
 
-
-def _normalize_columns(df: pd.DataFrame, position: str) -> pd.DataFrame:
-    """Lowercase and map columns from FP format to our normalized names."""
-    df.columns = [str(c).lower().strip() for c in df.columns]
-    mapping = _QB_COLS if position == "qb" else _SKILL_COLS
-    df = df.rename(columns=mapping)
-
-    # Ensure all expected output columns exist (fill missing with 0)
-    for col in [
-        "pass_yds", "pass_tds", "interceptions",
-        "rush_yds", "rush_tds",
-        "receptions", "rec_yds", "rec_tds",
-    ]:
-        if col not in df.columns:
-            df[col] = 0.0
-
-    return df
+_STAT_COLS = [
+    "pass_yds", "pass_tds", "interceptions",
+    "rush_yds", "rush_tds",
+    "receptions", "rec_yds", "rec_tds",
+]
 
 
 def _parse_player_team(player_col: str) -> tuple[str, str]:
@@ -116,46 +94,49 @@ def fetch_position(position: str, year: int, delay: float = 1.0) -> pd.DataFrame
         print(f"  WARNING: No tables found at {url}")
         return pd.DataFrame()
 
-    # FantasyPros has one main projection table; take the first.
     df = tables[0].copy()
 
-    # Flatten multi-level column headers
+    # Flatten multi-level column headers: (PASSING, YDS) → "passing_yds"
+    # Skip "Unnamed" level-0 labels (FP uses those for the player column).
     df.columns = [
-        "_".join(str(c).strip() for c in col if "unnamed" not in str(c).lower()).lower()
-        if isinstance(col, tuple) else str(col).lower()
+        "_".join(
+            str(c).strip()
+            for c in (col if isinstance(col, tuple) else (col,))
+            if "unnamed" not in str(c).lower()
+        ).lower()
         for col in df.columns
     ]
 
-    # Find the player column (usually first column)
+    # The first column is always the player column after flattening
     player_col = df.columns[0]
 
-    # Drop header-repeat rows and footer rows
+    # Drop header-repeat rows and empty rows
     df = df[df[player_col].notna()]
-    df = df[~df[player_col].str.strip().str.lower().isin(["player", ""])]
+    df = df[~df[player_col].astype(str).str.strip().str.lower().isin(["player", ""])]
 
-    # Parse player name + team
-    parsed = df[player_col].apply(_parse_player_team)
+    # Parse player name + team from the player cell
+    parsed = df[player_col].astype(str).apply(_parse_player_team)
     df["player_name"] = [p[0] for p in parsed]
     df["team"] = [p[1] for p in parsed]
     df["position"] = position.upper()
     df["season"] = year
 
-    # Normalize remaining stat columns
-    df = df.drop(columns=[player_col])
-    df = _normalize_columns(df, position)
+    # Apply column mapping to normalized stat names
+    mapping = _QB_COLS if position == "qb" else _SKILL_COLS
+    df = df.rename(columns=mapping)
+
+    # Ensure all expected stat columns exist (fill missing with 0)
+    for col in _STAT_COLS:
+        if col not in df.columns:
+            df[col] = 0.0
 
     # Cast stat columns to numeric
-    stat_cols = [
-        "pass_yds", "pass_tds", "interceptions",
-        "rush_yds", "rush_tds",
-        "receptions", "rec_yds", "rec_tds",
-    ]
-    for col in stat_cols:
+    for col in _STAT_COLS:
         df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0.0)
 
-    # Keep only relevant columns
-    keep = ["player_name", "team", "position", "season"] + stat_cols
-    df = df[[c for c in keep if c in df.columns]]
+    # Keep only the columns we need
+    keep = ["player_name", "team", "position", "season"] + _STAT_COLS
+    df = df[keep]
 
     # Drop rows with no player name
     df = df[df["player_name"].str.strip() != ""]

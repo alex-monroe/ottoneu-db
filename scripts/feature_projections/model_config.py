@@ -68,6 +68,13 @@ MODELS: dict[str, ModelDefinition] = {
             "usage_share",
         ],
     ),
+    "external_fantasypros_v1": ModelDefinition(
+        name="external_fantasypros_v1",
+        version=1,
+        description="FantasyPros consensus seasonal projections (stat-line → Ottoneu Half-PPR PPG)",
+        features=["external"],
+        is_baseline=False,
+    ),
 }
 
 
