@@ -1,9 +1,4 @@
-⚡ Optimize Projections Generation
-
-**What:** Modified `generate_projections_for_season` to return both the newly computed projections dataframe and the `multi_season_df` it fetches internally. `update_projections` was updated to unpack this tuple and reuse the returned dataframe.
-
-**Why:** The `update_projections` script previously fetched historical stats twice per season window. `generate_projections_for_season` fetched data for `(target_season - 3)` to calculate base projections, and then immediately after, `update_projections` called `fetch_multi_season_stats` with the exact same season window to compute `avg_rookie_ppg`. This led to a large number of redundant queries to the Supabase database. By passing the data back up, we eliminate 50% of the DB calls.
-
-**Measured Improvement:**
-Before optimization: 3.03s elapsed locally (with 500ms mock DB latency), calling `fetch_multi_season_stats` 6 times across 3 target seasons.
-After optimization: 1.52s elapsed locally (with 500ms mock DB latency), calling `fetch_multi_season_stats` only 3 times. This represents a 50% execution time reduction on DB bound work.
+💡 What: Wrapped the `filtered` list calculation in `PlayerSearch.tsx` in a `useMemo` hook, hoisted `query.toLowerCase()` outside the loop, and reorganized filter conditions.
+🎯 Why: Prevents expensive `O(N)` list filtering on every component re-render when search properties don't change. Checking cheap enum conditions (`p.position === position`) before expensive string operations (`p.name.toLowerCase().includes(...)`) short-circuits the loop, saving computational cycles.
+📊 Impact: Reduces computational load during re-renders, prevents redundant `toLowerCase` calls on large arrays, and ensures faster typing feedback when filtering.
+🔬 Measurement: Verify changes in DevTools React Profiler when toggling positions vs. typing. Test suite confirms functionality remains perfectly identical.
