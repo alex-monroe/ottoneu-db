@@ -21,8 +21,11 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 - **Environment:** See [docs/references/environment-variables.md](docs/references/environment-variables.md) for `.env` setup
 - **Market Projections:** See [docs/exec-plans/market-projections.md](docs/exec-plans/market-projections.md) for the market-based projection system implementation plan
 - **Projection Accuracy:** Use `/projection-accuracy` skill (or run `python scripts/feature_projections/accuracy_report.py`) to generate a model comparison table. **Required when updating any projection code** — see Projection Model Update Requirements in [AGENTS.md](AGENTS.md).
+- **Retrospective:** Use `/retro` skill after completing a task to surface friction points and open a PR with doc/skill improvements.
 
 ## Documentation Map
+
+Skills (`.claude/commands/`): `create-pr`, `projection-accuracy`, `retro`, `run-analyses`, `run-scraper`, `run-tests`, `start-dev`
 
 ```
 CLAUDE.md                              ← you are here
