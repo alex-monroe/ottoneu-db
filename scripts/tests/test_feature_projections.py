@@ -8,6 +8,7 @@ Pure functions with no DB or network dependencies.
 import pytest
 import pandas as pd
 
+from scripts.projection_methods import WeightedAveragePPG, RookieTrajectoryPPG
 from scripts.feature_projections.features.weighted_ppg import WeightedPPGFeature
 from scripts.feature_projections.features.age_curve import AgeCurveFeature
 from scripts.feature_projections.features.stat_efficiency import StatEfficiencyFeature
@@ -390,3 +391,131 @@ class TestModelConfig:
     def test_unknown_model_raises(self):
         with pytest.raises(ValueError):
             get_model("nonexistent_model")
+
+
+# ---------------------------------------------------------------------------
+# V1 Baseline Parity (GH #237)
+# ---------------------------------------------------------------------------
+
+class TestV1BaselineParity:
+    """Verify that WeightedPPGFeature produces identical output to the existing
+    WeightedAveragePPG + RookieTrajectoryPPG system for all non-college players.
+
+    Both systems must agree within floating-point tolerance for:
+    - Veterans (2-3 seasons of history) → WeightedAveragePPG path
+    - Rookies (1 season of history) → RookieTrajectoryPPG path
+    - Edge cases: missing snaps, partial-season data, zero PPG
+    """
+
+    def setup_method(self):
+        self.feature = WeightedPPGFeature()
+        self.veteran_method = WeightedAveragePPG()
+        self.rookie_method = RookieTrajectoryPPG()
+
+    def _old_project(self, history_rows):
+        """Run the existing projection system on a list of season dicts."""
+        method = self.rookie_method if len(history_rows) == 1 else self.veteran_method
+        return method.project_ppg(history_rows)
+
+    def _new_project(self, history_rows):
+        """Run the new WeightedPPGFeature on the same data converted to a DataFrame."""
+        df = make_history_df(history_rows)
+        return self.feature.compute("test", "QB", df, pd.DataFrame(), {})
+
+    # --- veteran paths ---
+
+    def test_parity_two_full_seasons(self):
+        history = [
+            {"season": 2023, "ppg": 14.0, "games_played": 17},
+            {"season": 2024, "ppg": 18.0, "games_played": 17},
+        ]
+        assert self._old_project(history) == pytest.approx(self._new_project(history))
+
+    def test_parity_three_full_seasons(self):
+        history = [
+            {"season": 2022, "ppg": 10.0, "games_played": 17},
+            {"season": 2023, "ppg": 14.0, "games_played": 17},
+            {"season": 2024, "ppg": 20.0, "games_played": 17},
+        ]
+        assert self._old_project(history) == pytest.approx(self._new_project(history))
+
+    def test_parity_three_seasons_injury_year(self):
+        """Games-scaling should affect both systems equally."""
+        history = [
+            {"season": 2022, "ppg": 16.0, "games_played": 17},
+            {"season": 2023, "ppg": 18.0, "games_played": 6},   # injured
+            {"season": 2024, "ppg": 20.0, "games_played": 17},
+        ]
+        assert self._old_project(history) == pytest.approx(self._new_project(history))
+
+    def test_parity_two_seasons_one_partial(self):
+        history = [
+            {"season": 2023, "ppg": 12.0, "games_played": 10},
+            {"season": 2024, "ppg": 15.0, "games_played": 17},
+        ]
+        assert self._old_project(history) == pytest.approx(self._new_project(history))
+
+    def test_parity_more_than_three_seasons_uses_latest_three(self):
+        """Both systems take only the 3 most recent seasons."""
+        history = [
+            {"season": 2021, "ppg": 5.0,  "games_played": 17},  # should be ignored
+            {"season": 2022, "ppg": 10.0, "games_played": 17},
+            {"season": 2023, "ppg": 14.0, "games_played": 17},
+            {"season": 2024, "ppg": 20.0, "games_played": 17},
+        ]
+        assert self._old_project(history) == pytest.approx(self._new_project(history))
+
+    # --- rookie / single-season path ---
+
+    def test_parity_rookie_no_snap_data(self):
+        """Single season, no snap data → factor defaults to 1.0."""
+        history = [{"season": 2024, "ppg": 9.0, "games_played": 14}]
+        assert self._old_project(history) == pytest.approx(self._new_project(history))
+
+    def test_parity_rookie_increasing_snaps(self):
+        history = [{
+            "season": 2024, "ppg": 10.0, "games_played": 17,
+            "h1_snaps": 200, "h1_games": 8,
+            "h2_snaps": 360, "h2_games": 9,
+        }]
+        assert self._old_project(history) == pytest.approx(self._new_project(history))
+
+    def test_parity_rookie_decreasing_snaps(self):
+        history = [{
+            "season": 2024, "ppg": 10.0, "games_played": 17,
+            "h1_snaps": 360, "h1_games": 9,
+            "h2_snaps": 200, "h2_games": 8,
+        }]
+        assert self._old_project(history) == pytest.approx(self._new_project(history))
+
+    def test_parity_rookie_snaps_clamped_at_max(self):
+        """Snap ratio > 1.5 → clamped to 1.5 in both systems."""
+        history = [{
+            "season": 2024, "ppg": 10.0, "games_played": 17,
+            "h1_snaps": 100, "h1_games": 8,
+            "h2_snaps": 800, "h2_games": 9,
+        }]
+        assert self._old_project(history) == pytest.approx(self._new_project(history))
+
+    def test_parity_rookie_snaps_clamped_at_min(self):
+        """Snap ratio < 0.75 → clamped to 0.75 in both systems."""
+        history = [{
+            "season": 2024, "ppg": 10.0, "games_played": 17,
+            "h1_snaps": 800, "h1_games": 9,
+            "h2_snaps": 100, "h2_games": 8,
+        }]
+        assert self._old_project(history) == pytest.approx(self._new_project(history))
+
+    def test_parity_all_zeros_returns_none(self):
+        """Zero PPG → both systems return None."""
+        history = [{"season": 2024, "ppg": 0.0, "games_played": 0}]
+        old_result = self._old_project(history)
+        new_result = self._new_project(history)
+        assert old_result is None
+        assert new_result is None
+
+    def test_parity_empty_history_returns_none(self):
+        old_result = self.veteran_method.project_ppg([])
+        new_result = self.feature.compute("test", "QB", pd.DataFrame(), pd.DataFrame(), {})
+        assert old_result is None
+        assert new_result is None
