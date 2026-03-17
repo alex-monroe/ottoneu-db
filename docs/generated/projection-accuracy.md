@@ -1,6 +1,6 @@
 # Projection Model Accuracy Report
 
-_Generated: 2026-03-16 20:05_
+_Generated: 2026-03-16 20:52_
 
 Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed error (positive = under-projection), **R²** = Goodness of fit (higher is better), **RMSE** = Root mean square error, **N** = player sample size.
 
@@ -11,33 +11,33 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
 | `v1_baseline_weighted_ppg` _(baseline)_ | 2.237 | -0.004 | 0.621 | 3.014 | 154 |
-| `v2_age_adjusted` | **2.185** | -0.150 | **0.630** | **2.978** | 154 |
-| `v3_stat_weighted` | 2.543 | -0.023 | 0.490 | 3.497 | 154 |
-| `v4_availability_adjusted` | 2.539 | +0.480 | 0.480 | 3.530 | 154 |
-| `v5_team_context` | 3.062 | -0.273 | 0.323 | 4.030 | 154 |
-| `v6_usage_share` | 3.938 | -1.139 | -0.631 | 6.252 | 154 |
+| `v2_age_adjusted` | **2.145** | -0.122 | **0.638** | **2.944** | 154 |
+| `v3_stat_weighted` | 2.481 | +0.005 | 0.493 | 3.484 | 154 |
+| `v4_availability_adjusted` | 2.489 | +0.508 | 0.492 | 3.488 | 154 |
+| `v5_team_context` | 3.019 | -0.246 | 0.331 | 4.005 | 154 |
+| `v6_usage_share` | 3.897 | -1.113 | -0.648 | 6.284 | 154 |
 
 ### QB
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
 | `v1_baseline_weighted_ppg` _(baseline)_ | 3.689 | -0.246 | 0.169 | 4.688 | 36 |
-| `v2_age_adjusted` | **3.640** | -0.695 | **0.180** | **4.654** | 36 |
-| `v3_stat_weighted` | 4.039 | -0.916 | -0.044 | 5.252 | 36 |
-| `v4_availability_adjusted` | 4.045 | +0.148 | -0.060 | 5.292 | 36 |
-| `v5_team_context` | 4.482 | -0.448 | -0.294 | 5.847 | 36 |
-| `v6_usage_share` | 4.482 | -0.448 | -0.294 | 5.847 | 36 |
+| `v2_age_adjusted` | **3.647** | -0.381 | **0.183** | **4.646** | 36 |
+| `v3_stat_weighted` | 3.951 | -0.601 | -0.049 | 5.264 | 36 |
+| `v4_availability_adjusted` | 4.041 | +0.463 | -0.077 | 5.336 | 36 |
+| `v5_team_context` | 4.456 | -0.134 | -0.315 | 5.894 | 36 |
+| `v6_usage_share` | 4.456 | -0.134 | -0.315 | 5.894 | 36 |
 
 ### RB
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
 | `v1_baseline_weighted_ppg` _(baseline)_ | 2.695 | -0.896 | 0.498 | 3.257 | 25 |
-| `v2_age_adjusted` | 2.824 | -0.270 | 0.476 | 3.329 | 25 |
-| `v3_stat_weighted` | 2.893 | -0.093 | 0.388 | 3.597 | 25 |
-| `v4_availability_adjusted` | 2.759 | +0.818 | 0.424 | 3.490 | 25 |
-| `v5_team_context` | 3.156 | +0.213 | 0.322 | 3.788 | 25 |
-| `v6_usage_share` | 5.565 | -2.049 | -3.852 | 10.130 | 25 |
+| `v2_age_adjusted` | **2.678** | -0.708 | **0.512** | **3.211** | 25 |
+| `v3_stat_weighted` | **2.670** | -0.531 | 0.420 | 3.502 | 25 |
+| `v4_availability_adjusted` | **2.484** | +0.380 | **0.544** | **3.107** | 25 |
+| `v5_team_context` | 2.981 | -0.225 | 0.406 | 3.546 | 25 |
+| `v6_usage_share` | 5.404 | -2.487 | -3.951 | 10.232 | 25 |
 
 ### WR
 
@@ -55,11 +55,11 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
 | `v1_baseline_weighted_ppg` _(baseline)_ | 1.557 | +0.266 | 0.571 | 1.867 | 36 |
-| `v2_age_adjusted` | 1.624 | +0.049 | 0.544 | 1.925 | 36 |
-| `v3_stat_weighted` | 2.320 | +0.462 | 0.022 | 2.820 | 36 |
-| `v4_availability_adjusted` | 2.377 | +0.709 | -0.057 | 2.931 | 36 |
-| `v5_team_context` | 2.506 | -0.146 | -0.335 | 3.294 | 36 |
-| `v6_usage_share` | 2.933 | -0.524 | -0.839 | 3.866 | 36 |
+| `v2_age_adjusted` | **1.546** | +0.158 | **0.577** | **1.854** | 36 |
+| `v3_stat_weighted` | 2.296 | +0.571 | 0.028 | 2.811 | 36 |
+| `v4_availability_adjusted` | 2.360 | +0.817 | -0.060 | 2.936 | 36 |
+| `v5_team_context` | 2.470 | -0.042 | -0.315 | 3.269 | 36 |
+| `v6_usage_share` | 2.893 | -0.420 | -0.803 | 3.828 | 36 |
 
 ### K
 
@@ -79,33 +79,33 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
 | `v1_baseline_weighted_ppg` _(baseline)_ | 2.680 | -0.094 | 0.438 | 3.745 | 188 |
-| `v2_age_adjusted` | 2.701 | -0.157 | 0.404 | 3.857 | 188 |
-| `v3_stat_weighted` | 3.170 | +0.197 | 0.243 | 4.349 | 188 |
-| `v4_availability_adjusted` | 3.265 | +0.665 | 0.166 | 4.563 | 188 |
-| `v5_team_context` | 3.596 | -0.117 | 0.074 | 4.809 | 188 |
-| `v6_usage_share` | 4.133 | -0.670 | -0.246 | 5.579 | 188 |
+| `v2_age_adjusted` | **2.668** | -0.165 | 0.436 | 3.752 | 188 |
+| `v3_stat_weighted` | 3.208 | +0.189 | 0.263 | 4.289 | 188 |
+| `v4_availability_adjusted` | 3.286 | +0.658 | 0.188 | 4.502 | 188 |
+| `v5_team_context` | 3.593 | -0.127 | 0.093 | 4.760 | 188 |
+| `v6_usage_share` | 4.129 | -0.680 | -0.251 | 5.590 | 188 |
 
 ### QB
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
 | `v1_baseline_weighted_ppg` _(baseline)_ | 3.918 | -0.856 | 0.169 | 5.296 | 39 |
-| `v2_age_adjusted` | 4.139 | -1.343 | 0.062 | 5.627 | 39 |
-| `v3_stat_weighted` | 5.363 | -0.198 | -0.298 | 6.619 | 39 |
-| `v4_availability_adjusted` | 5.609 | +1.121 | -0.433 | 6.955 | 39 |
-| `v5_team_context` | 5.659 | +0.462 | -0.424 | 6.934 | 39 |
-| `v6_usage_share` | 5.659 | +0.462 | -0.424 | 6.934 | 39 |
+| `v2_age_adjusted` | 3.950 | -1.002 | 0.144 | 5.374 | 39 |
+| `v3_stat_weighted` | 5.299 | +0.143 | -0.232 | 6.449 | 39 |
+| `v4_availability_adjusted` | 5.548 | +1.465 | -0.389 | 6.846 | 39 |
+| `v5_team_context` | 5.572 | +0.816 | -0.379 | 6.821 | 39 |
+| `v6_usage_share` | 5.572 | +0.816 | -0.379 | 6.821 | 39 |
 
 ### RB
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
 | `v1_baseline_weighted_ppg` _(baseline)_ | 3.567 | +0.644 | -0.256 | 4.764 | 37 |
-| `v2_age_adjusted` | 3.569 | +1.302 | -0.314 | 4.872 | 37 |
-| `v3_stat_weighted` | 3.870 | +1.262 | -0.437 | 5.095 | 37 |
-| `v4_availability_adjusted` | 4.082 | +1.576 | -0.627 | 5.421 | 37 |
-| `v5_team_context` | 4.446 | +0.910 | -0.797 | 5.697 | 37 |
-| `v6_usage_share` | 5.218 | +0.534 | -1.952 | 7.303 | 37 |
+| `v2_age_adjusted` | **3.523** | +0.842 | **-0.244** | **4.740** | 37 |
+| `v3_stat_weighted` | 3.976 | +0.802 | -0.400 | 5.028 | 37 |
+| `v4_availability_adjusted` | 4.155 | +1.115 | -0.542 | 5.278 | 37 |
+| `v5_team_context` | 4.505 | +0.443 | -0.738 | 5.603 | 37 |
+| `v6_usage_share` | 5.260 | +0.067 | -2.045 | 7.416 | 37 |
 
 ### WR
 
@@ -123,11 +123,11 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
 | `v1_baseline_weighted_ppg` _(baseline)_ | 1.809 | -0.299 | 0.406 | 2.226 | 44 |
-| `v2_age_adjusted` | **1.599** | -0.402 | **0.481** | **2.079** | 44 |
-| `v3_stat_weighted` | 1.995 | -0.162 | 0.189 | 2.600 | 44 |
-| `v4_availability_adjusted` | 1.984 | +0.136 | 0.151 | 2.661 | 44 |
-| `v5_team_context` | 2.606 | -0.801 | -0.368 | 3.377 | 44 |
-| `v6_usage_share` | 3.533 | -1.915 | -1.490 | 4.557 | 44 |
+| `v2_age_adjusted` | **1.664** | -0.350 | **0.466** | **2.110** | 44 |
+| `v3_stat_weighted` | 2.124 | -0.110 | 0.148 | 2.665 | 44 |
+| `v4_availability_adjusted` | 2.066 | +0.187 | 0.123 | 2.705 | 44 |
+| `v5_team_context` | 2.619 | -0.765 | -0.402 | 3.419 | 44 |
+| `v6_usage_share` | 3.555 | -1.879 | -1.548 | 4.609 | 44 |
 
 ### K
 
@@ -147,33 +147,33 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
 | `v1_baseline_weighted_ppg` _(baseline)_ | 2.709 | -0.031 | 0.445 | 3.642 | 241 |
-| `v2_age_adjusted` | 2.786 | +0.023 | 0.442 | 3.654 | 241 |
-| `v3_stat_weighted` | 3.042 | +0.117 | 0.337 | 3.981 | 241 |
-| `v4_availability_adjusted` | 3.072 | +0.617 | 0.316 | 4.044 | 241 |
-| `v5_team_context` | 3.422 | -0.332 | 0.214 | 4.336 | 241 |
-| `v6_usage_share` | 3.903 | -0.951 | -0.124 | 5.183 | 241 |
+| `v2_age_adjusted` | **2.683** | -0.050 | **0.465** | **3.575** | 241 |
+| `v3_stat_weighted` | 2.911 | +0.044 | 0.361 | 3.908 | 241 |
+| `v4_availability_adjusted` | 2.953 | +0.545 | 0.348 | 3.949 | 241 |
+| `v5_team_context` | 3.371 | -0.397 | 0.231 | 4.288 | 241 |
+| `v6_usage_share` | 3.869 | -1.004 | -0.119 | 5.172 | 241 |
 
 ### QB
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
 | `v1_baseline_weighted_ppg` _(baseline)_ | 3.996 | -1.412 | 0.376 | 5.153 | 49 |
-| `v2_age_adjusted` | 4.140 | -1.724 | 0.350 | 5.258 | 49 |
-| `v3_stat_weighted` | 4.725 | -1.904 | 0.219 | 5.764 | 49 |
-| `v4_availability_adjusted` | 4.428 | -0.464 | 0.271 | 5.570 | 49 |
-| `v5_team_context` | 4.714 | -1.276 | 0.213 | 5.788 | 49 |
-| `v6_usage_share` | 4.714 | -1.276 | 0.213 | 5.788 | 49 |
+| `v2_age_adjusted` | **3.977** | -1.505 | **0.376** | **5.152** | 49 |
+| `v3_stat_weighted` | 4.520 | -1.686 | 0.248 | 5.657 | 49 |
+| `v4_availability_adjusted` | 4.325 | -0.246 | 0.298 | 5.464 | 49 |
+| `v5_team_context` | 4.605 | -1.058 | 0.241 | 5.681 | 49 |
+| `v6_usage_share` | 4.605 | -1.058 | 0.241 | 5.681 | 49 |
 
 ### RB
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
 | `v1_baseline_weighted_ppg` _(baseline)_ | 3.064 | +0.495 | 0.166 | 4.055 | 49 |
-| `v2_age_adjusted` | 3.353 | +1.420 | 0.148 | 4.099 | 49 |
-| `v3_stat_weighted` | 3.787 | +1.712 | -0.057 | 4.567 | 49 |
-| `v4_availability_adjusted` | 3.942 | +2.168 | -0.169 | 4.801 | 49 |
-| `v5_team_context` | 3.733 | +1.268 | -0.124 | 4.709 | 49 |
-| `v6_usage_share` | 3.985 | +1.042 | -0.229 | 4.923 | 49 |
+| `v2_age_adjusted` | 3.114 | +0.773 | **0.199** | **3.975** | 49 |
+| `v3_stat_weighted` | 3.414 | +1.064 | -0.000 | 4.442 | 49 |
+| `v4_availability_adjusted` | 3.537 | +1.521 | -0.065 | 4.582 | 49 |
+| `v5_team_context` | 3.694 | +0.643 | -0.098 | 4.654 | 49 |
+| `v6_usage_share` | 4.000 | +0.479 | -0.256 | 4.977 | 49 |
 
 ### WR
 
@@ -191,11 +191,11 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
 | `v1_baseline_weighted_ppg` _(baseline)_ | 1.804 | +0.017 | 0.422 | 2.292 | 56 |
-| `v2_age_adjusted` | 1.960 | -0.104 | 0.336 | 2.455 | 56 |
-| `v3_stat_weighted` | 2.213 | -0.027 | 0.152 | 2.775 | 56 |
-| `v4_availability_adjusted` | 2.281 | +0.176 | 0.120 | 2.826 | 56 |
-| `v5_team_context` | 2.845 | -0.715 | -0.333 | 3.479 | 56 |
-| `v6_usage_share` | 3.249 | -1.427 | -0.954 | 4.212 | 56 |
+| `v2_age_adjusted` | 1.870 | -0.044 | 0.402 | 2.330 | 56 |
+| `v3_stat_weighted` | 2.155 | +0.038 | 0.198 | 2.698 | 56 |
+| `v4_availability_adjusted` | 2.214 | +0.242 | 0.170 | 2.745 | 56 |
+| `v5_team_context` | 2.753 | -0.639 | -0.309 | 3.447 | 56 |
+| `v6_usage_share` | 3.184 | -1.351 | -0.966 | 4.225 | 56 |
 
 ### K
 
@@ -215,33 +215,33 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
 | `v1_baseline_weighted_ppg` _(baseline)_ | 2.904 | -1.145 | 0.428 | 3.880 | 261 |
-| `v2_age_adjusted` | **2.833** | -0.940 | **0.455** | **3.787** | 261 |
-| `v3_stat_weighted` | 3.283 | -0.540 | 0.275 | 4.367 | 261 |
-| `v4_availability_adjusted` | 3.226 | -0.032 | 0.293 | 4.312 | 261 |
-| `v5_team_context` | 3.524 | -0.932 | 0.170 | 4.673 | 261 |
-| `v6_usage_share` | 4.046 | -1.621 | -0.159 | 5.522 | 261 |
+| `v2_age_adjusted` | **2.791** | -1.083 | **0.461** | **3.765** | 261 |
+| `v3_stat_weighted` | 3.215 | -0.678 | 0.285 | 4.335 | 261 |
+| `v4_availability_adjusted` | 3.155 | -0.170 | 0.315 | 4.246 | 261 |
+| `v5_team_context` | 3.528 | -1.074 | 0.178 | 4.649 | 261 |
+| `v6_usage_share` | 4.071 | -1.762 | -0.189 | 5.594 | 261 |
 
 ### QB
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
 | `v1_baseline_weighted_ppg` _(baseline)_ | 4.359 | -2.245 | 0.164 | 5.869 | 53 |
-| `v2_age_adjusted` | 4.521 | -2.395 | 0.120 | 6.022 | 53 |
-| `v3_stat_weighted` | 5.048 | -1.989 | 0.010 | 6.386 | 53 |
-| `v4_availability_adjusted` | 4.742 | -0.512 | 0.090 | 6.123 | 53 |
-| `v5_team_context` | 5.017 | -1.453 | -0.045 | 6.564 | 53 |
-| `v6_usage_share` | 5.017 | -1.453 | -0.045 | 6.564 | 53 |
+| `v2_age_adjusted` | 4.394 | -2.287 | 0.158 | 5.890 | 53 |
+| `v3_stat_weighted` | 4.908 | -1.880 | 0.061 | 6.220 | 53 |
+| `v4_availability_adjusted` | 4.568 | -0.403 | 0.153 | 5.907 | 53 |
+| `v5_team_context` | 4.928 | -1.361 | 0.031 | 6.319 | 53 |
+| `v6_usage_share` | 4.928 | -1.361 | 0.031 | 6.319 | 53 |
 
 ### RB
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
 | `v1_baseline_weighted_ppg` _(baseline)_ | 2.995 | -0.940 | 0.553 | 3.608 | 54 |
-| `v2_age_adjusted` | **2.839** | +0.159 | **0.632** | **3.273** | 54 |
-| `v3_stat_weighted` | 3.917 | +1.119 | 0.182 | 4.883 | 54 |
-| `v4_availability_adjusted` | 3.919 | +1.484 | 0.157 | 4.955 | 54 |
-| `v5_team_context` | 3.763 | +0.505 | 0.200 | 4.827 | 54 |
-| `v6_usage_share` | 4.615 | -0.624 | -0.349 | 6.271 | 54 |
+| `v2_age_adjusted` | **2.830** | -0.610 | **0.608** | **3.380** | 54 |
+| `v3_stat_weighted` | 3.812 | +0.373 | 0.160 | 4.947 | 54 |
+| `v4_availability_adjusted` | 3.822 | +0.738 | 0.164 | 4.935 | 54 |
+| `v5_team_context` | 3.796 | -0.241 | 0.145 | 4.990 | 54 |
+| `v6_usage_share` | 4.719 | -1.370 | -0.518 | 6.652 | 54 |
 
 ### WR
 
@@ -259,11 +259,11 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
 | `v1_baseline_weighted_ppg` _(baseline)_ | 1.994 | -0.658 | 0.476 | 2.536 | 62 |
-| `v2_age_adjusted` | 2.018 | -0.606 | **0.528** | **2.406** | 62 |
-| `v3_stat_weighted` | 2.034 | -0.466 | 0.429 | 2.646 | 62 |
-| `v4_availability_adjusted` | 2.038 | -0.238 | 0.415 | 2.679 | 62 |
-| `v5_team_context` | 2.497 | -1.177 | 0.089 | 3.343 | 62 |
-| `v6_usage_share` | 3.420 | -2.302 | -0.945 | 4.885 | 62 |
+| `v2_age_adjusted` | **1.961** | -0.632 | **0.523** | **2.418** | 62 |
+| `v3_stat_weighted` | **1.961** | -0.492 | 0.420 | 2.667 | 62 |
+| `v4_availability_adjusted` | **1.970** | -0.264 | 0.413 | 2.685 | 62 |
+| `v5_team_context` | 2.560 | -1.203 | 0.060 | 3.396 | 62 |
+| `v6_usage_share` | 3.515 | -2.328 | -1.087 | 5.061 | 62 |
 
 ### K
 
@@ -285,33 +285,33 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
 | `v1_baseline_weighted_ppg` _(baseline)_ | 2.677 | -0.385 | 0.470 | 3.637 | 844 |
-| `v2_age_adjusted` | **2.672** | -0.346 | **0.472** | **3.630** | 844 |
-| `v3_stat_weighted` | 3.054 | -0.094 | 0.325 | 4.107 | 844 |
-| `v4_availability_adjusted` | 3.065 | +0.402 | 0.306 | 4.163 | 844 |
-| `v5_team_context` | 3.427 | -0.459 | 0.189 | 4.498 | 844 |
-| `v6_usage_share` | 4.005 | -1.130 | -0.255 | 5.583 | 844 |
+| `v2_age_adjusted` | **2.615** | -0.408 | **0.489** | **3.571** | 844 |
+| `v3_stat_weighted` | 2.993 | -0.154 | 0.340 | 4.060 | 844 |
+| `v4_availability_adjusted` | 3.005 | +0.342 | 0.328 | 4.094 | 844 |
+| `v5_team_context` | 3.405 | -0.519 | 0.202 | 4.462 | 844 |
+| `v6_usage_share` | 3.995 | -1.186 | -0.267 | 5.611 | 844 |
 
 ### QB
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
 | `v1_baseline_weighted_ppg` _(baseline)_ | 4.025 | -1.302 | 0.225 | 5.321 | 177 |
-| `v2_age_adjusted` | 4.152 | -1.632 | 0.183 | 5.468 | 177 |
-| `v3_stat_weighted` | 4.823 | -1.353 | -0.011 | 6.056 | 177 |
-| `v4_availability_adjusted` | 4.704 | -0.005 | -0.006 | 6.014 | 177 |
-| `v5_team_context` | 4.966 | -0.778 | -0.108 | 6.303 | 177 |
-| `v6_usage_share` | 4.966 | -0.778 | -0.108 | 6.303 | 177 |
+| `v2_age_adjusted` | 4.029 | -1.400 | 0.221 | 5.337 | 177 |
+| `v3_stat_weighted` | 4.692 | -1.121 | 0.026 | 5.936 | 177 |
+| `v4_availability_adjusted` | 4.609 | +0.228 | 0.027 | 5.902 | 177 |
+| `v5_team_context` | 4.885 | -0.548 | -0.071 | 6.181 | 177 |
+| `v6_usage_share` | 4.885 | -0.548 | -0.071 | 6.181 | 177 |
 
 ### RB
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
 | `v1_baseline_weighted_ppg` _(baseline)_ | 3.099 | -0.152 | 0.248 | 3.980 | 165 |
-| `v2_age_adjusted` | 3.153 | +0.725 | **0.253** | **3.937** | 165 |
-| `v3_stat_weighted` | 3.713 | +1.143 | 0.003 | 4.667 | 165 |
-| `v4_availability_adjusted` | 3.787 | +1.607 | -0.075 | 4.829 | 165 |
-| `v5_team_context` | 3.815 | +0.778 | -0.101 | 4.864 | 165 |
-| `v6_usage_share` | 4.707 | -0.085 | -1.204 | 6.897 | 165 |
+| `v2_age_adjusted` | **3.047** | +0.111 | **0.281** | **3.877** | 165 |
+| `v3_stat_weighted` | 3.557 | +0.537 | 0.026 | 4.625 | 165 |
+| `v4_availability_adjusted` | 3.609 | +1.001 | -0.005 | 4.681 | 165 |
+| `v5_team_context` | 3.801 | +0.177 | -0.085 | 4.850 | 165 |
+| `v6_usage_share` | 4.731 | -0.668 | -1.303 | 7.073 | 165 |
 
 ### WR
 
@@ -329,11 +329,11 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
 | `v1_baseline_weighted_ppg` _(baseline)_ | 1.820 | -0.219 | 0.462 | 2.288 | 198 |
-| `v2_age_adjusted` | 1.837 | -0.300 | **0.466** | **2.270** | 198 |
-| `v3_stat_weighted` | 2.128 | -0.106 | 0.223 | 2.705 | 198 |
-| `v4_availability_adjusted` | 2.157 | +0.134 | 0.187 | 2.764 | 198 |
-| `v5_team_context` | 2.621 | -0.775 | -0.209 | 3.381 | 198 |
-| `v6_usage_share` | 3.308 | -1.645 | -1.050 | 4.452 | 198 |
+| `v2_age_adjusted` | **1.794** | -0.260 | **0.486** | **2.232** | 198 |
+| `v3_stat_weighted` | 2.113 | -0.064 | 0.226 | 2.702 | 198 |
+| `v4_availability_adjusted` | 2.131 | +0.176 | 0.193 | 2.753 | 198 |
+| `v5_team_context` | 2.611 | -0.735 | -0.215 | 3.393 | 198 |
+| `v6_usage_share` | 3.317 | -1.605 | -1.104 | 4.523 | 198 |
 
 ### K
 
