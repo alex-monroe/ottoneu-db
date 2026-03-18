@@ -119,8 +119,26 @@ def check_orphan_docs() -> list[str]:
             for match in re.finditer(r"\[.*?\]\(([^)]+)\)", content):
                 referenced.add(match.group(1))
             # Also match bare paths in code blocks
-            for match in re.finditer(r"(?:^|\s)(docs/\S+\.md)", content):
+            for match in re.finditer(r"(?:^|[\s│├└─])(docs/\S+\.md)", content):
                 referenced.add(match.group(1))
+
+            # Parse directory tree structures
+            # Matches: │   ├── feature-projections.md
+            # And prepends the parent directory if we're in a known block
+            current_dir = ""
+            for line in content.splitlines():
+                # Detect directory headers like `├── exec-plans/` or `docs/`
+                dir_match = re.search(r"(?:├──|└──|^)\s*([a-zA-Z0-9_-]+)/", line)
+                if dir_match:
+                    if dir_match.group(1) == "docs":
+                        current_dir = "docs/"
+                    else:
+                        current_dir = f"docs/{dir_match.group(1)}/"
+                elif current_dir:
+                    # Detect files within directories like `│   ├── filename.md`
+                    file_match = re.search(r"^[│\s]*[├└]──\s*([a-zA-Z0-9_-]+\.md)", line)
+                    if file_match:
+                        referenced.add(f"{current_dir}{file_match.group(1)}")
 
     # Check all .md files in docs/
     for md_file in docs_dir.rglob("*.md"):

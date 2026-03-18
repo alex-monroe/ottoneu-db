@@ -21,6 +21,23 @@ Fourteen tables, all with UUID primary keys.
 | `model_projections` | Per-model projected PPG with raw feature values (FK -> `projection_models`, `players`) | `(model_id, player_id, season)` |
 | `backtest_results` | Cached accuracy metrics per model × season × position (FK -> `projection_models`) | `(model_id, season, position)` |
 
+### Job queue detail
+
+**`scraper_jobs`**
+- `id` UUID PK
+- `task_type` text — 'scrape_roster', 'scrape_player_card', 'pull_nfl_stats'
+- `params` jsonb — task-specific parameters
+- `status` text — 'pending', 'running', 'completed', 'failed'
+- `priority` integer — higher runs first
+- `attempts` integer — number of times attempted
+- `max_attempts` integer — max retries (default 3)
+- `last_error` text — error message on failure
+- `batch_id` UUID — groups jobs from one enqueue call
+- `depends_on` UUID FK -> `scraper_jobs` — must complete before this job runs
+- `created_at` timestamptz
+- `started_at` timestamptz
+- `completed_at` timestamptz
+
 ### Projection tables detail
 
 **`projection_models`**
