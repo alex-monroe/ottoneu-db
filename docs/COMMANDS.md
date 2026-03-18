@@ -46,6 +46,9 @@ python scripts/feature_projections/cli.py promote --model v2_age_adjusted       
 python scripts/feature_projections/accuracy_report.py                                       # Generate accuracy table from cached backtest results
 python scripts/feature_projections/accuracy_report.py --run-backtest                        # Re-run all backtests then generate report
 python scripts/feature_projections/accuracy_report.py --seasons 2024,2025 --output PATH    # Custom seasons or output path
+python scripts/feature_projections/cli.py diagnostics                                      # Per-player diagnostics (auto-detects model & season)
+python scripts/feature_projections/cli.py diagnostics --model v6_usage_share --season 2025 --top 20  # Custom options
+python scripts/feature_projections/diagnostics.py --output docs/generated/player-diagnostics.md      # Standalone with markdown output
 
 # Utilities
 python scripts/check_db.py                           # Verify database contents
