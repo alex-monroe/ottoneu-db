@@ -110,7 +110,9 @@ def _compute_team_aggregates(
             total_points = season_df["total_points"].fillna(0).sum()
             season_ppg[season] = float(total_points) / 17.0  # approximate team PPG
 
-            # Aggregate usage stats (QB excluded from usage_share per GH #232)
+            # Aggregate usage stats per team/season
+            # Note: passing_attempts is available in nfl_stats but not used here
+            # yet — see docs/exec-plans/qb-usage-share.md for why and next steps
             usage_by_season[season] = {
                 "targets": float(season_df["targets"].fillna(0).sum()),
                 "rushing_attempts": float(season_df["rushing_attempts"].fillna(0).sum()),
