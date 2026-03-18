@@ -42,7 +42,7 @@ def make_nfl_stats_df(rows: list[dict]) -> pd.DataFrame:
     for col in ["games_played", "total_points", "targets", "rushing_attempts",
                  "passing_yards", "passing_tds", "interceptions", "rushing_yards",
                  "rushing_tds", "receptions", "receiving_yards", "receiving_tds",
-                 "offense_snaps"]:
+                 "offense_snaps", "passing_attempts", "completions"]:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
     return df
@@ -253,21 +253,22 @@ class TestUsageShareFeature:
     def setup_method(self):
         self.feature = UsageShareFeature()
 
-    def test_qb_excluded(self):
-        """QB should return None — usage share is not meaningful for QBs (GH #232)."""
+    def test_qb_passing_attempts(self):
+        """QB with increasing passing_attempts share should get a positive delta (GH #250)."""
         nfl_df = make_nfl_stats_df([
-            {"season": 2023, "games_played": 17, "passing_yards": 4000},
-            {"season": 2024, "games_played": 17, "passing_yards": 4500},
+            {"season": 2023, "games_played": 17, "passing_attempts": 450},
+            {"season": 2024, "games_played": 17, "passing_attempts": 550},
         ])
         ctx = {
             "base_ppg": 20.0,
             "team_usage": {
-                2023: {"passing_yards": 4200},
-                2024: {"passing_yards": 4600},
+                2023: {"passing_attempts": 500},
+                2024: {"passing_attempts": 580},
             },
         }
         result = self.feature.compute("p1", "QB", pd.DataFrame(), nfl_df, ctx)
-        assert result is None
+        assert result is not None
+        assert result > 0  # increasing share → positive delta
 
     def test_wr_increasing_share_positive_delta(self):
         """WR with increasing target share should get a positive PPG delta."""

@@ -9,9 +9,8 @@ import pandas as pd
 from scripts.feature_projections.features.base import ProjectionFeature
 
 # Which stat represents "usage" for each position
-# QB is excluded: QBs account for nearly all team passing volume,
-# so their share is always ~1.0 with massive swing potential (GH #232)
 USAGE_STAT_BY_POSITION = {
+    "QB": "passing_attempts",  # re-enabled with passing_attempts (GH #250)
     "RB": "rushing_attempts",
     "WR": "targets",
     "TE": "targets",
@@ -24,7 +23,7 @@ class UsageShareFeature(ProjectionFeature):
     """Adjusts projection based on player's share of team usage.
 
     Computes the player's share of team-level volume (targets for WR/TE,
-    rushing attempts for RB, passing yards for QB), projects the trend,
+    rushing attempts for RB, passing attempts for QB), projects the trend,
     and returns a PPG delta based on whether share is increasing or decreasing.
     """
 

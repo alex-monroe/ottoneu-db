@@ -174,6 +174,7 @@ def process_stats(combined: pd.DataFrame) -> pd.DataFrame:
         "passing_interceptions": "interceptions",
         "carries": "rushing_attempts",
         "games": "games_played",
+        "attempts": "passing_attempts",
     })
 
     # Aggregate stat columns for players who appear multiple times per season
@@ -183,6 +184,7 @@ def process_stats(combined: pd.DataFrame) -> pd.DataFrame:
         "rushing_yards", "rushing_tds", "rushing_attempts",
         "receptions", "targets", "receiving_yards", "receiving_tds",
         "fg_made_0_39", "fg_made_40_49", "fg_made_50_plus", "pat_made",
+        "passing_attempts", "completions",
     ]
     agg_cols = {c: "sum" for c in stat_cols if c in combined.columns}
 
@@ -431,6 +433,8 @@ def backfill_seasons(
             "fg_made_40_49": _safe_int(getattr(row, "fg_made_40_49", None)),
             "fg_made_50_plus": _safe_int(getattr(row, "fg_made_50_plus", None)),
             "pat_made": _safe_int(getattr(row, "pat_made", None)),
+            "passing_attempts": _safe_int(getattr(row, "passing_attempts", None)),
+            "completions": _safe_int(getattr(row, "completions", None)),
         }
 
         # Calculate fantasy points
@@ -466,6 +470,7 @@ def backfill_seasons(
             "rushing_yards", "rushing_tds", "rushing_attempts",
             "receptions", "targets", "receiving_yards", "receiving_tds",
             "fg_made_0_39", "fg_made_40_49", "fg_made_50_plus", "pat_made",
+            "passing_attempts", "completions",
             "offense_snaps", "defense_snaps", "st_snaps", "total_snaps",
         ]
         dedup_df = pd.DataFrame(upsert_rows)
