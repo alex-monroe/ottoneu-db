@@ -1,0 +1,107 @@
+# Projection Accuracy Improvement Plan
+
+## Status: Active
+
+---
+
+## Diagnosis: Why v3-v6 Features Degrade Accuracy
+
+Our best internal model (`v2_age_adjusted`, MAE 2.615, R² 0.489) is close to FantasyPros (MAE 2.607, R² 0.561) on aggregate MAE but significantly behind on R². Every feature added after `age_curve` (v3-v6) **degrades** accuracy. Root causes:
+
+| Feature | Impact | Root Cause |
+|---------|--------|------------|
+| `stat_efficiency` (v3) | +0.34 MAE | Redundantly re-derives PPG from component stats with slightly different recency weights, capturing noise not signal |
+| `games_played` (v4) | Negligible MAE change, R² drops | Double-counts injury discounting already embedded in base feature's `games_played/17` scaling |
+| `team_context` (v5) | +0.47 MAE | Uses player's *current* team with *historical* ratings — wrong for team-changers. Also applies to kickers where team offense is irrelevant |
+| `usage_share` (v6) | +0.96 MAE, R² → -0.87 | Extrapolates noisy share trends with oversized scaling (0.5×), amplifying small fluctuations into huge PPG swings |
+
+### Key Insight
+
+The combiner stacks features additively. When a feature adds noise (even small), it compounds with other noisy features. This explains why v3 alone might be marginal but v3+v4+v5+v6 is catastrophic.
+
+---
+
+## Current Accuracy (All Seasons Combined, ALL positions)
+
+| Model | MAE | R² | Bias |
+|-------|-----|-----|------|
+| `v1_baseline` | 2.677 | 0.470 | -0.385 |
+| **`v2_age_adjusted`** | **2.615** | **0.489** | -0.408 |
+| v3-v6 | 2.96–4.39 | degrades | — |
+| **FantasyPros** | **2.607** | **0.561** | +1.317 |
+
+---
+
+## Improvement Phases
+
+### Phase 1: Quick Wins
+
+Tune existing model parameters and add simple features. Expected: MAE ~2.50, R² ~0.52.
+
+- [#271](https://github.com/alex-monroe/ottoneu-db/issues/271) — Tune base feature recency weights
+- [#272](https://github.com/alex-monroe/ottoneu-db/issues/272) — Tune age curve parameters via grid search
+- [#273](https://github.com/alex-monroe/ottoneu-db/issues/273) — Add regression-to-positional-mean feature
+- [#276](https://github.com/alex-monroe/ottoneu-db/issues/276) — Per-player backtest diagnostics
+
+### Phase 2: Ensemble
+
+Blend internal + external models. Expected: MAE ~2.35-2.45, R² ~0.58.
+
+- [#274](https://github.com/alex-monroe/ottoneu-db/issues/274) — Simple ensemble: blend v2 + FantasyPros
+- [#275](https://github.com/alex-monroe/ottoneu-db/issues/275) — Bias-correct FantasyPros projections
+
+### Phase 3: Position-Specific Models
+
+Different features per position. Expected: further MAE improvement.
+
+- [#277](https://github.com/alex-monroe/ottoneu-db/issues/277) — Position-specific model configurations
+
+### Phase 4: Fix Broken Features
+
+Repair v3-v6 features so they contribute positively.
+
+- [#278](https://github.com/alex-monroe/ottoneu-db/issues/278) — Fix stat_efficiency
+- [#279](https://github.com/alex-monroe/ottoneu-db/issues/279) — Fix team_context
+- [#280](https://github.com/alex-monroe/ottoneu-db/issues/280) — Test snap_trend feature
+- [#281](https://github.com/alex-monroe/ottoneu-db/issues/281) — Improve rookie projection
+
+### Phase 5: New Data & ML
+
+New data sources and learned models. Expected: MAE < 2.3, R² > 0.60.
+
+- [#282](https://github.com/alex-monroe/ottoneu-db/issues/282) — Market projections system (Vegas lines + ML shares)
+- [#283](https://github.com/alex-monroe/ottoneu-db/issues/283) — Stacked ensemble with learned weights
+- [#284](https://github.com/alex-monroe/ottoneu-db/issues/284) — ADP integration as projection signal
+- [#285](https://github.com/alex-monroe/ottoneu-db/issues/285) — Fix usage_share: complete rethink
+
+---
+
+## Verification
+
+Every change measured via:
+```bash
+python scripts/feature_projections/accuracy_report.py --run-backtest --seasons 2022,2023,2024,2025 --output docs/generated/projection-accuracy.md
+```
+
+### Success Criteria
+
+| Phase | MAE Target | R² Target |
+|-------|-----------|-----------|
+| Phase 1-2 | < 2.607 (beat FP) | > 0.53 |
+| Phase 3-4 | < 2.50 | > 0.56 (match FP) |
+| Phase 5 | < 2.30 | > 0.60 (beat FP) |
+
+---
+
+## Key Files
+
+| File | Role |
+|------|------|
+| `scripts/feature_projections/model_config.py` | Model definitions — every new model registered here |
+| `scripts/feature_projections/combiner.py` | Feature combination logic — needs changes for position-specific + ensemble |
+| `scripts/feature_projections/features/weighted_ppg.py` | Base feature — recency weights and rookie trajectory |
+| `scripts/feature_projections/features/age_curve.py` | Best adjustment feature — parameter tuning target |
+| `scripts/feature_projections/backtest.py` | Validation framework for measuring all changes |
+| `scripts/feature_projections/accuracy_report.py` | Comparison table generation |
+| `scripts/feature_projections/features/__init__.py` | Feature registry — add new features here |
+| `docs/exec-plans/market-projections.md` | Full market projections plan (Issue 12) |
