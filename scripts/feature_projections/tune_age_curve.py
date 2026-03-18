@@ -4,9 +4,14 @@ Tests combinations of peak_age, decline_rate, growth_rate, and scale for each
 position. Computes in-memory projections (base weighted_ppg + age curve delta)
 and compares to actuals to find the optimal parameter set.
 
+**Overfitting caveat:** By default, the same seasons are used for both parameter
+search and evaluation. Results may overfit to historical data. Consider holding
+out one season (e.g., search on 2022-2024, evaluate on 2025) for more robust
+estimates of improvement.
+
 Usage:
-    python scripts/feature_projections/tune_age_curve.py [--seasons 2022,2023,2024,2025]
-    python scripts/feature_projections/tune_age_curve.py --positions QB,WR
+    venv/bin/python scripts/feature_projections/tune_age_curve.py [--seasons 2022,2023,2024,2025]
+    venv/bin/python scripts/feature_projections/tune_age_curve.py --positions QB,WR
 """
 
 from __future__ import annotations

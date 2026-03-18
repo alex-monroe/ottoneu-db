@@ -8,6 +8,8 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 
 **Package Manager:** Always use `npm` for frontend dependencies and scripts. Do not use `pnpm`, `yarn`, or `bun`.
 
+**Python:** Always use `venv/bin/python` (not `python` or `python3`). The virtualenv is at `venv/`, not `.venv/`.
+
 ## Quick Reference
 
 - **Commands:** See [docs/COMMANDS.md](docs/COMMANDS.md) for all CLI commands (frontend, backend, make, cron)

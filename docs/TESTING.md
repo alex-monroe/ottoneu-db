@@ -23,6 +23,12 @@ cd web && ./node_modules/.bin/tsc --noEmit
 
 `npm run build` requires `config.json` (present in CI/production, absent in local dev) and will fail with a "Module not found" error unrelated to your changes.
 
+## Coupled Test Data
+
+Some tests have hardcoded expected values tied to configuration constants. When updating these constants, the corresponding tests must be updated too:
+
+- **`POSITION_AGE_CURVES`** in `features/age_curve.py` → `test_feature_projections.py::TestAgeCurveFeature` (test_qb_at_peak, test_qb_past_peak, test_rb_young)
+
 ## Structural / Architectural Tests
 
 Harness engineering tests that enforce architectural rules mechanically. Each test failure includes a teaching message with the fix.
