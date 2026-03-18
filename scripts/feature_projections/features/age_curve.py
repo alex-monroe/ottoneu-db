@@ -12,10 +12,10 @@ from scripts.feature_projections.features.base import ProjectionFeature
 # Derived from NFL career arc research. Peak age is when PPG is highest;
 # decline_per_year is the expected PPG delta per year past peak.
 POSITION_AGE_CURVES = {
-    "QB": {"peak_age": 30, "decline_per_year": 0.3, "growth_per_year": 0.4, "scale": 0.3},
-    "RB": {"peak_age": 25, "decline_per_year": 0.8, "growth_per_year": 0.5, "scale": 0.3},
-    "WR": {"peak_age": 27, "decline_per_year": 0.5, "growth_per_year": 0.4, "scale": 1.0},
-    "TE": {"peak_age": 28, "decline_per_year": 0.4, "growth_per_year": 0.3, "scale": 0.5},
+    "QB": {"peak_age": 28, "decline_per_year": 1.0, "growth_per_year": 0.1, "scale": 0.2},
+    "RB": {"peak_age": 27, "decline_per_year": 1.0, "growth_per_year": 0.1, "scale": 1.0},
+    "WR": {"peak_age": 26, "decline_per_year": 0.8, "growth_per_year": 0.6, "scale": 0.7},
+    "TE": {"peak_age": 26, "decline_per_year": 0.2, "growth_per_year": 0.1, "scale": 1.0},
     "K":  {"peak_age": 32, "decline_per_year": 0.1, "growth_per_year": 0.1, "scale": 1.0},
 }
 
