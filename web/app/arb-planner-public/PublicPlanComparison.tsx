@@ -81,8 +81,12 @@ export default function PublicPlanComparison({
 
     // Per-team summary
     const teamSummaries = useMemo(() => {
+        // ⚡ Bolt: Added teamRowCounts Map to eliminate O(N^2) .filter() during table render loop
         const teams = new Map<string, number[]>();
+        const teamRowCounts = new Map<string, number>();
         for (const row of comparisonRows) {
+            teamRowCounts.set(row.team_name, (teamRowCounts.get(row.team_name) || 0) + 1);
+
             if (!teams.has(row.team_name)) {
                 teams.set(row.team_name, new Array(selectedPlans.length).fill(0));
             }
@@ -91,7 +95,7 @@ export default function PublicPlanComparison({
                 totals[i] += row.allocations[i];
             }
         }
-        return teams;
+        return { teams, teamRowCounts };
     }, [comparisonRows, selectedPlans.length]);
 
     if (plans.length < 2) {
@@ -161,7 +165,7 @@ export default function PublicPlanComparison({
                                 const prevTeam =
                                     idx > 0 ? comparisonRows[idx - 1].team_name : null;
                                 const showTeamHeader = row.team_name !== prevTeam;
-                                const teamTotals = teamSummaries.get(row.team_name);
+                                const teamTotals = teamSummaries.teams.get(row.team_name);
 
                                 return (
                                     <tr
@@ -171,11 +175,7 @@ export default function PublicPlanComparison({
                                         {showTeamHeader ? (
                                             <td
                                                 className="px-3 py-2 font-medium text-slate-900 dark:text-white align-top"
-                                                rowSpan={
-                                                    comparisonRows.filter(
-                                                        (r) => r.team_name === row.team_name
-                                                    ).length
-                                                }
+                                                rowSpan={teamSummaries.teamRowCounts.get(row.team_name) || 1}
                                             >
                                                 <div>{row.team_name}</div>
                                                 {teamTotals && (
