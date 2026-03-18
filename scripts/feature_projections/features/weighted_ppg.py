@@ -13,14 +13,14 @@ class WeightedPPGFeature(ProjectionFeature):
     """Recency-weighted, games-scaled average PPG.
 
     For veterans (2+ seasons): uses WeightedAveragePPG logic with recency weights
-    [0.50, 0.30, 0.20] and games_played/17 scaling.
+    [0.55, 0.25, 0.20] and games_played/17 scaling.
 
     For rookies (1 season): uses RookieTrajectoryPPG logic with H2/H1 snap trajectory.
 
     This is the baseline feature — an exact port of the existing projection_methods.py.
     """
 
-    RECENCY_WEIGHTS = [0.50, 0.30, 0.20]
+    RECENCY_WEIGHTS = [0.55, 0.25, 0.20]
     ROOKIE_MIN_FACTOR = 0.75
     ROOKIE_MAX_FACTOR = 1.50
 

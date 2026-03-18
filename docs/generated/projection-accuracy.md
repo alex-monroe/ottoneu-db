@@ -1,6 +1,6 @@
 # Projection Model Accuracy Report
 
-_Generated: 2026-03-17 19:13_
+_Generated: 2026-03-17 20:03_
 
 Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed error (positive = under-projection), **R²** = Goodness of fit (higher is better), **RMSE** = Root mean square error, **N** = player sample size.
 
@@ -10,72 +10,72 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 2.237 | -0.004 | 0.621 | 3.014 | 154 |
-| `v2_age_adjusted` | **2.145** | -0.122 | **0.638** | **2.944** | 154 |
-| `v3_stat_weighted` | 2.659 | +0.133 | 0.380 | 3.854 | 154 |
-| `v4_availability_adjusted` | 2.726 | +0.567 | 0.356 | 3.928 | 154 |
-| `v5_team_context` | 3.288 | -0.322 | 0.189 | 4.408 | 154 |
-| `v6_usage_share` | 4.646 | -1.778 | -1.829 | 8.235 | 154 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 2.224 | -0.001 | 0.626 | 2.992 | 154 |
+| `v2_age_adjusted` | **2.137** | -0.120 | **0.643** | **2.924** | 154 |
+| `v3_stat_weighted` | 2.660 | +0.133 | 0.379 | 3.858 | 154 |
+| `v4_availability_adjusted` | 2.729 | +0.564 | 0.354 | 3.933 | 154 |
+| `v5_team_context` | 3.290 | -0.325 | 0.188 | 4.412 | 154 |
+| `v6_usage_share` | 4.323 | -1.554 | -1.614 | 7.915 | 154 |
 | `external_fantasypros_v1` | 2.768 | +1.662 | 0.540 | 3.668 | 133 |
 
 ### QB
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 3.689 | -0.246 | 0.169 | 4.688 | 36 |
-| `v2_age_adjusted` | **3.647** | -0.381 | **0.183** | **4.646** | 36 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 3.635 | -0.249 | 0.191 | 4.625 | 36 |
+| `v2_age_adjusted` | **3.593** | -0.384 | **0.204** | **4.585** | 36 |
 | `v3_stat_weighted` | 4.702 | +0.265 | -0.485 | 6.264 | 36 |
-| `v4_availability_adjusted` | 4.972 | +1.035 | -0.579 | 6.459 | 36 |
-| `v5_team_context` | 5.261 | +0.268 | -0.787 | 6.871 | 36 |
-| `v6_usage_share` | 6.662 | -0.709 | -1.719 | 8.476 | 36 |
+| `v4_availability_adjusted` | 4.977 | +1.027 | -0.580 | 6.461 | 36 |
+| `v5_team_context` | 5.266 | +0.259 | -0.789 | 6.876 | 36 |
+| `v6_usage_share` | 5.266 | +0.259 | -0.789 | 6.876 | 36 |
 | `external_fantasypros_v1` | 4.669 | +3.096 | -0.055 | 5.825 | 32 |
 
 ### RB
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 2.695 | -0.896 | 0.498 | 3.257 | 25 |
-| `v2_age_adjusted` | **2.678** | -0.708 | **0.512** | **3.211** | 25 |
-| `v3_stat_weighted` | 3.087 | -0.644 | 0.266 | 3.939 | 25 |
-| `v4_availability_adjusted` | 2.950 | +0.268 | 0.338 | 3.741 | 25 |
-| `v5_team_context` | 3.568 | -0.416 | 0.160 | 4.216 | 25 |
-| `v6_usage_share` | 6.491 | -3.872 | -4.703 | 10.982 | 25 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 2.689 | -0.876 | 0.502 | 3.246 | 25 |
+| `v2_age_adjusted` | **2.673** | -0.689 | **0.515** | **3.204** | 25 |
+| `v3_stat_weighted` | 3.099 | -0.657 | 0.258 | 3.961 | 25 |
+| `v4_availability_adjusted` | 2.965 | +0.246 | 0.329 | 3.766 | 25 |
+| `v5_team_context` | 3.583 | -0.437 | 0.151 | 4.237 | 25 |
+| `v6_usage_share` | 6.484 | -3.861 | -4.626 | 10.908 | 25 |
 | `external_fantasypros_v1` | **2.643** | +1.210 | **0.579** | **3.179** | 30 |
 
 ### WR
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 1.859 | +0.557 | 0.636 | 2.172 | 33 |
-| `v2_age_adjusted` | **1.487** | +0.224 | **0.733** | **1.860** | 33 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 1.869 | +0.554 | 0.626 | 2.200 | 33 |
+| `v2_age_adjusted` | **1.524** | +0.221 | **0.721** | **1.902** | 33 |
 | `v3_stat_weighted` | **1.797** | +0.551 | 0.604 | 2.264 | 33 |
-| `v4_availability_adjusted` | **1.746** | +0.718 | 0.613 | 2.239 | 33 |
-| `v5_team_context` | 2.480 | -0.045 | 0.311 | 2.987 | 33 |
-| `v6_usage_share` | 3.077 | -0.852 | -0.170 | 3.893 | 33 |
+| `v4_availability_adjusted` | **1.746** | +0.716 | 0.613 | 2.239 | 33 |
+| `v5_team_context` | 2.480 | -0.046 | 0.311 | 2.987 | 33 |
+| `v6_usage_share` | 3.072 | -0.846 | -0.166 | 3.886 | 33 |
 | `external_fantasypros_v1` | 1.927 | +1.295 | 0.623 | 2.401 | 36 |
 
 ### TE
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 1.557 | +0.266 | 0.571 | 1.867 | 36 |
-| `v2_age_adjusted` | **1.546** | +0.158 | **0.577** | **1.854** | 36 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 1.538 | +0.260 | 0.581 | 1.845 | 36 |
+| `v2_age_adjusted` | **1.537** | +0.151 | **0.584** | **1.840** | 36 |
 | `v3_stat_weighted` | 2.119 | +0.261 | 0.123 | 2.670 | 36 |
-| `v4_availability_adjusted` | 2.224 | +0.507 | 0.045 | 2.785 | 36 |
-| `v5_team_context` | 2.477 | -0.592 | -0.273 | 3.217 | 36 |
-| `v6_usage_share` | 4.306 | -2.704 | -13.218 | 10.749 | 36 |
+| `v4_availability_adjusted` | 2.225 | +0.508 | 0.044 | 2.788 | 36 |
+| `v5_team_context` | 2.478 | -0.591 | -0.274 | 3.218 | 36 |
+| `v6_usage_share` | 4.339 | -2.735 | -13.680 | 10.922 | 36 |
 | `external_fantasypros_v1` | 2.001 | +1.117 | 0.368 | 2.346 | 35 |
 
 ### K
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 1.124 | +0.113 | -1.262 | 1.606 | 24 |
-| `v2_age_adjusted` | 1.141 | -0.022 | **-1.256** | **1.604** | 24 |
-| `v3_stat_weighted` | 1.141 | -0.022 | **-1.256** | **1.604** | 24 |
-| `v4_availability_adjusted` | 1.226 | +0.062 | -1.895 | 1.817 | 24 |
-| `v5_team_context` | 2.365 | -1.085 | -5.602 | 2.743 | 24 |
-| `v6_usage_share` | 2.365 | -1.085 | -5.602 | 2.743 | 24 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 1.141 | +0.129 | -1.296 | 1.618 | 24 |
+| `v2_age_adjusted` | **1.137** | -0.006 | **-1.272** | **1.609** | 24 |
+| `v3_stat_weighted` | **1.137** | -0.006 | **-1.272** | **1.609** | 24 |
+| `v4_availability_adjusted` | 1.221 | +0.078 | -1.911 | 1.822 | 24 |
+| `v5_team_context` | 2.354 | -1.070 | -5.536 | 2.730 | 24 |
+| `v6_usage_share` | 2.354 | -1.070 | -5.536 | 2.730 | 24 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## Season 2023
@@ -84,72 +84,72 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 2.680 | -0.094 | 0.438 | 3.745 | 188 |
-| `v2_age_adjusted` | **2.668** | -0.165 | 0.436 | 3.752 | 188 |
-| `v3_stat_weighted` | 2.949 | -0.087 | 0.360 | 3.997 | 188 |
-| `v4_availability_adjusted` | 2.959 | +0.402 | 0.312 | 4.145 | 188 |
-| `v5_team_context` | 3.497 | -0.527 | 0.131 | 4.658 | 188 |
-| `v6_usage_share` | 4.103 | -0.958 | -0.314 | 5.728 | 188 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 2.643 | -0.089 | 0.446 | 3.720 | 188 |
+| `v2_age_adjusted` | **2.639** | -0.159 | 0.442 | 3.732 | 188 |
+| `v3_stat_weighted` | 2.942 | -0.092 | 0.360 | 3.996 | 188 |
+| `v4_availability_adjusted` | 2.954 | +0.396 | 0.312 | 4.144 | 188 |
+| `v5_team_context` | 3.493 | -0.534 | 0.132 | 4.656 | 188 |
+| `v6_usage_share` | 3.840 | -0.816 | -0.036 | 5.087 | 188 |
 | `external_fantasypros_v1` | **2.267** | +1.633 | **0.630** | **3.196** | 176 |
 
 ### QB
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 3.918 | -0.856 | 0.169 | 5.296 | 39 |
-| `v2_age_adjusted` | 3.950 | -1.002 | 0.144 | 5.374 | 39 |
-| `v3_stat_weighted` | 4.372 | -0.898 | 0.074 | 5.590 | 39 |
-| `v4_availability_adjusted` | 4.324 | +0.522 | 0.005 | 5.793 | 39 |
-| `v5_team_context` | 4.905 | -0.182 | -0.188 | 6.331 | 39 |
-| `v6_usage_share` | 6.159 | -0.891 | -1.174 | 8.566 | 39 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 3.847 | -0.835 | 0.181 | 5.258 | 39 |
+| `v2_age_adjusted` | 3.896 | -0.981 | 0.156 | 5.338 | 39 |
+| `v3_stat_weighted` | 4.350 | -0.920 | 0.075 | 5.588 | 39 |
+| `v4_availability_adjusted` | 4.300 | +0.491 | 0.006 | 5.791 | 39 |
+| `v5_team_context` | 4.883 | -0.213 | -0.183 | 6.317 | 39 |
+| `v6_usage_share` | 4.883 | -0.213 | -0.183 | 6.317 | 39 |
 | `external_fantasypros_v1` | **3.640** | +2.361 | 0.166 | **4.770** | 40 |
 
 ### RB
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 3.567 | +0.644 | -0.256 | 4.764 | 37 |
-| `v2_age_adjusted` | **3.523** | +0.842 | **-0.244** | **4.740** | 37 |
-| `v3_stat_weighted` | 3.804 | +0.605 | -0.335 | 4.910 | 37 |
-| `v4_availability_adjusted` | 3.926 | +0.919 | -0.448 | 5.113 | 37 |
-| `v5_team_context` | 4.617 | -0.048 | -0.864 | 5.802 | 37 |
-| `v6_usage_share` | 5.087 | -0.046 | -1.398 | 6.581 | 37 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 3.531 | +0.672 | -0.253 | 4.758 | 37 |
+| `v2_age_adjusted` | **3.484** | +0.869 | **-0.242** | **4.736** | 37 |
+| `v3_stat_weighted` | 3.803 | +0.606 | -0.334 | 4.908 | 37 |
+| `v4_availability_adjusted` | 3.926 | +0.918 | -0.447 | 5.113 | 37 |
+| `v5_team_context` | 4.618 | -0.048 | -0.863 | 5.801 | 37 |
+| `v6_usage_share` | 5.088 | -0.039 | -1.400 | 6.584 | 37 |
 | `external_fantasypros_v1` | **2.548** | +2.210 | **0.466** | **3.472** | 40 |
 
 ### WR
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 2.580 | +0.119 | 0.406 | 3.183 | 44 |
-| `v2_age_adjusted` | 2.710 | -0.117 | 0.396 | 3.210 | 44 |
-| `v3_stat_weighted` | 2.941 | +0.087 | 0.260 | 3.551 | 44 |
-| `v4_availability_adjusted` | 2.976 | +0.336 | 0.191 | 3.713 | 44 |
-| `v5_team_context` | 3.096 | -0.460 | 0.145 | 3.817 | 44 |
-| `v6_usage_share` | 3.701 | -0.979 | -0.169 | 4.464 | 44 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 2.558 | +0.107 | 0.422 | 3.139 | 44 |
+| `v2_age_adjusted` | 2.708 | -0.129 | 0.405 | 3.184 | 44 |
+| `v3_stat_weighted` | 2.946 | +0.082 | 0.258 | 3.557 | 44 |
+| `v4_availability_adjusted` | 2.981 | +0.331 | 0.189 | 3.717 | 44 |
+| `v5_team_context` | 3.102 | -0.465 | 0.142 | 3.824 | 44 |
+| `v6_usage_share` | 3.708 | -0.983 | -0.172 | 4.470 | 44 |
 | `external_fantasypros_v1` | **1.903** | +1.239 | **0.602** | **2.450** | 49 |
 
 ### TE
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 1.809 | -0.299 | 0.406 | 2.226 | 44 |
-| `v2_age_adjusted` | **1.664** | -0.350 | **0.466** | **2.110** | 44 |
-| `v3_stat_weighted` | 2.025 | -0.114 | 0.185 | 2.607 | 44 |
-| `v4_availability_adjusted` | 1.986 | +0.184 | 0.161 | 2.645 | 44 |
-| `v5_team_context` | 2.668 | -0.880 | -0.421 | 3.442 | 44 |
-| `v6_usage_share` | 3.147 | -1.575 | -0.956 | 4.038 | 44 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 1.778 | -0.307 | 0.415 | 2.208 | 44 |
+| `v2_age_adjusted` | **1.634** | -0.359 | **0.476** | **2.090** | 44 |
+| `v3_stat_weighted` | 2.017 | -0.116 | 0.186 | 2.605 | 44 |
+| `v4_availability_adjusted` | 1.981 | +0.185 | 0.161 | 2.645 | 44 |
+| `v5_team_context` | 2.670 | -0.879 | -0.423 | 3.444 | 44 |
+| `v6_usage_share` | 3.148 | -1.574 | -0.956 | 4.038 | 44 |
 | `external_fantasypros_v1` | **1.237** | +0.931 | **0.743** | **1.535** | 47 |
 
 ### K
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 1.081 | -0.013 | -0.538 | 1.276 | 24 |
-| `v2_age_adjusted` | **1.028** | -0.104 | -0.544 | 1.279 | 24 |
-| `v3_stat_weighted` | **1.028** | -0.104 | -0.544 | 1.279 | 24 |
-| `v4_availability_adjusted` | **1.009** | -0.067 | **-0.528** | **1.272** | 24 |
-| `v5_team_context` | 1.732 | -1.303 | -3.279 | 2.128 | 24 |
-| `v6_usage_share` | 1.732 | -1.303 | -3.279 | 2.128 | 24 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 1.062 | -0.007 | -0.504 | 1.262 | 24 |
+| `v2_age_adjusted` | **1.012** | -0.099 | -0.514 | 1.266 | 24 |
+| `v3_stat_weighted` | **1.012** | -0.099 | -0.514 | 1.266 | 24 |
+| `v4_availability_adjusted` | **0.999** | -0.061 | **-0.503** | **1.262** | 24 |
+| `v5_team_context` | 1.728 | -1.298 | -3.245 | 2.120 | 24 |
+| `v6_usage_share` | 1.728 | -1.298 | -3.245 | 2.120 | 24 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## Season 2024
@@ -158,72 +158,72 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 2.709 | -0.031 | 0.445 | 3.642 | 241 |
-| `v2_age_adjusted` | **2.683** | -0.050 | **0.465** | **3.575** | 241 |
-| `v3_stat_weighted` | 2.800 | +0.012 | 0.393 | 3.808 | 241 |
-| `v4_availability_adjusted` | 2.857 | +0.509 | 0.365 | 3.895 | 241 |
-| `v5_team_context` | 3.300 | -0.403 | 0.247 | 4.242 | 241 |
-| `v6_usage_share` | 4.066 | -1.347 | -0.343 | 5.666 | 241 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 2.707 | -0.036 | 0.442 | 3.654 | 241 |
+| `v2_age_adjusted` | **2.685** | -0.055 | **0.462** | **3.588** | 241 |
+| `v3_stat_weighted` | 2.793 | +0.000 | 0.394 | 3.808 | 241 |
+| `v4_availability_adjusted` | 2.852 | +0.495 | 0.365 | 3.897 | 241 |
+| `v5_team_context` | 3.297 | -0.417 | 0.246 | 4.246 | 241 |
+| `v6_usage_share` | 3.872 | -1.148 | -0.202 | 5.361 | 241 |
 | `external_fantasypros_v1` | 2.782 | +1.531 | **0.543** | **3.602** | 211 |
 
 ### QB
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 3.996 | -1.412 | 0.376 | 5.153 | 49 |
-| `v2_age_adjusted` | **3.977** | -1.505 | **0.376** | **5.152** | 49 |
-| `v3_stat_weighted` | 4.039 | -1.292 | 0.352 | 5.253 | 49 |
-| `v4_availability_adjusted` | **3.948** | +0.120 | 0.360 | 5.218 | 49 |
-| `v5_team_context` | 4.357 | -0.590 | 0.289 | 5.501 | 49 |
-| `v6_usage_share` | 5.292 | -1.630 | -0.101 | 6.845 | 49 |
-| `external_fantasypros_v1` | 4.015 | +2.650 | 0.313 | 5.163 | 47 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 4.011 | -1.375 | 0.370 | 5.177 | 49 |
+| `v2_age_adjusted` | **3.979** | -1.468 | **0.371** | **5.173** | 49 |
+| `v3_stat_weighted` | 4.038 | -1.289 | 0.352 | 5.253 | 49 |
+| `v4_availability_adjusted` | **3.952** | +0.113 | 0.357 | 5.230 | 49 |
+| `v5_team_context` | 4.362 | -0.600 | 0.285 | 5.515 | 49 |
+| `v6_usage_share` | 4.362 | -0.600 | 0.285 | 5.515 | 49 |
+| `external_fantasypros_v1` | 4.015 | +2.650 | 0.313 | **5.163** | 47 |
 
 ### RB
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 3.064 | +0.495 | 0.166 | 4.055 | 49 |
-| `v2_age_adjusted` | 3.114 | +0.773 | **0.199** | **3.975** | 49 |
-| `v3_stat_weighted` | 3.353 | +0.818 | 0.023 | 4.391 | 49 |
-| `v4_availability_adjusted` | 3.476 | +1.274 | -0.041 | 4.531 | 49 |
-| `v5_team_context` | 3.634 | +0.460 | -0.068 | 4.589 | 49 |
-| `v6_usage_share` | 3.912 | +0.332 | -0.264 | 4.992 | 49 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 3.006 | +0.436 | 0.166 | 4.056 | 49 |
+| `v2_age_adjusted` | 3.062 | +0.713 | **0.199** | **3.974** | 49 |
+| `v3_stat_weighted` | 3.311 | +0.770 | 0.025 | 4.386 | 49 |
+| `v4_availability_adjusted` | 3.440 | +1.230 | -0.036 | 4.520 | 49 |
+| `v5_team_context` | 3.607 | +0.416 | -0.065 | 4.582 | 49 |
+| `v6_usage_share` | 3.879 | +0.292 | -0.255 | 4.975 | 49 |
 | `external_fantasypros_v1` | 3.281 | +1.622 | **0.409** | **3.898** | 51 |
 
 ### WR
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 2.873 | +0.419 | -0.264 | 3.447 | 55 |
-| `v2_age_adjusted` | **2.693** | +0.287 | **-0.106** | **3.225** | 55 |
-| `v3_stat_weighted` | **2.712** | +0.366 | -0.299 | 3.495 | 55 |
-| `v4_availability_adjusted` | **2.762** | +0.543 | -0.360 | 3.577 | 55 |
-| `v5_team_context` | 3.104 | -0.397 | -0.693 | 3.990 | 55 |
-| `v6_usage_share` | 4.785 | -2.481 | -4.630 | 7.276 | 55 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 2.876 | +0.409 | -0.278 | 3.466 | 55 |
+| `v2_age_adjusted` | **2.725** | +0.277 | **-0.122** | **3.248** | 55 |
+| `v3_stat_weighted` | **2.708** | +0.363 | -0.295 | 3.490 | 55 |
+| `v4_availability_adjusted` | **2.760** | +0.539 | -0.358 | 3.573 | 55 |
+| `v5_team_context` | 3.100 | -0.401 | -0.691 | 3.988 | 55 |
+| `v6_usage_share` | 4.780 | -2.481 | -4.623 | 7.272 | 55 |
 | `external_fantasypros_v1` | **2.353** | +1.365 | **0.187** | **2.832** | 58 |
 
 ### TE
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 1.804 | +0.017 | 0.422 | 2.292 | 56 |
-| `v2_age_adjusted` | 1.870 | -0.044 | 0.402 | 2.330 | 56 |
-| `v3_stat_weighted` | 2.090 | -0.080 | 0.219 | 2.662 | 56 |
-| `v4_availability_adjusted` | 2.142 | +0.132 | 0.193 | 2.706 | 56 |
-| `v5_team_context` | 2.771 | -0.771 | -0.318 | 3.459 | 56 |
-| `v6_usage_share` | 3.357 | -1.768 | -1.029 | 4.291 | 56 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 1.818 | +0.019 | 0.425 | 2.285 | 56 |
+| `v2_age_adjusted` | 1.881 | -0.041 | 0.402 | 2.330 | 56 |
+| `v3_stat_weighted` | 2.094 | -0.095 | 0.220 | 2.661 | 56 |
+| `v4_availability_adjusted` | 2.142 | +0.118 | 0.195 | 2.703 | 56 |
+| `v5_team_context` | 2.774 | -0.786 | -0.317 | 3.458 | 56 |
+| `v6_usage_share` | 3.358 | -1.783 | -1.035 | 4.298 | 56 |
 | `external_fantasypros_v1` | **1.719** | +0.666 | **0.486** | **2.106** | 55 |
 
 ### K
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 1.500 | +0.420 | -0.504 | 2.105 | 32 |
-| `v2_age_adjusted` | **1.449** | +0.327 | **-0.376** | **2.013** | 32 |
-| `v3_stat_weighted` | **1.449** | +0.327 | **-0.376** | **2.013** | 32 |
-| `v4_availability_adjusted` | 1.654 | +0.532 | -1.152 | 2.517 | 32 |
-| `v5_team_context` | 2.433 | -0.801 | -1.944 | 2.945 | 32 |
-| `v6_usage_share` | 2.433 | -0.801 | -1.944 | 2.945 | 32 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 1.523 | +0.433 | -0.545 | 2.133 | 32 |
+| `v2_age_adjusted` | **1.466** | +0.340 | **-0.415** | **2.041** | 32 |
+| `v3_stat_weighted` | **1.466** | +0.340 | **-0.415** | **2.041** | 32 |
+| `v4_availability_adjusted` | 1.667 | +0.540 | -1.191 | 2.540 | 32 |
+| `v5_team_context` | 2.447 | -0.793 | -1.986 | 2.965 | 32 |
+| `v6_usage_share` | 2.447 | -0.793 | -1.986 | 2.965 | 32 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## Season 2025
@@ -232,72 +232,72 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 2.904 | -1.145 | 0.428 | 3.880 | 261 |
-| `v2_age_adjusted` | **2.791** | -1.083 | **0.461** | **3.765** | 261 |
-| `v3_stat_weighted` | 3.282 | -0.644 | 0.275 | 4.369 | 261 |
-| `v4_availability_adjusted` | 3.182 | -0.137 | 0.310 | 4.262 | 261 |
-| `v5_team_context` | 3.561 | -1.031 | 0.183 | 4.635 | 261 |
-| `v6_usage_share` | 4.729 | -2.518 | -1.198 | 7.604 | 261 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 2.905 | -1.160 | 0.429 | 3.876 | 261 |
+| `v2_age_adjusted` | **2.790** | -1.097 | **0.461** | **3.767** | 261 |
+| `v3_stat_weighted` | 3.281 | -0.645 | 0.275 | 4.368 | 261 |
+| `v4_availability_adjusted` | 3.192 | -0.142 | 0.308 | 4.268 | 261 |
+| `v5_team_context` | 3.568 | -1.036 | 0.181 | 4.640 | 261 |
+| `v6_usage_share` | 4.083 | -1.688 | -0.104 | 5.388 | 261 |
 | `external_fantasypros_v1` | **2.613** | +0.721 | **0.538** | **3.637** | 246 |
 
 ### QB
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 4.359 | -2.245 | 0.164 | 5.869 | 53 |
-| `v2_age_adjusted` | 4.394 | -2.287 | 0.158 | 5.890 | 53 |
-| `v3_stat_weighted` | 5.054 | -1.856 | 0.030 | 6.324 | 53 |
-| `v4_availability_adjusted` | 4.579 | -0.379 | 0.141 | 5.950 | 53 |
-| `v5_team_context` | 5.006 | -1.282 | 0.033 | 6.314 | 53 |
-| `v6_usage_share` | 8.208 | -5.381 | -3.398 | 13.463 | 53 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 4.377 | -2.213 | 0.161 | 5.880 | 53 |
+| `v2_age_adjusted` | 4.408 | -2.255 | 0.154 | 5.903 | 53 |
+| `v3_stat_weighted` | 5.038 | -1.840 | 0.030 | 6.322 | 53 |
+| `v4_availability_adjusted` | 4.605 | -0.378 | 0.135 | 5.969 | 53 |
+| `v5_team_context` | 5.037 | -1.281 | 0.028 | 6.330 | 53 |
+| `v6_usage_share` | 5.037 | -1.281 | 0.028 | 6.330 | 53 |
 | `external_fantasypros_v1` | **4.124** | +2.526 | **0.202** | **5.673** | 52 |
 
 ### RB
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 2.995 | -0.940 | 0.553 | 3.608 | 54 |
-| `v2_age_adjusted` | **2.830** | -0.610 | **0.608** | **3.380** | 54 |
-| `v3_stat_weighted` | 3.850 | +0.305 | 0.197 | 4.838 | 54 |
-| `v4_availability_adjusted` | 3.836 | +0.669 | 0.199 | 4.832 | 54 |
-| `v5_team_context` | 3.812 | -0.306 | 0.160 | 4.947 | 54 |
-| `v6_usage_share` | 4.735 | -1.625 | -0.382 | 6.347 | 54 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 2.973 | -0.969 | 0.561 | 3.578 | 54 |
+| `v2_age_adjusted` | **2.795** | -0.639 | **0.615** | **3.351** | 54 |
+| `v3_stat_weighted` | 3.849 | +0.305 | 0.197 | 4.838 | 54 |
+| `v4_availability_adjusted` | 3.840 | +0.669 | 0.198 | 4.835 | 54 |
+| `v5_team_context` | 3.815 | -0.306 | 0.159 | 4.951 | 54 |
+| `v6_usage_share` | 4.730 | -1.617 | -0.373 | 6.324 | 54 |
 | `external_fantasypros_v1` | **2.584** | +0.361 | **0.628** | **3.252** | 64 |
 
 ### WR
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 3.000 | -1.353 | -0.073 | 3.654 | 62 |
-| `v2_age_adjusted` | **2.638** | -1.339 | **0.090** | **3.365** | 62 |
-| `v3_stat_weighted` | 3.085 | -0.902 | -0.173 | 3.821 | 62 |
-| `v4_availability_adjusted` | 3.079 | -0.698 | -0.182 | 3.836 | 62 |
-| `v5_team_context` | 3.441 | -1.502 | -0.468 | 4.274 | 62 |
-| `v6_usage_share` | 4.382 | -2.515 | -1.618 | 5.708 | 62 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 2.981 | -1.394 | -0.062 | 3.636 | 62 |
+| `v2_age_adjusted` | **2.632** | -1.380 | **0.090** | **3.366** | 62 |
+| `v3_stat_weighted` | 3.079 | -0.912 | -0.166 | 3.809 | 62 |
+| `v4_availability_adjusted` | 3.075 | -0.706 | -0.177 | 3.827 | 62 |
+| `v5_team_context` | 3.435 | -1.511 | -0.462 | 4.266 | 62 |
+| `v6_usage_share` | 4.369 | -2.518 | -1.595 | 5.682 | 62 |
 | `external_fantasypros_v1` | **2.398** | -0.494 | **0.333** | **3.004** | 66 |
 
 ### TE
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 1.994 | -0.658 | 0.476 | 2.536 | 62 |
-| `v2_age_adjusted` | **1.961** | -0.632 | **0.523** | **2.418** | 62 |
-| `v3_stat_weighted` | 2.126 | -0.385 | 0.326 | 2.875 | 62 |
-| `v4_availability_adjusted` | 2.137 | -0.163 | 0.308 | 2.914 | 62 |
-| `v5_team_context` | 2.664 | -1.054 | 0.010 | 3.485 | 62 |
-| `v6_usage_share` | 3.100 | -1.652 | -0.318 | 4.021 | 62 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 2.005 | -0.668 | 0.475 | 2.539 | 62 |
+| `v2_age_adjusted` | **1.962** | -0.642 | **0.523** | **2.419** | 62 |
+| `v3_stat_weighted` | 2.127 | -0.386 | 0.326 | 2.876 | 62 |
+| `v4_availability_adjusted` | 2.139 | -0.166 | 0.307 | 2.916 | 62 |
+| `v5_team_context` | 2.668 | -1.058 | 0.009 | 3.487 | 62 |
+| `v6_usage_share` | 3.103 | -1.655 | -0.317 | 4.020 | 62 |
 | `external_fantasypros_v1` | **1.637** | +0.867 | **0.604** | **2.192** | 64 |
 
 ### K
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 1.846 | -0.151 | -0.792 | 2.411 | 30 |
-| `v2_age_adjusted` | 1.925 | -0.209 | -0.853 | 2.452 | 30 |
-| `v3_stat_weighted` | 1.925 | -0.209 | -0.853 | 2.452 | 30 |
-| `v4_availability_adjusted` | 1.911 | +0.052 | **-0.688** | **2.340** | 30 |
-| `v5_team_context` | 2.653 | -0.868 | -1.954 | 3.096 | 30 |
-| `v6_usage_share` | 2.653 | -0.868 | -1.954 | 3.096 | 30 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 1.886 | -0.174 | -0.832 | 2.438 | 30 |
+| `v2_age_adjusted` | 1.959 | -0.233 | -0.896 | 2.481 | 30 |
+| `v3_stat_weighted` | 1.959 | -0.233 | -0.896 | 2.481 | 30 |
+| `v4_availability_adjusted` | 1.947 | +0.030 | **-0.718** | **2.361** | 30 |
+| `v5_team_context` | 2.667 | -0.890 | -1.983 | 3.111 | 30 |
+| `v6_usage_share` | 2.667 | -0.890 | -1.983 | 3.111 | 30 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## All Seasons Combined
@@ -308,70 +308,70 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 2.677 | -0.385 | 0.470 | 3.637 | 844 |
-| `v2_age_adjusted` | **2.615** | -0.408 | **0.489** | **3.571** | 844 |
-| `v3_stat_weighted` | 2.956 | -0.191 | 0.347 | 4.039 | 844 |
-| `v4_availability_adjusted` | 2.957 | +0.296 | 0.335 | 4.073 | 844 |
-| `v5_team_context` | 3.422 | -0.610 | 0.191 | 4.490 | 844 |
-| `v6_usage_share` | 4.385 | -1.701 | -0.872 | 6.836 | 844 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 2.666 | -0.389 | 0.472 | 3.630 | 844 |
+| `v2_age_adjusted` | **2.607** | -0.412 | **0.490** | **3.567** | 844 |
+| `v3_stat_weighted` | 2.953 | -0.196 | 0.347 | 4.039 | 844 |
+| `v4_availability_adjusted` | 2.957 | +0.289 | 0.334 | 4.076 | 844 |
+| `v5_team_context` | 3.424 | -0.618 | 0.190 | 4.493 | 844 |
+| `v6_usage_share` | 4.012 | -1.315 | -0.392 | 5.864 | 844 |
 | `external_fantasypros_v1` | **2.607** | +1.317 | **0.561** | **3.536** | 766 |
 
 ### QB
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 4.025 | -1.302 | 0.225 | 5.321 | 177 |
-| `v2_age_adjusted` | 4.029 | -1.400 | 0.221 | 5.337 | 177 |
-| `v3_stat_weighted` | 4.551 | -1.058 | 0.024 | 5.872 | 177 |
-| `v4_availability_adjusted` | 4.428 | +0.245 | 0.025 | 5.833 | 177 |
-| `v5_team_context` | 4.856 | -0.533 | -0.112 | 6.225 | 177 |
-| `v6_usage_share` | 6.635 | -2.403 | -1.654 | 9.901 | 177 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 4.008 | -1.278 | 0.229 | 5.312 | 177 |
+| `v2_age_adjusted` | 4.011 | -1.376 | 0.225 | 5.329 | 177 |
+| `v3_stat_weighted` | 4.541 | -1.057 | 0.024 | 5.871 | 177 |
+| `v4_availability_adjusted` | 4.433 | +0.235 | 0.023 | 5.841 | 177 |
+| `v5_team_context` | 4.863 | -0.544 | -0.114 | 6.231 | 177 |
+| `v6_usage_share` | 4.863 | -0.544 | -0.114 | 6.231 | 177 |
 | `external_fantasypros_v1` | 4.083 | +2.628 | 0.176 | 5.365 | 171 |
 
 ### RB
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 3.099 | -0.152 | 0.248 | 3.980 | 165 |
-| `v2_age_adjusted` | **3.047** | +0.111 | **0.281** | **3.877** | 165 |
-| `v3_stat_weighted` | 3.576 | +0.381 | 0.036 | 4.598 | 165 |
-| `v4_availability_adjusted` | 3.615 | +0.844 | 0.004 | 4.661 | 165 |
-| `v5_team_context` | 3.903 | -0.037 | -0.137 | 4.950 | 165 |
-| `v6_usage_share` | 4.835 | -1.030 | -1.229 | 6.969 | 165 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 3.065 | -0.170 | 0.252 | 3.968 | 165 |
+| `v2_age_adjusted` | **3.010** | +0.093 | **0.284** | **3.866** | 165 |
+| `v3_stat_weighted` | 3.565 | +0.365 | 0.036 | 4.599 | 165 |
+| `v4_availability_adjusted` | 3.608 | +0.827 | 0.004 | 4.662 | 165 |
+| `v5_team_context` | 3.898 | -0.054 | -0.138 | 4.952 | 165 |
+| `v6_usage_share` | 4.823 | -1.036 | -1.212 | 6.942 | 165 |
 | `external_fantasypros_v1` | **2.778** | +1.246 | **0.525** | **3.478** | 185 |
 
 ### WR
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 2.675 | -0.192 | 0.102 | 3.277 | 194 |
-| `v2_age_adjusted` | **2.474** | -0.335 | **0.213** | **3.081** | 194 |
-| `v3_stat_weighted` | 2.727 | -0.071 | 0.022 | 3.444 | 194 |
-| `v4_availability_adjusted` | 2.739 | +0.129 | -0.013 | 3.508 | 194 |
-| `v5_team_context` | 3.104 | -0.705 | -0.260 | 3.895 | 194 |
-| `v6_usage_share` | 4.120 | -1.874 | -1.897 | 5.702 | 194 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 2.666 | -0.211 | 0.104 | 3.270 | 194 |
+| `v2_age_adjusted` | **2.487** | -0.354 | **0.209** | **3.086** | 194 |
+| `v3_stat_weighted` | 2.725 | -0.076 | 0.025 | 3.440 | 194 |
+| `v4_availability_adjusted` | 2.738 | +0.124 | -0.011 | 3.505 | 194 |
+| `v5_team_context` | 3.102 | -0.710 | -0.258 | 3.893 | 194 |
+| `v6_usage_share` | 4.115 | -1.875 | -1.887 | 5.693 | 194 |
 | `external_fantasypros_v1` | **2.189** | +0.737 | **0.405** | **2.734** | 209 |
 
 ### TE
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 1.820 | -0.219 | 0.462 | 2.288 | 198 |
-| `v2_age_adjusted` | **1.794** | -0.260 | **0.486** | **2.232** | 198 |
-| `v3_stat_weighted` | 2.092 | -0.121 | 0.228 | 2.720 | 198 |
-| `v4_availability_adjusted` | 2.120 | +0.120 | 0.195 | 2.774 | 198 |
-| `v5_team_context` | 2.661 | -0.852 | -0.230 | 3.421 | 198 |
-| `v6_usage_share` | 3.402 | -1.859 | -3.006 | 5.908 | 198 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 1.817 | -0.225 | 0.467 | 2.280 | 198 |
+| `v2_age_adjusted` | **1.789** | -0.265 | **0.489** | **2.226** | 198 |
+| `v3_stat_weighted` | 2.092 | -0.126 | 0.228 | 2.720 | 198 |
+| `v4_availability_adjusted` | 2.120 | +0.115 | 0.195 | 2.774 | 198 |
+| `v5_team_context` | 2.664 | -0.856 | -0.231 | 3.422 | 198 |
+| `v6_usage_share` | 3.410 | -1.870 | -3.092 | 5.966 | 198 |
 | `external_fantasypros_v1` | **1.630** | +0.871 | **0.563** | **2.062** | 201 |
 
 ### K
 
 | Model | mae | bias | r_squared | rmse | player_count |
 | --- | --- | --- | --- | --- | --- |
-| `v1_baseline_weighted_ppg` _(baseline)_ | 1.421 | +0.103 | -0.755 | 1.947 | 110 |
-| `v2_age_adjusted` | **1.420** | +0.010 | **-0.735** | **1.933** | 110 |
-| `v3_stat_weighted` | **1.420** | +0.010 | **-0.735** | **1.933** | 110 |
-| `v4_availability_adjusted` | 1.490 | +0.168 | -1.051 | 2.100 | 110 |
-| `v5_team_context` | 2.325 | -0.991 | -3.036 | 2.787 | 110 |
-| `v6_usage_share` | 2.325 | -0.991 | -3.036 | 2.787 | 110 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 1.438 | +0.105 | -0.778 | 1.966 | 110 |
+| `v2_age_adjusted` | **1.430** | +0.013 | **-0.755** | **1.951** | 110 |
+| `v3_stat_weighted` | **1.430** | +0.013 | **-0.755** | **1.951** | 110 |
+| `v4_availability_adjusted` | 1.500 | +0.169 | -1.069 | 2.114 | 110 |
+| `v5_team_context` | 2.330 | -0.990 | -3.034 | 2.794 | 110 |
+| `v6_usage_share` | 2.330 | -0.990 | -3.034 | 2.794 | 110 |
 | `external_fantasypros_v1` | — | — | — | — | — |
