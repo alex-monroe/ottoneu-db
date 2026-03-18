@@ -19,8 +19,7 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 - **Git workflow:** See [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) for branch and PR requirements
 - **Ottoneu rules:** See [docs/references/ottoneu-rules.md](docs/references/ottoneu-rules.md) for scoring, roster, salary cap, and arbitration rules
 - **Environment:** See [docs/references/environment-variables.md](docs/references/environment-variables.md) for `.env` setup
-- **Market Projections:** See [docs/exec-plans/market-projections.md](docs/exec-plans/market-projections.md) for the market-based projection system implementation plan
-- **Projection Accuracy Plan:** See [docs/exec-plans/projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md) for the 5-phase accuracy improvement roadmap (Issues #271-#285)
+- **Projection Accuracy Plan:** See [docs/exec-plans/projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md) for the 4-phase accuracy improvement roadmap (Issues #271-#285)
 - **Projection Accuracy:** Use `/projection-accuracy` skill (or run `python scripts/feature_projections/accuracy_report.py`) to generate a model comparison table. **Required when updating any projection code** — see Projection Model Update Requirements in [AGENTS.md](AGENTS.md).
 - **Retrospective:** Use `/retro` skill after completing a task to surface friction points and open a PR with doc/skill improvements.
 
@@ -39,8 +38,8 @@ docs/
 ├── GIT_WORKFLOW.md                    # Branch strategy, PR requirements
 ├── TESTING.md                         # Python + web test setup and CI
 ├── exec-plans/
-│   ├── market-projections.md          # Market-based projection system implementation plan
-│   └── projection-accuracy-improvement.md  # 5-phase accuracy improvement roadmap
+│   ├── market-projections.md          # Market-based projection system (DEFERRED)
+│   └── projection-accuracy-improvement.md  # 4-phase accuracy improvement roadmap
 ├── generated/
 │   └── db-schema.md                   # Database tables, keys, relationships
 └── references/

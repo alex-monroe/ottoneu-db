@@ -1,5 +1,7 @@
 # Market-Based Season Projection System — Implementation Plan
 
+> **Status: DEFERRED** (2026-03-17) — Deprioritized in favor of tried-and-true techniques for generating early 2026 projections. This remains an interesting future direction but is not on the active roadmap.
+
 ## Context
 
 The existing simple projection system (`scripts/projection_methods.py` + `scripts/update_projections.py`) uses recency-weighted historical PPG as its only signal. It cannot account for team context changes, opponent adjustments, depth chart shifts, or market expectations. This plan introduces a separate, parallel projection system with two main advances:
