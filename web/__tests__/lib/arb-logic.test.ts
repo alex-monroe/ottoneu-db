@@ -53,12 +53,19 @@ function buildLeaguePlayers(): Player[] {
     const players: Player[] = [];
     let id = 1;
 
+    // Use a deterministic pseudo-random number generator for predictable test outputs
+    let seed = 12345;
+    const random = () => {
+        seed = (seed * 9301 + 49297) % 233280;
+        return seed / 233280;
+    };
+
     for (const team of teams) {
         for (const pos of positions) {
             // 3 players per position per team = 144 total
             for (let i = 0; i < 3; i++) {
-                const ppg = 5 + Math.random() * 15;
-                const price = Math.round(1 + Math.random() * 50);
+                const ppg = 5 + random() * 15;
+                const price = Math.round(1 + random() * 50);
                 players.push(
                     makePlayer({
                         player_id: String(id++),
@@ -499,5 +506,12 @@ describe("runArbitrationSimulation", () => {
         for (let i = 1; i < result.length; i++) {
             expect(result[i].mean_arb).toBeLessThanOrEqual(result[i - 1].mean_arb);
         }
+    });
+
+    it("matches snapshot to catch regressions", () => {
+        const players = buildLeaguePlayers();
+        const result = runArbitrationSimulation(players, 5, 0.2);
+        // We only snapshot the top 5 to keep the snapshot file manageable
+        expect(result.slice(0, 5)).toMatchSnapshot();
     });
 });
