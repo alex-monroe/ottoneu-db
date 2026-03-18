@@ -46,8 +46,13 @@ Each task type lives in its own module. `__init__.py` defines task type constant
 `scripts/run_all_analyses.py` orchestrates analysis in dependency order:
 
 ```
+feature projection system
+        │ promote.py → player_projections table
+        ▼
 update projections → projected salary → VORP → surplus value → arbitration → arbitration simulation → projected arbitration
 ```
+
+The feature projection system (see below) generates per-player PPG projections and stores them in `model_projections`. `promote.py` copies the active model's projections into `player_projections`, which is what the analysis pipeline reads.
 
 Shared config and DB helpers in `scripts/analysis_utils.py`. Five analysis scripts produce markdown reports in `reports/` (gitignored). VORP and surplus value expose `calculate_vorp()` and `calculate_surplus()` for import by downstream scripts. Arbitration simulation uses Monte Carlo methods to predict opponent spending patterns (100 runs with ±20% value variation per team).
 

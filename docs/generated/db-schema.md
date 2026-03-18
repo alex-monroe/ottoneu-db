@@ -1,6 +1,6 @@
 # Database Schema
 
-Eleven tables, all with UUID primary keys.
+Fourteen tables, all with UUID primary keys.
 
 ## Tables
 
@@ -13,10 +13,42 @@ Eleven tables, all with UUID primary keys.
 | `league_prices` | Current salaries (FK -> `players`) | `(player_id, league_id)` |
 | `transactions` | Event log of all roster moves (adds, cuts, trades, auctions) | -- |
 | `surplus_adjustments` | Manual value overrides per player per league per user (FK -> `players`, `users`) | `(player_id, league_id, user_id)` |
-| `player_projections` | Calculated projection outputs from Python backend | `(player_id, season)` |
+| `player_projections` | Active projection outputs promoted from `model_projections` (FK -> `players`) | `(player_id, season)` |
 | `arbitration_plans` | Named arbitration budget allocation plans per user (FK -> `users`) | `(league_id, name, user_id)` |
 | `arbitration_plan_allocations` | Per-player dollar allocations within a plan (FK -> `arbitration_plans`, `players`) | `(plan_id, player_id)` |
 | `scraper_jobs` | Persistent job queue with status tracking, dependencies, and retry logic | -- |
+| `projection_models` | Registry of versioned projection models (internal v1–v6 and external sources) | `(name, version)` |
+| `model_projections` | Per-model projected PPG with raw feature values (FK -> `projection_models`, `players`) | `(model_id, player_id, season)` |
+| `backtest_results` | Cached accuracy metrics per model × season × position (FK -> `projection_models`) | `(model_id, season, position)` |
+
+### Projection tables detail
+
+**`projection_models`**
+- `id` UUID PK
+- `name` text — model identifier (e.g. `v2_age_adjusted`, `external_fantasypros_v1`)
+- `version` int — version number
+- `description` text
+- `features` jsonb — list of feature names used
+- `config` jsonb — weight configuration
+- `is_baseline` bool — marks the v1 control model
+- `is_active` bool — whether this model's projections are promoted to `player_projections`
+
+**`model_projections`**
+- `model_id` UUID FK -> `projection_models`
+- `player_id` UUID FK -> `players`
+- `season` int
+- `projected_ppg` float
+- `feature_values` jsonb — per-feature computed values for audit/debug
+
+**`backtest_results`**
+- `model_id` UUID FK -> `projection_models`
+- `season` int
+- `position` text (`ALL`, `QB`, `RB`, `WR`, `TE`, `K`)
+- `mae` float — Mean Absolute Error
+- `bias` float — mean(actual − projected); positive = model under-projects
+- `r_squared` float — goodness of fit
+- `rmse` float — Root Mean Square Error
+- `player_count` int — sample size for this season × position
 
 ## Schema Files
 
