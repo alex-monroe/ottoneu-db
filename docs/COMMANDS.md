@@ -13,6 +13,8 @@ npm start            # Production server
 
 ## Backend (run from project root, venv must be active)
 
+All Python commands below assume the venv is activated. If running without activation, use `venv/bin/python` instead of `python`.
+
 ```bash
 source venv/bin/activate
 

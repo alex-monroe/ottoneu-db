@@ -5,7 +5,9 @@ Usage:
 
 Options:
     --seasons       Comma-separated seasons to include (default: 2024,2025)
-    --run-backtest  Re-run backtest for all models before generating report (slow, hits DB)
+    --run-backtest  Re-run backtest for all models before generating report (slow, hits DB).
+                    Note: this only re-backtests existing projections. If you changed a feature
+                    (e.g. recency weights), you must first regenerate projections via cli.py run.
     --output        Path to write markdown report (default: docs/generated/projection-accuracy.md)
 """
 
