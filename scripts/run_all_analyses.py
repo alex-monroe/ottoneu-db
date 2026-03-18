@@ -1,5 +1,6 @@
 """Orchestrator — runs all analysis scripts in dependency order."""
 
+import subprocess
 import sys
 import time
 from analysis_utils import fetch_all_data, merge_data, ensure_reports_dir, fetch_multi_season_stats
