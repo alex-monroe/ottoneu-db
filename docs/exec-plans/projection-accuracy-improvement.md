@@ -43,20 +43,13 @@ Tune existing model parameters and add simple features. Expected: MAE ~2.50, R²
 - [#273](https://github.com/alex-monroe/ottoneu-db/issues/273) — Add regression-to-positional-mean feature
 - [#276](https://github.com/alex-monroe/ottoneu-db/issues/276) — Per-player backtest diagnostics
 
-### Phase 2: Ensemble
-
-Blend internal + external models. Expected: MAE ~2.35-2.45, R² ~0.58.
-
-- [#274](https://github.com/alex-monroe/ottoneu-db/issues/274) — Simple ensemble: blend v2 + FantasyPros
-- [#275](https://github.com/alex-monroe/ottoneu-db/issues/275) — Bias-correct FantasyPros projections
-
-### Phase 3: Position-Specific Models
+### Phase 2: Position-Specific Models
 
 Different features per position. Expected: further MAE improvement.
 
 - [#277](https://github.com/alex-monroe/ottoneu-db/issues/277) — Position-specific model configurations
 
-### Phase 4: Fix Broken Features
+### Phase 3: Fix Broken Features
 
 Repair v3-v6 features so they contribute positively.
 
@@ -65,11 +58,10 @@ Repair v3-v6 features so they contribute positively.
 - [#280](https://github.com/alex-monroe/ottoneu-db/issues/280) — Test snap_trend feature
 - [#281](https://github.com/alex-monroe/ottoneu-db/issues/281) — Improve rookie projection
 
-### Phase 5: New Data & ML
+### Phase 4: New Data & ML
 
 New data sources and learned models. Expected: MAE < 2.3, R² > 0.60.
 
-- [#282](https://github.com/alex-monroe/ottoneu-db/issues/282) — Market projections system (Vegas lines + ML shares)
 - [#283](https://github.com/alex-monroe/ottoneu-db/issues/283) — Stacked ensemble with learned weights
 - [#284](https://github.com/alex-monroe/ottoneu-db/issues/284) — ADP integration as projection signal
 - [#285](https://github.com/alex-monroe/ottoneu-db/issues/285) — Fix usage_share: complete rethink
@@ -88,8 +80,8 @@ python scripts/feature_projections/accuracy_report.py --run-backtest --seasons 2
 | Phase | MAE Target | R² Target |
 |-------|-----------|-----------|
 | Phase 1-2 | < 2.607 (beat FP) | > 0.53 |
-| Phase 3-4 | < 2.50 | > 0.56 (match FP) |
-| Phase 5 | < 2.30 | > 0.60 (beat FP) |
+| Phase 3 | < 2.50 | > 0.56 (match FP) |
+| Phase 4 | < 2.30 | > 0.60 (beat FP) |
 
 ---
 
@@ -104,4 +96,3 @@ python scripts/feature_projections/accuracy_report.py --run-backtest --seasons 2
 | `scripts/feature_projections/backtest.py` | Validation framework for measuring all changes |
 | `scripts/feature_projections/accuracy_report.py` | Comparison table generation |
 | `scripts/feature_projections/features/__init__.py` | Feature registry — add new features here |
-| `docs/exec-plans/market-projections.md` | Full market projections plan (Issue 12) |
