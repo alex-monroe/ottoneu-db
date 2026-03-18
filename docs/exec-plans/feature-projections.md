@@ -102,6 +102,19 @@ Run on 844 player-seasons per internal model, 766 for FantasyPros (player matchi
 
 6. **FP over-projects by +1.3 PPG on average** (positive bias = model projects higher than actual). Draft-time consensus projections are optimistic — factor this in when using FP projections for roster decisions.
 
+### Root cause diagnosis: why v3-v6 features hurt
+
+| Feature | Impact | Root Cause |
+|---------|--------|------------|
+| `stat_efficiency` (v3) | +0.34 MAE | Redundantly re-derives PPG from component stats with slightly different recency weights, capturing noise not signal |
+| `games_played` (v4) | Negligible MAE change, R² drops | Double-counts injury discounting already embedded in base feature's `games_played/17` scaling |
+| `team_context` (v5) | +0.47 MAE | Uses player's *current* team with *historical* ratings — wrong for team-changers. Also applies to kickers where team offense is irrelevant |
+| `usage_share` (v6) | +0.96 MAE, R² → -0.87 | Extrapolates noisy share trends with oversized scaling (0.5×), amplifying small fluctuations into huge PPG swings |
+
+The combiner stacks features additively — when a feature adds noise (even small), it compounds with other noisy features. This explains why v3 alone might be marginal but v3+v4+v5+v6 is catastrophic.
+
+See [projection-accuracy-improvement.md](projection-accuracy-improvement.md) for the full improvement plan and GitHub issue tracking.
+
 ---
 
 ## Tuning Recommendations
