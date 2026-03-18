@@ -8,9 +8,13 @@ import pandas as pd
 
 from scripts.feature_projections.features.base import ProjectionFeature
 
-# Which stat represents "usage" for each position
+# Which stat represents "usage" for each position.
+# QB is excluded: passing_attempts share was tested (GH #250) but worsened QB MAE
+# significantly (v6 QB MAE 6.6–8.2 vs v5 baseline 4.4–5.3). Starter QBs have
+# near-constant ~0.95 attempt share, so small fluctuations get amplified by
+# TREND_SCALING into large erroneous deltas. See docs/exec-plans/qb-usage-share.md
+# for full analysis and alternative approaches to try.
 USAGE_STAT_BY_POSITION = {
-    "QB": "passing_attempts",  # re-enabled with passing_attempts (GH #250)
     "RB": "rushing_attempts",
     "WR": "targets",
     "TE": "targets",
@@ -23,7 +27,7 @@ class UsageShareFeature(ProjectionFeature):
     """Adjusts projection based on player's share of team usage.
 
     Computes the player's share of team-level volume (targets for WR/TE,
-    rushing attempts for RB, passing attempts for QB), projects the trend,
+    rushing attempts for RB), projects the trend,
     and returns a PPG delta based on whether share is increasing or decreasing.
     """
 

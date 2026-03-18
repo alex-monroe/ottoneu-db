@@ -253,8 +253,8 @@ class TestUsageShareFeature:
     def setup_method(self):
         self.feature = UsageShareFeature()
 
-    def test_qb_passing_attempts(self):
-        """QB with increasing passing_attempts share should get a positive delta (GH #250)."""
+    def test_qb_excluded(self):
+        """QB should return None — passing_attempts share tested but worsened MAE (GH #250)."""
         nfl_df = make_nfl_stats_df([
             {"season": 2023, "games_played": 17, "passing_attempts": 450},
             {"season": 2024, "games_played": 17, "passing_attempts": 550},
@@ -267,8 +267,7 @@ class TestUsageShareFeature:
             },
         }
         result = self.feature.compute("p1", "QB", pd.DataFrame(), nfl_df, ctx)
-        assert result is not None
-        assert result > 0  # increasing share → positive delta
+        assert result is None
 
     def test_wr_increasing_share_positive_delta(self):
         """WR with increasing target share should get a positive PPG delta."""
