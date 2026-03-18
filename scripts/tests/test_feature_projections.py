@@ -122,29 +122,28 @@ class TestAgeCurveFeature:
         assert result is None
 
     def test_qb_at_peak(self):
-        """QB at age 30 (peak) — should get growth adjustment."""
-        ctx = {"birth_date": "1995-09-01", "target_season": 2025}  # age 30
+        """QB at age 28 (peak) — should get zero adjustment."""
+        ctx = {"birth_date": "1997-09-01", "target_season": 2025}  # age 28
         result = self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), ctx)
         assert result is not None
-        # At peak (0 years from peak), years_from_peak = 0, which is not > 0
-        # So goes to growth path with years_to_peak = 0 → 0.0
+        # At peak (0 years from peak), goes to growth path with years_to_peak = 0 → 0.0
         assert result == pytest.approx(0.0, abs=0.1)
 
     def test_qb_past_peak(self):
-        """QB at age 35 (5 years past peak) — should get negative adjustment."""
+        """QB at age 35 (7 years past peak) — should get negative adjustment."""
         ctx = {"birth_date": "1990-09-01", "target_season": 2025}  # age 35
         result = self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), ctx)
         assert result is not None
-        # 5 years past peak × 0.3 decline × 0.3 scale = -0.45
-        assert result == pytest.approx(-0.45, abs=0.05)
+        # 7 years past peak × 1.0 decline × 0.2 scale = -1.4
+        assert result == pytest.approx(-1.4, abs=0.1)
 
     def test_rb_young(self):
         """Young RB (age 22) — should get growth boost."""
         ctx = {"birth_date": "2003-09-01", "target_season": 2025}  # age 22
         result = self.feature.compute("p1", "RB", pd.DataFrame(), pd.DataFrame(), ctx)
         assert result is not None
-        # 3 years to peak (25), growth = 0.5 * min(3, 3) * 0.3 scale = 0.45
-        assert result == pytest.approx(0.45, abs=0.05)
+        # 5 years to peak (27), growth = 0.1 * min(5, 3) * 1.0 scale = 0.3
+        assert result == pytest.approx(0.3, abs=0.05)
 
 
 # ---------------------------------------------------------------------------
