@@ -77,7 +77,12 @@ User accounts with email/password login stored in the `users` table. Passwords a
 
 ## Feature Projection System (`scripts/feature_projections/`)
 
-Generates season-long player PPG projections from historical data using a stacked feature model. Six progressive models (v1–v6) add features incrementally: weighted PPG baseline, age curve, stat efficiency, games availability, team context, and usage share.
+Generates season-long player PPG projections from historical data using a combination of targeted features. The active production model (`v8_age_regression`) uses a surgical combination of features:
+1. `weighted_ppg` baseline (recency-weighted historical performance)
+2. `age_curve` adjustment (career arc expectations)
+3. `regression_to_mean` (pulling extreme outliers toward positional averages)
+
+This approach replaces an older progressive architecture (v1–v7) which proved that cumulatively stacking too many features (like stat efficiency and usage share) introduced more noise than signal.
 
 ### Projection Pipeline
 
