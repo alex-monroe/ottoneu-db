@@ -82,6 +82,12 @@ MODELS: dict[str, ModelDefinition] = {
             "regression_to_mean",
         ],
     ),
+    "v8_age_regression": ModelDefinition(
+        name="v8_age_regression",
+        version=1,
+        description="Optimal feature combo from exhaustive sweep: base + age curve + regression to mean.",
+        features=["weighted_ppg", "age_curve", "regression_to_mean"],
+    ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
         version=1,

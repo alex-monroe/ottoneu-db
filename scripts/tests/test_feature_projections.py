@@ -418,6 +418,7 @@ class TestModelConfig:
             "v5_team_context",
             "v6_usage_share",
             "v7_regression_to_mean",
+            "v8_age_regression",
         ]
         for name in expected:
             model = get_model(name)
