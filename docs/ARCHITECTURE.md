@@ -91,6 +91,9 @@ model_config.py  →  runner.py  →  model_projections table
 - `combiner.py` — base feature PPG + weighted sum of adjustment feature deltas
 - `backtest.py` — compares projected_ppg to actual actuals (MAE, RMSE per model)
 - `accuracy_report.py` — side-by-side model comparison table across all seasons
+- `sweep_recency_weights.py` — in-memory weight sweep for base feature tuning (no DB writes)
+
+**Important dependency:** All internal models (v1–v6) share the `weighted_ppg` base feature. Changing `WeightedPPGFeature.RECENCY_WEIGHTS` requires regenerating projections for **every** internal model via `cli.py run`, not just re-running backtests. The `--run-backtest` flag on `accuracy_report.py` only re-backtests existing projections — it does not regenerate them.
 
 ### External Projection Sources (`external_sources/`)
 
