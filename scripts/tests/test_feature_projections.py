@@ -14,6 +14,7 @@ from scripts.feature_projections.features.stat_efficiency import StatEfficiencyF
 from scripts.feature_projections.features.games_played import GamesPlayedFeature
 from scripts.feature_projections.features.team_context import TeamContextFeature
 from scripts.feature_projections.features.usage_share import UsageShareFeature
+from scripts.feature_projections.features.regression_to_mean import RegressionToMeanFeature
 from scripts.feature_projections.combiner import combine_features
 from scripts.feature_projections.model_config import get_model, MODELS
 
@@ -299,6 +300,54 @@ class TestUsageShareFeature:
 
 
 # ---------------------------------------------------------------------------
+# RegressionToMeanFeature
+# ---------------------------------------------------------------------------
+
+class TestRegressionToMeanFeature:
+    def setup_method(self):
+        self.feature = RegressionToMeanFeature()
+
+    def test_name(self):
+        assert self.feature.name == "regression_to_mean"
+        assert self.feature.is_base is False
+
+    def test_missing_context_returns_none(self):
+        """Missing base_ppg or positional_mean_ppg → None."""
+        result = self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), {})
+        assert result is None
+
+        result = self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), {"base_ppg": 15.0})
+        assert result is None
+
+        result = self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), {"positional_mean_ppg": 12.0})
+        assert result is None
+
+    def test_above_mean_gets_negative_delta(self):
+        """Player PPG above positional mean should get pulled down."""
+        ctx = {"base_ppg": 20.0, "positional_mean_ppg": 12.0}
+        result = self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), ctx)
+        assert result is not None
+        # delta = (12 - 20) * 0.12 = -0.96
+        assert result == pytest.approx(-0.96)
+        assert result < 0
+
+    def test_below_mean_gets_positive_delta(self):
+        """Player PPG below positional mean should get boosted."""
+        ctx = {"base_ppg": 8.0, "positional_mean_ppg": 12.0}
+        result = self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(), ctx)
+        assert result is not None
+        # delta = (12 - 8) * 0.12 = 0.48
+        assert result == pytest.approx(0.48)
+        assert result > 0
+
+    def test_at_mean_returns_zero(self):
+        """Player at positional mean → zero delta."""
+        ctx = {"base_ppg": 12.0, "positional_mean_ppg": 12.0}
+        result = self.feature.compute("p1", "RB", pd.DataFrame(), pd.DataFrame(), ctx)
+        assert result == pytest.approx(0.0)
+
+
+# ---------------------------------------------------------------------------
 # Combiner
 # ---------------------------------------------------------------------------
 
@@ -368,6 +417,7 @@ class TestModelConfig:
             "v4_availability_adjusted",
             "v5_team_context",
             "v6_usage_share",
+            "v7_regression_to_mean",
         ]
         for name in expected:
             model = get_model(name)
@@ -381,7 +431,8 @@ class TestModelConfig:
         """Each model should include all features from previous models."""
         prev_features: list[str] = []
         for name in ["v1_baseline_weighted_ppg", "v2_age_adjusted", "v3_stat_weighted",
-                      "v4_availability_adjusted", "v5_team_context", "v6_usage_share"]:
+                      "v4_availability_adjusted", "v5_team_context", "v6_usage_share",
+                      "v7_regression_to_mean"]:
             model = get_model(name)
             for f in prev_features:
                 assert f in model.features, f"{name} missing feature {f}"

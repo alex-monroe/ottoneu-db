@@ -52,6 +52,41 @@ def _ensure_model_in_db(supabase, model_def: ModelDefinition) -> str:
     return result.data[0]["id"]
 
 
+def _compute_positional_mean_ppg(
+    history_df: pd.DataFrame,
+    players_df: pd.DataFrame,
+    min_games: int = MIN_GAMES,
+) -> dict[str, float]:
+    """Compute mean PPG per position from historical player_stats.
+
+    Only includes players who meet the minimum games threshold.
+    Returns dict mapping position -> mean PPG.
+    """
+    if history_df.empty or players_df.empty:
+        return {}
+
+    merged = history_df.merge(
+        players_df[["player_id_ref", "position"]],
+        left_on="player_id",
+        right_on="player_id_ref",
+        how="left",
+    )
+
+    # Filter to players meeting min games
+    merged["games_played"] = pd.to_numeric(merged["games_played"], errors="coerce").fillna(0)
+    merged["ppg"] = pd.to_numeric(merged["ppg"], errors="coerce").fillna(0)
+    qualified = merged[merged["games_played"] >= min_games]
+
+    if qualified.empty:
+        return {}
+
+    # Average PPG per player first (across seasons), then per position
+    player_avg = qualified.groupby(["player_id", "position"])["ppg"].mean().reset_index()
+    pos_means = player_avg.groupby("position")["ppg"].mean()
+
+    return {str(pos): float(val) for pos, val in pos_means.items()}
+
+
 def _build_context(
     player_id: str,
     position: str,
@@ -59,6 +94,7 @@ def _build_context(
     nfl_stats_all: pd.DataFrame,
     target_season: int,
     team_aggregates: dict[str, Any],
+    positional_means: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     """Build the context dict for a player's feature computation."""
     context: dict[str, Any] = {"target_season": target_season}
@@ -76,6 +112,10 @@ def _build_context(
         team_data = team_aggregates[nfl_team]
         context["team_offense_rating"] = team_data.get("offense_rating", 0.0)
         context["team_usage"] = team_data.get("usage_by_season", {})
+
+    # Positional mean PPG for regression-to-mean feature
+    if positional_means and position in positional_means:
+        context["positional_mean_ppg"] = positional_means[position]
 
     return context
 
@@ -204,6 +244,9 @@ def run_model(
         # Compute team aggregates
         team_aggregates = _compute_team_aggregates(nfl_stats_all, players_df)
 
+        # Compute positional mean PPG for regression-to-mean feature
+        positional_means = _compute_positional_mean_ppg(history_df, players_df)
+
         # Generate projections for each player
         records = []
         for player_id, player_history in history_df.groupby("player_id"):
@@ -223,7 +266,7 @@ def run_model(
             # Build context
             context = _build_context(
                 player_id_str, position, players_df, nfl_stats_all,
-                target_season, team_aggregates,
+                target_season, team_aggregates, positional_means,
             )
 
             # Run combiner

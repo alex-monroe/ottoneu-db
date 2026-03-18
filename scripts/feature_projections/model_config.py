@@ -68,6 +68,20 @@ MODELS: dict[str, ModelDefinition] = {
             "usage_share",
         ],
     ),
+    "v7_regression_to_mean": ModelDefinition(
+        name="v7_regression_to_mean",
+        version=1,
+        description="Usage-share model + regression toward positional mean PPG.",
+        features=[
+            "weighted_ppg",
+            "age_curve",
+            "stat_efficiency",
+            "games_played",
+            "team_context",
+            "usage_share",
+            "regression_to_mean",
+        ],
+    ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
         version=1,
