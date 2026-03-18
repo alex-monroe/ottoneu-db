@@ -25,9 +25,9 @@ The combiner stacks features additively. When a feature adds noise (even small),
 
 | Model | MAE | R² | Bias |
 |-------|-----|-----|------|
-| `v1_baseline` | 2.677 | 0.470 | -0.385 |
-| **`v2_age_adjusted`** | **2.615** | **0.489** | -0.408 |
-| v3-v6 | 2.96–4.39 | degrades | — |
+| `v1_baseline` | 2.666 | 0.472 | -0.389 |
+| **`v2_age_adjusted`** | **2.584** | **0.499** | -0.120 |
+| v3-v6 | 2.95–4.01 | degrades | — |
 | **FantasyPros** | **2.607** | **0.561** | +1.317 |
 
 ---
@@ -38,8 +38,8 @@ The combiner stacks features additively. When a feature adds noise (even small),
 
 Tune existing model parameters and add simple features. Expected: MAE ~2.50, R² ~0.52.
 
-- [#271](https://github.com/alex-monroe/ottoneu-db/issues/271) — Tune base feature recency weights
-- [#272](https://github.com/alex-monroe/ottoneu-db/issues/272) — Tune age curve parameters via grid search
+- [#271](https://github.com/alex-monroe/ottoneu-db/issues/271) — ~~Tune base feature recency weights~~ ✅
+- [#272](https://github.com/alex-monroe/ottoneu-db/issues/272) — ~~Tune age curve parameters via grid search~~ ✅ (MAE 2.615→2.584, R² 0.489→0.499)
 - [#273](https://github.com/alex-monroe/ottoneu-db/issues/273) — Add regression-to-positional-mean feature
 - [#276](https://github.com/alex-monroe/ottoneu-db/issues/276) — Per-player backtest diagnostics
 
