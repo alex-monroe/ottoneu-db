@@ -1,0 +1,23 @@
+{
+  "date": "2026-03-17",
+  "window": "7d",
+  "metrics": {
+    "commits": 38,
+    "prs_merged": 38,
+    "insertions": 13907,
+    "deletions": 800,
+    "net_loc": 13107,
+    "test_ratio": 0.07,
+    "active_days": 6,
+    "sessions": 10,
+    "deep_sessions": 1,
+    "avg_session_minutes": 40,
+    "loc_per_session_hour": 2076,
+    "feat_pct": 0.34,
+    "fix_pct": 0.26,
+    "peak_hour": 21,
+    "ai_assisted_commits": 38
+  },
+  "streak_days": 3,
+  "friction_points": 6
+}
