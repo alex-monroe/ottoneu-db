@@ -49,6 +49,14 @@ docs/
     └── ottoneu-rules.md               # Scoring, roster, salary cap, arbitration rules
 ```
 
+## GitHub Repository
+
+When using GitHub MCP tools or `gh` CLI, the repository coordinates are:
+- **Owner:** `alex-monroe`
+- **Repo:** `ottoneu-db` (hyphen, not underscore)
+
+Note: The local directory is `ottoneu_db` (underscore) but the GitHub repo name uses a hyphen.
+
 ## Critical Rules
 
 - **Update documentation:** Always try to update the agent documentation after completing a task. Update existing documents or add new documents and sections as needed to reflect architectural or contextual changes.
