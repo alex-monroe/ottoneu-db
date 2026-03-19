@@ -108,6 +108,12 @@ MODELS: dict[str, ModelDefinition] = {
         features=["weighted_ppg", "age_curve", "regression_to_mean"],
         position_overrides={},
     ),
+    "v10_stat_efficiency_v2": ModelDefinition(
+        name="v10_stat_efficiency_v2",
+        version=1,
+        description="v8 (age_curve + regression_to_mean) + rewritten stat_efficiency v2 with rate-based efficiency deltas.",
+        features=["weighted_ppg", "age_curve", "regression_to_mean", "stat_efficiency"],
+    ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
         version=1,
