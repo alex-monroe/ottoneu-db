@@ -250,6 +250,11 @@ def main() -> None:
         default=10,
         help="Number of top combinations to show in detail (default: 10)",
     )
+    parser.add_argument(
+        "--by-position",
+        action="store_true",
+        help="Rank combos per position instead of ALL-positions aggregate",
+    )
     args = parser.parse_args()
     seasons = [int(s.strip()) for s in args.seasons.split(",")]
 
@@ -352,6 +357,112 @@ def main() -> None:
                 print(
                     f"  {pos:<10} {mae:>8.4f} {bias:>+8.4f} {r_sq:>8.4f} {rmse:>8.4f}"
                 )
+
+    # === Per-position ranking (--by-position) ===
+    if args.by_position:
+        # Find v8 combo (all 6 features) for comparison baseline
+        v8_features = set(ADJUSTMENT_FEATURES)
+        v8_row = None
+        for row in ranked:
+            if set(row["features"]) == v8_features:
+                v8_row = row
+                break
+
+        print(f"\n\n{'=' * 100}")
+        print("PER-POSITION BEST COMBOS")
+        print(f"{'=' * 100}\n")
+
+        # Summary table
+        header = f"{'Position':<6}  {'Best Combo':<60} {'MAE':>8} {'R²':>8} {'vs v8 MAE':>10}"
+        print(header)
+        print("-" * len(header))
+
+        for pos in POSITIONS:
+            # Rank combos by this position's weighted-average MAE
+            pos_ranked = []
+            for adj_features_item, results in combo_results:
+                mae = _weighted_avg(results, pos, "mae")
+                r_sq = _weighted_avg(results, pos, "r_squared")
+                if mae is not None:
+                    pos_ranked.append({
+                        "features": adj_features_item,
+                        "mae": mae,
+                        "r_squared": r_sq,
+                        "results": results,
+                    })
+            pos_ranked.sort(key=lambda x: x["mae"])
+
+            if not pos_ranked:
+                continue
+
+            best = pos_ranked[0]
+            label = "weighted_ppg"
+            if best["features"]:
+                label += " + " + " + ".join(best["features"])
+            else:
+                label += " (base only)"
+            if len(label) > 60:
+                label = label[:57] + "..."
+
+            mae_str = f"{best['mae']:.4f}"
+            r2_str = f"{best['r_squared']:.4f}" if best["r_squared"] is not None else "N/A"
+
+            v8_mae = _weighted_avg(v8_row["results"], pos, "mae") if v8_row else None
+            if v8_mae is not None:
+                diff = best["mae"] - v8_mae
+                vs_v8_str = f"{diff:+.4f}"
+            else:
+                vs_v8_str = "N/A"
+
+            print(f"{pos:<6}  {label:<60} {mae_str:>8} {r2_str:>8} {vs_v8_str:>10}")
+
+        # Detailed top-3 per position
+        print(f"\n\n{'=' * 100}")
+        print("PER-POSITION TOP 3 DETAIL")
+        print(f"{'=' * 100}")
+
+        for pos in POSITIONS:
+            pos_ranked = []
+            for adj_features_item, results in combo_results:
+                mae = _weighted_avg(results, pos, "mae")
+                r_sq = _weighted_avg(results, pos, "r_squared")
+                bias = _weighted_avg(results, pos, "bias")
+                rmse = _weighted_avg(results, pos, "rmse")
+                if mae is not None:
+                    pos_ranked.append({
+                        "features": adj_features_item,
+                        "mae": mae,
+                        "r_squared": r_sq,
+                        "bias": bias,
+                        "rmse": rmse,
+                    })
+            pos_ranked.sort(key=lambda x: x["mae"])
+
+            if not pos_ranked:
+                continue
+
+            v8_mae = _weighted_avg(v8_row["results"], pos, "mae") if v8_row else None
+
+            print(f"\n  {pos} (v8 MAE: {v8_mae:.4f})" if v8_mae else f"\n  {pos}")
+            print(f"  {'Rank':>4}  {'Features':<55} {'MAE':>8} {'Bias':>8} {'R²':>8} {'RMSE':>8}")
+            print(f"  {'-' * 96}")
+
+            for i, row in enumerate(pos_ranked[:3]):
+                label = "weighted_ppg"
+                if row["features"]:
+                    label += " + " + " + ".join(row["features"])
+                else:
+                    label += " (base only)"
+                if len(label) > 55:
+                    label = label[:52] + "..."
+
+                mae_str = f"{row['mae']:.4f}"
+                bias_str = f"{row['bias']:+.4f}" if row["bias"] is not None else "N/A"
+                r2_str = f"{row['r_squared']:.4f}" if row["r_squared"] is not None else "N/A"
+                rmse_str = f"{row['rmse']:.4f}" if row["rmse"] is not None else "N/A"
+
+                marker = " ← BEST" if i == 0 else ""
+                print(f"  {i + 1:>4}  {label:<55} {mae_str:>8} {bias_str:>8} {r2_str:>8} {rmse_str:>8}{marker}")
 
     print(f"\n\nDone. Tested {len(combos)} combinations across {len(seasons)} seasons.")
     if ranked:

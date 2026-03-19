@@ -17,7 +17,7 @@ if script_dir not in sys.path:
 from config import get_supabase_client, MIN_GAMES
 from analysis_utils import fetch_multi_season_stats
 from scripts.feature_projections.features import FEATURE_REGISTRY
-from scripts.feature_projections.model_config import ModelDefinition, get_model
+from scripts.feature_projections.model_config import ModelDefinition, PositionOverride, get_model
 from scripts.feature_projections.combiner import combine_features
 
 
@@ -42,7 +42,13 @@ def _ensure_model_in_db(supabase, model_def: ModelDefinition) -> str:
                 "version": model_def.version,
                 "description": model_def.description,
                 "features": json.dumps(model_def.features),
-                "config": json.dumps({"weights": model_def.weights}),
+                "config": json.dumps({
+                    "weights": model_def.weights,
+                    "position_overrides": {
+                        pos: {"features": ov.features, "weights": ov.weights}
+                        for pos, ov in model_def.position_overrides.items()
+                    },
+                }),
                 "is_baseline": model_def.is_baseline,
                 "is_active": False,
             }
@@ -50,6 +56,18 @@ def _ensure_model_in_db(supabase, model_def: ModelDefinition) -> str:
         .execute()
     )
     return result.data[0]["id"]
+
+
+def _resolve_features_for_position(
+    model_def: ModelDefinition, position: str
+) -> tuple[list[str], dict[str, float]]:
+    """Return (feature_names, weights) for a position, applying overrides if present."""
+    override = model_def.position_overrides.get(position)
+    if override:
+        # Merge model-level weights with override-level weights (override wins)
+        merged_weights = {**model_def.weights, **override.weights}
+        return override.features, merged_weights
+    return model_def.features, model_def.weights
 
 
 def _compute_positional_mean_ppg(
@@ -195,15 +213,20 @@ def run_model(
     model_id = _ensure_model_in_db(supabase, model_def)
     print(f"Model '{model_name}' registered with id={model_id}")
 
-    # Instantiate features
-    feature_instances = []
-    for fname in model_def.features:
+    # Compute union of all feature names (default + all overrides)
+    all_feature_names = set(model_def.features)
+    for override in model_def.position_overrides.values():
+        all_feature_names.update(override.features)
+
+    # Instantiate all features into a dict for lookup
+    feature_pool: dict[str, Any] = {}
+    for fname in all_feature_names:
         if fname not in FEATURE_REGISTRY:
             print(f"Warning: feature '{fname}' not in registry, skipping")
             continue
-        feature_instances.append(FEATURE_REGISTRY[fname]())
+        feature_pool[fname] = FEATURE_REGISTRY[fname]()
 
-    if not feature_instances:
+    if not feature_pool:
         print("No valid features found, aborting.")
         return 0
 
@@ -269,15 +292,23 @@ def run_model(
                 target_season, team_aggregates, positional_means,
             )
 
+            # Resolve position-specific features
+            effective_features, effective_weights = _resolve_features_for_position(
+                model_def, position
+            )
+            player_feature_instances = [
+                feature_pool[f] for f in effective_features if f in feature_pool
+            ]
+
             # Run combiner
             projected_ppg, feature_values = combine_features(
-                feature_instances,
+                player_feature_instances,
                 player_id_str,
                 position,
                 player_history,
                 player_nfl,
                 context,
-                model_def.weights or None,
+                effective_weights or None,
             )
 
             if projected_ppg is not None:
