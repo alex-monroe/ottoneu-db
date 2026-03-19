@@ -26,9 +26,11 @@ The combiner stacks features additively. When a feature adds noise (even small),
 | Model | MAE | R² | Bias |
 |-------|-----|-----|------|
 | `v1_baseline` | 2.666 | 0.472 | -0.389 |
-| **`v2_age_adjusted`** | **2.584** | **0.499** | -0.120 |
+| `v2_age_adjusted` | 2.584 | 0.499 | -0.120 |
 | v3-v6 | 2.95–4.01 | degrades | — |
-| **FantasyPros** | **2.607** | **0.561** | +1.317 |
+| `v8_age_regression` | 2.530 | 0.522 | +0.075 |
+| **`v12_no_qb_trajectory`** | **2.525** | **0.526** | **+0.103** |
+| FantasyPros | 2.607 | 0.561 | +1.317 |
 
 ---
 
@@ -56,7 +58,7 @@ Repair v3-v6 features so they contribute positively.
 - [#278](https://github.com/alex-monroe/ottoneu-db/issues/278) — ~~Fix stat_efficiency~~ ✅ (v10: rate-based efficiency deltas)
 - [#279](https://github.com/alex-monroe/ottoneu-db/issues/279) — ~~Fix team_context~~ ✅ (v11: K exclusion, position-specific scaling 0.02-0.05, historical team tracking via `nfl_stats.recent_team`, team-change dampening. Neutral to v8: MAE 2.535 vs 2.530)
 - [#280](https://github.com/alex-monroe/ottoneu-db/issues/280) — Test snap_trend feature
-- [#281](https://github.com/alex-monroe/ottoneu-db/issues/281) — Improve rookie projection
+- [#281](https://github.com/alex-monroe/ottoneu-db/issues/281) — ~~Improve rookie projection~~ ✅ (v12: disabled H2/H1 snap trajectory for QB and K. A first-year QB taking over mid-season has an inflated H2/H1 snap ratio that reflects role acquisition, not future performance signal. First-year QBs/Ks now use raw season PPG. MAE 2.530→2.525, R² 0.522→0.526; K improves meaningfully, QB neutral)
 
 ### Phase 4: New Data & ML
 
