@@ -48,7 +48,7 @@ class WeightedPPGFeature(ProjectionFeature):
         n = len(recent)
 
         if n == 1:
-            return self._rookie_trajectory(recent.iloc[0])
+            return self._rookie_trajectory(recent.iloc[0], position)
         else:
             return self._weighted_average(recent)
 
@@ -72,11 +72,23 @@ class WeightedPPGFeature(ProjectionFeature):
             return None
         return numerator / denominator
 
-    def _rookie_trajectory(self, row: pd.Series) -> Optional[float]:
-        """Rookie projection: PPG × clamp(H2_SPG / H1_SPG, 0.75, 1.50)."""
+    # Positions for which the snap trajectory is skipped (plain PPG returned).
+    # QBs: starting QBs already receive all snaps — H2 vs H1 trajectory just
+    # reflects mid-season role changes, not future performance signal.
+    # Subclasses can override this to change behaviour.
+    NO_TRAJECTORY_POSITIONS: frozenset[str] = frozenset()
+
+    def _rookie_trajectory(self, row: pd.Series, position: str = "") -> Optional[float]:
+        """Rookie projection: PPG × clamp(H2_SPG / H1_SPG, 0.75, 1.50).
+
+        For positions in NO_TRAJECTORY_POSITIONS, returns plain season PPG instead.
+        """
         ppg = float(row["ppg"]) if pd.notna(row.get("ppg")) else 0.0
         if ppg == 0:
             return None
+
+        if position in self.NO_TRAJECTORY_POSITIONS:
+            return ppg
 
         h1_snaps = int(row.get("h1_snaps") or 0) if pd.notna(row.get("h1_snaps")) else 0
         h1_games = max(int(row.get("h1_games") or 1) if pd.notna(row.get("h1_games")) else 1, 1)
@@ -91,3 +103,23 @@ class WeightedPPGFeature(ProjectionFeature):
 
         factor = min(max(h2_spg / h1_spg, self.ROOKIE_MIN_FACTOR), self.ROOKIE_MAX_FACTOR)
         return ppg * factor
+
+
+class WeightedPPGNoQBTrajectoryFeature(WeightedPPGFeature):
+    """WeightedPPG with snap trajectory disabled for QB and K.
+
+    QBs: a starting QB gets all offensive snaps regardless of H1/H2 split —
+    a high H2/H1 ratio just means they took over mid-season, which is a poor
+    proxy for next-year performance. Use raw season PPG instead.
+    Kickers: snaps are irrelevant to scoring.
+    """
+
+    NO_TRAJECTORY_POSITIONS: frozenset[str] = frozenset({"QB", "K"})
+
+    @property
+    def name(self) -> str:
+        return "weighted_ppg_no_qb_trajectory"
+
+    @property
+    def is_base(self) -> bool:
+        return True

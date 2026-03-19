@@ -184,17 +184,17 @@ export default async function ArbitrationPage({ searchParams }: Props) {
               Projection Methodology
             </h2>
             <p className="text-sm text-blue-800 dark:text-blue-300">
-              <strong>Games-weighted, recency-weighted average</strong> over{" "}
-              {historicalSeasons.join(", ")} seasons. Weights:{" "}
+              <strong>v8 model (age_regression):</strong> games-weighted, recency-weighted
+              average over {historicalSeasons.join(", ")} seasons (weights:{" "}
               <code className="text-xs bg-blue-100 dark:bg-blue-900 px-1 rounded">
-                50% most recent / 30% prior / 20% oldest
+                50% / 30% / 20%
               </code>
               , each scaled by{" "}
               <code className="text-xs bg-blue-100 dark:bg-blue-900 px-1 rounded">
                 games_played / 17
-              </code>{" "}
-              to discount injury-shortened years. First-year players use a
-              trajectory projection based on H2 vs H1 snap usage.
+              </code>
+              ) + positional age curve + regression to positional mean.
+              College prospects use positional rookie PPG averages.
             </p>
           </div>
         )}
