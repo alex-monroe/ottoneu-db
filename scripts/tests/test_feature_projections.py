@@ -302,14 +302,32 @@ class TestTeamContextFeature:
     def setup_method(self):
         self.feature = TeamContextFeature()
 
+    def _make_ctx(self, **overrides):
+        """Build a context dict with sensible defaults for team_context."""
+        ctx = {
+            "base_ppg": 15.0,
+            "target_season": 2025,
+            "nfl_team": "KC",
+            "team_offense_rating": 5.0,
+            "all_team_ratings": {"KC": 5.0, "NYJ": -2.0},
+            "team_history": {2023: "KC", 2024: "KC"},
+        }
+        ctx.update(overrides)
+        return ctx
+
     def test_positive_rating_gives_boost(self):
-        ctx = {"team_offense_rating": 5.0, "base_ppg": 15.0}
+        ctx = self._make_ctx(all_team_ratings={"KC": 5.0})
         result = self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), ctx)
         assert result is not None
         assert result > 0
 
     def test_negative_rating_gives_penalty(self):
-        ctx = {"team_offense_rating": -3.0, "base_ppg": 15.0}
+        ctx = self._make_ctx(
+            nfl_team="NYJ",
+            team_offense_rating=-3.0,
+            all_team_ratings={"NYJ": -3.0},
+            team_history={2023: "NYJ", 2024: "NYJ"},
+        )
         result = self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), ctx)
         assert result is not None
         assert result < 0
@@ -317,6 +335,49 @@ class TestTeamContextFeature:
     def test_no_rating_returns_none(self):
         result = self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), {})
         assert result is None
+
+    def test_kicker_excluded(self):
+        ctx = self._make_ctx()
+        result = self.feature.compute("p1", "K", pd.DataFrame(), pd.DataFrame(), ctx)
+        assert result is None
+
+    def test_position_specific_scaling(self):
+        """QB should get a larger adjustment than TE for the same team rating."""
+        ctx = self._make_ctx()
+        qb_result = self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), ctx)
+        te_result = self.feature.compute("p1", "TE", pd.DataFrame(), pd.DataFrame(), ctx)
+        assert qb_result is not None and te_result is not None
+        assert abs(qb_result) > abs(te_result)
+
+    def test_team_change_dampens_adjustment(self):
+        """Player who changed teams should get a smaller adjustment."""
+        # Same team throughout
+        ctx_same = self._make_ctx(
+            nfl_team="KC",
+            team_history={2023: "KC", 2024: "KC"},
+        )
+        result_same = self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), ctx_same)
+
+        # Changed teams (was NYJ, now KC)
+        ctx_changed = self._make_ctx(
+            nfl_team="KC",
+            team_history={2023: "NYJ", 2024: "NYJ"},
+            all_team_ratings={"KC": 5.0, "NYJ": -2.0},
+        )
+        result_changed = self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), ctx_changed)
+
+        assert result_same is not None and result_changed is not None
+        # Changed player uses historical team (NYJ: -2.0) with dampen,
+        # while same-team player uses KC (5.0) without dampen
+        assert abs(result_same) > abs(result_changed)
+
+    def test_reduced_scaling(self):
+        """Scaling should be much smaller than old 0.10 factor."""
+        ctx = self._make_ctx(all_team_ratings={"KC": 5.0})
+        result = self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), ctx)
+        assert result is not None
+        # Old scaling: 5.0 * 0.10 = 0.50. New QB scaling: 5.0 * 0.05 = 0.25
+        assert result == pytest.approx(0.25, abs=0.01)
 
 
 # ---------------------------------------------------------------------------
@@ -448,7 +509,13 @@ class TestCombiner:
             {"season": 2023, "ppg": 10.0, "games_played": 17},
             {"season": 2024, "ppg": 20.0, "games_played": 17},
         ])
-        ctx = {"team_offense_rating": 5.0}
+        ctx = {
+            "team_offense_rating": 5.0,
+            "target_season": 2025,
+            "nfl_team": "KC",
+            "all_team_ratings": {"KC": 5.0},
+            "team_history": {2023: "KC", 2024: "KC"},
+        }
         result, values = combine_features(
             [base, team], "p1", "QB", df, pd.DataFrame(), ctx
         )

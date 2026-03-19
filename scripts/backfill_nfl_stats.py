@@ -192,6 +192,11 @@ def process_stats(combined: pd.DataFrame) -> pd.DataFrame:
     if "player_id" in combined.columns:
         agg_cols["player_id"] = "first"
 
+    # Preserve recent_team: for traded players, keep the team where they
+    # played the most games (last row after sort is a reasonable proxy)
+    if "recent_team" in combined.columns:
+        agg_cols["recent_team"] = "last"
+
     combined = (
         combined
         .groupby(["player_display_name", "season"], as_index=False)
@@ -436,6 +441,11 @@ def backfill_seasons(
             "passing_attempts": _safe_int(getattr(row, "passing_attempts", None)),
             "completions": _safe_int(getattr(row, "completions", None)),
         }
+
+        # Preserve recent_team for historical team tracking
+        recent_team = getattr(row, "recent_team", None)
+        if recent_team and pd.notna(recent_team):
+            stat_row["recent_team"] = str(recent_team)
 
         # Calculate fantasy points
         stat_row["total_points"] = round(calc_half_ppr_points(stat_row), 2)

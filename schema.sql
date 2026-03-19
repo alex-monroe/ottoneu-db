@@ -118,6 +118,9 @@ create table nfl_stats (
   total_snaps integer,
   total_points numeric,
   ppg numeric,
+  recent_team text,
+  passing_attempts integer,
+  completions integer,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
   unique(player_id, season)

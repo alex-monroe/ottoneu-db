@@ -160,20 +160,10 @@ def backtest_model(
             })
 
         if records:
-            # Use a workaround for NULL position in unique constraint:
-            # delete existing then insert
-            for rec in records:
-                q = (
-                    supabase.table("backtest_results")
-                    .delete()
-                    .eq("model_id", model_id)
-                    .eq("season", season)
-                )
-                if rec["position"] is None:
-                    q = q.is_("position", "null")
-                else:
-                    q = q.eq("position", rec["position"])
-                q.execute()
+            # Delete all existing results for this model/season, then insert fresh
+            supabase.table("backtest_results").delete().eq(
+                "model_id", model_id
+            ).eq("season", season).execute()
 
             supabase.table("backtest_results").insert(records).execute()
             print(f"  Stored {len(records)} backtest results")
