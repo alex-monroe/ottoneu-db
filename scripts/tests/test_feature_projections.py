@@ -16,7 +16,8 @@ from scripts.feature_projections.features.team_context import TeamContextFeature
 from scripts.feature_projections.features.usage_share import UsageShareFeature
 from scripts.feature_projections.features.regression_to_mean import RegressionToMeanFeature
 from scripts.feature_projections.combiner import combine_features
-from scripts.feature_projections.model_config import get_model, MODELS
+from scripts.feature_projections.model_config import get_model, MODELS, PositionOverride
+from scripts.feature_projections.runner import _resolve_features_for_position
 
 
 # ---------------------------------------------------------------------------
@@ -419,6 +420,7 @@ class TestModelConfig:
             "v6_usage_share",
             "v7_regression_to_mean",
             "v8_age_regression",
+            "v9_pos_specific",
         ]
         for name in expected:
             model = get_model(name)
@@ -574,3 +576,104 @@ class TestWeightedPPGVeteranCases:
     def test_empty_history_returns_none(self):
         result = self.feature.compute("test", "QB", pd.DataFrame(), pd.DataFrame(), {})
         assert result is None
+
+
+# ---------------------------------------------------------------------------
+# PositionOverride & v9 Model Config
+# ---------------------------------------------------------------------------
+
+class TestPositionOverride:
+    def test_dataclass_defaults(self):
+        ov = PositionOverride(features=["weighted_ppg"])
+        assert ov.features == ["weighted_ppg"]
+        assert ov.weights == {}
+
+    def test_with_weights(self):
+        ov = PositionOverride(features=["weighted_ppg"], weights={"weighted_ppg": 0.9})
+        assert ov.weights["weighted_ppg"] == 0.9
+
+    def test_v9_model_has_overrides(self):
+        model = get_model("v9_pos_specific")
+        assert "QB" in model.position_overrides
+        assert "K" in model.position_overrides
+        assert model.position_overrides["QB"].features == ["weighted_ppg"]
+        assert model.position_overrides["RB"].features == ["weighted_ppg", "age_curve"]
+
+    def test_v9_default_features(self):
+        model = get_model("v9_pos_specific")
+        assert model.features == ["weighted_ppg", "age_curve", "regression_to_mean"]
+
+
+# ---------------------------------------------------------------------------
+# _resolve_features_for_position
+# ---------------------------------------------------------------------------
+
+class TestResolveFeatures:
+    def setup_method(self):
+        self.model = get_model("v9_pos_specific")
+
+    def test_override_hit(self):
+        """QB has override → returns override features."""
+        features, weights = _resolve_features_for_position(self.model, "QB")
+        assert features == ["weighted_ppg"]
+
+    def test_override_miss_uses_defaults(self):
+        """WR has no override → returns default features."""
+        features, weights = _resolve_features_for_position(self.model, "WR")
+        assert features == ["weighted_ppg", "age_curve", "regression_to_mean"]
+
+    def test_unknown_position_uses_defaults(self):
+        features, weights = _resolve_features_for_position(self.model, "DL")
+        assert features == ["weighted_ppg", "age_curve", "regression_to_mean"]
+
+    def test_rb_override(self):
+        features, _ = _resolve_features_for_position(self.model, "RB")
+        assert features == ["weighted_ppg", "age_curve"]
+
+    def test_model_without_overrides(self):
+        """v8 has no overrides — always returns defaults."""
+        model = get_model("v8_age_regression")
+        features, weights = _resolve_features_for_position(model, "QB")
+        assert features == ["weighted_ppg", "age_curve", "regression_to_mean"]
+
+
+# ---------------------------------------------------------------------------
+# v9 Combiner Integration
+# ---------------------------------------------------------------------------
+
+class TestV9CombinerIntegration:
+    """Verify that position-specific feature filtering works end-to-end."""
+
+    def test_qb_gets_only_weighted_ppg(self):
+        """QB with v9 should only use weighted_ppg (no age_curve, no regression)."""
+        base = WeightedPPGFeature()
+        df = make_history_df([
+            {"season": 2023, "ppg": 15.0, "games_played": 17},
+            {"season": 2024, "ppg": 20.0, "games_played": 17},
+        ])
+        ctx = {"birth_date": "1997-09-01", "target_season": 2025, "positional_mean_ppg": 12.0}
+
+        # QB override: only weighted_ppg
+        result, values = combine_features([base], "p1", "QB", df, pd.DataFrame(), ctx)
+        assert result is not None
+        assert "weighted_ppg" in values
+        assert "age_curve" not in values
+        assert "regression_to_mean" not in values
+
+    def test_wr_gets_all_three_features(self):
+        """WR with v9 should use all three default features."""
+        base = WeightedPPGFeature()
+        age = AgeCurveFeature()
+        reg = RegressionToMeanFeature()
+        df = make_history_df([
+            {"season": 2023, "ppg": 12.0, "games_played": 17},
+            {"season": 2024, "ppg": 14.0, "games_played": 17},
+        ])
+        ctx = {"birth_date": "2000-09-01", "target_season": 2025, "positional_mean_ppg": 10.0}
+        result, values = combine_features(
+            [base, age, reg], "p1", "WR", df, pd.DataFrame(), ctx
+        )
+        assert result is not None
+        assert "weighted_ppg" in values
+        assert "age_curve" in values
+        assert "regression_to_mean" in values

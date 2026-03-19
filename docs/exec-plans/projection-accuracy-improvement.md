@@ -47,7 +47,7 @@ Tune existing model parameters and add simple features. Expected: MAE ~2.50, R²
 
 Different features per position. Expected: further MAE improvement.
 
-- [#277](https://github.com/alex-monroe/ottoneu-db/issues/277) — Position-specific model configurations
+- [#277](https://github.com/alex-monroe/ottoneu-db/issues/277) — ~~Position-specific model configurations~~ ✅ (v9_pos_specific: QB/K use weighted_ppg only, RB/TE add age_curve, WR/fallback uses all three)
 
 ### Phase 3: Fix Broken Features
 

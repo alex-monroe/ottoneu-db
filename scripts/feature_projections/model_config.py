@@ -10,6 +10,14 @@ from dataclasses import dataclass, field
 
 
 @dataclass
+class PositionOverride:
+    """Per-position feature override for a model."""
+
+    features: list[str]
+    weights: dict[str, float] = field(default_factory=dict)
+
+
+@dataclass
 class ModelDefinition:
     """Definition of a projection model."""
 
@@ -19,6 +27,7 @@ class ModelDefinition:
     features: list[str]
     weights: dict[str, float] = field(default_factory=dict)
     is_baseline: bool = False
+    position_overrides: dict[str, PositionOverride] = field(default_factory=dict)
 
 
 # === Model Definitions ===
@@ -87,6 +96,18 @@ MODELS: dict[str, ModelDefinition] = {
         version=1,
         description="Optimal feature combo from exhaustive sweep: base + age curve + regression to mean.",
         features=["weighted_ppg", "age_curve", "regression_to_mean"],
+    ),
+    "v9_pos_specific": ModelDefinition(
+        name="v9_pos_specific",
+        version=1,
+        description="Position-specific feature sets: QB/K use weighted_ppg only, RB/TE add age_curve, WR/fallback add age_curve + regression_to_mean.",
+        features=["weighted_ppg", "age_curve", "regression_to_mean"],
+        position_overrides={
+            "QB": PositionOverride(features=["weighted_ppg"]),
+            "RB": PositionOverride(features=["weighted_ppg", "age_curve"]),
+            "TE": PositionOverride(features=["weighted_ppg", "age_curve"]),
+            "K": PositionOverride(features=["weighted_ppg"]),
+        },
     ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
