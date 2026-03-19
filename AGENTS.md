@@ -77,13 +77,32 @@ Run `make check-arch` to validate these rules locally.
 
 When any task modifies the projection system — including `scripts/feature_projections/`, `scripts/projection_methods.py`, `scripts/update_projections.py`, or `model_config.py` — you MUST:
 
-1. **Recompute the accuracy comparison table** by running:
+1. **Run the new model for ALL backtest seasons before calling `--run-backtest`.**
+   The accuracy report covers seasons 2022–2025. If a new model is missing any of those seasons in `model_projections`, that season will show `—` in the table and the combined averages will be wrong. Run:
    ```
-   source venv/bin/activate && python scripts/feature_projections/accuracy_report.py --run-backtest --seasons 2024,2025
+   source venv/bin/activate && python scripts/feature_projections/cli.py run --model <name> --seasons 2022,2023,2024,2025
+   ```
+   Then run the full report:
+   ```
+   source venv/bin/activate && python scripts/feature_projections/accuracy_report.py --run-backtest --seasons 2022,2023,2024,2025
    ```
 2. **Include the full markdown table** (from `docs/generated/projection-accuracy.md`) in:
    - The task output / conversation summary
    - The PR description body under a `## Projection Accuracy` section
 3. **Highlight improvements** — call out which metrics improved vs the baseline (`v1_baseline_weighted_ppg`) in the PR description narrative above the table.
+4. **Update UI methodology text** when changing `ACTIVE_MODEL` in `update_projections.py`. The pages `web/app/projections/page.tsx` and `web/app/arbitration/page.tsx` contain hardcoded methodology descriptions that must reflect the active model's feature set.
 
 This ensures every projection change is empirically validated before merge.
+
+### Rookie snap trajectory (weighted_ppg feature)
+
+The `WeightedPPGFeature` applies an H2/H1 snap-per-game multiplier to first-year players (`_rookie_trajectory`). This is appropriate for skill positions (WR/RB/TE) where rising snap share signals growing role. It is **not** appropriate for:
+
+- **QB**: A starting QB already receives all offensive snaps. A high H2/H1 ratio simply means they took over mid-season, not that they'll be better next year.
+- **K**: Snap counts are irrelevant to kicker scoring.
+
+`v12_no_qb_trajectory` (current active model) disables the trajectory for QB and K via `WeightedPPGNoQBTrajectoryFeature`. Do not re-enable it for those positions.
+
+### Supabase pagination
+
+Supabase's Python client defaults to a **1000-row limit** on `.execute()` calls. Any query that may return more than 1000 rows must use paginated `.range(offset, offset + page_size - 1)` fetching in a loop. This has already caused a silent bug in `promote.py` (now fixed). Apply the same pattern in any new bulk-fetch code.
