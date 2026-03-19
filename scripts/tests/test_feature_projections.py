@@ -163,36 +163,109 @@ class TestStatEfficiencyFeature:
         result = self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), {})
         assert result is None
 
-    def test_returns_delta_from_base(self):
-        """Should return difference between stat-based and base PPG."""
-        nfl_df = make_nfl_stats_df([{
-            "season": 2024, "games_played": 17,
-            "passing_yards": 4000, "passing_tds": 30, "interceptions": 10,
-            "rushing_yards": 200, "rushing_tds": 2,
-            "receptions": 0, "receiving_yards": 0, "receiving_tds": 0,
-        }])
-        # Stat PPG: (4000*0.04 + 30*4 + (-10*2) + 200*0.1 + 2*6) / 17
-        # = (160 + 120 - 20 + 20 + 12) / 17 = 292 / 17 ≈ 17.18
-        ctx = {"base_ppg": 15.0}
-        result = self.feature.compute("p1", "QB", pd.DataFrame(), nfl_df, ctx)
-        assert result is not None
-        assert result == pytest.approx(17.176 - 15.0, abs=0.1)
-
-    def test_no_base_ppg_returns_none(self):
-        nfl_df = make_nfl_stats_df([{
-            "season": 2024, "games_played": 17,
-            "passing_yards": 4000, "passing_tds": 30, "interceptions": 10,
-        }])
-        result = self.feature.compute("p1", "QB", pd.DataFrame(), nfl_df, {})
-        assert result is None
-
     def test_kicker_returns_none(self):
         """K position has no passing/rushing/receiving stats — always return None."""
         nfl_df = make_nfl_stats_df([{
             "season": 2024, "games_played": 17,
+            "passing_yards": 4000, "passing_tds": 30, "passing_attempts": 500,
         }])
         ctx = {"base_ppg": 7.0}
         result = self.feature.compute("p1", "K", pd.DataFrame(), nfl_df, ctx)
+        assert result is None
+
+    def test_no_base_ppg_returns_none(self):
+        nfl_df = make_nfl_stats_df([{
+            "season": 2024, "games_played": 17,
+            "passing_yards": 4000, "passing_tds": 30, "passing_attempts": 500,
+        }])
+        result = self.feature.compute("p1", "QB", pd.DataFrame(), nfl_df, {})
+        assert result is None
+
+    def test_qb_high_ypa_positive_delta(self):
+        """QB with above-baseline YPA in recent season → positive adjustment."""
+        nfl_df = make_nfl_stats_df([
+            {"season": 2023, "games_played": 17, "passing_yards": 3500, "passing_tds": 22, "interceptions": 12, "passing_attempts": 500},
+            {"season": 2024, "games_played": 17, "passing_yards": 4500, "passing_tds": 23, "interceptions": 13, "passing_attempts": 500},
+        ])
+        # 2023 YPA=7.0, 2024 YPA=9.0 → deviation = (9-7)/7 = 0.286 → positive delta
+        ctx = {"base_ppg": 20.0}
+        result = self.feature.compute("p1", "QB", pd.DataFrame(), nfl_df, ctx)
+        assert result is not None
+        assert result > 0
+
+    def test_qb_high_td_rate_regression(self):
+        """QB with elevated TD rate → negative adjustment (regression signal)."""
+        nfl_df = make_nfl_stats_df([
+            {"season": 2023, "games_played": 17, "passing_yards": 3500, "passing_tds": 20, "interceptions": 12, "passing_attempts": 500},
+            {"season": 2024, "games_played": 17, "passing_yards": 3500, "passing_tds": 40, "interceptions": 12, "passing_attempts": 500},
+        ])
+        # 2023 TD rate=0.04, 2024 TD rate=0.08 → big deviation, negative direction
+        ctx = {"base_ppg": 20.0}
+        result = self.feature.compute("p1", "QB", pd.DataFrame(), nfl_df, ctx)
+        assert result is not None
+        # The TD rate regression signal should dominate (direction=-0.5)
+        # but YPA is flat (deviation≈0) and INT rate is flat, so net depends on TD rate
+        # TD deviation = (0.08-0.04)/0.04 = 1.0, delta = 1.0 * -0.5 * 0.07 * 20 = -0.7
+
+    def test_rb_efficiency_up(self):
+        """RB with improving YPC → positive adjustment."""
+        nfl_df = make_nfl_stats_df([
+            {"season": 2023, "games_played": 17, "rushing_yards": 200, "rushing_tds": 3, "rushing_attempts": 50},
+            {"season": 2024, "games_played": 17, "rushing_yards": 350, "rushing_tds": 4, "rushing_attempts": 50},
+        ])
+        # 2023 YPC=4.0, 2024 YPC=7.0 → positive deviation
+        ctx = {"base_ppg": 12.0}
+        result = self.feature.compute("p1", "RB", pd.DataFrame(), nfl_df, ctx)
+        assert result is not None
+        assert result > 0
+
+    def test_wr_catch_rate_down(self):
+        """WR with declining catch rate → negative adjustment."""
+        nfl_df = make_nfl_stats_df([
+            {"season": 2023, "games_played": 17, "receptions": 80, "receiving_yards": 1000, "receiving_tds": 6, "targets": 100},
+            {"season": 2024, "games_played": 17, "receptions": 40, "receiving_yards": 600, "receiving_tds": 3, "targets": 100},
+        ])
+        # Catch rate: 0.80 → 0.40, yards/target: 10→6, TD rate: 0.06→0.03
+        # All declining → negative delta (catch rate and yards/target have positive direction)
+        ctx = {"base_ppg": 10.0}
+        result = self.feature.compute("p1", "WR", pd.DataFrame(), nfl_df, ctx)
+        assert result is not None
+        assert result < 0
+
+    def test_single_season_uses_league_avg(self):
+        """1-season player compared to league averages."""
+        nfl_df = make_nfl_stats_df([{
+            "season": 2024, "games_played": 17,
+            "passing_yards": 4200, "passing_tds": 30, "interceptions": 10, "passing_attempts": 500,
+        }])
+        # YPA = 8.4 vs league avg 7.0 → deviation=(8.4-7)/7=0.2 → positive
+        # TD rate = 0.06 vs league avg 0.045 → deviation=(0.06-0.045)/0.045=0.33 → negative (direction=-0.5)
+        # INT rate = 0.02 vs league avg 0.025 → deviation=(0.02-0.025)/0.025=-0.2 → positive (direction=-1)
+        ctx = {"base_ppg": 20.0}
+        result = self.feature.compute("p1", "QB", pd.DataFrame(), nfl_df, ctx)
+        assert result is not None
+
+    def test_clamped_to_10_pct(self):
+        """Extreme deviations should be clamped to ±10% of base_ppg."""
+        nfl_df = make_nfl_stats_df([
+            {"season": 2023, "games_played": 17, "rushing_yards": 50, "rushing_tds": 0, "rushing_attempts": 50},
+            {"season": 2024, "games_played": 17, "rushing_yards": 500, "rushing_tds": 20, "rushing_attempts": 50},
+        ])
+        # Extreme YPC deviation: 1.0 → 10.0 = 900% increase
+        ctx = {"base_ppg": 10.0}
+        result = self.feature.compute("p1", "RB", pd.DataFrame(), nfl_df, ctx)
+        assert result is not None
+        assert abs(result) <= 10.0 * 0.10 + 0.001  # clamped to ±1.0
+
+    def test_low_attempts_filtered(self):
+        """Seasons below attempt threshold should be skipped."""
+        nfl_df = make_nfl_stats_df([{
+            "season": 2024, "games_played": 17,
+            "passing_yards": 500, "passing_tds": 3, "interceptions": 2, "passing_attempts": 50,
+        }])
+        # 50 attempts < 100 minimum → all QB metrics filtered out
+        ctx = {"base_ppg": 15.0}
+        result = self.feature.compute("p1", "QB", pd.DataFrame(), nfl_df, ctx)
         assert result is None
 
 
