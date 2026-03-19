@@ -40,10 +40,15 @@ docs/
 ├── GIT_WORKFLOW.md                    # Branch strategy, PR requirements
 ├── TESTING.md                         # Python + web test setup and CI
 ├── exec-plans/
+│   ├── feature-projections.md         # Feature projections context
 │   ├── market-projections.md          # Market-based projection system (DEFERRED)
-│   └── projection-accuracy-improvement.md  # 4-phase accuracy improvement roadmap
+│   ├── projection-accuracy-improvement.md  # 4-phase accuracy improvement roadmap
+│   └── qb-usage-share.md              # QB Usage Share plan
 ├── generated/
-│   └── db-schema.md                   # Database tables, keys, relationships
+│   ├── db-schema.md                   # Database tables, keys, relationships
+│   ├── player-diagnostics.md          # Output of diagnostics script
+│   ├── projection-accuracy.md         # Generated projection accuracy report
+│   └── segment-analysis.md            # Segment analysis report
 └── references/
     ├── environment-variables.md       # .env and .env.local variable reference
     └── ottoneu-rules.md               # Scoring, roster, salary cap, arbitration rules
