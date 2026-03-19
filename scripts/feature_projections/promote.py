@@ -33,27 +33,33 @@ def promote_model(model_name: str) -> int:
 
     model_id = model_res.data[0]["id"]
 
-    # Fetch all projections for this model
-    proj_res = (
-        supabase.table("model_projections")
-        .select("player_id, season, projected_ppg")
-        .eq("model_id", model_id)
-        .execute()
-    )
-    if not proj_res.data:
+    # Fetch all projections for this model (paginated to avoid 1000-row default limit)
+    records = []
+    page_size = 1000
+    offset = 0
+    while True:
+        proj_res = (
+            supabase.table("model_projections")
+            .select("player_id, season, projected_ppg")
+            .eq("model_id", model_id)
+            .range(offset, offset + page_size - 1)
+            .execute()
+        )
+        page = proj_res.data or []
+        for row in page:
+            records.append({
+                "player_id": row["player_id"],
+                "season": row["season"],
+                "projected_ppg": row["projected_ppg"],
+                "projection_method": model_name,
+            })
+        if len(page) < page_size:
+            break
+        offset += page_size
+
+    if not records:
         print(f"No projections found for model '{model_name}'")
         return 0
-
-    # Convert to player_projections format
-    records = [
-        {
-            "player_id": row["player_id"],
-            "season": row["season"],
-            "projected_ppg": row["projected_ppg"],
-            "projection_method": model_name,
-        }
-        for row in proj_res.data
-    ]
 
     print(f"Promoting {len(records)} projections from model '{model_name}' to player_projections...")
 

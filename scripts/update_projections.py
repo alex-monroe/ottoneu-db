@@ -21,7 +21,7 @@ from projection_methods import CollegeProspectPPG
 
 cli_path = os.path.join(script_dir, "feature_projections", "cli.py")
 TARGET_SEASONS = [2024, 2025, 2026]
-ACTIVE_MODEL = "v8_age_regression"
+ACTIVE_MODEL = "v12_no_qb_trajectory"
 
 
 def compute_avg_rookie_ppg(multi_season_df: pd.DataFrame, players_df: pd.DataFrame,

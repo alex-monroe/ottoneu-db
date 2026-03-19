@@ -1,6 +1,6 @@
 # Projection Model Accuracy Report
 
-_Generated: 2026-03-18 20:35_
+_Generated: 2026-03-18 21:56_
 
 Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed error (positive = under-projection), **R²** = Goodness of fit (higher is better), **RMSE** = Root mean square error, **N** = player sample size.
 
@@ -21,6 +21,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v9_pos_specific` | **2.160** | +0.467 | **0.662** | **2.844** | 154 |
 | `v10_stat_efficiency_v2` | **2.141** | +0.479 | **0.665** | **2.832** | 154 |
 | `v11_team_context_v2` | **2.178** | +0.430 | **0.660** | **2.853** | 154 |
+| `v12_no_qb_trajectory` | **2.160** | +0.467 | **0.662** | **2.844** | 154 |
 | `external_fantasypros_v1` | 2.768 | +1.662 | 0.540 | 3.668 | 133 |
 
 ### QB
@@ -38,6 +39,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v9_pos_specific` | **3.467** | +0.289 | **0.293** | **4.321** | 36 |
 | `v10_stat_efficiency_v2` | **3.433** | +0.327 | **0.298** | **4.308** | 36 |
 | `v11_team_context_v2` | **3.521** | +0.242 | **0.286** | **4.345** | 36 |
+| `v12_no_qb_trajectory` | **3.467** | +0.289 | **0.293** | **4.321** | 36 |
 | `external_fantasypros_v1` | 4.669 | +3.096 | -0.055 | 5.825 | 32 |
 
 ### RB
@@ -55,6 +57,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v9_pos_specific` | **2.506** | -0.059 | **0.558** | **3.059** | 25 |
 | `v10_stat_efficiency_v2` | **2.462** | -0.034 | **0.568** | **3.023** | 25 |
 | `v11_team_context_v2` | **2.567** | -0.106 | **0.539** | **3.121** | 25 |
+| `v12_no_qb_trajectory` | **2.506** | -0.059 | **0.558** | **3.059** | 25 |
 | `external_fantasypros_v1` | **2.643** | +1.210 | **0.579** | **3.179** | 30 |
 
 ### WR
@@ -72,6 +75,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v9_pos_specific` | 1.930 | +1.161 | 0.615 | 2.235 | 33 |
 | `v10_stat_efficiency_v2` | 1.920 | +1.136 | 0.616 | 2.231 | 33 |
 | `v11_team_context_v2` | 1.932 | +1.118 | 0.623 | 2.209 | 33 |
+| `v12_no_qb_trajectory` | 1.930 | +1.161 | 0.615 | 2.235 | 33 |
 | `external_fantasypros_v1` | 1.927 | +1.295 | 0.623 | 2.401 | 36 |
 
 ### TE
@@ -89,6 +93,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v9_pos_specific` | 1.560 | +0.651 | **0.592** | **1.821** | 36 |
 | `v10_stat_efficiency_v2` | 1.554 | +0.668 | **0.594** | **1.817** | 36 |
 | `v11_team_context_v2` | 1.538 | +0.610 | **0.610** | **1.780** | 36 |
+| `v12_no_qb_trajectory` | 1.560 | +0.651 | **0.592** | **1.821** | 36 |
 | `external_fantasypros_v1` | 2.001 | +1.117 | 0.368 | 2.346 | 35 |
 
 ### K
@@ -106,6 +111,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v9_pos_specific` | **1.056** | +0.054 | **-1.029** | **1.521** | 24 |
 | `v10_stat_efficiency_v2` | **1.056** | +0.054 | **-1.029** | **1.521** | 24 |
 | `v11_team_context_v2` | **1.056** | +0.054 | **-1.029** | **1.521** | 24 |
+| `v12_no_qb_trajectory` | **1.056** | +0.054 | **-1.029** | **1.521** | 24 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## Season 2023
@@ -125,6 +131,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v9_pos_specific` | **2.564** | +0.385 | **0.461** | **3.668** | 188 |
 | `v10_stat_efficiency_v2` | **2.546** | +0.399 | **0.466** | **3.653** | 188 |
 | `v11_team_context_v2` | **2.561** | +0.344 | **0.461** | **3.669** | 188 |
+| `v12_no_qb_trajectory` | **2.589** | +0.414 | **0.453** | **3.698** | 188 |
 | `external_fantasypros_v1` | **2.267** | +1.633 | **0.630** | **3.196** | 176 |
 
 ### QB
@@ -142,6 +149,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v9_pos_specific` | 3.852 | -0.333 | **0.207** | **5.175** | 39 |
 | `v10_stat_efficiency_v2` | **3.833** | -0.296 | **0.210** | **5.162** | 39 |
 | `v11_team_context_v2` | 3.934 | -0.406 | **0.191** | **5.226** | 39 |
+| `v12_no_qb_trajectory` | 3.974 | -0.189 | 0.175 | 5.275 | 39 |
 | `external_fantasypros_v1` | **3.640** | +2.361 | 0.166 | **4.770** | 40 |
 
 ### RB
@@ -159,6 +167,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v9_pos_specific` | **3.306** | +1.328 | **-0.192** | **4.641** | 37 |
 | `v10_stat_efficiency_v2` | **3.243** | +1.360 | **-0.169** | **4.595** | 37 |
 | `v11_team_context_v2` | **3.291** | +1.260 | **-0.205** | **4.666** | 37 |
+| `v12_no_qb_trajectory` | **3.306** | +1.328 | **-0.192** | **4.641** | 37 |
 | `external_fantasypros_v1` | **2.548** | +2.210 | **0.466** | **3.472** | 40 |
 
 ### WR
@@ -176,6 +185,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v9_pos_specific` | 2.696 | +0.721 | 0.361 | 3.301 | 44 |
 | `v10_stat_efficiency_v2` | 2.685 | +0.718 | 0.364 | 3.293 | 44 |
 | `v11_team_context_v2` | 2.614 | +0.688 | 0.393 | 3.216 | 44 |
+| `v12_no_qb_trajectory` | 2.696 | +0.721 | 0.361 | 3.301 | 44 |
 | `external_fantasypros_v1` | **1.903** | +1.239 | **0.602** | **2.450** | 49 |
 
 ### TE
@@ -193,6 +203,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v9_pos_specific` | **1.526** | +0.121 | **0.529** | **1.982** | 44 |
 | `v10_stat_efficiency_v2` | **1.530** | +0.127 | **0.522** | **1.995** | 44 |
 | `v11_team_context_v2` | **1.535** | +0.102 | **0.537** | **1.964** | 44 |
+| `v12_no_qb_trajectory` | **1.526** | +0.121 | **0.529** | **1.982** | 44 |
 | `external_fantasypros_v1` | **1.237** | +0.931 | **0.743** | **1.535** | 47 |
 
 ### K
@@ -210,6 +221,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v9_pos_specific` | **0.988** | -0.036 | **-0.404** | **1.219** | 24 |
 | `v10_stat_efficiency_v2` | **0.988** | -0.036 | **-0.404** | **1.219** | 24 |
 | `v11_team_context_v2` | **0.988** | -0.036 | **-0.404** | **1.219** | 24 |
+| `v12_no_qb_trajectory` | **0.984** | -0.041 | **-0.403** | **1.219** | 24 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## Season 2024
@@ -229,6 +241,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v9_pos_specific` | **2.625** | +0.431 | **0.489** | **3.494** | 241 |
 | `v10_stat_efficiency_v2` | **2.629** | +0.411 | **0.488** | **3.498** | 241 |
 | `v11_team_context_v2` | **2.632** | +0.400 | **0.487** | **3.501** | 241 |
+| `v12_no_qb_trajectory` | **2.603** | +0.450 | **0.505** | **3.439** | 241 |
 | `external_fantasypros_v1` | 2.782 | +1.531 | **0.543** | **3.602** | 211 |
 
 ### QB
@@ -246,6 +259,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v9_pos_specific` | **3.825** | -0.883 | **0.416** | **4.983** | 49 |
 | `v10_stat_efficiency_v2` | **3.838** | -0.898 | **0.414** | **4.991** | 49 |
 | `v11_team_context_v2` | **3.835** | -0.971 | **0.417** | **4.982** | 49 |
+| `v12_no_qb_trajectory` | **3.697** | -0.836 | **0.461** | **4.789** | 49 |
 | `external_fantasypros_v1` | 4.015 | +2.650 | 0.313 | **5.163** | 47 |
 
 ### RB
@@ -263,6 +277,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v9_pos_specific` | 3.063 | +1.098 | **0.244** | **3.861** | 49 |
 | `v10_stat_efficiency_v2` | 3.065 | +1.053 | **0.243** | **3.865** | 49 |
 | `v11_team_context_v2` | 3.034 | +1.138 | **0.246** | **3.856** | 49 |
+| `v12_no_qb_trajectory` | 3.063 | +1.098 | **0.244** | **3.861** | 49 |
 | `external_fantasypros_v1` | 3.281 | +1.622 | **0.409** | **3.898** | 51 |
 
 ### WR
@@ -280,6 +295,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v9_pos_specific` | **2.643** | +1.082 | **-0.105** | **3.223** | 55 |
 | `v10_stat_efficiency_v2` | **2.654** | +1.059 | **-0.109** | **3.230** | 55 |
 | `v11_team_context_v2` | **2.647** | +1.008 | **-0.109** | **3.229** | 55 |
+| `v12_no_qb_trajectory` | **2.643** | +1.082 | **-0.105** | **3.223** | 55 |
 | `external_fantasypros_v1` | **2.353** | +1.365 | **0.187** | **2.832** | 58 |
 
 ### TE
@@ -297,6 +313,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v9_pos_specific` | 1.859 | +0.383 | 0.411 | 2.311 | 56 |
 | `v10_stat_efficiency_v2` | 1.854 | +0.371 | 0.416 | 2.302 | 56 |
 | `v11_team_context_v2` | 1.902 | +0.364 | 0.388 | 2.357 | 56 |
+| `v12_no_qb_trajectory` | 1.859 | +0.383 | 0.411 | 2.311 | 56 |
 | `external_fantasypros_v1` | **1.719** | +0.666 | **0.486** | **2.106** | 55 |
 
 ### K
@@ -314,6 +331,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v9_pos_specific` | **1.424** | +0.385 | **-0.328** | **1.978** | 32 |
 | `v10_stat_efficiency_v2` | **1.424** | +0.385 | **-0.328** | **1.978** | 32 |
 | `v11_team_context_v2` | **1.424** | +0.385 | **-0.328** | **1.978** | 32 |
+| `v12_no_qb_trajectory` | **1.455** | +0.456 | **-0.329** | **1.979** | 32 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## Season 2025
@@ -333,6 +351,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v9_pos_specific` | **2.637** | -0.710 | **0.512** | **3.583** | 261 |
 | `v10_stat_efficiency_v2` | **2.639** | -0.705 | **0.512** | **3.581** | 261 |
 | `v11_team_context_v2` | **2.637** | -0.744 | **0.516** | **3.570** | 261 |
+| `v12_no_qb_trajectory` | **2.623** | -0.657 | **0.518** | **3.562** | 261 |
 | `external_fantasypros_v1` | **2.613** | +0.721 | **0.538** | **3.637** | 246 |
 
 ### QB
@@ -350,6 +369,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v9_pos_specific` | **4.116** | -1.596 | **0.242** | **5.590** | 53 |
 | `v10_stat_efficiency_v2` | **4.134** | -1.552 | **0.239** | **5.599** | 53 |
 | `v11_team_context_v2` | **4.134** | -1.602 | **0.256** | **5.539** | 53 |
+| `v12_no_qb_trajectory` | **4.155** | -1.382 | **0.244** | **5.580** | 53 |
 | `external_fantasypros_v1` | **4.124** | +2.526 | **0.202** | **5.673** | 52 |
 
 ### RB
@@ -367,6 +387,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v9_pos_specific` | **2.705** | -0.431 | **0.635** | **3.262** | 54 |
 | `v10_stat_efficiency_v2` | **2.670** | -0.417 | **0.644** | **3.223** | 54 |
 | `v11_team_context_v2` | **2.646** | -0.518 | **0.640** | **3.239** | 54 |
+| `v12_no_qb_trajectory` | **2.705** | -0.431 | **0.635** | **3.262** | 54 |
 | `external_fantasypros_v1` | **2.584** | +0.361 | **0.628** | **3.252** | 64 |
 
 ### WR
@@ -384,6 +405,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v9_pos_specific` | **2.415** | -0.878 | **0.207** | **3.142** | 62 |
 | `v10_stat_efficiency_v2` | **2.433** | -0.899 | **0.201** | **3.153** | 62 |
 | `v11_team_context_v2` | **2.453** | -0.921 | **0.187** | **3.180** | 62 |
+| `v12_no_qb_trajectory` | **2.415** | -0.878 | **0.207** | **3.142** | 62 |
 | `external_fantasypros_v1` | **2.398** | -0.494 | **0.333** | **3.004** | 66 |
 
 ### TE
@@ -401,6 +423,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v9_pos_specific` | **1.912** | -0.257 | **0.553** | **2.342** | 62 |
 | `v10_stat_efficiency_v2` | **1.917** | -0.265 | **0.551** | **2.346** | 62 |
 | `v11_team_context_v2` | **1.911** | -0.279 | **0.554** | **2.338** | 62 |
+| `v12_no_qb_trajectory` | **1.912** | -0.257 | **0.553** | **2.342** | 62 |
 | `external_fantasypros_v1` | **1.637** | +0.867 | **0.604** | **2.192** | 64 |
 
 ### K
@@ -418,6 +441,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v9_pos_specific` | **1.856** | -0.232 | **-0.721** | **2.363** | 30 |
 | `v10_stat_efficiency_v2` | **1.856** | -0.232 | **-0.721** | **2.363** | 30 |
 | `v11_team_context_v2` | **1.856** | -0.232 | **-0.721** | **2.363** | 30 |
+| `v12_no_qb_trajectory` | **1.671** | -0.156 | **-0.385** | **2.120** | 30 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## All Seasons Combined
@@ -439,6 +463,7 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v9_pos_specific` | **2.530** | +0.075 | **0.522** | **3.454** | 844 |
 | `v10_stat_efficiency_v2` | **2.525** | +0.076 | **0.523** | **3.449** | 844 |
 | `v11_team_context_v2` | **2.535** | +0.039 | **0.522** | **3.453** | 844 |
+| `v12_no_qb_trajectory` | **2.525** | +0.103 | **0.526** | **3.438** | 844 |
 | `external_fantasypros_v1` | **2.607** | +1.317 | **0.561** | **3.536** | 766 |
 
 ### QB
@@ -456,6 +481,7 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v9_pos_specific` | **3.845** | -0.737 | **0.293** | **5.092** | 177 |
 | `v10_stat_efficiency_v2` | **3.843** | -0.712 | **0.293** | **5.092** | 177 |
 | `v11_team_context_v2` | **3.882** | -0.789 | **0.292** | **5.091** | 177 |
+| `v12_no_qb_trajectory` | **3.848** | -0.628 | **0.299** | **5.060** | 177 |
 | `external_fantasypros_v1` | 4.083 | +2.628 | 0.176 | 5.365 | 171 |
 
 ### RB
@@ -473,6 +499,7 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v9_pos_specific` | **2.916** | +0.474 | **0.322** | **3.762** | 165 |
 | `v10_stat_efficiency_v2` | **2.884** | +0.476 | **0.331** | **3.735** | 165 |
 | `v11_team_context_v2` | **2.894** | +0.435 | **0.318** | **3.769** | 165 |
+| `v12_no_qb_trajectory` | **2.916** | +0.474 | **0.322** | **3.762** | 165 |
 | `external_fantasypros_v1` | **2.778** | +1.246 | **0.525** | **3.478** | 185 |
 
 ### WR
@@ -490,6 +517,7 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v9_pos_specific` | **2.461** | +0.387 | **0.223** | **3.070** | 194 |
 | `v10_stat_efficiency_v2` | **2.466** | +0.369 | **0.221** | **3.073** | 194 |
 | `v11_team_context_v2` | **2.456** | +0.338 | **0.224** | **3.060** | 194 |
+| `v12_no_qb_trajectory` | **2.461** | +0.387 | **0.223** | **3.070** | 194 |
 | `external_fantasypros_v1` | **2.189** | +0.737 | **0.405** | **2.734** | 209 |
 
 ### TE
@@ -507,6 +535,7 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v9_pos_specific` | **1.747** | +0.173 | **0.515** | **2.169** | 198 |
 | `v10_stat_efficiency_v2` | **1.747** | +0.171 | **0.514** | **2.170** | 198 |
 | `v11_team_context_v2` | **1.757** | +0.149 | **0.514** | **2.172** | 198 |
+| `v12_no_qb_trajectory` | **1.747** | +0.173 | **0.515** | **2.169** | 198 |
 | `external_fantasypros_v1` | **1.630** | +0.871 | **0.563** | **2.062** | 201 |
 
 ### K
@@ -524,4 +553,5 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v9_pos_specific` | **1.366** | +0.053 | **-0.605** | **1.868** | 110 |
 | `v10_stat_efficiency_v2` | **1.366** | +0.053 | **-0.605** | **1.868** | 110 |
 | `v11_team_context_v2` | **1.366** | +0.053 | **-0.605** | **1.868** | 110 |
+| `v12_no_qb_trajectory` | **1.324** | +0.093 | **-0.513** | **1.787** | 110 |
 | `external_fantasypros_v1` | — | — | — | — | — |

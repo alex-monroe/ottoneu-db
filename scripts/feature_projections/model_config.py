@@ -124,6 +124,16 @@ MODELS: dict[str, ModelDefinition] = {
         ),
         features=["weighted_ppg", "age_curve", "regression_to_mean", "team_context"],
     ),
+    "v12_no_qb_trajectory": ModelDefinition(
+        name="v12_no_qb_trajectory",
+        version=1,
+        description=(
+            "v8 (age_curve + regression_to_mean) with snap trajectory disabled for QB and K. "
+            "First-year QBs and Ks use raw season PPG instead of H2/H1 snap multiplier, "
+            "since a starting QB's snap share reflects mid-season role change, not future signal."
+        ),
+        features=["weighted_ppg_no_qb_trajectory", "age_curve", "regression_to_mean"],
+    ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
         version=1,

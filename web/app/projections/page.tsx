@@ -78,29 +78,31 @@ export default async function ProjectionsPage({ searchParams }: Props) {
         {/* Methodology */}
         <section className="bg-slate-50 dark:bg-slate-900 rounded-lg p-5 border border-slate-200 dark:border-slate-800 space-y-3 text-sm text-slate-700 dark:text-slate-300">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-            Methodology
+            Methodology (v8 — age_regression)
           </h2>
           <p>
-            Three methods are applied based on the player&apos;s history depth:
+            Three additive features combined into a single projected PPG:
           </p>
           <ul className="list-disc list-inside space-y-1">
             <li>
-              <strong>Veteran (2+ seasons):</strong> Games-weighted, recency-weighted
-              average across up to three seasons with weights{" "}
-              <strong>0.50 / 0.30 / 0.20</strong> (most recent to oldest). Injury-shortened
-              seasons are discounted by{" "}
+              <strong>Weighted PPG:</strong> Games-weighted, recency-weighted
+              average across {historicalSeasons.join(", ")} with weights{" "}
+              <strong>0.50 / 0.30 / 0.20</strong> (most recent to oldest).
+              Each season is scaled by{" "}
               <code className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded text-xs">
                 games / 17
-              </code>.
+              </code>{" "}
+              to discount injury-shortened years.
             </li>
             <li>
-              <strong>Rookie / First-Year (1 season, shown as{" "}
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-                Rookie
-              </span>):</strong>{" "}
-              Season PPG scaled by a usage trajectory factor derived from
-              H2 vs H1 snaps-per-game, clamped to ±50%. Rising H2 usage
-              projects higher; falling H2 usage projects lower.
+              <strong>Age curve:</strong> Small adjustment (±2%) based on
+              positional age curves — players near their peak age get a boost;
+              older players get a slight discount.
+            </li>
+            <li>
+              <strong>Regression to mean:</strong> Pulls outlier projections
+              toward the positional average PPG, reducing overconfidence in
+              extreme single-season performances.
             </li>
             <li>
               <strong>College Prospect (shown as{" "}
@@ -108,22 +110,13 @@ export default async function ProjectionsPage({ searchParams }: Props) {
                 College
               </span>):</strong>{" "}
               Average PPG of first-year NFL players at the same position.
-              No individual NFL history is available, so the positional
-              rookie average serves as a baseline projection.
-            </li>
-            <li>
-              <strong>{SEASON} PPG</strong> — actual {SEASON} season
-              points-per-game (always the most recently completed season)
-            </li>
-            <li>
-              <strong>Proj {projectionYear}</strong> — model projection for{" "}
-              {projectionYear} built from {historicalSeasons.join(", ")} history
-            </li>
-            <li>
-              <strong>Δ {projectionYear} vs {SEASON}</strong> — Proj minus {SEASON}
-              PPG (positive = projected improvement; negative = projected decline)
             </li>
           </ul>
+          <p className="text-xs text-slate-500 dark:text-slate-400 pt-1">
+            <strong>{SEASON} PPG</strong> — actual {SEASON} season stats &nbsp;·&nbsp;{" "}
+            <strong>Proj {projectionYear}</strong> — model output built from {historicalSeasons.join(", ")} history &nbsp;·&nbsp;{" "}
+            <strong>Δ</strong> — Proj minus {SEASON} PPG
+          </p>
         </section>
 
         <ProjectionsClient initialData={rows} projectionYear={projectionYear} />
