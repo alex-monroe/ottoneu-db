@@ -51,6 +51,9 @@ python scripts/feature_projections/accuracy_report.py --seasons 2024,2025 --outp
 python scripts/feature_projections/cli.py diagnostics                                      # Per-player diagnostics (auto-detects model & season)
 python scripts/feature_projections/cli.py diagnostics --model v6_usage_share --season 2025 --top 20  # Custom options
 python scripts/feature_projections/diagnostics.py --output docs/generated/player-diagnostics.md      # Standalone with markdown output
+python scripts/feature_projections/cli.py segment-analysis                                         # Segmented accuracy analysis (all segments, default models/seasons)
+python scripts/feature_projections/cli.py segment-analysis --segments experience,age_bucket         # Specific segments only
+python scripts/feature_projections/cli.py segment-analysis --models v8_age_regression --seasons 2024,2025  # Custom models/seasons
 
 # Utilities
 python scripts/check_db.py                           # Verify database contents

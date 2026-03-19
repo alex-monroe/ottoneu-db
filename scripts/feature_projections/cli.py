@@ -1,12 +1,13 @@
 """CLI for the feature-based projection system.
 
 Commands:
-    run          — Generate projections for a model
-    backtest     — Compare projections to actuals
-    compare      — Side-by-side model comparison
-    promote      — Copy model projections to production table
-    list         — List available models
-    diagnostics  — Per-player backtest diagnostics with error categorization
+    run                — Generate projections for a model
+    backtest           — Compare projections to actuals
+    compare            — Side-by-side model comparison
+    promote            — Copy model projections to production table
+    list               — List available models
+    diagnostics        — Per-player backtest diagnostics with error categorization
+    segment-analysis   — Segmented accuracy analysis by player category
 """
 
 from __future__ import annotations
@@ -115,6 +116,37 @@ def cmd_diagnostics(args: argparse.Namespace) -> None:
         print(f"\nReport written to: {args.output}")
 
 
+def cmd_segment_analysis(args: argparse.Namespace) -> None:
+    from scripts.feature_projections.segment_analysis import (
+        run_segment_analysis,
+        format_segment_markdown,
+        DEFAULT_MODELS,
+        DEFAULT_SEASONS,
+    )
+
+    model_names = [m.strip() for m in args.models.split(",")]
+    seasons = [int(s.strip()) for s in args.seasons.split(",")]
+    segments = [s.strip() for s in args.segments.split(",")] if args.segments else None
+
+    print(f"Running segment analysis: models={model_names}, seasons={seasons}, segments={segments or 'all'}")
+    results = run_segment_analysis(model_names, seasons, segments)
+
+    report = format_segment_markdown(results, model_names, seasons)
+
+    if args.output:
+        os.makedirs(os.path.dirname(args.output), exist_ok=True)
+        with open(args.output, "w") as f:
+            f.write(report)
+        print(f"\nReport written to: {args.output}")
+
+    # Print summary
+    for seg_name, rows in results.items():
+        print(f"\n  {seg_name.upper()}:")
+        for row in rows:
+            r2 = f"{row['r_squared']:.3f}" if row["r_squared"] is not None and row["n"] >= 10 else "   --"
+            print(f"    {row['segment_value']:<20} {row['model']:<40} MAE={row['mae']:.3f} Bias={row['bias']:+.3f} R²={r2} N={row['n']}")
+
+
 def cmd_list(args: argparse.Namespace) -> None:
     from scripts.feature_projections.model_config import MODELS
 
@@ -162,6 +194,30 @@ def main() -> None:
     diag_parser.add_argument("--top", type=int, default=20, help="Number of worst projections (default: 20)")
     diag_parser.add_argument("--output", default=None, help="Output markdown file path")
     diag_parser.set_defaults(func=cmd_diagnostics)
+
+    # segment-analysis
+    seg_parser = subparsers.add_parser("segment-analysis", help="Segmented accuracy analysis by player category")
+    seg_parser.add_argument(
+        "--models",
+        default="v1_baseline_weighted_ppg,v8_age_regression,external_fantasypros_v1",
+        help="Comma-separated model names",
+    )
+    seg_parser.add_argument(
+        "--seasons",
+        default="2022,2023,2024,2025",
+        help="Comma-separated seasons",
+    )
+    seg_parser.add_argument(
+        "--segments",
+        default=None,
+        help="Comma-separated segments to compute (default: all)",
+    )
+    seg_parser.add_argument(
+        "--output",
+        default=os.path.join(repo_root, "docs", "generated", "segment-analysis.md"),
+        help="Output file path",
+    )
+    seg_parser.set_defaults(func=cmd_segment_analysis)
 
     # list
     list_parser = subparsers.add_parser("list", help="List available model definitions")
