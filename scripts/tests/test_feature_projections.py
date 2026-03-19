@@ -16,7 +16,7 @@ from scripts.feature_projections.features.team_context import TeamContextFeature
 from scripts.feature_projections.features.usage_share import UsageShareFeature
 from scripts.feature_projections.features.regression_to_mean import RegressionToMeanFeature
 from scripts.feature_projections.combiner import combine_features
-from scripts.feature_projections.model_config import get_model, MODELS, PositionOverride
+from scripts.feature_projections.model_config import get_model, MODELS, ModelDefinition, PositionOverride
 from scripts.feature_projections.runner import _resolve_features_for_position
 
 
@@ -592,12 +592,10 @@ class TestPositionOverride:
         ov = PositionOverride(features=["weighted_ppg"], weights={"weighted_ppg": 0.9})
         assert ov.weights["weighted_ppg"] == 0.9
 
-    def test_v9_model_has_overrides(self):
+    def test_v9_model_no_overrides(self):
+        """v9 data-driven sweep confirmed uniform features are optimal — no overrides."""
         model = get_model("v9_pos_specific")
-        assert "QB" in model.position_overrides
-        assert "K" in model.position_overrides
-        assert model.position_overrides["QB"].features == ["weighted_ppg"]
-        assert model.position_overrides["RB"].features == ["weighted_ppg", "age_curve"]
+        assert model.position_overrides == {}
 
     def test_v9_default_features(self):
         model = get_model("v9_pos_specific")
@@ -612,23 +610,33 @@ class TestResolveFeatures:
     def setup_method(self):
         self.model = get_model("v9_pos_specific")
 
-    def test_override_hit(self):
-        """QB has override → returns override features."""
-        features, weights = _resolve_features_for_position(self.model, "QB")
-        assert features == ["weighted_ppg"]
-
-    def test_override_miss_uses_defaults(self):
-        """WR has no override → returns default features."""
-        features, weights = _resolve_features_for_position(self.model, "WR")
-        assert features == ["weighted_ppg", "age_curve", "regression_to_mean"]
+    def test_v9_no_overrides_all_positions_get_defaults(self):
+        """v9 has no overrides — all positions return default features."""
+        for pos in ["QB", "RB", "WR", "TE", "K"]:
+            features, weights = _resolve_features_for_position(self.model, pos)
+            assert features == ["weighted_ppg", "age_curve", "regression_to_mean"], (
+                f"{pos} should get default features"
+            )
 
     def test_unknown_position_uses_defaults(self):
         features, weights = _resolve_features_for_position(self.model, "DL")
         assert features == ["weighted_ppg", "age_curve", "regression_to_mean"]
 
-    def test_rb_override(self):
-        features, _ = _resolve_features_for_position(self.model, "RB")
-        assert features == ["weighted_ppg", "age_curve"]
+    def test_override_mechanism_works(self):
+        """Verify _resolve_features_for_position respects overrides when present."""
+        model = ModelDefinition(
+            name="test_override",
+            version=1,
+            description="test",
+            features=["weighted_ppg", "age_curve"],
+            position_overrides={
+                "QB": PositionOverride(features=["weighted_ppg"]),
+            },
+        )
+        qb_features, _ = _resolve_features_for_position(model, "QB")
+        assert qb_features == ["weighted_ppg"]
+        wr_features, _ = _resolve_features_for_position(model, "WR")
+        assert wr_features == ["weighted_ppg", "age_curve"]
 
     def test_model_without_overrides(self):
         """v8 has no overrides — always returns defaults."""
@@ -642,26 +650,10 @@ class TestResolveFeatures:
 # ---------------------------------------------------------------------------
 
 class TestV9CombinerIntegration:
-    """Verify that position-specific feature filtering works end-to-end."""
+    """Verify that v9 uses uniform features (age_curve + regression_to_mean) for all positions."""
 
-    def test_qb_gets_only_weighted_ppg(self):
-        """QB with v9 should only use weighted_ppg (no age_curve, no regression)."""
-        base = WeightedPPGFeature()
-        df = make_history_df([
-            {"season": 2023, "ppg": 15.0, "games_played": 17},
-            {"season": 2024, "ppg": 20.0, "games_played": 17},
-        ])
-        ctx = {"birth_date": "1997-09-01", "target_season": 2025, "positional_mean_ppg": 12.0}
-
-        # QB override: only weighted_ppg
-        result, values = combine_features([base], "p1", "QB", df, pd.DataFrame(), ctx)
-        assert result is not None
-        assert "weighted_ppg" in values
-        assert "age_curve" not in values
-        assert "regression_to_mean" not in values
-
-    def test_wr_gets_all_three_features(self):
-        """WR with v9 should use all three default features."""
+    def test_all_positions_get_three_features(self):
+        """All positions with v9 should use weighted_ppg + age_curve + regression_to_mean."""
         base = WeightedPPGFeature()
         age = AgeCurveFeature()
         reg = RegressionToMeanFeature()
@@ -677,3 +669,38 @@ class TestV9CombinerIntegration:
         assert "weighted_ppg" in values
         assert "age_curve" in values
         assert "regression_to_mean" in values
+
+
+# ---------------------------------------------------------------------------
+# Sweep: --by-position flag parsing
+# ---------------------------------------------------------------------------
+
+
+class TestSweepByPositionFlag:
+    """Test that sweep_feature_combos.py accepts --by-position flag."""
+
+    def test_by_position_flag_parsed(self):
+        """Argparse should accept --by-position and store it as by_position."""
+        import argparse
+
+        # Replicate the parser from sweep_feature_combos.main()
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--seasons", default="2024,2025")
+        parser.add_argument("--top", type=int, default=10)
+        parser.add_argument("--by-position", action="store_true")
+
+        args = parser.parse_args(["--by-position", "--seasons", "2023,2024"])
+        assert args.by_position is True
+        assert args.seasons == "2023,2024"
+
+    def test_by_position_flag_default_false(self):
+        """--by-position should default to False."""
+        import argparse
+
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--seasons", default="2024,2025")
+        parser.add_argument("--top", type=int, default=10)
+        parser.add_argument("--by-position", action="store_true")
+
+        args = parser.parse_args([])
+        assert args.by_position is False

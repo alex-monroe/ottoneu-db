@@ -100,14 +100,13 @@ MODELS: dict[str, ModelDefinition] = {
     "v9_pos_specific": ModelDefinition(
         name="v9_pos_specific",
         version=1,
-        description="Position-specific feature sets: QB/K use weighted_ppg only, RB/TE add age_curve, WR/fallback add age_curve + regression_to_mean.",
+        description=(
+            "Data-driven per-position sweep confirms v8's uniform feature set "
+            "(age_curve + regression_to_mean) is optimal for all positions. "
+            "No position overrides needed."
+        ),
         features=["weighted_ppg", "age_curve", "regression_to_mean"],
-        position_overrides={
-            "QB": PositionOverride(features=["weighted_ppg"]),
-            "RB": PositionOverride(features=["weighted_ppg", "age_curve"]),
-            "TE": PositionOverride(features=["weighted_ppg", "age_curve"]),
-            "K": PositionOverride(features=["weighted_ppg"]),
-        },
+        position_overrides={},
     ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
