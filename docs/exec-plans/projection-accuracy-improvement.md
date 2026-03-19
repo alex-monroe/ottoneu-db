@@ -53,8 +53,8 @@ Different features per position. Expected: further MAE improvement.
 
 Repair v3-v6 features so they contribute positively.
 
-- [#278](https://github.com/alex-monroe/ottoneu-db/issues/278) — Fix stat_efficiency
-- [#279](https://github.com/alex-monroe/ottoneu-db/issues/279) — Fix team_context
+- [#278](https://github.com/alex-monroe/ottoneu-db/issues/278) — ~~Fix stat_efficiency~~ ✅ (v10: rate-based efficiency deltas)
+- [#279](https://github.com/alex-monroe/ottoneu-db/issues/279) — ~~Fix team_context~~ ✅ (v11: K exclusion, position-specific scaling 0.02-0.05, historical team tracking via `nfl_stats.recent_team`, team-change dampening. Neutral to v8: MAE 2.535 vs 2.530)
 - [#280](https://github.com/alex-monroe/ottoneu-db/issues/280) — Test snap_trend feature
 - [#281](https://github.com/alex-monroe/ottoneu-db/issues/281) — Improve rookie projection
 

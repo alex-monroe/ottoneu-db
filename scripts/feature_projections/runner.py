@@ -105,6 +105,31 @@ def _compute_positional_mean_ppg(
     return {str(pos): float(val) for pos, val in pos_means.items()}
 
 
+def _build_player_team_history(
+    player_id: str,
+    nfl_stats_all: pd.DataFrame,
+) -> dict[int, str]:
+    """Build a mapping of season -> team for a player from nfl_stats.recent_team.
+
+    Returns dict like {2022: "KC", 2023: "KC", 2024: "NYJ"}.
+    """
+    if nfl_stats_all.empty or "recent_team" not in nfl_stats_all.columns:
+        return {}
+
+    player_rows = nfl_stats_all[nfl_stats_all["player_id"] == player_id]
+    if player_rows.empty:
+        return {}
+
+    team_history: dict[int, str] = {}
+    for _, row in player_rows.iterrows():
+        season = int(row["season"]) if pd.notna(row.get("season")) else None
+        team = row.get("recent_team")
+        if season and team and pd.notna(team):
+            team_history[season] = str(team)
+
+    return team_history
+
+
 def _build_context(
     player_id: str,
     position: str,
@@ -124,12 +149,24 @@ def _build_context(
         if pd.notna(bd):
             context["birth_date"] = bd
 
-    # Team offense rating and usage
+    # Current team and team offense rating
     nfl_team = player_row.iloc[0].get("nfl_team") if not player_row.empty else None
+    context["nfl_team"] = nfl_team
+
     if nfl_team and nfl_team in team_aggregates:
         team_data = team_aggregates[nfl_team]
         context["team_offense_rating"] = team_data.get("offense_rating", 0.0)
         context["team_usage"] = team_data.get("usage_by_season", {})
+
+    # Per-season team history for team_context feature
+    team_history = _build_player_team_history(player_id, nfl_stats_all)
+    context["team_history"] = team_history
+
+    # Per-team offense ratings (all teams) for historical lookups
+    context["all_team_ratings"] = {
+        team: data.get("offense_rating", 0.0)
+        for team, data in team_aggregates.items()
+    }
 
     # Positional mean PPG for regression-to-mean feature
     if positional_means and position in positional_means:
@@ -141,22 +178,35 @@ def _build_context(
 def _compute_team_aggregates(
     nfl_stats_all: pd.DataFrame, players_df: pd.DataFrame
 ) -> dict[str, Any]:
-    """Compute team-level aggregates from nfl_stats for team_context and usage_share."""
+    """Compute team-level aggregates from nfl_stats for team_context and usage_share.
+
+    Prefers nfl_stats.recent_team (historical per-season team) when available,
+    falling back to players.nfl_team (current team) for backward compatibility.
+    """
     if nfl_stats_all.empty or players_df.empty:
         return {}
 
-    # Join nfl_stats with players to get nfl_team
-    merged = nfl_stats_all.merge(
-        players_df[["player_id_ref", "nfl_team"]],
-        left_on="player_id",
-        right_on="player_id_ref",
-        how="left",
-    )
+    # Use recent_team from nfl_stats if available, otherwise fall back to players.nfl_team
+    has_recent_team = "recent_team" in nfl_stats_all.columns and nfl_stats_all["recent_team"].notna().any()
+
+    if has_recent_team:
+        # Use the historical team directly from nfl_stats
+        merged = nfl_stats_all.copy()
+        merged["team_for_agg"] = merged["recent_team"]
+    else:
+        # Fall back to joining with players table (current team — legacy behavior)
+        merged = nfl_stats_all.merge(
+            players_df[["player_id_ref", "nfl_team"]],
+            left_on="player_id",
+            right_on="player_id_ref",
+            how="left",
+        )
+        merged["team_for_agg"] = merged["nfl_team"]
 
     team_aggregates: dict[str, Any] = {}
 
-    for nfl_team, team_df in merged.groupby("nfl_team"):
-        if not nfl_team or pd.isna(nfl_team):
+    for team, team_df in merged.groupby("team_for_agg"):
+        if not team or pd.isna(team):
             continue
 
         # Team total points per season
@@ -169,8 +219,6 @@ def _compute_team_aggregates(
             season_ppg[season] = float(total_points) / 17.0  # approximate team PPG
 
             # Aggregate usage stats per team/season
-            # Note: passing_attempts is available in nfl_stats but not used here
-            # yet — see docs/exec-plans/qb-usage-share.md for why and next steps
             usage_by_season[season] = {
                 "targets": float(season_df["targets"].fillna(0).sum()),
                 "rushing_attempts": float(season_df["rushing_attempts"].fillna(0).sum()),
@@ -179,8 +227,7 @@ def _compute_team_aggregates(
         # Compute offense rating: recency-weighted deviation from league average
         if season_ppg:
             avg_team_ppg = sum(season_ppg.values()) / len(season_ppg)
-            # Simple deviation (will be compared to league-wide average in context)
-            team_aggregates[str(nfl_team)] = {
+            team_aggregates[str(team)] = {
                 "avg_ppg": avg_team_ppg,
                 "offense_rating": 0.0,  # will be set after league average is computed
                 "usage_by_season": usage_by_season,
@@ -258,7 +305,7 @@ def run_model(
         for col in ["total_points", "games_played", "targets", "rushing_attempts",
                      "passing_yards", "passing_tds", "interceptions", "rushing_yards",
                      "rushing_tds", "receptions", "receiving_yards", "receiving_tds",
-                     "offense_snaps"]:
+                     "offense_snaps", "passing_attempts", "completions"]:
             if col in nfl_stats_all.columns:
                 nfl_stats_all[col] = pd.to_numeric(nfl_stats_all[col], errors="coerce").fillna(0)
         if "season" in nfl_stats_all.columns:

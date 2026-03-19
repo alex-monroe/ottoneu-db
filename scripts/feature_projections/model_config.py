@@ -114,6 +114,16 @@ MODELS: dict[str, ModelDefinition] = {
         description="v8 (age_curve + regression_to_mean) + rewritten stat_efficiency v2 with rate-based efficiency deltas.",
         features=["weighted_ppg", "age_curve", "regression_to_mean", "stat_efficiency"],
     ),
+    "v11_team_context_v2": ModelDefinition(
+        name="v11_team_context_v2",
+        version=1,
+        description=(
+            "v8 (age_curve + regression_to_mean) + fixed team_context v2: "
+            "position-specific scaling (0.02-0.05), kicker exclusion, "
+            "historical team tracking, team-change dampening."
+        ),
+        features=["weighted_ppg", "age_curve", "regression_to_mean", "team_context"],
+    ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
         version=1,
