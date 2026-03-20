@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Search, X } from "lucide-react";
 import { PlayerListItem, POSITIONS, Position, POSITION_COLORS } from "@/lib/types";
@@ -25,15 +25,18 @@ export default function PlayerSearch({ players }: PlayerSearchProps) {
         return () => document.removeEventListener("keydown", handleKeyDown);
     }, []);
 
-    const filtered = players.filter((p) => {
-        const matchesQuery =
-            query === "" ||
-            p.name.toLowerCase().includes(query.toLowerCase()) ||
-            p.nfl_team.toLowerCase().includes(query.toLowerCase());
-        const matchesPosition =
-            position === "ALL" || p.position === position;
-        return matchesQuery && matchesPosition;
-    });
+    // ⚡ Bolt Optimization: Memoize the filtered player list to prevent unnecessary O(N) recalculations on every render
+    const filtered = useMemo(() => {
+        return players.filter((p) => {
+            const matchesQuery =
+                query === "" ||
+                p.name.toLowerCase().includes(query.toLowerCase()) ||
+                p.nfl_team.toLowerCase().includes(query.toLowerCase());
+            const matchesPosition =
+                position === "ALL" || p.position === position;
+            return matchesQuery && matchesPosition;
+        });
+    }, [players, query, position]);
 
     return (
         <div className="space-y-4">
