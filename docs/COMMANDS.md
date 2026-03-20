@@ -41,19 +41,19 @@ python scripts/analyze_projected_arbitration.py      # Projected arbitration tar
 
 # Feature-based Projections
 python scripts/feature_projections/cli.py list                                              # List available model definitions
-python scripts/feature_projections/cli.py run --model v1_baseline_weighted_ppg --seasons 2024,2025,2026  # Generate projections
-python scripts/feature_projections/cli.py backtest --model v1_baseline_weighted_ppg --test-seasons 2024,2025  # Backtest against actuals
-python scripts/feature_projections/cli.py compare --models v1_baseline_weighted_ppg,v2_age_adjusted --season 2024  # Compare models
-python scripts/feature_projections/cli.py promote --model v2_age_adjusted                   # Promote model to production
+python scripts/feature_projections/cli.py run --model v12_no_qb_trajectory --seasons 2024,2025,2026  # Generate projections
+python scripts/feature_projections/cli.py backtest --model v12_no_qb_trajectory --test-seasons 2024,2025  # Backtest against actuals
+python scripts/feature_projections/cli.py compare --models v1_baseline_weighted_ppg,v12_no_qb_trajectory --season 2024  # Compare models
+python scripts/feature_projections/cli.py promote --model v12_no_qb_trajectory                   # Promote model to production
 python scripts/feature_projections/accuracy_report.py                                       # Generate accuracy table from cached backtest results
 python scripts/feature_projections/accuracy_report.py --run-backtest                        # Re-run all backtests then generate report
 python scripts/feature_projections/accuracy_report.py --seasons 2024,2025 --output PATH    # Custom seasons or output path
 python scripts/feature_projections/cli.py diagnostics                                      # Per-player diagnostics (auto-detects model & season)
-python scripts/feature_projections/cli.py diagnostics --model v6_usage_share --season 2025 --top 20  # Custom options
+python scripts/feature_projections/cli.py diagnostics --model v12_no_qb_trajectory --season 2025 --top 20  # Custom options
 python scripts/feature_projections/diagnostics.py --output docs/generated/player-diagnostics.md      # Standalone with markdown output
 python scripts/feature_projections/cli.py segment-analysis                                         # Segmented accuracy analysis (all segments, default models/seasons)
 python scripts/feature_projections/cli.py segment-analysis --segments experience,age_bucket         # Specific segments only
-python scripts/feature_projections/cli.py segment-analysis --models v8_age_regression --seasons 2024,2025  # Custom models/seasons
+python scripts/feature_projections/cli.py segment-analysis --models v12_no_qb_trajectory --seasons 2024,2025  # Custom models/seasons
 
 # Utilities
 python scripts/check_db.py                           # Verify database contents

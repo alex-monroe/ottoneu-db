@@ -2,7 +2,7 @@
 
 ## Structure
 
-Next.js App Router with five pages. All pages are server components that fetch live data from Supabase (revalidate every hour) with client wrappers for interactivity.
+Next.js App Router with several pages. All pages are server components that fetch live data from Supabase (revalidate every hour) with client wrappers for interactivity.
 
 ## Routes
 
@@ -14,6 +14,15 @@ Next.js App Router with five pages. All pages are server components that fetch l
 | `/surplus-value` | Surplus value rankings, bargains, overpaid, team summaries |
 | `/arbitration` | Arbitration targets with per-opponent breakdown |
 | `/arbitration-planner` | Plan and save arbitration budget allocations |
+| `/arbitration-simulation` | Monte Carlo arbitration simulation |
+| `/arb-planner-public` | Public, read-only view of arbitration plans |
+| `/players` | Player directory and search |
+| `/rosters` | Team rosters and salary management |
+| `/projections` | Player projections overview |
+| `/projection-accuracy` | Projection model accuracy metrics and feature breakdowns |
+| `/surplus-adjustments` | User-specific manual surplus value adjustments |
+| `/admin` | Admin panel for user management |
+| `/login` | Authentication page |
 
 ## Reusable Components
 

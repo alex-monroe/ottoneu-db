@@ -1,20 +1,32 @@
-# Documentation Audit Report
+# Documentation Maintenance Audit Report
 
-### ✅ Confirmed accurate
-- `AGENTS.md` and `CLAUDE.md` accurately reflect the project structure, including the `docs/` folder contents, and contain no broken links.
-- Build and execution commands (e.g., `npm run dev`, `python scripts/run_all_analyses.py`) accurately map to configurations in `Makefile` and `package.json`.
-- The Next.js frontend tech stack and directory structures (e.g., `web/app/`, `web/lib/`, `web/components/`) described in `docs/FRONTEND.md` and `docs/CODE_ORGANIZATION.md` accurately match reality.
-- The Python backend layout and data pipeline overview (e.g., `scripts/worker.py`, `scripts/enqueue.py`) accurately describe the file structure and mechanics.
-- Development environment variables described in `docs/references/environment-variables.md` map perfectly to `.env.example` and `web/.env.local.example`.
+## ✅ Confirmed accurate
+- `AGENTS.md` and `CLAUDE.md` link targets are all valid.
+- `docs/CODE_ORGANIZATION.md` file paths are correct.
+- `docs/COMMANDS.md` correctly lists commands in `Makefile` and `package.json`.
 
-### ⚠️ Needs update
-There are no major mechanical inaccuracies across the `docs/` files or agent-facing markdowns (`AGENTS.md`, `CLAUDE.md`, `.github/pull_request_template.md`). However:
-- **`docs/generated/db-schema.md`**:
-  - **Claim**: "Ten tables, all with UUID primary keys."
-  - **Reality**: While the file lists ten tables, there is technically an 11th table (`scraper_jobs`) that drives the job queue, which is mentioned in the "Schema Files" section but not in the tables list.
-  - **Fix**: Update the intro sentence or list `scraper_jobs` in the markdown table.
+## ⚠️ Needs update
+- **File**: `docs/ARCHITECTURE.md`
+  - **Claim**: "The active production model (`v8_age_regression`) uses a surgical combination of features..."
+  - **Reality**: The active model in `scripts/update_projections.py` is `v12_no_qb_trajectory`.
+  - **Fix**: Update the reference to the active model and explain `v12_no_qb_trajectory` logic (which is based on `v8_age_regression` but disables snap trajectory for QB and K).
 
-### 🔲 Gaps (undocumented but should be)
-- **`scraper_jobs` schema**: The `scraper_jobs` table (which drives the entire backend data pipeline) is mentioned in `docs/ARCHITECTURE.md` and `docs/generated/db-schema.md`, but its schema (e.g., fields like `status`, `task_type`, `depends_on`, `error_message`) is not fully documented in `docs/generated/db-schema.md`.
-- **`.cursorrules` / `.github/copilot-instructions.md`**: These files do not exist. While `AGENTS.md` and `CLAUDE.md` exist and serve AI agents, standardizing across tools by adding a `.cursorrules` that points to `AGENTS.md` could be beneficial.
-- **`package-lock.json`**: There is no explicit instruction to agents to avoid running `npm install` without care or forbidding `npm` usage over a specific package manager, although `npm` seems to be the default based on `Makefile` and `package-lock.json`. (Memory states "Never modify `package.json` or `tsconfig.json` without explicit user instruction.")
+- **File**: `docs/COMMANDS.md`
+  - **Claim**: Mentions `v1_baseline_weighted_ppg`, `v2_age_adjusted`, `v6_usage_share`, and `v8_age_regression` as examples.
+  - **Reality**: Still functionally correct as examples, but `v12_no_qb_trajectory` is the current production model.
+  - **Fix**: Update examples to refer to `v12_no_qb_trajectory` to be more relevant to the current state.
+
+- **File**: `docs/generated/projection-accuracy.md` & `docs/generated/segment-analysis.md` & `docs/generated/player-diagnostics.md`
+  - **Claim**: Contains data generated for previous models up to `v8_age_regression`.
+  - **Reality**: Since `v12_no_qb_trajectory` is now active, these files likely need to be regenerated or updated to reflect the new model's performance.
+  - **Fix**: These files should be regenerated. The command `python scripts/feature_projections/accuracy_report.py --run-backtest` and `python scripts/feature_projections/cli.py segment-analysis` should be run and the output committed.
+
+## 🔲 Gaps (undocumented but should be)
+- **Orphaned documentation files**
+  - The script `scripts/check_docs_freshness.py` identifies several files that are not referenced in `AGENTS.md` or `CLAUDE.md`:
+    - `docs/generated/projection-accuracy.md`
+    - `docs/generated/player-diagnostics.md`
+    - `docs/generated/segment-analysis.md`
+    - `docs/exec-plans/feature-projections.md`
+    - `docs/exec-plans/qb-usage-share.md`
+  - **Fix**: Add links to these generated reports and execution plans in `AGENTS.md` or `CLAUDE.md` under the Documentation Map section, or delete them if they are obsolete. Given they represent output and historical plan/findings, linking them in the `docs/generated/` and `docs/exec-plans/` section of the Documentation Map in `AGENTS.md` and `CLAUDE.md` is recommended.

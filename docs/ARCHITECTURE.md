@@ -77,8 +77,8 @@ User accounts with email/password login stored in the `users` table. Passwords a
 
 ## Feature Projection System (`scripts/feature_projections/`)
 
-Generates season-long player PPG projections from historical data using a combination of targeted features. The active production model (`v8_age_regression`) uses a surgical combination of features:
-1. `weighted_ppg` baseline (recency-weighted historical performance)
+Generates season-long player PPG projections from historical data using a combination of targeted features. The active production model (`v12_no_qb_trajectory`) uses a surgical combination of features:
+1. `weighted_ppg` baseline (recency-weighted historical performance, with snap trajectory disabled for QB and K)
 2. `age_curve` adjustment (career arc expectations)
 3. `regression_to_mean` (pulling extreme outliers toward positional averages)
 
