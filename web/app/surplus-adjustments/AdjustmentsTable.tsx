@@ -495,8 +495,9 @@ export default function AdjustmentsTable({
                   <td className="px-3 py-2 whitespace-nowrap">
                     <input
                       type="number"
-                      value={parseFloat(ppgFromDollarValue(adjValue, player.replacement_ppg).toFixed(1))}
-                      onChange={(e) => {
+                      key={`ppg-${player.player_id}-${adj.adjustment}`}
+                      defaultValue={parseFloat(ppgFromDollarValue(adjValue, player.replacement_ppg).toFixed(1))}
+                      onBlur={(e) => {
                         const val = parseFloat(e.target.value);
                         if (!isNaN(val)) updateFromPpg(player, val);
                       }}
@@ -510,8 +511,9 @@ export default function AdjustmentsTable({
                   <td className="px-3 py-2 whitespace-nowrap">
                     <input
                       type="number"
-                      value={adjSurplus}
-                      onChange={(e) => {
+                      key={`surplus-${player.player_id}-${adj.adjustment}`}
+                      defaultValue={adjSurplus}
+                      onBlur={(e) => {
                         const val = parseInt(e.target.value);
                         if (!isNaN(val)) updateFromSurplus(player, val);
                       }}
