@@ -37,6 +37,19 @@ export function calculateSurplus(
 }
 
 /**
+ * Computes the dollar-per-VORP conversion rate from a set of players.
+ * Useful for reverse-engineering PPG targets from dollar values.
+ */
+export function computeDollarPerVorp(players: Player[]): number {
+    const { players: vorpPlayers } = calculateVorp(players);
+    const totalPositiveVorp = vorpPlayers
+        .filter((p) => p.full_season_vorp > 0)
+        .reduce((sum, p) => sum + p.full_season_vorp, 0);
+    if (totalPositiveVorp === 0) return 0;
+    return (NUM_TEAMS * CAP_PER_TEAM * 0.875) / totalPositiveVorp;
+}
+
+/**
  * Analyzes MY_TEAM's projected salary by categorizing players into keep/cut
  * classifications based on surplus value thresholds.
  */

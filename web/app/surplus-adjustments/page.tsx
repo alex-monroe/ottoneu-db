@@ -1,4 +1,5 @@
 import { fetchAndMergeData, fetchAndMergeProjectedData, calculateSurplus, SEASON, LEAGUE_ID, DEFAULT_PROJECTION_YEAR } from "@/lib/analysis";
+import { computeDollarPerVorp } from "@/lib/surplus";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
 import AdjustmentsTable from "./AdjustmentsTable";
@@ -23,6 +24,7 @@ export default async function SurplusAdjustmentsPage() {
   const surplusPlayers = calculateSurplus(allPlayers).filter(
     (p) => p.position !== "K"
   );
+  const dollarPerVorp = computeDollarPerVorp(allPlayers);
 
   // Build projected surplus values for comparison
   const projectedSurplus = calculateSurplus(projectedPlayers).filter(
@@ -56,10 +58,9 @@ export default async function SurplusAdjustmentsPage() {
             Surplus Value Adjustments ({SEASON})
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2">
-            Override each player&apos;s VORP-calculated dollar value with your own scouting
-            judgment. Enter a positive number to increase value (e.g. injury recovery,
-            scheme upgrade) or negative to decrease it. Adjustments persist in the
-            database and can be applied on the{" "}
+            Adjust player values by entering a target PPG or target surplus — the system
+            calculates the underlying dollar adjustment automatically. Adjustments persist
+            in the database and can be applied on the{" "}
             <Link href="/arbitration?mode=adjusted" className="text-blue-600 dark:text-blue-400 underline">
               Arbitration
             </Link>
@@ -85,6 +86,7 @@ export default async function SurplusAdjustmentsPage() {
           players={surplusPlayers}
           existingAdjustments={existingAdjustments}
           projectedValues={projectedValues}
+          dollarPerVorp={dollarPerVorp}
         />
       </div>
     </main>

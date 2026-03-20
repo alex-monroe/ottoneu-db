@@ -18,6 +18,7 @@ interface AdjustmentsTableProps {
   players: SurplusPlayer[];
   existingAdjustments: Record<string, AdjustmentEntry>;
   projectedValues: Record<string, ProjectedValueEntry>;
+  dollarPerVorp: number;
 }
 
 const POSITIONS = ["ALL", "QB", "RB", "WR", "TE"];
@@ -28,12 +29,13 @@ type SortKey =
   | "age"
   | "team_name"
   | "price"
+  | "ppg"
   | "dollar_value"
   | "surplus"
   | "proj_value"
   | "proj_surplus"
   | "proj_delta"
-  | "adjustment"
+  | "adj_ppg"
   | "adj_value"
   | "adj_surplus";
 
@@ -53,6 +55,7 @@ export default function AdjustmentsTable({
   players,
   existingAdjustments,
   projectedValues,
+  dollarPerVorp,
 }: AdjustmentsTableProps) {
   const [adjustments, setAdjustments] = useState<Record<string, AdjustmentEntry>>(() => {
     const init: Record<string, AdjustmentEntry> = {};
@@ -163,14 +166,21 @@ export default function AdjustmentsTable({
           va = proj_a.projected_surplus;
           vb = proj_b.projected_surplus;
           break;
+        case "ppg":
+          va = a.ppg;
+          vb = b.ppg;
+          break;
         case "proj_delta":
           va = proj_a.projected_dollar_value - a.dollar_value;
           vb = proj_b.projected_dollar_value - b.dollar_value;
           break;
-        case "adjustment":
-          va = adj_a.adjustment;
-          vb = adj_b.adjustment;
+        case "adj_ppg": {
+          const adjValA = Math.max(1, a.dollar_value + adj_a.adjustment);
+          const adjValB = Math.max(1, b.dollar_value + adj_b.adjustment);
+          va = dollarPerVorp === 0 ? a.ppg : (adjValA / dollarPerVorp / 17) + a.replacement_ppg;
+          vb = dollarPerVorp === 0 ? b.ppg : (adjValB / dollarPerVorp / 17) + b.replacement_ppg;
           break;
+        }
         case "adj_value":
           va = Math.max(1, a.dollar_value + adj_a.adjustment);
           vb = Math.max(1, b.dollar_value + adj_b.adjustment);
@@ -191,7 +201,19 @@ export default function AdjustmentsTable({
       const diff = (va as number) - (vb as number);
       return sortDir === "asc" ? diff : -diff;
     });
-  }, [players, filterPos, filterTeam, filterModified, adjustments, sortKey, sortDir, getProj]);
+  }, [players, filterPos, filterTeam, filterModified, adjustments, sortKey, sortDir, getProj, dollarPerVorp]);
+
+  // Derive dollar value from a target PPG
+  const dollarValueFromPpg = (targetPpg: number, replacementPpg: number): number => {
+    const vorp = (targetPpg - replacementPpg) * 17;
+    return Math.round(Math.max(vorp * dollarPerVorp, 1));
+  };
+
+  // Derive PPG from a target dollar value
+  const ppgFromDollarValue = (targetDollarValue: number, replacementPpg: number): number => {
+    if (dollarPerVorp === 0) return replacementPpg;
+    return (targetDollarValue / dollarPerVorp / 17) + replacementPpg;
+  };
 
   const updateAdjustment = (playerId: string, value: number) => {
     setAdjustments((prev) => ({
@@ -199,6 +221,18 @@ export default function AdjustmentsTable({
       [playerId]: { ...(prev[playerId] ?? { adjustment: 0, notes: "" }), adjustment: value },
     }));
     setSaveStatus("idle");
+  };
+
+  const updateFromPpg = (player: SurplusPlayer, targetPpg: number) => {
+    const targetDollarValue = dollarValueFromPpg(targetPpg, player.replacement_ppg);
+    const adjustment = targetDollarValue - player.dollar_value;
+    updateAdjustment(player.player_id, adjustment);
+  };
+
+  const updateFromSurplus = (player: SurplusPlayer, targetSurplus: number) => {
+    const targetDollarValue = targetSurplus + player.price;
+    const adjustment = targetDollarValue - player.dollar_value;
+    updateAdjustment(player.player_id, adjustment);
   };
 
   const updateNotes = (playerId: string, notes: string) => {
@@ -354,8 +388,11 @@ export default function AdjustmentsTable({
               <th className={projThClass} onClick={() => toggleSort("proj_delta")}>
                 Δ Value{sortIndicator("proj_delta")}
               </th>
-              <th className={thClass} onClick={() => toggleSort("adjustment")}>
-                Adjustment ($){sortIndicator("adjustment")}
+              <th className={thClass} onClick={() => toggleSort("ppg")}>
+                PPG{sortIndicator("ppg")}
+              </th>
+              <th className={thClass} onClick={() => toggleSort("adj_ppg")}>
+                Adj. PPG{sortIndicator("adj_ppg")}
               </th>
               <th className={thClass} onClick={() => toggleSort("adj_value")}>
                 Adj. Value{sortIndicator("adj_value")}
@@ -451,32 +488,38 @@ export default function AdjustmentsTable({
                       ? `${projDelta >= 0 ? "+" : ""}${projDelta}`
                       : "—"}
                   </td>
-                  {/* Adjustment columns */}
+                  {/* PPG + Adjustment columns */}
+                  <td className="px-3 py-2 text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                    {player.ppg.toFixed(1)}
+                  </td>
                   <td className="px-3 py-2 whitespace-nowrap">
                     <input
                       type="number"
-                      value={adj.adjustment}
-                      onChange={(e) =>
-                        updateAdjustment(
-                          player.player_id,
-                          parseInt(e.target.value) || 0
-                        )
-                      }
+                      key={`ppg-${player.player_id}-${adj.adjustment}`}
+                      defaultValue={parseFloat(ppgFromDollarValue(adjValue, player.replacement_ppg).toFixed(1))}
+                      onBlur={(e) => {
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val)) updateFromPpg(player, val);
+                      }}
                       className="w-20 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 text-right"
-                      step="1"
+                      step="0.1"
                     />
                   </td>
                   <td className="px-3 py-2 text-slate-800 dark:text-slate-200 whitespace-nowrap">
                     ${adjValue}
                   </td>
-                  <td
-                    className={`px-3 py-2 whitespace-nowrap font-medium ${adjSurplus >= 0
-                      ? "text-green-700 dark:text-green-400"
-                      : "text-red-700 dark:text-red-400"
-                      }`}
-                  >
-                    {adjSurplus >= 0 ? "+" : ""}
-                    {adjSurplus}
+                  <td className="px-3 py-2 whitespace-nowrap">
+                    <input
+                      type="number"
+                      key={`surplus-${player.player_id}-${adj.adjustment}`}
+                      defaultValue={adjSurplus}
+                      onBlur={(e) => {
+                        const val = parseInt(e.target.value);
+                        if (!isNaN(val)) updateFromSurplus(player, val);
+                      }}
+                      className="w-20 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 text-right"
+                      step="1"
+                    />
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap">
                     <input
