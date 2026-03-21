@@ -4,6 +4,9 @@ Usage:
     venv/bin/python scripts/scrape_arbitration_progress.py
     venv/bin/python scripts/scrape_arbitration_progress.py --season 2025 --league-id 309
 
+Requires FANGRAPHS_USERNAME and FANGRAPHS_PASSWORD env vars (the arbitration
+page is only visible to logged-in league members).
+
 Scrapes https://ottoneu.fangraphs.com/football/{league_id}/arbitration and stores:
   - Per-player allocation data (current salary, raise amount, new salary)
   - Per-team completion status (complete vs incomplete)
@@ -28,9 +31,49 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from scripts.config import LEAGUE_ID, SEASON, get_supabase_client
 
+FANGRAPHS_LOGIN_URL = "https://blogs.fangraphs.com/wp-login.php"
 ARB_URL_TEMPLATE = "https://ottoneu.fangraphs.com/football/{league_id}/arbitration"
 NON_DIGIT_REGEX = re.compile(r"[^\d]")
 ID_END_REGEX = re.compile(r"(\d+)$")
+
+
+async def _login_to_fangraphs(page, redirect_url: str):
+    """Log in to FanGraphs via wp-login.php and redirect to the target page.
+
+    Requires FANGRAPHS_USERNAME and FANGRAPHS_PASSWORD environment variables.
+    """
+    username = os.getenv("FANGRAPHS_USERNAME")
+    password = os.getenv("FANGRAPHS_PASSWORD")
+
+    if not username or not password:
+        print("Error: FANGRAPHS_USERNAME and FANGRAPHS_PASSWORD must be set in .env")
+        sys.exit(1)
+
+    login_url = f"{FANGRAPHS_LOGIN_URL}?redirect_to={redirect_url}"
+    print(f"Logging in to FanGraphs...")
+
+    await page.goto(login_url, timeout=60000)
+    await page.wait_for_selector("#user_login", timeout=30000)
+
+    # Fill in credentials
+    await page.fill("#user_login", username)
+    await page.fill("#user_pass", password)
+
+    # Submit the form
+    await page.click("#wp-submit")
+
+    # Wait for redirect to complete — should land on the arbitration page
+    try:
+        await page.wait_for_url(f"**/football/{LEAGUE_ID}/**", timeout=30000)
+    except Exception:
+        # May have landed on a different page, check if we're logged in
+        current_url = page.url
+        print(f"  Redirect landed on: {current_url}")
+        if "wp-login" in current_url:
+            print("  Login appears to have failed. Check credentials.")
+            sys.exit(1)
+
+    print(f"  Logged in successfully. Current URL: {page.url}")
 
 
 async def scrape_arbitration_progress(league_id: int, season: int):
@@ -52,10 +95,24 @@ async def scrape_arbitration_progress(league_id: int, season: int):
         page = await context.new_page()
 
         try:
-            await page.goto(url, timeout=60000)
+            # Log in to FanGraphs first (arbitration page requires auth)
+            await _login_to_fangraphs(page, url)
+
+            # Navigate to the arbitration page (may already be there from redirect)
+            if "/arbitration" not in page.url:
+                await page.goto(url, timeout=60000)
+
             # Wait for real content past Cloudflare challenge
             await page.wait_for_selector("table", timeout=30000)
             await page.wait_for_timeout(2000)
+
+            # Debug: dump page headings to help identify available sections
+            headings = await page.query_selector_all("h1, h2, h3, h4, h5")
+            for h in headings:
+                text = (await h.inner_text()).strip()
+                if text:
+                    tag = await h.evaluate("el => el.tagName")
+                    print(f"  [{tag}] {text}")
 
             # Scrape all data
             allocations = await _scrape_allocations(page, league_id, season)

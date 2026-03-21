@@ -6,6 +6,8 @@
 |----------|---------|
 | `SUPABASE_URL` | Supabase project URL |
 | `SUPABASE_KEY` | Supabase anon/service key |
+| `FANGRAPHS_USERNAME` | FanGraphs login username (for arbitration progress scraper) |
+| `FANGRAPHS_PASSWORD` | FanGraphs login password (for arbitration progress scraper) |
 
 ## `web/.env.local` (for Next.js)
 

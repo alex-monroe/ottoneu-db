@@ -57,6 +57,8 @@ jobs:
         run: |
           echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
           echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> .env
+          echo "FANGRAPHS_USERNAME=${{ secrets.FANGRAPHS_USERNAME }}" >> .env
+          echo "FANGRAPHS_PASSWORD=${{ secrets.FANGRAPHS_PASSWORD }}" >> .env
 
       - name: Scrape arbitration progress
         if: steps.season_gate.outputs.in_season == 'true'
