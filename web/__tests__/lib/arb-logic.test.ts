@@ -78,6 +78,51 @@ function buildLeaguePlayers(): Player[] {
     return players;
 }
 
+/**
+ * Build a roster with fully deterministic stats (no Math.random)
+ * to ensure snapshot tests and equality checks never flake.
+ */
+function buildDeterministicPlayers(): Player[] {
+    const teams = [
+        "Team A", "Team B", "Team C", "Team D",
+        "Team E", "Team F", "Team G", "Team H",
+        "Team I", "Team J", "Team K", "The Witchcraft",
+    ];
+    const positions = ["QB", "RB", "WR", "TE"];
+    const players: Player[] = [];
+    let id = 1;
+
+    // Use a simple seeded generator
+    let seed = 12345;
+    function pseudoRandom() {
+        seed = (seed * 9301 + 49297) % 233280;
+        return seed / 233280;
+    }
+
+    for (const team of teams) {
+        for (const pos of positions) {
+            for (let i = 0; i < 3; i++) {
+                const ppg = 5 + pseudoRandom() * 15;
+                const price = Math.round(1 + pseudoRandom() * 50);
+                players.push(
+                    makePlayer({
+                        player_id: String(id++),
+                        name: `${pos}-${team}-${i}`,
+                        position: pos,
+                        team_name: team,
+                        ppg: Math.round(ppg * 100) / 100,
+                        price,
+                        total_points: Math.round(ppg * 10),
+                        games_played: 10,
+                        snaps: 300,
+                    })
+                );
+            }
+        }
+    }
+    return players;
+}
+
 // ---------------------------------------------------------------------------
 // calculateVorp
 // ---------------------------------------------------------------------------
@@ -499,5 +544,13 @@ describe("runArbitrationSimulation", () => {
         for (let i = 1; i < result.length; i++) {
             expect(result[i].mean_arb).toBeLessThanOrEqual(result[i - 1].mean_arb);
         }
+    });
+
+    it("produces stable deterministic output for snapshots", () => {
+        const players = buildDeterministicPlayers();
+        // Since both our players list and the internal simulation (via variation parameter)
+        // are deterministic, this result will be identical every time.
+        const result = runArbitrationSimulation(players, 3, 0.2);
+        expect(result).toMatchSnapshot();
     });
 });
