@@ -1,0 +1,3 @@
+## 2024-06-25 - React Performance in Array Filtering
+**Learning:** In Next.js/React components dealing with large lists (like `PlayerSearch`), recalculating `.toLowerCase()` inside a `.filter` array method runs O(N) times and is highly detrimental to responsiveness while typing. Furthermore, evaluating string operations before boolean or enum lookups creates unnecessary computation.
+**Action:** Always wrap derived large array computations in `useMemo`. Hoist invariant operations (like `query.toLowerCase()`) outside the loop, and short-circuit inside the `.filter` loop by checking cheap enum/boolean conditionals before expensive string transformations and search comparisons.
