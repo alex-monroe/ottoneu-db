@@ -14,6 +14,7 @@ Next.js App Router with five pages. All pages are server components that fetch l
 | `/surplus-value` | Surplus value rankings, bargains, overpaid, team summaries |
 | `/arbitration` | Arbitration targets with per-opponent breakdown |
 | `/arbitration-planner` | Plan and save arbitration budget allocations |
+| `/arb-progress` | Public arbitration progress: team completion status and allocation details |
 
 ## Reusable Components
 

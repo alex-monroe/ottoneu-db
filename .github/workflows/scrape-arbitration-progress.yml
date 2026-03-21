@@ -1,0 +1,65 @@
+name: Scrape Arbitration Progress
+
+on:
+  # Manual trigger
+  workflow_dispatch:
+
+  # Every 6 hours during arbitration season (Jan-Mar)
+  schedule:
+    - cron: "0 */6 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check if in arbitration season
+        id: season_gate
+        run: |
+          MONTH=$(date +%-m)
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "Manual trigger — skipping season check."
+            echo "in_season=true" >> "$GITHUB_OUTPUT"
+          elif [[ $MONTH -ge 1 && $MONTH -le 3 ]]; then
+            echo "Month $MONTH is in arb season (Jan–Mar). Proceeding."
+            echo "in_season=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Month $MONTH is out of arb season. Skipping."
+            echo "in_season=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.season_gate.outputs.in_season == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        if: steps.season_gate.outputs.in_season == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        if: steps.season_gate.outputs.in_season == 'true'
+        run: |
+          pip install --upgrade pip
+          pip install --only-binary pandas,numpy playwright supabase python-dotenv pandas numpy
+
+      - name: Install Playwright browsers
+        if: steps.season_gate.outputs.in_season == 'true'
+        run: playwright install --with-deps chromium
+
+      - name: Create .env
+        if: steps.season_gate.outputs.in_season == 'true'
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> .env
+          echo "FANGRAPHS_USERNAME=${{ secrets.FANGRAPHS_USERNAME }}" >> .env
+          echo "FANGRAPHS_PASSWORD=${{ secrets.FANGRAPHS_PASSWORD }}" >> .env
+
+      - name: Scrape arbitration progress
+        if: steps.season_gate.outputs.in_season == 'true'
+        run: python scripts/scrape_arbitration_progress.py

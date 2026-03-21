@@ -9,6 +9,7 @@ const PUBLIC_LINKS = [
   { href: "/", label: "Player Efficiency" },
   { href: "/players", label: "Players" },
   { href: "/rosters", label: "Rosters" },
+  { href: "/arb-progress", label: "Arb Progress" },
 ];
 
 const SOFA_LEAGUE_LINK = {
