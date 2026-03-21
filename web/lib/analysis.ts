@@ -147,8 +147,8 @@ export async function fetchAvailableModels(): Promise<ProjectionModel[]> {
     version: m.version,
     description: m.description,
     features: Array.isArray(m.features) ? m.features as string[] : JSON.parse(String(m.features) || "[]"),
-    is_baseline: m.is_baseline,
-    is_active: m.is_active,
+    is_baseline: m.is_baseline ?? false,
+    is_active: m.is_active ?? false,
   }));
 }
 

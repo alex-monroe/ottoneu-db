@@ -38,6 +38,7 @@ python scripts/analyze_surplus_value.py              # Dollar value vs salary fo
 python scripts/analyze_arbitration.py                # Identify opponents' vulnerable players
 python scripts/analyze_arbitration_simulation.py     # Monte Carlo arbitration simulation (100 runs)
 python scripts/analyze_projected_arbitration.py      # Projected arbitration targets based on historical stats
+python scripts/scrape_arbitration_progress.py        # Scrape Ottoneu arbitration progress (allocations + team status)
 
 # Feature-based Projections
 python scripts/feature_projections/cli.py list                                              # List available model definitions
@@ -79,4 +80,7 @@ make ci            # Full CI suite (lint + typecheck + tests + doc checks)
 ```bash
 # Daily at 6 AM: enqueue batch and run worker
 0 6 * * * cd /path/to/ottoneu_db && source venv/bin/activate && python scripts/enqueue.py batch && python scripts/worker.py
+
+# Every 6 hours (Jan-Mar): scrape arbitration progress
+0 */6 * 1-3 * cd /path/to/ottoneu_db && source venv/bin/activate && python scripts/scrape_arbitration_progress.py
 ```

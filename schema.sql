@@ -126,6 +126,31 @@ create table nfl_stats (
   unique(player_id, season)
 );
 
+-- Arbitration progress: scraped allocation data from the Ottoneu arbitration page
+create table arbitration_progress (
+  id uuid default gen_random_uuid() primary key,
+  league_id integer not null,
+  season integer not null,
+  player_name text not null,
+  ottoneu_id integer,
+  team_name text,
+  current_salary integer,
+  raise_amount integer not null default 0,
+  new_salary integer,
+  scraped_at timestamptz default now() not null
+);
+
+-- Track which teams have completed their arbitration allocations
+create table arbitration_progress_teams (
+  id uuid default gen_random_uuid() primary key,
+  league_id integer not null,
+  season integer not null,
+  team_name text not null,
+  is_complete boolean not null default false,
+  scraped_at timestamptz default now() not null,
+  unique(league_id, season, team_name)
+);
+
 -- Create indexes for performance
 create index idx_users_email on users(email);
 create index idx_surplus_adjustments_league on surplus_adjustments(league_id);
@@ -139,3 +164,5 @@ create index idx_player_projections_season on player_projections(season);
 create index idx_player_projections_player_id on player_projections(player_id);
 create index idx_nfl_stats_season on nfl_stats(season);
 create index idx_nfl_stats_player_id on nfl_stats(player_id);
+create index idx_arb_progress_league_season on arbitration_progress(league_id, season);
+create index idx_arb_progress_teams_league_season on arbitration_progress_teams(league_id, season);

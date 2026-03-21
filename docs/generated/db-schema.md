@@ -1,6 +1,6 @@
 # Database Schema
 
-Fourteen tables, all with UUID primary keys.
+Sixteen tables, all with UUID primary keys.
 
 ## Tables
 
@@ -20,6 +20,8 @@ Fourteen tables, all with UUID primary keys.
 | `projection_models` | Registry of versioned projection models (internal v1–v6 and external sources) | `(name, version)` |
 | `model_projections` | Per-model projected PPG with raw feature values (FK -> `projection_models`, `players`) | `(model_id, player_id, season)` |
 | `backtest_results` | Cached accuracy metrics per model × season × position (FK -> `projection_models`) | `(model_id, season, position)` |
+| `arbitration_progress` | Scraped player allocation data from Ottoneu arbitration page | -- |
+| `arbitration_progress_teams` | Per-team arbitration completion status | `(league_id, season, team_name)` |
 
 ### Projection tables detail
 
