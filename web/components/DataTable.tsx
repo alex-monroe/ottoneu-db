@@ -162,7 +162,9 @@ export default function DataTable<T extends TableRow = TableRow>({
                       key={col.key}
                       className="px-3 py-2 text-slate-800 dark:text-slate-200 whitespace-nowrap"
                     >
-                      {formatCell(row[col.key], col.format)}
+                      {col.renderCell
+                        ? col.renderCell(row[col.key], row)
+                        : formatCell(row[col.key], col.format)}
                     </td>
                   ))}
                 </tr>

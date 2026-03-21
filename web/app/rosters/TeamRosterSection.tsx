@@ -2,25 +2,30 @@
 
 import { useState } from "react";
 import DataTable, { Column } from "@/components/DataTable";
+import { makePlayerNameColumn } from "@/components/PlayerHoverCard";
 import { type TeamRoster } from "@/lib/roster-reconstruction";
+import type { PlayerHoverData } from "@/lib/types";
 import { MY_TEAM, CAP_PER_TEAM } from "@/lib/arb-logic";
 
-const ROSTER_COLUMNS: Column[] = [
-  { key: "name", label: "Player" },
-  { key: "position", label: "Pos" },
-  { key: "nfl_team", label: "NFL Team" },
-  { key: "salary", label: "Salary", format: "currency" },
-  { key: "ppg", label: "PPG", format: "decimal" },
-  { key: "pps", label: "PPS", format: "decimal" },
-  { key: "games_played", label: "G" },
-  { key: "acquired_date", label: "Acquired" },
-];
+function getRosterColumns(hoverDataMap: Record<string, PlayerHoverData> | null): Column[] {
+  return [
+    makePlayerNameColumn(hoverDataMap),
+    { key: "position", label: "Pos" },
+    { key: "nfl_team", label: "NFL Team" },
+    { key: "salary", label: "Salary", format: "currency" },
+    { key: "ppg", label: "PPG", format: "decimal" },
+    { key: "pps", label: "PPS", format: "decimal" },
+    { key: "games_played", label: "G" },
+    { key: "acquired_date", label: "Acquired" },
+  ];
+}
 
 interface TeamRosterSectionProps {
   roster: TeamRoster;
+  hoverDataMap?: Record<string, PlayerHoverData> | null;
 }
 
-export default function TeamRosterSection({ roster }: TeamRosterSectionProps) {
+export default function TeamRosterSection({ roster, hoverDataMap = null }: TeamRosterSectionProps) {
   const [isOpen, setIsOpen] = useState(roster.team_name === MY_TEAM);
 
   const isOverCap = roster.total_salary > CAP_PER_TEAM;
@@ -62,7 +67,7 @@ export default function TeamRosterSection({ roster }: TeamRosterSectionProps) {
       </button>
       {isOpen && (
         <div className="p-4">
-          <DataTable columns={ROSTER_COLUMNS} data={roster.players} />
+          <DataTable columns={getRosterColumns(hoverDataMap)} data={roster.players} />
         </div>
       )}
     </div>

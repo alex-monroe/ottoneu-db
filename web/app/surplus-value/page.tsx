@@ -1,43 +1,53 @@
 import {
   fetchAndMergeData,
+  fetchProjectionMap,
+  buildHoverDataMap,
   calculateSurplus,
   MY_TEAM,
   SEASON,
+  DEFAULT_PROJECTION_YEAR,
 } from "@/lib/analysis";
+import { getAuthenticatedUser } from "@/lib/auth";
 import DataTable, { Column, HighlightRule } from "@/components/DataTable";
+import { makePlayerNameColumn } from "@/components/PlayerHoverCard";
+import type { PlayerHoverData } from "@/lib/types";
 
-export const revalidate = 3600;
+function getCoreColumns(hoverDataMap: Record<string, PlayerHoverData> | null): Column[] {
+  return [
+    makePlayerNameColumn(hoverDataMap),
+    { key: "position", label: "Pos" },
+    { key: "nfl_team", label: "Team" },
+    { key: "price", label: "Salary", format: "currency" },
+    { key: "dollar_value", label: "Value", format: "currency" },
+    { key: "surplus", label: "Surplus", format: "currency" },
+    { key: "ppg", label: "PPG", format: "decimal" },
+    { key: "full_season_vorp", label: "VORP", format: "decimal" },
+    { key: "team_name", label: "Owner" },
+  ];
+}
 
-const CORE_COLUMNS: Column[] = [
-  { key: "name", label: "Player" },
-  { key: "position", label: "Pos" },
-  { key: "nfl_team", label: "Team" },
-  { key: "price", label: "Salary", format: "currency" },
-  { key: "dollar_value", label: "Value", format: "currency" },
-  { key: "surplus", label: "Surplus", format: "currency" },
-  { key: "ppg", label: "PPG", format: "decimal" },
-  { key: "full_season_vorp", label: "VORP", format: "decimal" },
-  { key: "team_name", label: "Owner" },
-];
+function getMyTeamColumns(hoverDataMap: Record<string, PlayerHoverData> | null): Column[] {
+  return [
+    makePlayerNameColumn(hoverDataMap),
+    { key: "position", label: "Pos" },
+    { key: "price", label: "Salary", format: "currency" },
+    { key: "dollar_value", label: "Value", format: "currency" },
+    { key: "surplus", label: "Surplus", format: "currency" },
+    { key: "ppg", label: "PPG", format: "decimal" },
+    { key: "full_season_vorp", label: "VORP", format: "decimal" },
+  ];
+}
 
-const MY_TEAM_COLUMNS: Column[] = [
-  { key: "name", label: "Player" },
-  { key: "position", label: "Pos" },
-  { key: "price", label: "Salary", format: "currency" },
-  { key: "dollar_value", label: "Value", format: "currency" },
-  { key: "surplus", label: "Surplus", format: "currency" },
-  { key: "ppg", label: "PPG", format: "decimal" },
-  { key: "full_season_vorp", label: "VORP", format: "decimal" },
-];
-
-const FA_COLUMNS: Column[] = [
-  { key: "name", label: "Player" },
-  { key: "position", label: "Pos" },
-  { key: "nfl_team", label: "Team" },
-  { key: "dollar_value", label: "Value", format: "currency" },
-  { key: "ppg", label: "PPG", format: "decimal" },
-  { key: "full_season_vorp", label: "VORP", format: "decimal" },
-];
+function getFaColumns(hoverDataMap: Record<string, PlayerHoverData> | null): Column[] {
+  return [
+    makePlayerNameColumn(hoverDataMap),
+    { key: "position", label: "Pos" },
+    { key: "nfl_team", label: "Team" },
+    { key: "dollar_value", label: "Value", format: "currency" },
+    { key: "ppg", label: "PPG", format: "decimal" },
+    { key: "full_season_vorp", label: "VORP", format: "decimal" },
+  ];
+}
 
 const TEAM_SUMMARY_COLUMNS: Column[] = [
   { key: "team_name", label: "Team" },
@@ -65,7 +75,14 @@ const TEAM_SUMMARY_RULES: HighlightRule[] = [
 ];
 
 export default async function SurplusValuePage() {
-  const allPlayers = await fetchAndMergeData();
+  const [allPlayers, user] = await Promise.all([
+    fetchAndMergeData(),
+    getAuthenticatedUser(),
+  ]);
+  const projMap = user?.hasProjectionsAccess
+    ? await fetchProjectionMap(DEFAULT_PROJECTION_YEAR)
+    : null;
+  const hoverDataMap = buildHoverDataMap(allPlayers, projMap);
   const surplusPlayers = calculateSurplus(allPlayers);
 
   if (surplusPlayers.length === 0) {
@@ -157,7 +174,7 @@ export default async function SurplusValuePage() {
             Top 20 Bargains
           </h2>
           <DataTable
-            columns={CORE_COLUMNS}
+            columns={getCoreColumns(hoverDataMap)}
             data={bestBargains}
             highlightRules={BARGAIN_RULES}
           />
@@ -169,7 +186,7 @@ export default async function SurplusValuePage() {
             Top 20 Most Overpaid
           </h2>
           <DataTable
-            columns={CORE_COLUMNS}
+            columns={getCoreColumns(hoverDataMap)}
             data={mostOverpaid}
             highlightRules={OVERPAID_RULES}
           />
@@ -182,7 +199,7 @@ export default async function SurplusValuePage() {
               {MY_TEAM} — Surplus Breakdown
             </h2>
             <DataTable
-              columns={MY_TEAM_COLUMNS}
+              columns={getMyTeamColumns(hoverDataMap)}
               data={myTeam}
               highlightRules={MY_TEAM_RULES}
             />
@@ -221,7 +238,7 @@ export default async function SurplusValuePage() {
             <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
               Top Free Agents by Value
             </h2>
-            <DataTable columns={FA_COLUMNS} data={freeAgents} />
+            <DataTable columns={getFaColumns(hoverDataMap)} data={freeAgents} />
           </section>
         )}
 

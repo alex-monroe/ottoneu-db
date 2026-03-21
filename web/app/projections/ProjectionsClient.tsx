@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { POSITIONS, PROJECTION_YEARS, SEASON } from "@/lib/analysis";
 import PositionFilter from "@/components/PositionFilter";
 import ProjectionYearSelector from "@/components/ProjectionYearSelector";
 import { Position } from "@/lib/types";
 
 export interface ProjectionRow {
+  player_id: string;
+  ottoneu_id?: number;
   name: string;
   position: string;
   nfl_team: string;
@@ -147,7 +150,16 @@ export default function ProjectionsClient({ initialData, projectionYear }: Props
                   className={`border-t border-slate-100 dark:border-slate-800 ${rowBg}`}
                 >
                   <td className={tdClass}>
-                    {row.name}
+                    {row.ottoneu_id ? (
+                      <Link
+                        href={`/players/${row.ottoneu_id}`}
+                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        {row.name}
+                      </Link>
+                    ) : (
+                      row.name
+                    )}
                     {isRookie && (
                       <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
                         Rookie

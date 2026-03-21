@@ -7,6 +7,7 @@ import {
   type RosterData,
 } from "@/lib/roster-reconstruction";
 import { CAP_PER_TEAM, NUM_TEAMS } from "@/lib/arb-logic";
+import type { PlayerHoverData } from "@/lib/types";
 import TeamRosterSection from "./TeamRosterSection";
 
 const QUICK_DATES = [
@@ -21,7 +22,8 @@ export default function RostersClient({
   transactions,
   players,
   stats,
-}: RosterData) {
+  hoverDataMap,
+}: RosterData & { hoverDataMap?: Record<string, PlayerHoverData> | null }) {
   const { min, max } = getDateRange();
   const [selectedDate, setSelectedDate] = useState("2025-12-10");
 
@@ -142,7 +144,7 @@ export default function RostersClient({
         ) : (
           <div className="space-y-2">
             {rosters.map((roster) => (
-              <TeamRosterSection key={roster.team_name} roster={roster} />
+              <TeamRosterSection key={roster.team_name} roster={roster} hoverDataMap={hoverDataMap} />
             ))}
           </div>
         )}

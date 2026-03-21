@@ -1,9 +1,8 @@
-import { fetchPlayerCard } from "@/lib/players";
+import { fetchPlayerCard, fetchPlayerProjection } from "@/lib/players";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { POSITION_COLORS, Position } from "@/lib/types";
-
-export const revalidate = 3600;
 
 export async function generateMetadata({
     params,
@@ -28,6 +27,12 @@ export default async function PlayerCardPage({
     const player = await fetchPlayerCard(Number(id));
 
     if (!player) notFound();
+
+    // Fetch auth + projection in parallel (auth returns null for unauthenticated)
+    const user = await getAuthenticatedUser();
+    const projection = user?.hasProjectionsAccess
+        ? await fetchPlayerProjection(player.id)
+        : null;
 
     const posColor =
         POSITION_COLORS[player.position as Position] ?? "#6B7280";
@@ -76,6 +81,16 @@ export default async function PlayerCardPage({
                             </div>
 
                             <div className="flex items-center gap-6">
+                                {projection && (
+                                    <div className="text-center">
+                                        <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 font-mono">
+                                            {projection.projected_ppg.toFixed(2)}
+                                        </p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                            Proj. PPG
+                                        </p>
+                                    </div>
+                                )}
                                 {player.price != null && (
                                     <div className="text-center">
                                         <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 font-mono">

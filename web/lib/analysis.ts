@@ -5,7 +5,7 @@ import {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   MY_TEAM,
 } from "./arb-logic";
-import type { Player, BacktestPlayer, ProjectionModel, BacktestMetrics } from "./types";
+import type { Player, PlayerHoverData, BacktestPlayer, ProjectionModel, BacktestMetrics } from "./types";
 
 export * from "./arb-logic";
 export type { Player, SimulationResult } from "./types";
@@ -56,6 +56,7 @@ export async function fetchAndMergeData(): Promise<Player[]> {
 
     merged.push({
       player_id: player.id,
+      ottoneu_id: player.ottoneu_id ?? undefined,
       name: player.name,
       position: player.position ?? "",
       nfl_team: player.nfl_team ?? "",
@@ -290,6 +291,48 @@ async function buildProjectionMap(
   }
 
   return projections;
+}
+
+/**
+ * Fetch projection map as a plain object (JSON-serializable, for passing to client components).
+ */
+export async function fetchProjectionMap(
+  season: number
+): Promise<Record<string, { ppg: number; method: string }>> {
+  const map = await buildProjectionMap(season);
+  return Object.fromEntries(map);
+}
+
+/**
+ * Build a PlayerHoverData map from player data and an optional projection map.
+ * Used by server components to pass hover card data to client components.
+ */
+export function buildHoverDataMap(
+  players: Player[],
+  projMap: Record<string, { ppg: number; method: string }> | null = null
+): Record<string, PlayerHoverData> {
+  return Object.fromEntries(
+    players
+      .filter((p) => p.ottoneu_id != null)
+      .map((p) => [
+        p.player_id,
+        {
+          ottoneu_id: p.ottoneu_id!,
+          position: p.position,
+          nfl_team: p.nfl_team,
+          price: p.price,
+          team_name: p.team_name,
+          ppg: p.ppg,
+          games_played: p.games_played,
+          ...(projMap?.[p.player_id]
+            ? {
+                projected_ppg: projMap[p.player_id].ppg,
+                projection_method: projMap[p.player_id].method,
+              }
+            : {}),
+        },
+      ])
+  );
 }
 
 export interface ProjectedPlayer extends Player {

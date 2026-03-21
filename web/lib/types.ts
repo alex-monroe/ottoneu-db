@@ -5,10 +5,13 @@
  * analysis metrics, chart components, and UI helpers.
  */
 
+import type React from "react";
+
 // === Core Player Types ===
 
 export interface Player {
   player_id: string;
+  ottoneu_id?: number;
   name: string;
   position: string;
   nfl_team: string;
@@ -247,6 +250,7 @@ export interface Column {
   key: string;
   label: string;
   format?: "currency" | "number" | "decimal" | "percent";
+  renderCell?: (value: unknown, row: TableRow) => React.ReactNode;
 }
 
 export interface HighlightRule {
@@ -257,6 +261,20 @@ export interface HighlightRule {
 }
 
 export type TableRow = Record<string, string | number | boolean | null | undefined>;
+
+// === Player Hover Card Types ===
+
+export interface PlayerHoverData {
+  ottoneu_id: number;
+  position: string;
+  nfl_team: string;
+  price: number;
+  team_name: string | null;
+  ppg: number;
+  games_played: number;
+  projected_ppg?: number;
+  projection_method?: string;
+}
 
 // === Position Constants ===
 

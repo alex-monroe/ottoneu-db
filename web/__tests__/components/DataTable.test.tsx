@@ -89,4 +89,19 @@ describe("DataTable", () => {
         fireEvent.click(screen.getByText("Name"));
         expect(screen.getByText("▼")).toBeInTheDocument();
     });
+
+    it("uses renderCell when provided on a column", () => {
+        const columnsWithRenderCell: Column[] = [
+            {
+                key: "name",
+                label: "Name",
+                renderCell: (value) => <span data-testid="custom-cell">{String(value).toUpperCase()}</span>,
+            },
+            { key: "price", label: "Price", format: "currency" },
+        ];
+        render(<DataTable columns={columnsWithRenderCell} data={data} />);
+        const customCells = screen.getAllByTestId("custom-cell");
+        expect(customCells).toHaveLength(3);
+        expect(screen.getByText("JOSH ALLEN")).toBeInTheDocument();
+    });
 });
