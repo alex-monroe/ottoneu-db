@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronRight } from "lucide-react";
 import type { Column, HighlightRule, TableRow } from "@/lib/types";
 
 // Re-export types for backward compatibility with existing imports
@@ -151,10 +152,15 @@ export default function DataTable<T extends TableRow = TableRow>({
                     renderExpandedRow ? "cursor-pointer hover:brightness-95" : ""
                   }`}
                   onClick={renderExpandedRow ? () => toggleExpanded(i) : undefined}
+                  aria-expanded={renderExpandedRow ? isExpanded : undefined}
                 >
                   {renderExpandedRow && (
-                    <td className="px-2 py-2 text-slate-400 dark:text-slate-500 text-xs select-none">
-                      {isExpanded ? "▼" : "▶"}
+                    <td className="px-2 py-2 text-slate-400 dark:text-slate-500 select-none">
+                      <ChevronRight
+                        size={14}
+                        className={`transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
+                        aria-hidden="true"
+                      />
                     </td>
                   )}
                   {columns.map((col) => (

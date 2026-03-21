@@ -4,7 +4,7 @@
  * Configuration values are loaded from the shared config.json in the repo root.
  */
 
-import config from "../../config.json";
+import config from "../config.json";
 
 export const LEAGUE_ID = config.LEAGUE_ID;
 export const SEASON = config.SEASON;
