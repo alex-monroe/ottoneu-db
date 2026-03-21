@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { LEAGUE_ID, SEASON, NUM_TEAMS } from "@/lib/config";
+import { LEAGUE_ID, SEASON, NUM_TEAMS, ARB_MAX_PER_PLAYER_LEAGUE } from "@/lib/config";
 import DataTable, { Column, HighlightRule } from "@/components/DataTable";
 
 export const revalidate = 300; // Revalidate every 5 minutes
@@ -23,6 +23,8 @@ interface Allocation {
   current_salary: number | null;
   raise_amount: number;
   new_salary: number | null;
+  projected_raise: number | null;
+  projected_salary: number | null;
 }
 
 const ALLOCATION_COLUMNS: Column[] = [
@@ -31,6 +33,8 @@ const ALLOCATION_COLUMNS: Column[] = [
   { key: "current_salary", label: "Salary", format: "currency" },
   { key: "raise_amount", label: "Raise", format: "currency" },
   { key: "new_salary", label: "New Salary", format: "currency" },
+  { key: "projected_raise", label: "Proj. Raise", format: "currency" },
+  { key: "projected_salary", label: "Proj. Salary", format: "currency" },
 ];
 
 const ALLOCATION_RULES: HighlightRule[] = [
@@ -64,10 +68,43 @@ export default async function ArbProgressPage() {
   ]);
 
   const teams: TeamStatus[] = teamsRes.data ?? [];
-  const allocations: Allocation[] = allocationsRes.data ?? [];
+  const allocations: Allocation[] = (allocationsRes.data ?? []).map((row) => ({
+    ...row,
+    projected_raise: null,
+    projected_salary: null,
+  }));
 
   const completeCount = teams.filter((t) => t.is_complete).length;
   const incompleteCount = teams.filter((t) => !t.is_complete).length;
+  const allComplete = completeCount === NUM_TEAMS;
+
+  // Build set of complete team names for projection calculation
+  const completeTeamNames = new Set(
+    teams.filter((t) => t.is_complete).map((t) => t.team_name)
+  );
+
+  // Compute projected raises: extrapolate based on how many eligible teams have completed.
+  // Each player can be raised by 11 teams (all except their owner).
+  // If the owner's team is among the complete teams, subtract 1 from eligible complete count.
+  const ELIGIBLE_TEAMS = NUM_TEAMS - 1; // 11 teams can raise any given player
+  for (const a of allocations) {
+    const ownerIsComplete = a.team_name ? completeTeamNames.has(a.team_name) : false;
+    const eligibleComplete = completeCount - (ownerIsComplete ? 1 : 0);
+
+    if (eligibleComplete > 0 && !allComplete) {
+      const rawProjected = a.raise_amount * (ELIGIBLE_TEAMS / eligibleComplete);
+      a.projected_raise = Math.min(
+        Math.round(rawProjected),
+        ARB_MAX_PER_PLAYER_LEAGUE
+      );
+    } else {
+      // All teams done or no data — projected equals actual
+      a.projected_raise = a.raise_amount;
+    }
+    a.projected_salary =
+      a.current_salary != null ? a.current_salary + a.projected_raise : null;
+  }
+
   const hasAllocations = allocations.length > 0;
 
   // Get last scraped time
@@ -211,6 +248,11 @@ export default async function ArbProgressPage() {
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
               Players with salary raises from arbitration. Red rows indicate
               raises of $10 or more.
+              {!allComplete && completeCount > 0 && (
+                <> Projected columns extrapolate final raises assuming remaining
+                teams allocate at the same rate ({completeCount} of {NUM_TEAMS} teams
+                complete, max ${ARB_MAX_PER_PLAYER_LEAGUE} cap).</>
+              )}
             </p>
             <DataTable
               columns={ALLOCATION_COLUMNS}
