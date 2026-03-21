@@ -2,7 +2,7 @@
 
 Usage:
     venv/bin/python scripts/scrape_arbitration_progress.py
-    venv/bin/python scripts/scrape_arbitration_progress.py --season 2025 --league-id 309
+    venv/bin/python scripts/scrape_arbitration_progress.py --season 2025 --league-id LEAGUE_ID
 
 Requires FANGRAPHS_USERNAME and FANGRAPHS_PASSWORD env vars (the arbitration
 page is only visible to logged-in league members).
