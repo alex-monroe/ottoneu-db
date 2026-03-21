@@ -85,7 +85,11 @@ export default async function ArbProgressPage() {
 
   // Compute projected raises: extrapolate based on how many eligible teams have completed.
   // Each player can be raised by 11 teams (all except their owner).
-  // If the owner's team is among the complete teams, subtract 1 from eligible complete count.
+  // If the owner's team is among the complete teams, subtract 1 from eligible complete count
+  // because the owner is complete but wasn't eligible to allocate to their own player.
+  // Example with 6 of 12 complete:
+  //   Player on complete team → 5 of 11 eligible have weighed in → factor 11/5 = 2.2x
+  //   Player on incomplete team → 6 of 11 eligible have weighed in → factor 11/6 = 1.83x
   const ELIGIBLE_TEAMS = NUM_TEAMS - 1; // 11 teams can raise any given player
   for (const a of allocations) {
     const ownerIsComplete = a.team_name ? completeTeamNames.has(a.team_name) : false;
