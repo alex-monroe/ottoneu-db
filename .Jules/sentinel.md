@@ -1,0 +1,4 @@
+## 2024-05-18 - [Defense in Depth: Headers and Redirect Validation]
+**Vulnerability:** Missing global HTTP security headers and potentially bypassable relative redirect validation (`isValidRedirect` checking only for `/` but not for whitespace/control chars).
+**Learning:** Even with basic slash validation, `url.startsWith("/")` can be bypassed if the URL starts with a space ` /evil.com` or control character, because browsers often normalize whitespace in URLs. Furthermore, a Next.js App Router application should enforce modern global security headers (like `X-Frame-Options` and `Strict-Transport-Security`) in the middleware for robust defense-in-depth across all routes.
+**Prevention:** Explicitly test for whitespace (`/\s/`) and control characters (`/[\x00-\x1F\x7F]/`) when validating redirect URLs. Always use the middleware to attach global security headers to all HTTP responses.

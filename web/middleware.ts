@@ -24,9 +24,21 @@ export const PUBLIC_API_ROUTES = [
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Utility to add security headers
+  const withSecurityHeaders = (response: NextResponse) => {
+    response.headers.set("X-Frame-Options", "DENY");
+    response.headers.set("X-Content-Type-Options", "nosniff");
+    response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+    response.headers.set(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains"
+    );
+    return response;
+  };
+
   // Allow public assets
   if (pathname.startsWith("/_next")) {
-    return NextResponse.next();
+    return withSecurityHeaders(NextResponse.next());
   }
 
   const isApiRoute = pathname.startsWith("/api");
@@ -36,7 +48,7 @@ export async function middleware(request: NextRequest) {
 
   // Allow public API routes
   if (isApiRoute && isPublicApiRoute) {
-    return NextResponse.next();
+    return withSecurityHeaders(NextResponse.next());
   }
 
   // Check if UI route is protected (requires projections access)
@@ -51,7 +63,7 @@ export async function middleware(request: NextRequest) {
 
   // If it's not an API route and not a protected/admin UI route, allow it
   if (!isApiRoute && !isProtectedUiRoute && !isAdminRoute) {
-    return NextResponse.next();
+    return withSecurityHeaders(NextResponse.next());
   }
 
   // At this point, the route requires authentication.
@@ -60,33 +72,34 @@ export async function middleware(request: NextRequest) {
 
   if (!session.valid) {
     if (isApiRoute) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return withSecurityHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
     } else {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("redirect", pathname);
-      return NextResponse.redirect(loginUrl);
+      return withSecurityHeaders(NextResponse.redirect(loginUrl));
     }
   }
 
   // Admin routes require isAdmin
   if (isAdminRoute && !session.isAdmin) {
     if (isApiRoute) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return withSecurityHeaders(NextResponse.json({ error: "Forbidden" }, { status: 403 }));
     }
-    return NextResponse.redirect(new URL("/", request.url));
+    return withSecurityHeaders(NextResponse.redirect(new URL("/", request.url)));
   }
 
   // Protected routes require projections access
   if (isProtectedUiRoute && !session.hasProjectionsAccess) {
     if (isApiRoute) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return withSecurityHeaders(NextResponse.json({ error: "Forbidden" }, { status: 403 }));
+    } else {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("redirect", pathname);
+      return withSecurityHeaders(NextResponse.redirect(loginUrl));
     }
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next();
+  return withSecurityHeaders(NextResponse.next());
 }
 
 export const config = {
