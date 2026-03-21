@@ -11,6 +11,9 @@ npm test             # Jest tests
 npm start            # Production server
 ```
 
+> **Worktree note:** Git worktrees share source files but not `node_modules/` or gitignored files.
+> Before building in a worktree, run `npm install` in `web/` and copy `config.json` from the main repo root.
+
 ## Backend (run from project root, venv must be active)
 
 All Python commands below assume the venv is activated. If running without activation, use `venv/bin/python` instead of `python`.
