@@ -117,7 +117,7 @@ async def scrape_arbitration_progress(league_id: int, season: int):
             # Scrape all data
             allocations = await _scrape_allocations(page, league_id, season)
             incomplete_teams = await _scrape_incomplete_teams(page)
-            all_team_names = _scrape_standings_teams(await page.content())
+            all_team_names = await _scrape_all_teams(page)
 
             print(f"Found {len(allocations)} player allocations")
             print(f"Found {len(incomplete_teams)} incomplete teams")
@@ -348,80 +348,99 @@ async def _parse_allocation_row(
 async def _scrape_incomplete_teams(page) -> set[str]:
     """Parse the Teams with Incomplete Arbitration section.
 
-    Looks for a heading containing 'incomplete' and extracts team names
-    from lists, tables, or links in the section that follows it.
+    Page structure (Ottoneu):
+      <section class="section-container">
+        <header><h3>Your Overview</h3></header>
+        <header><h4>Teams with incomplete arbitration</h4></header>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Team</th><th>Reason</th></tr></thead>
+            <tbody><tr><td><a href="...">Team Name</a></td><td>Reason</td></tr></tbody>
+          </table>
+        </div>
+        ...
+      </section>
+
+    The heading is inside a <header> tag, and the table is a sibling
+    <div class="table-container"> of that <header> within the parent <section>.
     """
     incomplete = set()
 
-    headings = await page.query_selector_all("h1, h2, h3, h4, h5, h6")
-    for heading in headings:
-        text = await heading.inner_text()
-        if "incomplete" not in text.lower():
-            continue
+    # Find the heading, then go up to the <section> container and find the
+    # table that immediately follows the heading's <header> wrapper.
+    teams_from_table = await page.evaluate("""() => {
+        const headings = document.querySelectorAll('h4');
+        for (const h of headings) {
+            if (!h.innerText.toLowerCase().includes('incomplete')) continue;
 
-        # Search siblings and parent for team names
-        # Try: next sibling elements (table, list, or div with links)
-        siblings = await heading.evaluate_handle(
-            """el => {
-                const items = [];
-                let sib = el.nextElementSibling;
-                // Collect up to 3 siblings after the heading
-                for (let i = 0; i < 3 && sib; i++) {
-                    items.push(sib);
-                    sib = sib.nextElementSibling;
+            // The heading is inside <header>, the table is the next sibling
+            // of that <header> within the parent <section>.
+            const headerEl = h.closest('header');
+            if (!headerEl) continue;
+
+            // Look at siblings after this <header> for a table
+            let sib = headerEl.nextElementSibling;
+            while (sib) {
+                const table = sib.querySelector ? sib.querySelector('table') : null;
+                if (table) {
+                    const rows = table.querySelectorAll('tbody tr');
+                    const teams = [];
+                    for (const row of rows) {
+                        const firstCell = row.querySelector('td');
+                        if (firstCell) {
+                            const link = firstCell.querySelector('a');
+                            const name = link ? link.innerText.trim() : firstCell.innerText.trim();
+                            if (name) teams.push(name);
+                        }
+                    }
+                    return teams;
                 }
-                return items;
-            }"""
-        )
+                // Stop if we hit another <header> (next section)
+                if (sib.tagName === 'HEADER') break;
+                sib = sib.nextElementSibling;
+            }
+        }
+        return [];
+    }""")
 
-        # Also check parent container
-        parent = await heading.evaluate_handle("el => el.parentElement")
-
-        for container in [parent]:
-            # List items
-            items = await container.query_selector_all("li")
-            for item in items:
-                team = (await item.inner_text()).strip()
-                if team:
-                    incomplete.add(team)
-
-            # Table rows
-            table = await container.query_selector("table")
-            if table:
-                rows = await table.query_selector_all("tbody tr, tr")
-                for row in rows:
-                    cells = await row.query_selector_all("td, th")
-                    if cells:
-                        team = (await cells[0].inner_text()).strip()
-                        if team:
-                            incomplete.add(team)
-
-            # Links
-            if not incomplete:
-                links = await container.query_selector_all("a")
-                for link in links:
-                    team = (await link.inner_text()).strip()
-                    if team and team not in ("", "#"):
-                        incomplete.add(team)
+    for team in (teams_from_table or []):
+        incomplete.add(team)
 
     return incomplete
 
 
-def _scrape_standings_teams(html_content: str) -> set[str]:
-    """Extract team names from the standings table in the page HTML.
+async def _scrape_all_teams(page) -> set[str]:
+    """Extract all team names from the page.
 
-    Parses links that point to team pages (e.g. /football/309/teamXXX).
+    Uses multiple sources:
+    1. The teams dropdown (<select class="teamsDropdown">)
+    2. Links to team pages (/football/{id}/team...)
     """
     teams = set()
-    # Match team links: <a href="/football/{id}/team...">Team Name</a>
+
+    # Source 1: teams dropdown (lists all opponent teams, excludes "Overview")
+    dropdown_teams = await page.evaluate("""() => {
+        const select = document.querySelector('select.teamsDropdown');
+        if (!select) return [];
+        return Array.from(select.options)
+            .filter(o => o.value !== '0')
+            .map(o => o.text.trim())
+            .filter(t => t);
+    }""")
+    for t in (dropdown_teams or []):
+        teams.add(t)
+
+    # Source 2: team links in standings/other tables
+    html = await page.content()
     pattern = re.compile(
         r'<a[^>]*href="[^"]*?/football/\d+/team[^"]*"[^>]*>([^<]+)</a>',
         re.IGNORECASE,
     )
-    for match in pattern.finditer(html_content):
+    for match in pattern.finditer(html):
         name = match.group(1).strip()
         if name:
             teams.add(name)
+
     return teams
 
 
