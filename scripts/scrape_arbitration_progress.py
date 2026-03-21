@@ -233,7 +233,7 @@ async def _scrape_allocations(page, league_id: int, season: int) -> list[dict]:
             continue  # transactions
 
         has_raise = any("raise" in h for h in header_texts)
-        has_allocation = any("allocation" in h for h in header_texts)
+        has_allocation = any("allocat" in h for h in header_texts)
         has_player_and_salary = (
             any("player" in h for h in header_texts) and
             any("salary" in h for h in header_texts)
@@ -297,11 +297,11 @@ async def _parse_allocation_row(
                 player_name = (await link.inner_text()).strip()
         elif header in ("team", "owner", "fantasy team"):
             team_name = val
-        elif header in ("salary", "current salary", "current sal"):
+        elif header in ("salary", "current salary", "current sal", "original salary"):
             current_salary = _parse_dollar(val)
-        elif "raise" in header or "increase" in header:
+        elif "raise" in header or "increase" in header or "allocated" in header:
             raise_amount = _parse_dollar(val)
-        elif "new" in header and "salary" in header:
+        elif "new" in header and ("salary" in header or "sal" in header):
             new_salary = _parse_dollar(val)
 
     # Positional fallback: Player | Team? | Salary | Raise | New Salary
