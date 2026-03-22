@@ -1,0 +1,4 @@
+## 2024-03-22 - Open Redirect Bypass via Whitespace and Control Characters
+**Vulnerability:** The `isValidRedirect` function in `web/lib/utils.ts` only checked for leading `/`, `//`, and `/\` to prevent open redirects. However, this could be bypassed by preceding the URL with whitespace (like ` ` or `\n`) or control characters, tricking the simple string-matching checks.
+**Learning:** Checking the first character or leading string matches is insufficient for URL validation, as browsers often trim or ignore leading whitespace/control characters when navigating, effectively bypassing the simple check while still resulting in an open redirect.
+**Prevention:** Validate and sanitize the entire URL string. Specifically, use regex (like `/\s/` and `/[\x00-\x1F\x7F]/`) to explicitly reject any URL string containing whitespace or control characters before validating the path starts with a single slash.
