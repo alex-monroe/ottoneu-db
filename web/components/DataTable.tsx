@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { Column, HighlightRule, TableRow } from "@/lib/types";
+import type { Column, HighlightRule, PlayerHoverData, TableRow } from "@/lib/types";
+import PlayerHoverCard from "./PlayerHoverCard";
 
 // Re-export types for backward compatibility with existing imports
 export type { Column, HighlightRule, TableRow };
@@ -12,6 +13,7 @@ interface DataTableProps<T extends TableRow = TableRow> {
   highlightRow?: (row: T) => string | undefined;
   highlightRules?: HighlightRule[];
   renderExpandedRow?: (row: T) => React.ReactNode;
+  hoverDataMap?: Record<string, PlayerHoverData> | null;
 }
 
 function applyRules<T extends TableRow>(row: T, rules: HighlightRule[]): string | undefined {
@@ -41,6 +43,7 @@ export default function DataTable<T extends TableRow = TableRow>({
   highlightRow,
   highlightRules,
   renderExpandedRow,
+  hoverDataMap,
 }: DataTableProps<T>) {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortAsc, setSortAsc] = useState(true);
@@ -157,14 +160,35 @@ export default function DataTable<T extends TableRow = TableRow>({
                       {isExpanded ? "▼" : "▶"}
                     </td>
                   )}
-                  {columns.map((col) => (
-                    <td
-                      key={col.key}
-                      className="px-3 py-2 text-slate-800 dark:text-slate-200 whitespace-nowrap"
-                    >
-                      {formatCell(row[col.key], col.format)}
-                    </td>
-                  ))}
+                  {columns.map((col) => {
+                    let cellContent;
+                    if (col.renderCell) {
+                      cellContent = col.renderCell(row[col.key], row);
+                    } else if (
+                      col.key === "name" &&
+                      hoverDataMap &&
+                      row.player_id &&
+                      row.ottoneu_id
+                    ) {
+                      cellContent = (
+                        <PlayerHoverCard
+                          name={String(row[col.key] ?? "—")}
+                          ottoneuId={row.ottoneu_id as number}
+                          hoverData={hoverDataMap[row.player_id as string]}
+                        />
+                      );
+                    } else {
+                      cellContent = formatCell(row[col.key], col.format);
+                    }
+                    return (
+                      <td
+                        key={col.key}
+                        className="px-3 py-2 text-slate-800 dark:text-slate-200 whitespace-nowrap"
+                      >
+                        {cellContent}
+                      </td>
+                    );
+                  })}
                 </tr>
                 {renderExpandedRow && isExpanded && (
                   <tr key={`${i}-expanded`} className={rowBg}>

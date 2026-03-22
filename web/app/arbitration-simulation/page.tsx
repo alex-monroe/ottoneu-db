@@ -1,6 +1,8 @@
 import {
   fetchAndMergeData,
   fetchAndMergeProjectedData,
+  fetchProjectionMap,
+  buildHoverDataMap,
   SEASON,
   LEAGUE_ID,
   DEFAULT_PROJECTION_YEAR,
@@ -86,6 +88,12 @@ export default async function ArbitrationSimulationPage({ searchParams }: Props)
         <SimulationControls
           initialPlayers={rawPlayers}
           initialAdjustments={initialAdjustments}
+          hoverDataMap={buildHoverDataMap(
+            rawPlayers,
+            user?.hasProjectionsAccess
+              ? await fetchProjectionMap(DEFAULT_PROJECTION_YEAR)
+              : null
+          )}
         />
       </div>
     </main>

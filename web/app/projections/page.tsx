@@ -37,6 +37,8 @@ export default async function ProjectionsPage({ searchParams }: Props) {
 
   const rows = players
     .map((p) => ({
+      player_id: p.player_id,
+      ottoneu_id: p.ottoneu_id,
       name: p.name,
       position: p.position,
       nfl_team: p.nfl_team,

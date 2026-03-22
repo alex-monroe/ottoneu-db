@@ -5,6 +5,7 @@ import { LEAGUE_ID, SEASON, CAP_PER_TEAM } from "./arb-logic";
 
 export interface RosterEntry {
   player_id: string;
+  ottoneu_id?: number;
   name: string;
   position: string;
   nfl_team: string;
@@ -37,6 +38,7 @@ interface RawTransaction {
 
 interface RawPlayer {
   id: string;
+  ottoneu_id?: number;
   name: string;
   position: string;
   nfl_team: string;
@@ -66,7 +68,7 @@ export async function fetchRosterData(): Promise<RosterData> {
       .eq("league_id", LEAGUE_ID)
       .eq("season", SEASON)
       .order("transaction_date", { ascending: true }),
-    supabase.from("players").select("id, name, position, nfl_team"),
+    supabase.from("players").select("id, ottoneu_id, name, position, nfl_team"),
     supabase
       .from("player_stats")
       .select("player_id, ppg, pps, games_played, snaps")
@@ -146,6 +148,7 @@ export function reconstructRostersAtDate(
 
     const entry: RosterEntry = {
       player_id,
+      ottoneu_id: player.ottoneu_id,
       name: player.name,
       position: player.position,
       nfl_team: player.nfl_team,

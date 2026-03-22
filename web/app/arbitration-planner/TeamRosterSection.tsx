@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ArbitrationTarget } from "@/lib/types";
+import { ArbitrationTarget, PlayerHoverData } from "@/lib/types";
+import PlayerHoverCard from "@/components/PlayerHoverCard";
 
 interface TeamRosterSectionProps {
   teamName: string;
@@ -10,6 +11,7 @@ interface TeamRosterSectionProps {
   teamAllocated: number;
   onAllocationChange: (playerId: string, amount: number) => void;
   adjustedSurplus?: Map<string, number>;
+  hoverDataMap?: Record<string, PlayerHoverData> | null;
 }
 
 export default function TeamRosterSection({
@@ -19,6 +21,7 @@ export default function TeamRosterSection({
   teamAllocated,
   onAllocationChange,
   adjustedSurplus,
+  hoverDataMap,
 }: TeamRosterSectionProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -112,7 +115,15 @@ export default function TeamRosterSection({
                     className={`border-b border-slate-100 dark:border-slate-800 ${rowClass}`}
                   >
                     <td className="px-3 py-2 text-slate-900 dark:text-white font-medium">
-                      {p.name}
+                      {hoverDataMap && p.ottoneu_id ? (
+                        <PlayerHoverCard
+                          name={p.name}
+                          ottoneuId={p.ottoneu_id}
+                          hoverData={hoverDataMap[p.player_id]}
+                        />
+                      ) : (
+                        p.name
+                      )}
                     </td>
                     <td className="px-3 py-2 text-slate-600 dark:text-slate-400">
                       {p.position}

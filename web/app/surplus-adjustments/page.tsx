@@ -1,4 +1,4 @@
-import { fetchAndMergeData, fetchAndMergeProjectedData, calculateSurplus, SEASON, LEAGUE_ID, DEFAULT_PROJECTION_YEAR } from "@/lib/analysis";
+import { fetchAndMergeData, fetchAndMergeProjectedData, fetchProjectionMap, buildHoverDataMap, calculateSurplus, SEASON, LEAGUE_ID, DEFAULT_PROJECTION_YEAR } from "@/lib/analysis";
 import { computeDollarPerVorp } from "@/lib/surplus";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
@@ -20,6 +20,11 @@ export default async function SurplusAdjustmentsPage() {
           .eq("user_id", user.userId)
       : Promise.resolve({ data: [], error: null }),
   ]);
+
+  const projMap = user?.hasProjectionsAccess
+    ? await fetchProjectionMap(DEFAULT_PROJECTION_YEAR)
+    : null;
+  const hoverDataMap = buildHoverDataMap(allPlayers, projMap);
 
   const surplusPlayers = calculateSurplus(allPlayers).filter(
     (p) => p.position !== "K"
@@ -87,6 +92,7 @@ export default async function SurplusAdjustmentsPage() {
           existingAdjustments={existingAdjustments}
           projectedValues={projectedValues}
           dollarPerVorp={dollarPerVorp}
+          hoverDataMap={hoverDataMap}
         />
       </div>
     </main>

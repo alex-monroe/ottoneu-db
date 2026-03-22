@@ -156,3 +156,25 @@ export async function fetchPlayerCard(
         transactions: txns,
     };
 }
+
+/**
+ * Fetch a single player's active projection for a given season.
+ */
+export async function fetchPlayerProjection(
+    playerId: string,
+    season = 2026
+): Promise<{ projected_ppg: number; projection_method: string } | null> {
+    const { data, error } = await supabase
+        .from("player_projections")
+        .select("projected_ppg, projection_method")
+        .eq("player_id", playerId)
+        .eq("season", season)
+        .maybeSingle();
+
+    if (error || !data) return null;
+
+    return {
+        projected_ppg: Number(data.projected_ppg),
+        projection_method: data.projection_method,
+    };
+}

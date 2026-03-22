@@ -2,7 +2,8 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { MY_TEAM } from "@/lib/arb-logic";
-import { SurplusPlayer } from "@/lib/types";
+import { SurplusPlayer, PlayerHoverData } from "@/lib/types";
+import PlayerHoverCard from "@/components/PlayerHoverCard";
 
 interface AdjustmentEntry {
   adjustment: number;
@@ -19,6 +20,7 @@ interface AdjustmentsTableProps {
   existingAdjustments: Record<string, AdjustmentEntry>;
   projectedValues: Record<string, ProjectedValueEntry>;
   dollarPerVorp: number;
+  hoverDataMap?: Record<string, PlayerHoverData> | null;
 }
 
 const POSITIONS = ["ALL", "QB", "RB", "WR", "TE"];
@@ -56,6 +58,7 @@ export default function AdjustmentsTable({
   existingAdjustments,
   projectedValues,
   dollarPerVorp,
+  hoverDataMap,
 }: AdjustmentsTableProps) {
   const [adjustments, setAdjustments] = useState<Record<string, AdjustmentEntry>>(() => {
     const init: Record<string, AdjustmentEntry> = {};
@@ -431,7 +434,15 @@ export default function AdjustmentsTable({
                   className={`border-t border-slate-100 dark:border-slate-800 ${rowClass}`}
                 >
                   <td className="px-3 py-2 text-slate-800 dark:text-slate-200 whitespace-nowrap font-medium">
-                    {player.name}
+                    {hoverDataMap && player.ottoneu_id ? (
+                      <PlayerHoverCard
+                        name={player.name}
+                        ottoneuId={player.ottoneu_id}
+                        hoverData={hoverDataMap[player.player_id]}
+                      />
+                    ) : (
+                      player.name
+                    )}
                     {player.team_name === MY_TEAM && (
                       <span className="ml-1 text-xs text-blue-600 dark:text-blue-400">★</span>
                     )}

@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback } from "react";
 import {
   ArbitrationPlan,
   ArbitrationTarget,
+  PlayerHoverData,
   TeamAllocation,
 } from "@/lib/types";
 import { validatePlan } from "@/lib/arb-planner-validation";
@@ -18,6 +19,7 @@ interface ArbPlannerClientProps {
   initialPlans: ArbitrationPlan[];
   opponentTeams: string[];
   adjustedSurplusEntries: { player_id: string; adjustment: number }[];
+  hoverDataMap?: Record<string, PlayerHoverData> | null;
 }
 
 export default function ArbPlannerClient({
@@ -26,6 +28,7 @@ export default function ArbPlannerClient({
   initialPlans,
   opponentTeams,
   adjustedSurplusEntries,
+  hoverDataMap,
 }: ArbPlannerClientProps) {
   const [tab, setTab] = useState<"plan" | "compare">("plan");
   const [plans, setPlans] = useState<ArbitrationPlan[]>(initialPlans);
@@ -332,6 +335,7 @@ export default function ArbPlannerClient({
                   teamAllocated={teamAllocated.get(team) ?? 0}
                   onAllocationChange={handleAllocationChange}
                   adjustedSurplus={adjustedSurplus}
+                  hoverDataMap={hoverDataMap}
                 />
               ))}
             </div>

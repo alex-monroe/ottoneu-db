@@ -1,6 +1,8 @@
 import {
   fetchPlayersWithProjectedPpg,
   fetchAndMergeProjectedData,
+  fetchProjectionMap,
+  buildHoverDataMap,
   analyzeArbitration,
   allocateArbitrationBudget,
   ARB_BUDGET_PER_TEAM,
@@ -13,7 +15,7 @@ import {
   DEFAULT_PROJECTION_YEAR,
   getHistoricalSeasonsForYear,
 } from "@/lib/analysis";
-import { ArbitrationTarget } from "@/lib/types";
+import type { ArbitrationTarget } from "@/lib/types";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
 import DataTable, { Column, HighlightRule } from "@/components/DataTable";
@@ -97,6 +99,11 @@ export default async function ArbitrationPage({ searchParams }: Props) {
     // Raw mode uses projected PPG as the base (same as before)
     allPlayers = await fetchPlayersWithProjectedPpg();
   }
+
+  const projMap = user?.hasProjectionsAccess
+    ? await fetchProjectionMap(DEFAULT_PROJECTION_YEAR)
+    : null;
+  const hoverDataMap = buildHoverDataMap(allPlayers, projMap);
 
   const targets = analyzeArbitration(allPlayers, adjustments) as ProjectedTarget[];
 
@@ -251,6 +258,7 @@ export default async function ArbitrationPage({ searchParams }: Props) {
             columns={columns}
             data={targets.slice(0, 20)}
             highlightRules={ARB_TARGET_RULES}
+            hoverDataMap={hoverDataMap}
           />
         </section>
 
@@ -262,7 +270,7 @@ export default async function ArbitrationPage({ searchParams }: Props) {
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
             Suggested allocation based on {isProjected ? "projected" : "number of vulnerable"} surplus per team.
           </p>
-          <ArbitrationTeams teams={teamsData} showProjectionColumns={isProjected} />
+          <ArbitrationTeams teams={teamsData} showProjectionColumns={isProjected} hoverDataMap={hoverDataMap} />
         </section>
       </div>
     </main>

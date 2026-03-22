@@ -1,25 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { SimulationResult } from "@/lib/types";
+import type { SimulationResult, PlayerHoverData } from "@/lib/types";
 import DataTable, { Column } from "@/components/DataTable";
+import { makePlayerNameColumn } from "@/components/PlayerHoverCard";
 
 interface SimulationTeamsProps {
   results: SimulationResult[];
+  hoverDataMap?: Record<string, PlayerHoverData> | null;
 }
 
-const TEAM_PLAYER_COLUMNS: Column[] = [
-  { key: "name", label: "Player" },
-  { key: "position", label: "Pos" },
-  { key: "price", label: "Salary", format: "currency" },
-  { key: "dollar_value", label: "Value", format: "currency" },
-  { key: "surplus", label: "Surplus", format: "currency" },
-  { key: "mean_arb", label: "Expected Arb", format: "currency" },
-  { key: "salary_after_arb", label: "After Arb", format: "currency" },
-  { key: "surplus_after_arb", label: "Surplus (Post)", format: "currency" },
-];
+function getTeamPlayerColumns(hdm: Record<string, PlayerHoverData> | null): Column[] {
+  return [
+    makePlayerNameColumn(hdm),
+    { key: "position", label: "Pos" },
+    { key: "price", label: "Salary", format: "currency" },
+    { key: "dollar_value", label: "Value", format: "currency" },
+    { key: "surplus", label: "Surplus", format: "currency" },
+    { key: "mean_arb", label: "Expected Arb", format: "currency" },
+    { key: "salary_after_arb", label: "After Arb", format: "currency" },
+    { key: "surplus_after_arb", label: "Surplus (Post)", format: "currency" },
+  ];
+}
 
-export default function SimulationTeams({ results }: SimulationTeamsProps) {
+export default function SimulationTeams({ results, hoverDataMap = null }: SimulationTeamsProps) {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
 
   // Get all rostered teams (including my team)
@@ -81,7 +85,7 @@ export default function SimulationTeams({ results }: SimulationTeamsProps) {
                       Full Roster (sorted by expected arbitration)
                     </h4>
                     <DataTable
-                      columns={TEAM_PLAYER_COLUMNS}
+                      columns={getTeamPlayerColumns(hoverDataMap)}
                       data={teamPlayers}
                     />
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-3">

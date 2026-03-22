@@ -1,12 +1,14 @@
 import {
   fetchAndMergeData,
+  fetchProjectionMap,
+  buildHoverDataMap,
   calculateSurplus,
   MY_TEAM,
   SEASON,
+  DEFAULT_PROJECTION_YEAR,
 } from "@/lib/analysis";
+import { getAuthenticatedUser } from "@/lib/auth";
 import DataTable, { Column, HighlightRule } from "@/components/DataTable";
-
-export const revalidate = 3600;
 
 const CORE_COLUMNS: Column[] = [
   { key: "name", label: "Player" },
@@ -65,7 +67,14 @@ const TEAM_SUMMARY_RULES: HighlightRule[] = [
 ];
 
 export default async function SurplusValuePage() {
-  const allPlayers = await fetchAndMergeData();
+  const [allPlayers, user] = await Promise.all([
+    fetchAndMergeData(),
+    getAuthenticatedUser(),
+  ]);
+  const projMap = user?.hasProjectionsAccess
+    ? await fetchProjectionMap(DEFAULT_PROJECTION_YEAR)
+    : null;
+  const hoverDataMap = buildHoverDataMap(allPlayers, projMap);
   const surplusPlayers = calculateSurplus(allPlayers);
 
   if (surplusPlayers.length === 0) {
@@ -160,6 +169,7 @@ export default async function SurplusValuePage() {
             columns={CORE_COLUMNS}
             data={bestBargains}
             highlightRules={BARGAIN_RULES}
+            hoverDataMap={hoverDataMap}
           />
         </section>
 
@@ -172,6 +182,7 @@ export default async function SurplusValuePage() {
             columns={CORE_COLUMNS}
             data={mostOverpaid}
             highlightRules={OVERPAID_RULES}
+            hoverDataMap={hoverDataMap}
           />
         </section>
 
@@ -185,6 +196,7 @@ export default async function SurplusValuePage() {
               columns={MY_TEAM_COLUMNS}
               data={myTeam}
               highlightRules={MY_TEAM_RULES}
+              hoverDataMap={hoverDataMap}
             />
             <div className="mt-3 flex flex-wrap gap-6 text-sm text-slate-600 dark:text-slate-400">
               <span>
@@ -221,7 +233,7 @@ export default async function SurplusValuePage() {
             <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
               Top Free Agents by Value
             </h2>
-            <DataTable columns={FA_COLUMNS} data={freeAgents} />
+            <DataTable columns={FA_COLUMNS} data={freeAgents} hoverDataMap={hoverDataMap} />
           </section>
         )}
 

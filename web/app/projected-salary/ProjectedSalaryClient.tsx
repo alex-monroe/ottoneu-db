@@ -1,8 +1,12 @@
 "use client";
 
 import DataTable, { Column } from "@/components/DataTable";
+import { makePlayerNameColumn } from "@/components/PlayerHoverCard";
+import type { PlayerHoverData } from "@/lib/types";
 
 interface PlayerRow {
+  player_id: string;
+  ottoneu_id?: number;
   name: string;
   position: string;
   nfl_team: string;
@@ -16,23 +20,26 @@ interface PlayerRow {
   [key: string]: string | number | null | undefined;
 }
 
-const COLUMNS: Column[] = [
-  { key: "name", label: "Player" },
-  { key: "nfl_team", label: "Team" },
-  { key: "price", label: "Salary", format: "currency" },
-  { key: "dollar_value", label: "Value", format: "currency" },
-  { key: "surplus", label: "Surplus", format: "currency" },
-  { key: "ppg", label: "PPG", format: "decimal" },
-  { key: "total_points", label: "Points", format: "decimal" },
-  { key: "games_played", label: "GP", format: "number" },
-  { key: "recommendation", label: "Recommendation" },
-];
+function getColumns(hoverDataMap: Record<string, PlayerHoverData> | null): Column[] {
+  return [
+    makePlayerNameColumn(hoverDataMap),
+    { key: "nfl_team", label: "Team" },
+    { key: "price", label: "Salary", format: "currency" },
+    { key: "dollar_value", label: "Value", format: "currency" },
+    { key: "surplus", label: "Surplus", format: "currency" },
+    { key: "ppg", label: "PPG", format: "decimal" },
+    { key: "total_points", label: "Points", format: "decimal" },
+    { key: "games_played", label: "GP", format: "number" },
+    { key: "recommendation", label: "Recommendation" },
+  ];
+}
 
 interface Props {
   positionGroups: { pos: string; players: PlayerRow[] }[];
+  hoverDataMap: Record<string, PlayerHoverData> | null;
 }
 
-export default function ProjectedSalaryClient({ positionGroups }: Props) {
+export default function ProjectedSalaryClient({ positionGroups, hoverDataMap }: Props) {
   return (
     <div className="space-y-8">
       {positionGroups.map(({ pos, players }) => (
@@ -41,7 +48,7 @@ export default function ProjectedSalaryClient({ positionGroups }: Props) {
             {pos}
           </h2>
           <DataTable
-            columns={COLUMNS}
+            columns={getColumns(hoverDataMap)}
             data={players}
             highlightRow={(row) => {
               const rec = row.recommendation as string;

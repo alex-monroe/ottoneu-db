@@ -1,18 +1,27 @@
 import {
   fetchAndMergeData,
+  fetchProjectionMap,
+  buildHoverDataMap,
   analyzeProjectedSalary,
   CAP_PER_TEAM,
   POSITIONS,
   MY_TEAM,
+  DEFAULT_PROJECTION_YEAR,
 } from "@/lib/analysis";
+import { getAuthenticatedUser } from "@/lib/auth";
 import ProjectedSalaryClient from "./ProjectedSalaryClient";
 import SummaryCard from "@/components/SummaryCard";
 
-export const revalidate = 3600;
-
 export default async function ProjectedSalaryPage() {
-  const allPlayers = await fetchAndMergeData();
+  const [allPlayers, user] = await Promise.all([
+    fetchAndMergeData(),
+    getAuthenticatedUser(),
+  ]);
   const roster = analyzeProjectedSalary(allPlayers);
+  const projMap = user?.hasProjectionsAccess
+    ? await fetchProjectionMap(DEFAULT_PROJECTION_YEAR)
+    : null;
+  const hoverDataMap = buildHoverDataMap(allPlayers, projMap);
 
   if (roster.length === 0) {
     return (
@@ -44,6 +53,8 @@ export default async function ProjectedSalaryPage() {
   const serialized = Object.entries(byPosition).map(([pos, players]) => ({
     pos,
     players: players.map((p) => ({
+      player_id: p.player_id,
+      ottoneu_id: p.ottoneu_id,
       name: p.name,
       position: p.position,
       nfl_team: p.nfl_team,
@@ -86,7 +97,7 @@ export default async function ProjectedSalaryPage() {
           />
         </div>
 
-        <ProjectedSalaryClient positionGroups={serialized} />
+        <ProjectedSalaryClient positionGroups={serialized} hoverDataMap={hoverDataMap} />
       </div>
     </main>
   );

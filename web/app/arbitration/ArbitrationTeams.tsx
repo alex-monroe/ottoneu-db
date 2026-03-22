@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import DataTable, { Column } from "@/components/DataTable";
+import { makePlayerNameColumn } from "@/components/PlayerHoverCard";
+import type { PlayerHoverData } from "@/lib/types";
 
 interface TeamPlayer {
   name: string;
@@ -21,34 +23,39 @@ interface TeamGroup {
   players: TeamPlayer[];
 }
 
-const BASE_COLUMNS: Column[] = [
-  { key: "name", label: "Player" },
-  { key: "position", label: "Pos" },
-  { key: "price", label: "Salary", format: "currency" },
-  { key: "dollar_value", label: "Value", format: "currency" },
-  { key: "surplus", label: "Surplus", format: "currency" },
-  { key: "surplus_after_arb", label: "Surplus (Post-Arb)", format: "currency" },
-];
+function getBaseColumns(hoverDataMap: Record<string, PlayerHoverData> | null): Column[] {
+  return [
+    makePlayerNameColumn(hoverDataMap),
+    { key: "position", label: "Pos" },
+    { key: "price", label: "Salary", format: "currency" },
+    { key: "dollar_value", label: "Value", format: "currency" },
+    { key: "surplus", label: "Surplus", format: "currency" },
+    { key: "surplus_after_arb", label: "Surplus (Post-Arb)", format: "currency" },
+  ];
+}
 
-const PROJECTED_COLUMNS: Column[] = [
-  { key: "name", label: "Player" },
-  { key: "position", label: "Pos" },
-  { key: "price", label: "Salary", format: "currency" },
-  { key: "observed_ppg", label: "Obs PPG", format: "decimal" },
-  { key: "ppg", label: "Proj PPG", format: "decimal" },
-  { key: "dollar_value", label: "Value", format: "currency" },
-  { key: "surplus", label: "Surplus", format: "currency" },
-  { key: "surplus_after_arb", label: "Surplus (Post-Arb)", format: "currency" },
-];
+function getProjectedColumns(hoverDataMap: Record<string, PlayerHoverData> | null): Column[] {
+  return [
+    makePlayerNameColumn(hoverDataMap),
+    { key: "position", label: "Pos" },
+    { key: "price", label: "Salary", format: "currency" },
+    { key: "observed_ppg", label: "Obs PPG", format: "decimal" },
+    { key: "ppg", label: "Proj PPG", format: "decimal" },
+    { key: "dollar_value", label: "Value", format: "currency" },
+    { key: "surplus", label: "Surplus", format: "currency" },
+    { key: "surplus_after_arb", label: "Surplus (Post-Arb)", format: "currency" },
+  ];
+}
 
 interface ArbitrationTeamsProps {
   teams: TeamGroup[];
   showProjectionColumns?: boolean;
+  hoverDataMap?: Record<string, PlayerHoverData> | null;
 }
 
-export default function ArbitrationTeams({ teams, showProjectionColumns = false }: ArbitrationTeamsProps) {
+export default function ArbitrationTeams({ teams, showProjectionColumns = false, hoverDataMap = null }: ArbitrationTeamsProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const columns = showProjectionColumns ? PROJECTED_COLUMNS : BASE_COLUMNS;
+  const columns = showProjectionColumns ? getProjectedColumns(hoverDataMap) : getBaseColumns(hoverDataMap);
 
   const toggle = (team: string) => {
     setExpanded((prev) => {

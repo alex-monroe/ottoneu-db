@@ -1,19 +1,28 @@
 import {
   fetchAndMergeData,
+  fetchProjectionMap,
+  buildHoverDataMap,
   calculateVorp,
   POSITIONS,
   SEASON,
   MIN_GAMES,
   NUM_TEAMS,
   CAP_PER_TEAM,
+  DEFAULT_PROJECTION_YEAR,
 } from "@/lib/analysis";
+import { getAuthenticatedUser } from "@/lib/auth";
 import VorpClient from "./VorpClient";
 
-export const revalidate = 3600;
-
 export default async function VorpPage() {
-  const allPlayers = await fetchAndMergeData();
+  const [allPlayers, user] = await Promise.all([
+    fetchAndMergeData(),
+    getAuthenticatedUser(),
+  ]);
   const { players, replacementPpg, replacementN } = calculateVorp(allPlayers);
+  const projMap = user?.hasProjectionsAccess
+    ? await fetchProjectionMap(DEFAULT_PROJECTION_YEAR)
+    : null;
+  const hoverDataMap = buildHoverDataMap(allPlayers, projMap);
 
   if (players.length === 0) {
     return (
@@ -47,6 +56,8 @@ export default async function VorpPage() {
 
   // All players for table
   const tableData = players.map((p) => ({
+    player_id: p.player_id,
+    ottoneu_id: p.ottoneu_id,
     name: p.name,
     position: p.position,
     nfl_team: p.nfl_team,
@@ -193,7 +204,7 @@ export default async function VorpPage() {
           </div>
         </section>
 
-        <VorpClient top15={top15} tableData={tableData} />
+        <VorpClient top15={top15} tableData={tableData} hoverDataMap={hoverDataMap} />
       </div>
     </main>
   );

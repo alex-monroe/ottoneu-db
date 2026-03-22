@@ -7,53 +7,61 @@ import {
   NUM_SIMULATIONS,
   VALUE_VARIATION,
 } from "@/lib/analysis";
-import { Player } from "@/lib/types";
+import type { Player, PlayerHoverData } from "@/lib/types";
 import DataTable, { Column, HighlightRule } from "@/components/DataTable";
+import { makePlayerNameColumn } from "@/components/PlayerHoverCard";
 import SimulationTeams from "./SimulationTeams";
 
 interface SimulationControlsProps {
   initialPlayers: Player[];
   /** Serialized adjustments from the server (Record is JSON-safe, Map is not) */
   initialAdjustments?: Record<string, number>;
+  hoverDataMap?: Record<string, PlayerHoverData> | null;
 }
 
-const MY_ROSTER_COLUMNS: Column[] = [
-  { key: "name", label: "Player" },
-  { key: "position", label: "Pos" },
-  { key: "price", label: "Salary", format: "currency" },
-  { key: "dollar_value", label: "Value", format: "currency" },
-  { key: "surplus", label: "Surplus", format: "currency" },
-  { key: "mean_arb", label: "Expected Arb", format: "currency" },
-  { key: "std_arb", label: "Std Dev", format: "currency" },
-  { key: "salary_after_arb", label: "After Arb", format: "currency" },
-  { key: "surplus_after_arb", label: "Surplus (Post)", format: "currency" },
-];
+function getMyRosterColumns(hdm: Record<string, PlayerHoverData> | null): Column[] {
+  return [
+    makePlayerNameColumn(hdm),
+    { key: "position", label: "Pos" },
+    { key: "price", label: "Salary", format: "currency" },
+    { key: "dollar_value", label: "Value", format: "currency" },
+    { key: "surplus", label: "Surplus", format: "currency" },
+    { key: "mean_arb", label: "Expected Arb", format: "currency" },
+    { key: "std_arb", label: "Std Dev", format: "currency" },
+    { key: "salary_after_arb", label: "After Arb", format: "currency" },
+    { key: "surplus_after_arb", label: "Surplus (Post)", format: "currency" },
+  ];
+}
 
-const VULNERABLE_COLUMNS: Column[] = [
-  { key: "name", label: "Player" },
-  { key: "position", label: "Pos" },
-  { key: "nfl_team", label: "NFL" },
-  { key: "team_name", label: "Owner" },
-  { key: "price", label: "Salary", format: "currency" },
-  { key: "dollar_value", label: "Value", format: "currency" },
-  { key: "surplus", label: "Surplus", format: "currency" },
-  { key: "mean_arb", label: "Expected Arb", format: "currency" },
-  { key: "std_arb", label: "Std Dev", format: "currency" },
-  { key: "surplus_after_arb", label: "Surplus (Post)", format: "currency" },
-];
+function getVulnerableColumns(hdm: Record<string, PlayerHoverData> | null): Column[] {
+  return [
+    makePlayerNameColumn(hdm),
+    { key: "position", label: "Pos" },
+    { key: "nfl_team", label: "NFL" },
+    { key: "team_name", label: "Owner" },
+    { key: "price", label: "Salary", format: "currency" },
+    { key: "dollar_value", label: "Value", format: "currency" },
+    { key: "surplus", label: "Surplus", format: "currency" },
+    { key: "mean_arb", label: "Expected Arb", format: "currency" },
+    { key: "std_arb", label: "Std Dev", format: "currency" },
+    { key: "surplus_after_arb", label: "Surplus (Post)", format: "currency" },
+  ];
+}
 
-const CUT_CANDIDATE_COLUMNS: Column[] = [
-  { key: "name", label: "Player" },
-  { key: "position", label: "Pos" },
-  { key: "nfl_team", label: "NFL" },
-  { key: "team_name", label: "Owner" },
-  { key: "price", label: "Salary", format: "currency" },
-  { key: "dollar_value", label: "Value", format: "currency" },
-  { key: "surplus", label: "Surplus", format: "currency" },
-  { key: "mean_arb", label: "Expected Arb", format: "currency" },
-  { key: "salary_after_arb", label: "After Arb", format: "currency" },
-  { key: "surplus_after_arb", label: "Surplus (Post)", format: "currency" },
-];
+function getCutCandidateColumns(hdm: Record<string, PlayerHoverData> | null): Column[] {
+  return [
+    makePlayerNameColumn(hdm),
+    { key: "position", label: "Pos" },
+    { key: "nfl_team", label: "NFL" },
+    { key: "team_name", label: "Owner" },
+    { key: "price", label: "Salary", format: "currency" },
+    { key: "dollar_value", label: "Value", format: "currency" },
+    { key: "surplus", label: "Surplus", format: "currency" },
+    { key: "mean_arb", label: "Expected Arb", format: "currency" },
+    { key: "salary_after_arb", label: "After Arb", format: "currency" },
+    { key: "surplus_after_arb", label: "Surplus (Post)", format: "currency" },
+  ];
+}
 
 const VULNERABLE_RULES: HighlightRule[] = [
   { key: "surplus_after_arb", op: "gt", value: 15, className: "bg-green-50 dark:bg-green-950/30" },
@@ -63,7 +71,7 @@ const CUT_CANDIDATE_RULES: HighlightRule[] = [
   { key: "surplus_after_arb", op: "lt", value: -10, className: "bg-red-50 dark:bg-red-950/30" },
 ];
 
-export default function SimulationControls({ initialPlayers, initialAdjustments }: SimulationControlsProps) {
+export default function SimulationControls({ initialPlayers, initialAdjustments, hoverDataMap = null }: SimulationControlsProps) {
   const [numSimulations, setNumSimulations] = useState(NUM_SIMULATIONS);
   const [valueVariation, setValueVariation] = useState(VALUE_VARIATION);
   const simResults = useMemo(() => {
@@ -186,7 +194,7 @@ export default function SimulationControls({ initialPlayers, initialAdjustments 
             ) : (
               <>
                 <DataTable
-                  columns={MY_ROSTER_COLUMNS}
+                  columns={getMyRosterColumns(hoverDataMap)}
                   data={myRoster.slice(0, 15)}
                 />
                 <p className="text-sm text-slate-600 dark:text-slate-400 mt-3">
@@ -209,7 +217,7 @@ export default function SimulationControls({ initialPlayers, initialAdjustments 
               <p className="text-slate-500 dark:text-slate-400">No vulnerable targets identified.</p>
             ) : (
               <DataTable
-                columns={VULNERABLE_COLUMNS}
+                columns={getVulnerableColumns(hoverDataMap)}
                 data={vulnerable.slice(0, 20)}
                 highlightRules={VULNERABLE_RULES}
               />
@@ -231,7 +239,7 @@ export default function SimulationControls({ initialPlayers, initialAdjustments 
               </p>
             ) : (
               <DataTable
-                columns={CUT_CANDIDATE_COLUMNS}
+                columns={getCutCandidateColumns(hoverDataMap)}
                 data={cutCandidates.slice(0, 20)}
                 highlightRules={CUT_CANDIDATE_RULES}
               />
@@ -246,7 +254,7 @@ export default function SimulationControls({ initialPlayers, initialAdjustments 
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
               Complete roster for each team showing expected arbitration raises.
             </p>
-            <SimulationTeams results={simResults} />
+            <SimulationTeams results={simResults} hoverDataMap={hoverDataMap} />
           </section>
         </>
       )}

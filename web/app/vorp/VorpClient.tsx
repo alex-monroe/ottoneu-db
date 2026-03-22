@@ -11,9 +11,10 @@ import {
   Cell,
 } from "recharts";
 import DataTable, { Column } from "@/components/DataTable";
+import { makePlayerNameColumn } from "@/components/PlayerHoverCard";
 import { POSITIONS, POSITION_COLORS } from "@/lib/analysis";
 import PositionFilter from "@/components/PositionFilter";
-import { Position } from "@/lib/types";
+import type { Position, PlayerHoverData } from "@/lib/types";
 
 interface BarData {
   name: string;
@@ -22,6 +23,8 @@ interface BarData {
 }
 
 interface VorpTableRow {
+  player_id: string;
+  ottoneu_id?: number;
   name: string;
   position: string;
   nfl_team: string;
@@ -35,25 +38,28 @@ interface VorpTableRow {
   [key: string]: string | number | null | undefined;
 }
 
-const TABLE_COLUMNS: Column[] = [
-  { key: "name", label: "Player" },
-  { key: "position", label: "Pos" },
-  { key: "nfl_team", label: "Team" },
-  { key: "ppg", label: "PPG", format: "decimal" },
-  { key: "total_points", label: "Points", format: "decimal" },
-  { key: "games_played", label: "GP", format: "number" },
-  { key: "vorp_per_game", label: "VORP/G", format: "decimal" },
-  { key: "full_season_vorp", label: "Full VORP", format: "decimal" },
-  { key: "price", label: "Salary", format: "currency" },
-  { key: "team_name", label: "Owner" },
-];
+function getTableColumns(hoverDataMap: Record<string, PlayerHoverData> | null): Column[] {
+  return [
+    makePlayerNameColumn(hoverDataMap),
+    { key: "position", label: "Pos" },
+    { key: "nfl_team", label: "Team" },
+    { key: "ppg", label: "PPG", format: "decimal" },
+    { key: "total_points", label: "Points", format: "decimal" },
+    { key: "games_played", label: "GP", format: "number" },
+    { key: "vorp_per_game", label: "VORP/G", format: "decimal" },
+    { key: "full_season_vorp", label: "Full VORP", format: "decimal" },
+    { key: "price", label: "Salary", format: "currency" },
+    { key: "team_name", label: "Owner" },
+  ];
+}
 
 interface Props {
   top15: BarData[];
   tableData: VorpTableRow[];
+  hoverDataMap: Record<string, PlayerHoverData> | null;
 }
 
-export default function VorpClient({ top15, tableData }: Props) {
+export default function VorpClient({ top15, tableData, hoverDataMap }: Props) {
   const [selectedPositions, setSelectedPositions] = useState<Position[]>([...POSITIONS]);
 
   const togglePosition = (pos: Position) => {
@@ -144,7 +150,7 @@ export default function VorpClient({ top15, tableData }: Props) {
             onToggleAll={toggleAll}
           />
         </div>
-        <DataTable columns={TABLE_COLUMNS} data={sortedData} />
+        <DataTable columns={getTableColumns(hoverDataMap)} data={sortedData} />
       </section>
     </>
   );
