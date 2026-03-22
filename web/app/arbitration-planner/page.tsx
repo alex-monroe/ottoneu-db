@@ -1,5 +1,7 @@
 import {
   fetchAndMergeData,
+  fetchProjectionMap,
+  buildHoverDataMap,
   analyzeArbitration,
   allocateArbitrationBudget,
   LEAGUE_ID,
@@ -9,6 +11,7 @@ import {
   ARB_MAX_PER_TEAM,
   ARB_MAX_PER_PLAYER_PER_TEAM,
   NUM_TEAMS,
+  DEFAULT_PROJECTION_YEAR,
 } from "@/lib/analysis";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
@@ -29,6 +32,11 @@ export default async function ArbitrationPlannerPage() {
         .eq("user_id", user.userId)
         .neq("adjustment", 0)
     : { data: [], error: null };
+
+  const projMap = user?.hasProjectionsAccess
+    ? await fetchProjectionMap(DEFAULT_PROJECTION_YEAR)
+    : null;
+  const hoverDataMap = buildHoverDataMap(allPlayers, projMap);
 
   // Use raw values (no adjustments) so Value/Surplus columns match the arbitration page.
   // Adjustments are shown separately in the "Adj. Surplus" column.
@@ -85,6 +93,7 @@ export default async function ArbitrationPlannerPage() {
           initialPlans={plans ?? []}
           opponentTeams={opponentTeams}
           adjustedSurplusEntries={adjustedSurplusEntries}
+          hoverDataMap={hoverDataMap}
         />
       </div>
     </main>

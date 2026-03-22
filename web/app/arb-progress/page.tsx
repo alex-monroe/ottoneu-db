@@ -1,8 +1,8 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { LEAGUE_ID, SEASON, NUM_TEAMS, ARB_MAX_PER_PLAYER_LEAGUE } from "@/lib/config";
+import { fetchAndMergeData, fetchProjectionMap, buildHoverDataMap, DEFAULT_PROJECTION_YEAR } from "@/lib/analysis";
+import { getAuthenticatedUser } from "@/lib/auth";
 import DataTable, { Column, HighlightRule } from "@/components/DataTable";
-
-export const revalidate = 300; // Revalidate every 5 minutes
 
 export const metadata = {
   title: "Arbitration Progress | Ottoneu Analytics",
@@ -17,7 +17,8 @@ interface TeamStatus {
 
 interface Allocation {
   [key: string]: string | number | boolean | null | undefined;
-  player_name: string;
+  name: string;
+  player_id: string | null;
   ottoneu_id: number | null;
   team_name: string | null;
   current_salary: number | null;
@@ -28,7 +29,7 @@ interface Allocation {
 }
 
 const ALLOCATION_COLUMNS: Column[] = [
-  { key: "player_name", label: "Player" },
+  { key: "name", label: "Player" },
   { key: "team_name", label: "Owner" },
   { key: "current_salary", label: "Salary", format: "currency" },
   { key: "raise_amount", label: "Raise", format: "currency" },
@@ -49,8 +50,8 @@ const ALLOCATION_RULES: HighlightRule[] = [
 export default async function ArbProgressPage() {
   const supabase = getSupabaseAdmin();
 
-  // Fetch team status and allocations in parallel
-  const [teamsRes, allocationsRes] = await Promise.all([
+  // Fetch team status, allocations, and player data in parallel
+  const [teamsRes, allocationsRes, allPlayers, user] = await Promise.all([
     supabase
       .from("arbitration_progress_teams")
       .select("team_name, is_complete, scraped_at")
@@ -65,11 +66,26 @@ export default async function ArbProgressPage() {
       .eq("league_id", LEAGUE_ID)
       .eq("season", SEASON)
       .order("raise_amount", { ascending: false }),
+    fetchAndMergeData(),
+    getAuthenticatedUser(),
   ]);
+
+  const projMap = user?.hasProjectionsAccess
+    ? await fetchProjectionMap(DEFAULT_PROJECTION_YEAR)
+    : null;
+  const hoverDataMap = buildHoverDataMap(allPlayers, projMap);
+
+  // Build ottoneu_id → player_id lookup
+  const ottoneuToPlayerId = new Map<number, string>();
+  for (const p of allPlayers) {
+    if (p.ottoneu_id != null) ottoneuToPlayerId.set(p.ottoneu_id, p.player_id);
+  }
 
   const teams: TeamStatus[] = teamsRes.data ?? [];
   const allocations: Allocation[] = (allocationsRes.data ?? []).map((row) => ({
     ...row,
+    name: row.player_name,
+    player_id: row.ottoneu_id ? (ottoneuToPlayerId.get(row.ottoneu_id) ?? null) : null,
     projected_raise: null,
     projected_salary: null,
   }));
@@ -258,6 +274,7 @@ export default async function ArbProgressPage() {
               columns={ALLOCATION_COLUMNS}
               data={allocations}
               highlightRules={ALLOCATION_RULES}
+              hoverDataMap={hoverDataMap}
             />
           </section>
         )}
