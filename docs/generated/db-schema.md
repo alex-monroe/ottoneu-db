@@ -23,6 +23,20 @@ Sixteen tables, all with UUID primary keys.
 | `arbitration_progress` | Scraped player allocation data from Ottoneu arbitration page | -- |
 | `arbitration_progress_teams` | Per-team arbitration completion status | `(league_id, season, team_name)` |
 
+### Scraper jobs table detail
+
+**`scraper_jobs`**
+- `id` UUID PK
+- `task_type` text — e.g. `'scrape_roster'`, `'scrape_player_card'`, `'pull_nfl_stats'`
+- `params` jsonb — task-specific parameters
+- `status` text — `'pending'`, `'running'`, `'completed'`, `'failed'`
+- `priority` int — higher = runs first
+- `attempts` int
+- `max_attempts` int
+- `last_error` text
+- `batch_id` UUID — groups jobs from one enqueue call
+- `depends_on` UUID FK -> `scraper_jobs.id` — must complete before this job runs
+
 ### Projection tables detail
 
 **`projection_models`**

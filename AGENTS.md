@@ -36,9 +36,14 @@ docs/
 ├── GIT_WORKFLOW.md                    # Branch strategy, PR requirements
 ├── TESTING.md                         # Python + web test setup and CI
 ├── exec-plans/
-│   └── market-projections.md          # Market-based projection system implementation plan
+│   ├── [feature-projections.md](docs/exec-plans/feature-projections.md) # Feature-based player projection system
+│   ├── [market-projections.md](docs/exec-plans/market-projections.md)   # Market-based projection system implementation plan
+│   └── [qb-usage-share.md](docs/exec-plans/qb-usage-share.md)           # QB Usage Share methodology plan
 ├── generated/
-│   └── db-schema.md                   # Database tables, keys, relationships
+│   ├── [db-schema.md](docs/generated/db-schema.md)                      # Database tables, keys, relationships
+│   ├── [player-diagnostics.md](docs/generated/player-diagnostics.md)    # Player projection diagnostics
+│   ├── [projection-accuracy.md](docs/generated/projection-accuracy.md)  # Model comparison accuracy
+│   └── [segment-analysis.md](docs/generated/segment-analysis.md)        # Projection accuracy segment analysis
 └── references/
     ├── environment-variables.md       # .env and .env.local variable reference
     └── ottoneu-rules.md               # Scoring, roster, salary cap, arbitration rules
