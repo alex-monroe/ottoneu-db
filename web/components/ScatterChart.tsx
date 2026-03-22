@@ -1,7 +1,7 @@
 "use client"
 
 import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, Legend } from 'recharts'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { ChartPoint, TooltipProps, Position, POSITIONS, POSITION_COLORS } from '@/lib/types'
 import PositionFilter from './PositionFilter'
 
@@ -55,6 +55,26 @@ export default function PlayerScatterChart({ data, onMinGamesChange }: ScatterCh
                 : [...prev, pos]
         );
     };
+
+    // ⚡ Bolt: Use useMemo and a single pass to group players by position to prevent O(P * N) operations
+    // multiplying per render in ScatterChart components
+    const groupedData = useMemo(() => {
+        const validPositions = new Set(selectedPositions);
+        const grouped = new Map<Position, ChartPoint[]>();
+
+        for (const pos of selectedPositions) {
+            grouped.set(pos, []);
+        }
+
+        for (const d of data) {
+            const pos = d.position as Position;
+            if (validPositions.has(pos) && d.games_played >= minGames) {
+                grouped.get(pos)?.push(d);
+            }
+        }
+
+        return grouped;
+    }, [data, selectedPositions, minGames]);
 
     return (
         <div className="w-full h-[600px] bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 flex flex-col">
@@ -131,7 +151,7 @@ export default function PlayerScatterChart({ data, onMinGamesChange }: ScatterCh
                             <Scatter
                                 key={pos}
                                 name={pos}
-                                data={data.filter(d => d.position === pos && d.games_played >= minGames)}
+                                data={groupedData.get(pos) || []}
                                 fill={POSITION_COLORS[pos]}
                             />
                         ))}

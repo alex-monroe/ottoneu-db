@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import {
   ResponsiveContainer,
   ScatterChart,
@@ -84,32 +85,85 @@ export default function AccuracyScatterChart({
   compareModelName,
   primaryModelName,
 }: Props) {
-  const filtered = players.filter((p) =>
-    selectedPositions.includes(p.position as Position)
-  );
+  // ⚡ Bolt: Use useMemo and a single pass to group players by position to prevent O(P * N) operations
+  // multiplying per render in ScatterChart components
+  const { filtered, filteredByPos } = useMemo(() => {
+    const validPositions = new Set(selectedPositions);
+    const filtered: BacktestPlayer[] = [];
+    const grouped = new Map<Position, BacktestPlayer[]>();
 
-  const filteredCompare = comparePlayers
-    ? comparePlayers.filter((p) => selectedPositions.includes(p.position as Position))
-    : [];
+    for (const pos of selectedPositions) {
+      grouped.set(pos, []);
+    }
 
-  const allFiltered = [...filtered, ...filteredCompare];
-  const allPpg = allFiltered.flatMap((p) => [p.projected_ppg, p.actual_ppg]);
-  const rawMin = allPpg.length > 0 ? Math.min(...allPpg) : 0;
-  const rawMax = allPpg.length > 0 ? Math.max(...allPpg) : 20;
-  const padding = (rawMax - rawMin) * 0.05;
-  const minVal = Math.max(0, rawMin - padding);
-  const maxVal = rawMax + padding;
+    for (const p of players) {
+      const pos = p.position as Position;
+      if (validPositions.has(pos)) {
+        filtered.push(p);
+        grouped.get(pos)?.push(p);
+      }
+    }
+
+    return { filtered, filteredByPos: grouped };
+  }, [players, selectedPositions]);
+
+  const { filteredCompare, compareByPos } = useMemo(() => {
+    const validPositions = new Set(selectedPositions);
+    const filteredCompare: (BacktestPlayer & { _model?: string })[] = [];
+    const grouped = new Map<Position, (BacktestPlayer & { _model?: string })[]>();
+
+    for (const pos of selectedPositions) {
+      grouped.set(pos, []);
+    }
+
+    if (comparePlayers) {
+      for (const p of comparePlayers) {
+        const pos = p.position as Position;
+        if (validPositions.has(pos)) {
+          const tagged = { ...p, _model: compareModelName ?? "Compare" };
+          filteredCompare.push(tagged);
+          grouped.get(pos)?.push(tagged);
+        }
+      }
+    }
+
+    return { filteredCompare, compareByPos: grouped };
+  }, [comparePlayers, selectedPositions, compareModelName]);
+
+  const { minVal, maxVal } = useMemo(() => {
+    let min = Infinity;
+    let max = -Infinity;
+
+    const updateMinMax = (val: number) => {
+      if (val < min) min = val;
+      if (val > max) max = val;
+    };
+
+    for (const p of filtered) {
+      updateMinMax(p.projected_ppg);
+      updateMinMax(p.actual_ppg);
+    }
+    for (const p of filteredCompare) {
+      updateMinMax(p.projected_ppg);
+      updateMinMax(p.actual_ppg);
+    }
+
+    if (min === Infinity) {
+      min = 0;
+      max = 20;
+    }
+
+    const padding = (max - min) * 0.05;
+    return {
+      minVal: Math.max(0, min - padding),
+      maxVal: max + padding
+    };
+  }, [filtered, filteredCompare]);
 
   const hasCompare = filteredCompare.length > 0;
   const positions = (["QB", "RB", "WR", "TE", "K"] as Position[]).filter((pos) =>
     selectedPositions.includes(pos)
   );
-
-  // Tag compare players with model name for tooltip
-  const taggedCompare = filteredCompare.map((p) => ({
-    ...p,
-    _model: compareModelName ?? "Compare",
-  }));
 
   return (
     <div className="w-full h-[500px] bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4">
@@ -161,7 +215,7 @@ export default function AccuracyScatterChart({
             <Scatter
               key={pos}
               name={hasCompare ? `${pos} (${primaryModelName ?? "Model A"})` : pos}
-              data={filtered.filter((p) => p.position === pos)}
+              data={filteredByPos.get(pos) || []}
               fill={POSITION_COLORS[pos]}
               opacity={0.8}
             />
@@ -173,7 +227,7 @@ export default function AccuracyScatterChart({
               <Scatter
                 key={`compare-${pos}`}
                 name={`${pos} (${compareModelName ?? "Model B"})`}
-                data={taggedCompare.filter((p) => p.position === pos)}
+                data={compareByPos.get(pos) || []}
                 fill={COMPARE_POSITION_COLORS[pos]}
                 opacity={0.7}
                 shape="diamond"
