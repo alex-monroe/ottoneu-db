@@ -60,7 +60,10 @@ export default function PlayerSearch({ players }: PlayerSearchProps) {
                             </kbd>
                         ) : (
                             <button
-                                onClick={() => setQuery("")}
+                                onClick={() => {
+                                    setQuery("");
+                                    setTimeout(() => inputRef.current?.focus(), 0);
+                                }}
                                 className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none focus:text-slate-600 dark:focus:text-slate-200"
                                 aria-label="Clear search"
                             >
@@ -118,7 +121,7 @@ export default function PlayerSearch({ players }: PlayerSearchProps) {
                             onClick={() => {
                                 setQuery("");
                                 setPosition("ALL");
-                                inputRef.current?.focus();
+                                setTimeout(() => inputRef.current?.focus(), 0);
                             }}
                             className="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-md shadow-sm text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-slate-900 transition-colors"
                         >
