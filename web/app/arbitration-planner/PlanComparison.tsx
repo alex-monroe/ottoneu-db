@@ -81,14 +81,15 @@ export default function PlanComparison({
 
   // Per-team summary
   const teamSummaries = useMemo(() => {
-    const teams = new Map<string, number[]>();
+    const teams = new Map<string, { totals: number[]; count: number }>();
     for (const row of comparisonRows) {
       if (!teams.has(row.team_name)) {
-        teams.set(row.team_name, new Array(selectedPlans.length).fill(0));
+        teams.set(row.team_name, { totals: new Array(selectedPlans.length).fill(0), count: 0 });
       }
-      const totals = teams.get(row.team_name)!;
+      const data = teams.get(row.team_name)!;
+      data.count += 1;
       for (let i = 0; i < row.allocations.length; i++) {
-        totals[i] += row.allocations[i];
+        data.totals[i] += row.allocations[i];
       }
     }
     return teams;
@@ -162,19 +163,20 @@ export default function PlanComparison({
                 // Show team header row when team changes
                 const prevTeam = idx > 0 ? comparisonRows[idx - 1].team_name : null;
                 const showTeamHeader = row.team_name !== prevTeam;
-                const teamTotals = teamSummaries.get(row.team_name);
+                const teamData = teamSummaries.get(row.team_name);
 
                 return (
                   <tr key={row.player_id}>
                     {showTeamHeader ? (
                       <td
                         className="px-3 py-2 font-medium text-slate-900 dark:text-white align-top"
-                        rowSpan={comparisonRows.filter((r) => r.team_name === row.team_name).length}
+                        // ⚡ Bolt: Replaced O(N^2) inline .filter() with O(1) pre-calculated Map lookup for row spans.
+                        rowSpan={teamData?.count || 1}
                       >
                         <div>{row.team_name}</div>
-                        {teamTotals && (
+                        {teamData && (
                           <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                            {teamTotals.map((t, i) => (
+                            {teamData.totals.map((t, i) => (
                               <span key={i}>
                                 {i > 0 && " / "}${t}
                               </span>

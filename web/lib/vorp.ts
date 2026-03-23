@@ -39,9 +39,22 @@ export function calculateVorp(
 
     const nonCollege = qualified.filter((p) => !p.is_college);
 
+    // ⚡ Bolt: Replaced O(P * N) .filter() scanning with a single-pass O(N) Map grouping.
+    const nonCollegeByPosition = new Map<string, Player[]>();
+    for (const p of nonCollege) {
+        let list = nonCollegeByPosition.get(p.position);
+        if (!list) {
+            list = [];
+            nonCollegeByPosition.set(p.position, list);
+        }
+        list.push(p);
+    }
+
     for (const [pos, rank] of Object.entries(REPLACEMENT_LEVEL)) {
-        const rostered = nonCollege.filter(
-            (p) => p.position === pos && p.team_name != null && p.team_name !== 'FA' && p.team_name !== ''
+        const posPlayers = nonCollegeByPosition.get(pos) || [];
+
+        const rostered = posPlayers.filter(
+            (p) => p.team_name != null && p.team_name !== 'FA' && p.team_name !== ''
         );
 
         if (rostered.length >= MIN_SALARY_PLAYERS) {
@@ -58,14 +71,12 @@ export function calculateVorp(
         }
 
         // Fallback: fixed rank by total points
-        const posPlayers = nonCollege
-            .filter((p) => p.position === pos)
-            .sort((a, b) => b.total_points - a.total_points);
+        const sortedPosPlayers = [...posPlayers].sort((a, b) => b.total_points - a.total_points);
 
-        if (posPlayers.length >= rank) {
-            replacementPpg[pos] = posPlayers[rank - 1].ppg;
-        } else if (posPlayers.length > 0) {
-            replacementPpg[pos] = posPlayers[posPlayers.length - 1].ppg;
+        if (sortedPosPlayers.length >= rank) {
+            replacementPpg[pos] = sortedPosPlayers[rank - 1].ppg;
+        } else if (sortedPosPlayers.length > 0) {
+            replacementPpg[pos] = sortedPosPlayers[sortedPosPlayers.length - 1].ppg;
         } else {
             replacementPpg[pos] = 0;
         }
