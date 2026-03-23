@@ -34,7 +34,7 @@ class ScraperWorker:
     """Polls the scraper_jobs table and executes tasks."""
 
     def __init__(self):
-        self.supabase: Client = get_supabase_client()
+        self.supabase: Client = get_supabase_client()  # Centralized configuration
         self.playwright = None
         self.browser = None
         self.browser_context = None
