@@ -9,3 +9,7 @@
 ## 2025-03-11 - [Arbitration Planner Allocation Optimization]
 **Learning:** Calling `.find()` inside a nested loop when distributing allocations (`web/app/arbitration-planner/ArbPlannerClient.tsx`) results in an O(N^2) operation, which can cause significant UI blocking when dealing with large arrays of players and targets.
 **Action:** When finding matching items across two lists inside a loop, pre-calculate an O(1) Map keyed by the search criteria (e.g., `name|team_name`) before the loop begins to avoid redundant array iterations.
+
+## 2025-03-22 - [Surplus Calculation Optimization]
+**Learning:** Chaining array methods like `.filter().reduce()` for aggregations in hot paths (like `calculateSurplus` which is called frequently across multiple components) introduces unnecessary intermediate array allocations and O(N) iteration overhead.
+**Action:** Replace `.filter().reduce()` chains with single-pass `for` loops using accumulator variables, especially when processing core application data like player lists. This eliminates O(N) memory allocation and improves calculation speed.

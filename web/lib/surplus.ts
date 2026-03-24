@@ -13,9 +13,14 @@ export function calculateSurplus(
     const { players: vorpPlayers } = calculateVorp(players);
     if (vorpPlayers.length === 0) return [];
 
-    const totalPositiveVorp = vorpPlayers
-        .filter((p) => p.full_season_vorp > 0)
-        .reduce((sum, p) => sum + p.full_season_vorp, 0);
+    // ⚡ Bolt: Replaced O(N) intermediate array allocation (.filter)
+    // followed by .reduce with a single-pass loop for performance.
+    let totalPositiveVorp = 0;
+    for (let i = 0; i < vorpPlayers.length; i++) {
+        if (vorpPlayers[i].full_season_vorp > 0) {
+            totalPositiveVorp += vorpPlayers[i].full_season_vorp;
+        }
+    }
 
     if (totalPositiveVorp === 0) return [];
 
@@ -42,9 +47,16 @@ export function calculateSurplus(
  */
 export function computeDollarPerVorp(players: Player[]): number {
     const { players: vorpPlayers } = calculateVorp(players);
-    const totalPositiveVorp = vorpPlayers
-        .filter((p) => p.full_season_vorp > 0)
-        .reduce((sum, p) => sum + p.full_season_vorp, 0);
+
+    // ⚡ Bolt: Replaced O(N) intermediate array allocation (.filter)
+    // followed by .reduce with a single-pass loop for performance.
+    let totalPositiveVorp = 0;
+    for (let i = 0; i < vorpPlayers.length; i++) {
+        if (vorpPlayers[i].full_season_vorp > 0) {
+            totalPositiveVorp += vorpPlayers[i].full_season_vorp;
+        }
+    }
+
     if (totalPositiveVorp === 0) return 0;
     return (NUM_TEAMS * CAP_PER_TEAM * 0.875) / totalPositiveVorp;
 }
