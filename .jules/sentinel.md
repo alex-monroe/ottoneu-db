@@ -1,0 +1,4 @@
+## 2025-03-24 - [Open Redirect Bypass via Whitespace and Control Characters]
+**Vulnerability:** The open redirect validation logic `url.startsWith("/") && !url.startsWith("//")` was vulnerable to bypasses because strings starting with whitespaces or control characters (e.g., `/\n//example.com` or `/%09//example.com`) evaluated to `true` but could still be normalized by the browser to absolute URLs.
+**Learning:** Checking the starting string of a URL parameter is insufficient if browsers strip whitespace and control characters. Attackers can smuggle absolute URLs past simple `startsWith` checks by prepending ignored characters.
+**Prevention:** Validation logic should explicitly reject inputs containing whitespace (`/\s/`) or control characters (`/[\x00-\x1F\x7F]/`) before verifying the starting slash.
