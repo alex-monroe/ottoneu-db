@@ -1,3 +1,6 @@
 ## 2024-03-12 - Enhance PlayerSearch empty state UX
 **Learning:** Found a common UX pattern where empty states in searchable/filterable lists lack a direct action to reset the filters. Showing the query inside the empty state message provides helpful context, but automatically clearing all filters (query + category selectors) and refocusing the input with a single click significantly reduces friction for subsequent searches.
 **Action:** When designing or refactoring searchable lists, ensure the empty state includes a one-click "Clear filters" action that resets both text and category filters, while keeping the user's keyboard focus within the primary search input.
+## 2026-03-25 - Add loading state to async submit button
+**Learning:** Missing loading states on async operations (like login/register) leave users wondering if their click registered. Adding an inline spinner with descriptive text ('Signing in...', 'Creating account...') to the primary button prevents multiple submissions and provides immediate feedback during the authentication flow.
+**Action:** Ensure all critical async form submissions include an inline loading state within the primary action button, disabling it to prevent duplicate requests.
