@@ -40,10 +40,21 @@ function makePlayer(overrides: Partial<Player> & { player_id: string; name: stri
 }
 
 /**
+ * Simple seeded random number generator for deterministic mock data.
+ */
+function deterministicRandom(seed: number): () => number {
+    return function() {
+        seed = (seed * 9301 + 49297) % 233280;
+        return seed / 233280;
+    };
+}
+
+/**
  * Build a roster of N players across various teams with enough depth
  * to trigger the salary-implied replacement path.
  */
 function buildLeaguePlayers(): Player[] {
+    const random = deterministicRandom(12345);
     const teams = [
         "Team A", "Team B", "Team C", "Team D",
         "Team E", "Team F", "Team G", "Team H",
@@ -57,8 +68,8 @@ function buildLeaguePlayers(): Player[] {
         for (const pos of positions) {
             // 3 players per position per team = 144 total
             for (let i = 0; i < 3; i++) {
-                const ppg = 5 + Math.random() * 15;
-                const price = Math.round(1 + Math.random() * 50);
+                const ppg = 5 + random() * 15;
+                const price = Math.round(1 + random() * 50);
                 players.push(
                     makePlayer({
                         player_id: String(id++),
@@ -499,5 +510,11 @@ describe("runArbitrationSimulation", () => {
         for (let i = 1; i < result.length; i++) {
             expect(result[i].mean_arb).toBeLessThanOrEqual(result[i - 1].mean_arb);
         }
+    });
+
+    it("matches snapshot for deterministic simulation output", () => {
+        const players = buildLeaguePlayers();
+        const result = runArbitrationSimulation(players, 5, 0.2);
+        expect(result).toMatchSnapshot();
     });
 });
