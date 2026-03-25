@@ -8,7 +8,7 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 
 **Tech stack:** Python 3.9+ · Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Supabase (PostgreSQL) · Playwright · pandas · Recharts
 
-**Package Manager:** Always use `npm` for frontend dependencies and scripts. Do not use `pnpm`, `yarn`, or `bun`.
+**Package Manager:** Always use `pnpm` for frontend dependencies and scripts. Do not use `npm`, `yarn`, or `bun`.
 
 ## Quick Reference
 
@@ -25,23 +25,29 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 
 ## Documentation Map
 
-```
-AGENTS.md                              ← you are here
-CLAUDE.md                              ← Claude Code specific instructions
+```markdown
+[AGENTS.md](AGENTS.md)                              ← universal agent instructions
+[CLAUDE.md](CLAUDE.md)                              ← Claude Code specific instructions
 docs/
-├── ARCHITECTURE.md                    # System design, data + analysis pipelines, tech stack
-├── CODE_ORGANIZATION.md               # Key file locations, Python/TS config
-├── COMMANDS.md                        # All CLI commands (frontend, backend, make, cron)
-├── FRONTEND.md                        # Routes, components, types, analysis logic
-├── GIT_WORKFLOW.md                    # Branch strategy, PR requirements
-├── TESTING.md                         # Python + web test setup and CI
+├── [ARCHITECTURE.md](docs/ARCHITECTURE.md)                    # System design, data + analysis pipelines, tech stack
+├── [CODE_ORGANIZATION.md](docs/CODE_ORGANIZATION.md)               # Key file locations, Python/TS config
+├── [COMMANDS.md](docs/COMMANDS.md)                        # All CLI commands (frontend, backend, make, cron)
+├── [FRONTEND.md](docs/FRONTEND.md)                        # Routes, components, types, analysis logic
+├── [GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md)                    # Branch strategy, PR requirements
+├── [TESTING.md](docs/TESTING.md)                         # Python + web test setup and CI
 ├── exec-plans/
-│   └── market-projections.md          # Market-based projection system implementation plan
+│   ├── [feature-projections.md](docs/exec-plans/feature-projections.md)         # Feature projection system
+│   ├── [market-projections.md](docs/exec-plans/market-projections.md)          # Market-based projection system implementation plan
+│   ├── [projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md)  # 4-phase accuracy improvement roadmap
+│   └── [qb-usage-share.md](docs/exec-plans/qb-usage-share.md)              # QB Usage Share — Findings & Next Steps
 ├── generated/
-│   └── db-schema.md                   # Database tables, keys, relationships
+│   ├── [db-schema.md](docs/generated/db-schema.md)                   # Database tables, keys, relationships
+│   ├── [player-diagnostics.md](docs/generated/player-diagnostics.md)          # Per-player diagnostics
+│   ├── [projection-accuracy.md](docs/generated/projection-accuracy.md)         # Projection accuracy table
+│   └── [segment-analysis.md](docs/generated/segment-analysis.md)            # Segmented accuracy analysis
 └── references/
-    ├── environment-variables.md       # .env and .env.local variable reference
-    └── ottoneu-rules.md               # Scoring, roster, salary cap, arbitration rules
+    ├── [environment-variables.md](docs/references/environment-variables.md)       # .env and .env.local variable reference
+    └── [ottoneu-rules.md](docs/references/ottoneu-rules.md)               # Scoring, roster, salary cap, arbitration rules
 ```
 
 ## Python Style

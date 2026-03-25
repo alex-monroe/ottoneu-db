@@ -3,16 +3,16 @@
 ## Frontend (run from `web/`)
 
 ```bash
-npm run dev          # Dev server on localhost:3000
-npm run build        # Production build (validates correctness)
-npm run lint         # ESLint
+pnpm run dev          # Dev server on localhost:3000
+pnpm run build        # Production build (validates correctness)
+pnpm run lint         # ESLint
 npx tsc --noEmit     # TypeScript type checking
-npm test             # Jest tests
-npm start            # Production server
+pnpm test             # Jest tests
+pnpm start            # Production server
 ```
 
 > **Worktree note:** Git worktrees share source files but not `node_modules/` or gitignored files.
-> Before building in a worktree, run `npm install` in `web/` and copy `config.json` from the main repo root.
+> Before building in a worktree, run `pnpm install` in `web/` and copy `config.json` from the main repo root.
 
 ## Backend (run from project root, venv must be active)
 

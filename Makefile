@@ -11,20 +11,20 @@ install: ## Install all dependencies (Python + Node)
 	python3 -m venv venv
 	. venv/bin/activate && pip install -r requirements.txt
 	. venv/bin/activate && playwright install chromium
-	cd web && npm install
+	cd web && pnpm install
 
 # ──────────────────────────────────────────────
 # Frontend
 # ──────────────────────────────────────────────
 
 dev: ## Start Next.js dev server on localhost:3000
-	cd web && npm run dev
+	cd web && pnpm run dev
 
 build: ## Production build (validates correctness)
-	cd web && npm run build
+	cd web && pnpm run build
 
 lint: ## Run ESLint on web/
-	cd web && npm run lint
+	cd web && pnpm run lint
 
 typecheck: ## TypeScript type checking
 	cd web && npx tsc --noEmit

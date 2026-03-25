@@ -15,6 +15,6 @@ This repository maintains universal instructions for AI agents in `AGENTS.md`.
 - **Database:** See `docs/generated/db-schema.md`
 
 ## Key Directives
-- **Package Manager:** Strictly use `npm` for all frontend tasks (do not use `yarn`, `pnpm`, or `bun`).
+- **Package Manager:** Strictly use `pnpm` for all frontend tasks (do not use `yarn`, `npm`, or `bun`).
 - **Commits:** Do not commit directly to `main`. Use PRs.
 - **Architectural Rules:** Adhere strictly to rules in `AGENTS.md` (e.g., config sync, shared Supabase client). Run `make check-arch` to verify.

@@ -6,7 +6,7 @@ Guidance for Claude Code (claude.ai/code) working on this repository.
 
 Comprehensive database and analytics platform for Ottoneu Fantasy Football League 309 (12-team Superflex Half PPR). Python scripts scrape player data and NFL stats into a Supabase PostgreSQL database. A Next.js frontend provides interactive analytics and visualizations for player efficiency (PPG/PPS), VORP, surplus value, projected salaries, and arbitration targets.
 
-**Package Manager:** Always use `npm` for frontend dependencies and scripts. Do not use `pnpm`, `yarn`, or `bun`.
+**Package Manager:** Always use `pnpm` for frontend dependencies and scripts. Do not use `npm`, `yarn`, or `bun`.
 
 **Python:** Always use `venv/bin/python` (not `python` or `python3`). The virtualenv is at `venv/`, not `.venv/`.
 
@@ -29,24 +29,29 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 
 Skills (`.claude/commands/`): `create-pr`, `projection-accuracy`, `retro`, `run-analyses`, `run-scraper`, `run-tests`, `start-dev`
 
-```
-CLAUDE.md                              ← you are here
-AGENTS.md                              ← universal agent instructions
+```markdown
+[AGENTS.md](AGENTS.md)                              ← universal agent instructions
+[CLAUDE.md](CLAUDE.md)                              ← Claude Code specific instructions
 docs/
-├── ARCHITECTURE.md                    # System design, data + analysis pipelines, tech stack
-├── CODE_ORGANIZATION.md               # Key file locations, Python/TS config
-├── COMMANDS.md                        # All CLI commands (frontend, backend, make, cron)
-├── FRONTEND.md                        # Routes, components, types, analysis logic
-├── GIT_WORKFLOW.md                    # Branch strategy, PR requirements
-├── TESTING.md                         # Python + web test setup and CI
+├── [ARCHITECTURE.md](docs/ARCHITECTURE.md)                    # System design, data + analysis pipelines, tech stack
+├── [CODE_ORGANIZATION.md](docs/CODE_ORGANIZATION.md)               # Key file locations, Python/TS config
+├── [COMMANDS.md](docs/COMMANDS.md)                        # All CLI commands (frontend, backend, make, cron)
+├── [FRONTEND.md](docs/FRONTEND.md)                        # Routes, components, types, analysis logic
+├── [GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md)                    # Branch strategy, PR requirements
+├── [TESTING.md](docs/TESTING.md)                         # Python + web test setup and CI
 ├── exec-plans/
-│   ├── market-projections.md          # Market-based projection system (DEFERRED)
-│   └── projection-accuracy-improvement.md  # 4-phase accuracy improvement roadmap
+│   ├── [feature-projections.md](docs/exec-plans/feature-projections.md)         # Feature projection system
+│   ├── [market-projections.md](docs/exec-plans/market-projections.md)          # Market-based projection system implementation plan
+│   ├── [projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md)  # 4-phase accuracy improvement roadmap
+│   └── [qb-usage-share.md](docs/exec-plans/qb-usage-share.md)              # QB Usage Share — Findings & Next Steps
 ├── generated/
-│   └── db-schema.md                   # Database tables, keys, relationships
+│   ├── [db-schema.md](docs/generated/db-schema.md)                   # Database tables, keys, relationships
+│   ├── [player-diagnostics.md](docs/generated/player-diagnostics.md)          # Per-player diagnostics
+│   ├── [projection-accuracy.md](docs/generated/projection-accuracy.md)         # Projection accuracy table
+│   └── [segment-analysis.md](docs/generated/segment-analysis.md)            # Segmented accuracy analysis
 └── references/
-    ├── environment-variables.md       # .env and .env.local variable reference
-    └── ottoneu-rules.md               # Scoring, roster, salary cap, arbitration rules
+    ├── [environment-variables.md](docs/references/environment-variables.md)       # .env and .env.local variable reference
+    └── [ottoneu-rules.md](docs/references/ottoneu-rules.md)               # Scoring, roster, salary cap, arbitration rules
 ```
 
 ## GitHub Repository
