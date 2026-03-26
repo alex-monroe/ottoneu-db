@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import type { Column, HighlightRule, PlayerHoverData, TableRow } from "@/lib/types";
 import PlayerHoverCard from "./PlayerHoverCard";
 
@@ -147,9 +147,8 @@ export default function DataTable<T extends TableRow = TableRow>({
                 ? "bg-white dark:bg-slate-950"
                 : "bg-slate-50 dark:bg-slate-900");
             return (
-              <>
+              <React.Fragment key={i}>
                 <tr
-                  key={i}
                   className={`border-t border-slate-100 dark:border-slate-800 ${rowBg} ${
                     renderExpandedRow ? "cursor-pointer hover:brightness-95" : ""
                   }`}
@@ -191,13 +190,13 @@ export default function DataTable<T extends TableRow = TableRow>({
                   })}
                 </tr>
                 {renderExpandedRow && isExpanded && (
-                  <tr key={`${i}-expanded`} className={rowBg}>
+                  <tr className={rowBg}>
                     <td colSpan={columns.length + 1} className="p-0">
                       {renderExpandedRow(row)}
                     </td>
                   </tr>
                 )}
-              </>
+              </React.Fragment>
             );
           })}
         </tbody>
