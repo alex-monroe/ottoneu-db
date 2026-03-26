@@ -25,7 +25,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     .eq("id", id)
     .single();
 
-  if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 404 });
+  if (fetchError) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (sourcePlan.user_id !== user.userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   // Create new plan
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     if (planError.code === "23505") {
       return NextResponse.json({ error: "A plan with that name already exists" }, { status: 409 });
     }
-    return NextResponse.json({ error: planError.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   // Copy allocations from source plan
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     .select("player_id, amount")
     .eq("plan_id", id);
 
-  if (allocError) return NextResponse.json({ error: allocError.message }, { status: 500 });
+  if (allocError) return NextResponse.json({ error: "Internal server error" }, { status: 500 });
 
   if (sourceAllocs && sourceAllocs.length > 0) {
     const rows = sourceAllocs.map((a) => ({
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
       .from("arbitration_plan_allocations")
       .insert(rows);
 
-    if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 });
+    if (insertError) return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   return NextResponse.json(newPlan, { status: 201 });
