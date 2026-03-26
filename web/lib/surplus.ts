@@ -13,9 +13,13 @@ export function calculateSurplus(
     const { players: vorpPlayers } = calculateVorp(players);
     if (vorpPlayers.length === 0) return [];
 
-    const totalPositiveVorp = vorpPlayers
-        .filter((p) => p.full_season_vorp > 0)
-        .reduce((sum, p) => sum + p.full_season_vorp, 0);
+    let totalPositiveVorp = 0;
+    for (let i = 0; i < vorpPlayers.length; i++) {
+        const p = vorpPlayers[i];
+        if (p.full_season_vorp > 0) {
+            totalPositiveVorp += p.full_season_vorp;
+        }
+    }
 
     if (totalPositiveVorp === 0) return [];
 
@@ -23,17 +27,21 @@ export function calculateSurplus(
     const totalCap = NUM_TEAMS * CAP_PER_TEAM * 0.875;
     const dollarPerVorp = totalCap / totalPositiveVorp;
 
-    return vorpPlayers.map((p) => {
+    const result = new Array(vorpPlayers.length);
+    for (let i = 0; i < vorpPlayers.length; i++) {
+        const p = vorpPlayers[i];
         const rawDollarValue = p.full_season_vorp * dollarPerVorp;
         const baseDollarValue = Math.round(Math.max(rawDollarValue, 1));
         const adjustment = adjustments?.get(p.player_id) ?? 0;
         const dollarValue = Math.round(Math.max(baseDollarValue + adjustment, 1));
-        return {
+
+        result[i] = {
             ...p,
             dollar_value: dollarValue,
             surplus: dollarValue - p.price,
         };
-    });
+    }
+    return result;
 }
 
 /**
@@ -42,9 +50,13 @@ export function calculateSurplus(
  */
 export function computeDollarPerVorp(players: Player[]): number {
     const { players: vorpPlayers } = calculateVorp(players);
-    const totalPositiveVorp = vorpPlayers
-        .filter((p) => p.full_season_vorp > 0)
-        .reduce((sum, p) => sum + p.full_season_vorp, 0);
+    let totalPositiveVorp = 0;
+    for (let i = 0; i < vorpPlayers.length; i++) {
+        const p = vorpPlayers[i];
+        if (p.full_season_vorp > 0) {
+            totalPositiveVorp += p.full_season_vorp;
+        }
+    }
     if (totalPositiveVorp === 0) return 0;
     return (NUM_TEAMS * CAP_PER_TEAM * 0.875) / totalPositiveVorp;
 }
