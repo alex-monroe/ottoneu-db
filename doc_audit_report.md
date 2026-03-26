@@ -1,20 +1,27 @@
 # Documentation Audit Report
 
 ### ✅ Confirmed accurate
-- `AGENTS.md` and `CLAUDE.md` accurately reflect the project structure, including the `docs/` folder contents, and contain no broken links.
-- Build and execution commands (e.g., `npm run dev`, `python scripts/run_all_analyses.py`) accurately map to configurations in `Makefile` and `package.json`.
-- The Next.js frontend tech stack and directory structures (e.g., `web/app/`, `web/lib/`, `web/components/`) described in `docs/FRONTEND.md` and `docs/CODE_ORGANIZATION.md` accurately match reality.
-- The Python backend layout and data pipeline overview (e.g., `scripts/worker.py`, `scripts/enqueue.py`) accurately describe the file structure and mechanics.
-- Development environment variables described in `docs/references/environment-variables.md` map perfectly to `.env.example` and `web/.env.local.example`.
+- `docs/COMMANDS.md`: Commands and paths described are correct.
+- `docs/CODE_ORGANIZATION.md`: The file mapping mostly matches the actual structure.
+- `.cursorrules` & `.github/copilot-instructions.md`: Minimal pointer files referencing `AGENTS.md` accurately.
+- Instructions in `AGENTS.md` and `CLAUDE.md` about Python version, virtualenv path, Next.js tech stack, package manager (`npm`), and project rules are correct and match the configuration in `pyproject.toml` and `package.json`.
 
 ### ⚠️ Needs update
-There are no major mechanical inaccuracies across the `docs/` files or agent-facing markdowns (`AGENTS.md`, `CLAUDE.md`, `.github/pull_request_template.md`). However:
-- **`docs/generated/db-schema.md`**:
-  - **Claim**: "Ten tables, all with UUID primary keys."
-  - **Reality**: While the file lists ten tables, there is technically an 11th table (`scraper_jobs`) that drives the job queue, which is mentioned in the "Schema Files" section but not in the tables list.
-  - **Fix**: Update the intro sentence or list `scraper_jobs` in the markdown table.
+- **`AGENTS.md` and `CLAUDE.md` (Documentation Map)**:
+  - **Claim:** The `## Documentation Map` lists specific docs in `docs/exec-plans/` and `docs/generated/`.
+  - **Reality:** There are several markdown files not documented in the tree, namely:
+    - `docs/generated/projection-accuracy.md`
+    - `docs/generated/player-diagnostics.md`
+    - `docs/generated/segment-analysis.md`
+    - `docs/exec-plans/feature-projections.md`
+    - `docs/exec-plans/qb-usage-share.md`
+  - **Suggested Fix:** Add these markdown files to the `## Documentation Map` tree diagram in both `AGENTS.md` and `CLAUDE.md`.
+- **`docs/FRONTEND.md`**:
+  - **Claim:** "Next.js App Router with five pages" and lists exactly seven routes.
+  - **Reality:** There are several new pages in `web/app/` such as `/players`, `/players/[id]`, `/projections`, `/projection-accuracy`, `/rosters`, `/surplus-adjustments`, etc. Also, there are new components (`PlayerHoverCard`, `PlayerSearch`).
+  - **Suggested Fix:** Expand the Routes and Reusable Components tables to reflect the current state.
 
 ### 🔲 Gaps (undocumented but should be)
-- **`scraper_jobs` schema**: The `scraper_jobs` table (which drives the entire backend data pipeline) is mentioned in `docs/ARCHITECTURE.md` and `docs/generated/db-schema.md`, but its schema (e.g., fields like `status`, `task_type`, `depends_on`, `error_message`) is not fully documented in `docs/generated/db-schema.md`.
-- **`.cursorrules` / `.github/copilot-instructions.md`**: These files do not exist. While `AGENTS.md` and `CLAUDE.md` exist and serve AI agents, standardizing across tools by adding a `.cursorrules` that points to `AGENTS.md` could be beneficial.
-- **`package-lock.json`**: There is no explicit instruction to agents to avoid running `npm install` without care or forbidding `npm` usage over a specific package manager, although `npm` seems to be the default based on `Makefile` and `package-lock.json`. (Memory states "Never modify `package.json` or `tsconfig.json` without explicit user instruction.")
+- **UI Methodology Text (Rule Violation):**
+  - **Issue:** According to `AGENTS.md`, developers must update the UI methodology text in `web/app/projections/page.tsx` and `web/app/arbitration/page.tsx` when changing the `ACTIVE_MODEL` in `scripts/update_projections.py`. The active model is currently `v12_no_qb_trajectory`, but both UI pages still describe the methodology as `v8 — age_regression`.
+  - **Fix needed:** The methodology text needs to be updated to match `v12_no_qb_trajectory` (which includes games played, regression to mean, stat efficiency, snap trend, age curve, and weighted PPG without QB trajectory).
