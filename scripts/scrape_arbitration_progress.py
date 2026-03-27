@@ -31,10 +31,30 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from scripts.config import LEAGUE_ID, SEASON, get_supabase_client
 
+DEBUG_SCREENSHOT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "debug")
 FANGRAPHS_LOGIN_URL = "https://blogs.fangraphs.com/wp-login.php"
 ARB_URL_TEMPLATE = "https://ottoneu.fangraphs.com/football/{league_id}/arbitration"
 NON_DIGIT_REGEX = re.compile(r"[^\d]")
 ID_END_REGEX = re.compile(r"(\d+)$")
+
+
+async def _save_debug_screenshot(page, name: str):
+    """Save a screenshot and page HTML for debugging CI failures."""
+    os.makedirs(DEBUG_SCREENSHOT_DIR, exist_ok=True)
+    screenshot_path = os.path.join(DEBUG_SCREENSHOT_DIR, f"{name}.png")
+    html_path = os.path.join(DEBUG_SCREENSHOT_DIR, f"{name}.html")
+    try:
+        await page.screenshot(path=screenshot_path, full_page=True)
+        print(f"  Debug screenshot saved: {screenshot_path}")
+    except Exception as e:
+        print(f"  Failed to save screenshot: {e}")
+    try:
+        content = await page.content()
+        with open(html_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        print(f"  Debug HTML saved: {html_path}")
+    except Exception as e:
+        print(f"  Failed to save HTML: {e}")
 
 
 async def _login_to_fangraphs(page, redirect_url: str):
@@ -53,7 +73,17 @@ async def _login_to_fangraphs(page, redirect_url: str):
     print(f"Logging in to FanGraphs...")
 
     await page.goto(login_url, timeout=60000)
-    await page.wait_for_selector("#user_login", timeout=30000)
+
+    # Debug: capture page title to detect Cloudflare challenges
+    title = await page.title()
+    print(f"  Login page title: {title}")
+
+    try:
+        await page.wait_for_selector("#user_login", timeout=30000)
+    except Exception:
+        print("  Could not find #user_login selector — page structure may have changed")
+        await _save_debug_screenshot(page, "login-form-missing")
+        sys.exit(1)
 
     # Fill in credentials
     await page.fill("#user_login", username)
@@ -70,6 +100,16 @@ async def _login_to_fangraphs(page, redirect_url: str):
         current_url = page.url
         print(f"  Redirect landed on: {current_url}")
         if "wp-login" in current_url:
+            # Check for error messages on the login page
+            error_text = await page.evaluate("""() => {
+                const el = document.querySelector('#login_error');
+                return el ? el.innerText.trim() : null;
+            }""")
+            if error_text:
+                print(f"  Login error message: {error_text}")
+            else:
+                print("  No #login_error element found on page")
+            await _save_debug_screenshot(page, "login-failed")
             print("  Login appears to have failed. Check credentials.")
             sys.exit(1)
 
