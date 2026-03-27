@@ -18,7 +18,7 @@ export async function GET(_req: NextRequest, context: RouteContext) {
     .eq("id", id)
     .single();
 
-  if (planError) return NextResponse.json({ error: planError.message }, { status: 404 });
+  if (planError) { console.error(planError); return NextResponse.json({ error: "Internal server error" }, { status: 404 }); }
   if (plan.user_id !== user.userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { data: allocs, error: allocError } = await getSupabaseAdmin()
@@ -26,7 +26,7 @@ export async function GET(_req: NextRequest, context: RouteContext) {
     .select("player_id, amount")
     .eq("plan_id", id);
 
-  if (allocError) return NextResponse.json({ error: allocError.message }, { status: 500 });
+  if (allocError) { console.error(allocError); return NextResponse.json({ error: "Internal server error" }, { status: 500 }); }
 
   const allocations: Record<string, number> = {};
   for (const a of allocs ?? []) {
@@ -51,7 +51,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
     .eq("id", id)
     .single();
 
-  if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 404 });
+  if (fetchError) { console.error(fetchError); return NextResponse.json({ error: "Internal server error" }, { status: 404 }); }
   if (plan.user_id !== user.userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { name, notes, allocations } = await req.json();
@@ -70,7 +70,8 @@ export async function PUT(req: NextRequest, context: RouteContext) {
     if (planError.code === "23505") {
       return NextResponse.json({ error: "A plan with that name already exists" }, { status: 409 });
     }
-    return NextResponse.json({ error: planError.message }, { status: 500 });
+    console.error(planError);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   // Upsert allocations if provided
@@ -80,7 +81,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
       .delete()
       .eq("plan_id", id);
 
-    if (delError) return NextResponse.json({ error: delError.message }, { status: 500 });
+    if (delError) { console.error(delError); return NextResponse.json({ error: "Internal server error" }, { status: 500 }); }
 
     const rows = Object.entries(allocations as Record<string, number>)
       .filter(([, amount]) => amount > 0)
@@ -95,7 +96,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
         .from("arbitration_plan_allocations")
         .insert(rows);
 
-      if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 });
+      if (insertError) { console.error(insertError); return NextResponse.json({ error: "Internal server error" }, { status: 500 }); }
     }
   }
 
@@ -115,7 +116,7 @@ export async function DELETE(_req: NextRequest, context: RouteContext) {
     .eq("id", id)
     .single();
 
-  if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 404 });
+  if (fetchError) { console.error(fetchError); return NextResponse.json({ error: "Internal server error" }, { status: 404 }); }
   if (plan.user_id !== user.userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { error } = await getSupabaseAdmin()
@@ -123,6 +124,6 @@ export async function DELETE(_req: NextRequest, context: RouteContext) {
     .delete()
     .eq("id", id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) { console.error(error); return NextResponse.json({ error: "Internal server error" }, { status: 500 }); }
   return NextResponse.json({ success: true });
 }

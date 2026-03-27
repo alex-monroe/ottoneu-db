@@ -70,8 +70,9 @@ export async function POST(request: NextRequest) {
                     { status: 409 }
                 );
             }
+            console.error(error);
             return NextResponse.json(
-                { error: error.message },
+                { error: "Internal server error" },
                 { status: 500 }
             );
         }

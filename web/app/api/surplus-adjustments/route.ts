@@ -13,7 +13,7 @@ export async function GET() {
     .eq("league_id", LEAGUE_ID)
     .eq("user_id", user.userId);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) { console.error(error); return NextResponse.json({ error: "Internal server error" }, { status: 500 }); }
   return NextResponse.json(data ?? []);
 }
 
@@ -42,6 +42,6 @@ export async function POST(req: NextRequest) {
     .from("surplus_adjustments")
     .upsert(rows, { onConflict: "player_id,league_id,user_id" });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) { console.error(error); return NextResponse.json({ error: "Internal server error" }, { status: 500 }); }
   return NextResponse.json({ success: true });
 }
