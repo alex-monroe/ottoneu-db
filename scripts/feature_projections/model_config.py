@@ -134,6 +134,16 @@ MODELS: dict[str, ModelDefinition] = {
         ),
         features=["weighted_ppg_no_qb_trajectory", "age_curve", "regression_to_mean"],
     ),
+    "v13_qb_starter": ModelDefinition(
+        name="v13_qb_starter",
+        version=1,
+        description=(
+            "v8 (age_curve + regression_to_mean) + QB starter usage feature. "
+            "Uses manual QB starter designations to compute absolute passing volume "
+            "trends (attempts/game, not share) for designated starters only."
+        ),
+        features=["weighted_ppg", "age_curve", "regression_to_mean", "qb_starter_usage"],
+    ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
         version=1,

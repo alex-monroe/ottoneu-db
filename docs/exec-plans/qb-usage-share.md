@@ -63,3 +63,31 @@ If revisiting share-based approach, use a much smaller `TREND_SCALING` for QB (e
 
 ### 5. Exclude backup QBs from team totals
 Compute "starter attempt share" by only counting attempts from QBs with >50% of team attempts in each season. This would reduce the noise from backup QB fluctuations.
+
+---
+
+## Implementation: QB Starter Designations (GH #269)
+
+Alternatives #2 and #5 were combined into a new approach: manual QB starter designations + absolute volume trend.
+
+### What Was Built
+
+1. **`data/qb_starters.json`** — Manual starter designations per team/season with confidence levels (`locked`, `projected`, `competition`). Seeded from historical `nfl_stats` via `scripts/seed_qb_starters.py`, then manually reviewed.
+
+2. **`scripts/feature_projections/qb_starters.py`** — Loader module that reads the JSON file and resolves player names to IDs using the `players` table.
+
+3. **`scripts/feature_projections/features/qb_starter_usage.py`** — New `QBStarterUsageFeature` (adjustment feature):
+   - QB-only; returns `None` for other positions and non-starters
+   - Uses absolute attempts-per-game trend (not share) — range 25-40 att/g varies meaningfully
+   - Filters seasons with <4 games to exclude backup stints
+   - Recency-weighted baseline comparison with ±15% clamp
+   - Conservative `TREND_SCALING = 0.3`
+
+4. **`v13_qb_starter` model** — Builds on v8 (`weighted_ppg + age_curve + regression_to_mean`) plus `qb_starter_usage`.
+
+### Why This Approach
+
+- **Absolute volume, not share**: Directly addresses the root cause — share is ~0.95 constant, but att/g varies meaningfully (25-40 range)
+- **Separate feature class**: Keeps existing `usage_share` (WR/RB/TE) untouched, avoiding regressions
+- **Manual designations**: Only 32 entries/season, captures qualitative domain knowledge (beat reports, OTAs, camp battles) that no structured data source provides
+- **JSON not DB**: Version-controlled, human-editable, no migration needed for what is essentially small config
