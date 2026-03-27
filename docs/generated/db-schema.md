@@ -69,3 +69,7 @@ Core stat columns: `games_played`, `passing_yards`, `passing_tds`, `interception
 - `league_prices.player_id` -> `players.id`
 - `surplus_adjustments.user_id` -> `users.id`
 - `arbitration_plans.user_id` -> `users.id`
+
+### `scraper_jobs` columns
+
+Core columns: `id`, `task_type`, `params`, `status`, `priority`, `attempts`, `max_attempts`, `last_error`, `batch_id`, `depends_on`, `created_at`, `started_at`, `completed_at`.
