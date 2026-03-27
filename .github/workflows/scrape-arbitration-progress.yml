@@ -54,11 +54,19 @@ jobs:
 
       - name: Create .env
         if: steps.season_gate.outputs.in_season == 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          FANGRAPHS_USERNAME: ${{ secrets.FANGRAPHS_USERNAME }}
+          FANGRAPHS_PASSWORD: ${{ secrets.FANGRAPHS_PASSWORD }}
         run: |
-          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
-          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> .env
-          echo "FANGRAPHS_USERNAME=${{ secrets.FANGRAPHS_USERNAME }}" >> .env
-          echo "FANGRAPHS_PASSWORD=${{ secrets.FANGRAPHS_PASSWORD }}" >> .env
+          python -c "
+          import os
+          keys = ['SUPABASE_URL', 'SUPABASE_KEY', 'FANGRAPHS_USERNAME', 'FANGRAPHS_PASSWORD']
+          with open('.env', 'w') as f:
+              for k in keys:
+                  f.write(f'{k}={os.environ[k]}\n')
+          "
 
       - name: Scrape arbitration progress
         if: steps.season_gate.outputs.in_season == 'true'
