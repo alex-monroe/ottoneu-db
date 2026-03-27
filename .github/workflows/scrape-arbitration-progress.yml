@@ -63,3 +63,12 @@ jobs:
       - name: Scrape arbitration progress
         if: steps.season_gate.outputs.in_season == 'true'
         run: python scripts/scrape_arbitration_progress.py
+
+      - name: Upload debug artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-screenshots
+          path: debug/
+          retention-days: 7
+          if-no-files-found: ignore
