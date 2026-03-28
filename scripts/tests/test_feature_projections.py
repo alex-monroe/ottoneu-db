@@ -15,7 +15,7 @@ from scripts.feature_projections.features.games_played import GamesPlayedFeature
 from scripts.feature_projections.features.team_context import TeamContextFeature
 from scripts.feature_projections.features.usage_share import UsageShareFeature
 from scripts.feature_projections.features.regression_to_mean import RegressionToMeanFeature
-from scripts.feature_projections.features.qb_starter_usage import QBStarterUsageFeature
+from scripts.feature_projections.features.qb_starter_usage import QBStarterUsageFeature, QBStarterBackupPenaltyFeature
 from scripts.feature_projections.combiner import combine_features
 from scripts.feature_projections.model_config import get_model, MODELS, ModelDefinition, PositionOverride
 from scripts.feature_projections.runner import _resolve_features_for_position
@@ -952,3 +952,62 @@ class TestQBStarterUsageFeature:
         assert result is not None
         # Max delta = 20.0 * 0.15 * 0.3 = 0.9
         assert result <= 20.0 * 0.15 * 0.3 + 0.001
+
+
+# ---------------------------------------------------------------------------
+# QBStarterBackupPenaltyFeature
+# ---------------------------------------------------------------------------
+
+class TestQBStarterBackupPenaltyFeature:
+    """Tests for the qb_backup_penalty feature (used in v14_qb_starter)."""
+
+    def setup_method(self):
+        self.feature = QBStarterBackupPenaltyFeature()
+
+    def test_name(self):
+        assert self.feature.name == "qb_backup_penalty"
+        assert self.feature.is_base is False
+
+    def test_returns_none_for_non_qb(self):
+        ctx = {"base_ppg": 15.0, "is_qb_starter": False}
+        assert self.feature.compute("p1", "RB", pd.DataFrame(), pd.DataFrame(), ctx) is None
+        assert self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) is None
+        assert self.feature.compute("p1", "TE", pd.DataFrame(), pd.DataFrame(), ctx) is None
+
+    def test_returns_none_for_starter(self):
+        """Designated starters should get no adjustment."""
+        ctx = {"base_ppg": 20.0, "is_qb_starter": True}
+        assert self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), ctx) is None
+
+    def test_penalizes_non_starter(self):
+        """Non-starters should get a 15% penalty."""
+        ctx = {"base_ppg": 20.0, "is_qb_starter": False}
+        result = self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), ctx)
+        assert result is not None
+        assert result == pytest.approx(-3.0)  # -20.0 * 0.15
+
+    def test_penalizes_missing_starter_flag(self):
+        """Missing is_qb_starter (unknown) should get penalty."""
+        ctx = {"base_ppg": 20.0}
+        result = self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), ctx)
+        assert result is not None
+        assert result == pytest.approx(-3.0)
+
+    def test_returns_none_without_base_ppg(self):
+        """No base_ppg should return None."""
+        ctx = {"is_qb_starter": False}
+        assert self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), ctx) is None
+
+    def test_returns_none_for_zero_base_ppg(self):
+        ctx = {"base_ppg": 0.0, "is_qb_starter": False}
+        assert self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), ctx) is None
+
+    def test_penalty_scales_with_base_ppg(self):
+        """Higher base PPG should mean a larger absolute penalty."""
+        ctx_low = {"base_ppg": 10.0, "is_qb_starter": False}
+        ctx_high = {"base_ppg": 25.0, "is_qb_starter": False}
+        result_low = self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), ctx_low)
+        result_high = self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), ctx_high)
+        assert result_low == pytest.approx(-1.5)   # -10.0 * 0.15
+        assert result_high == pytest.approx(-3.75)  # -25.0 * 0.15
+        assert abs(result_high) > abs(result_low)

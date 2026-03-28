@@ -1,4 +1,4 @@
-"""QB starter usage feature — absolute passing volume trend for designated starters."""
+"""QB starter features — volume trend and backup penalty for QB projections."""
 
 from __future__ import annotations
 
@@ -21,6 +21,8 @@ class QBStarterUsageFeature(ProjectionFeature):
     """
 
     TREND_SCALING = 0.3  # Conservative scaling for volume trend
+    CLAMP = 0.15
+    MIN_GAMES = 4
     RECENCY_WEIGHTS = [0.60, 0.25, 0.15]
 
     @property
@@ -58,7 +60,7 @@ class QBStarterUsageFeature(ProjectionFeature):
         for _, row in recent.iterrows():
             attempts = float(row.get("passing_attempts", 0) or 0)
             games = float(row.get("games_played", 0) or 0)
-            if games >= 4:  # Minimum games threshold to filter backup stints
+            if games >= self.MIN_GAMES:
                 att_per_game.append(attempts / games)
 
         if len(att_per_game) < 2:
@@ -79,8 +81,48 @@ class QBStarterUsageFeature(ProjectionFeature):
 
         # Percentage change in volume
         pct_change = (recent_apg - prev_apg) / prev_apg
-
-        # Clamp to ±15% to prevent extreme swings
-        pct_change = max(-0.15, min(0.15, pct_change))
+        pct_change = max(-self.CLAMP, min(self.CLAMP, pct_change))
 
         return base_ppg * pct_change * self.TREND_SCALING
+
+
+class QBStarterBackupPenaltyFeature(ProjectionFeature):
+    """Penalizes non-starter QBs who have inflated PPG from limited action.
+
+    Backup QBs often post high per-game averages in small samples (e.g.,
+    Joe Flacco in 5 games) that regress sharply over a full season. This
+    feature applies a 15% penalty to non-designated-starters to deflate
+    those small-sample heroics. Designated starters get no adjustment.
+
+    Tested as v13d/v13g — improved QB MAE by 0.062 and QB R² from 0.293
+    to 0.343 vs v8 baseline. The backup penalty was the key signal; volume
+    trend tuning for starters added only noise.
+    """
+
+    BACKUP_PENALTY_PCT = 0.15  # 15% penalty for non-starters
+
+    @property
+    def name(self) -> str:
+        return "qb_backup_penalty"
+
+    def compute(
+        self,
+        player_id: str,
+        position: str,
+        history_df: pd.DataFrame,
+        nfl_stats_df: pd.DataFrame,
+        context: dict[str, Any],
+    ) -> Optional[float]:
+        if position != "QB":
+            return None
+
+        base_ppg = context.get("base_ppg")
+        if not base_ppg or base_ppg <= 0:
+            return None
+
+        # Starters get no adjustment
+        if context.get("is_qb_starter"):
+            return None
+
+        # Non-starters get penalized
+        return -base_ppg * self.BACKUP_PENALTY_PCT

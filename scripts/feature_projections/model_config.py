@@ -138,11 +138,21 @@ MODELS: dict[str, ModelDefinition] = {
         name="v13_qb_starter",
         version=1,
         description=(
-            "v8 (age_curve + regression_to_mean) + QB starter usage feature. "
-            "Uses manual QB starter designations to compute absolute passing volume "
-            "trends (attempts/game, not share) for designated starters only."
+            "v8 + QB starter volume trend (scaling=0.3, clamp=±15%). "
+            "Superseded by v14 — volume trend tuning added only noise."
         ),
         features=["weighted_ppg", "age_curve", "regression_to_mean", "qb_starter_usage"],
+    ),
+    "v14_qb_starter": ModelDefinition(
+        name="v14_qb_starter",
+        version=1,
+        description=(
+            "v12 (no_qb_trajectory) + backup QB penalty. Uses manual QB starter "
+            "designations to apply a 15% PPG penalty to non-starter QBs, deflating "
+            "small-sample heroics from backup stints. Starters are unaffected. "
+            "Best combined model: ALL MAE 2.515, QB MAE 3.801, QB R² 0.344."
+        ),
+        features=["weighted_ppg_no_qb_trajectory", "age_curve", "regression_to_mean", "qb_backup_penalty"],
     ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
