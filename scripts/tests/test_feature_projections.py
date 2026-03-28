@@ -15,6 +15,7 @@ from scripts.feature_projections.features.games_played import GamesPlayedFeature
 from scripts.feature_projections.features.team_context import TeamContextFeature
 from scripts.feature_projections.features.usage_share import UsageShareFeature
 from scripts.feature_projections.features.regression_to_mean import RegressionToMeanFeature
+from scripts.feature_projections.features.snap_trend import SnapTrendFeature
 from scripts.feature_projections.features.qb_starter_usage import QBStarterUsageFeature, QBStarterBackupPenaltyFeature
 from scripts.feature_projections.combiner import combine_features
 from scripts.feature_projections.model_config import get_model, MODELS, ModelDefinition, PositionOverride
@@ -1011,3 +1012,69 @@ class TestQBStarterBackupPenaltyFeature:
         assert result_low == pytest.approx(-1.5)   # -10.0 * 0.15
         assert result_high == pytest.approx(-3.75)  # -25.0 * 0.15
         assert abs(result_high) > abs(result_low)
+
+
+# ---------------------------------------------------------------------------
+# SnapTrendFeature
+# ---------------------------------------------------------------------------
+
+class TestSnapTrendFeature:
+    """Tests for the snap_trend feature (snap count trajectory adjustment)."""
+
+    def setup_method(self):
+        self.feature = SnapTrendFeature()
+
+    def test_name(self):
+        assert self.feature.name == "snap_trend"
+        assert self.feature.is_base is False
+
+    def test_empty_nfl_stats_returns_none(self):
+        result = self.feature.compute("p1", "RB", pd.DataFrame(), pd.DataFrame(), {"base_ppg": 10.0})
+        assert result is None
+
+    def test_no_base_ppg_returns_none(self):
+        nfl_df = make_nfl_stats_df([
+            {"season": 2023, "games_played": 17, "offense_snaps": 800},
+            {"season": 2024, "games_played": 17, "offense_snaps": 900},
+        ])
+        assert self.feature.compute("p1", "RB", pd.DataFrame(), nfl_df, {}) is None
+        assert self.feature.compute("p1", "RB", pd.DataFrame(), nfl_df, {"base_ppg": 0}) is None
+
+    def test_single_season_returns_none(self):
+        """Need >= 2 seasons for a trend."""
+        nfl_df = make_nfl_stats_df([
+            {"season": 2024, "games_played": 17, "offense_snaps": 900},
+        ])
+        result = self.feature.compute("p1", "RB", pd.DataFrame(), nfl_df, {"base_ppg": 10.0})
+        assert result is None
+
+    def test_increasing_snaps_positive_delta(self):
+        """Player with rising snap rate should get a positive delta."""
+        nfl_df = make_nfl_stats_df([
+            {"season": 2023, "games_played": 17, "offense_snaps": 680},  # 40 snaps/game
+            {"season": 2024, "games_played": 17, "offense_snaps": 850},  # 50 snaps/game
+        ])
+        result = self.feature.compute("p1", "RB", pd.DataFrame(), nfl_df, {"base_ppg": 10.0})
+        assert result is not None
+        assert result > 0
+
+    def test_decreasing_snaps_negative_delta(self):
+        """Player with falling snap rate should get a negative delta."""
+        nfl_df = make_nfl_stats_df([
+            {"season": 2023, "games_played": 17, "offense_snaps": 850},  # 50 snaps/game
+            {"season": 2024, "games_played": 17, "offense_snaps": 680},  # 40 snaps/game
+        ])
+        result = self.feature.compute("p1", "RB", pd.DataFrame(), nfl_df, {"base_ppg": 10.0})
+        assert result is not None
+        assert result < 0
+
+    def test_clamped_at_30_percent(self):
+        """Extreme snap changes should be clamped to ±30%."""
+        nfl_df = make_nfl_stats_df([
+            {"season": 2023, "games_played": 17, "offense_snaps": 170},  # 10 snaps/game
+            {"season": 2024, "games_played": 17, "offense_snaps": 850},  # 50 snaps/game (400% increase)
+        ])
+        result = self.feature.compute("p1", "RB", pd.DataFrame(), nfl_df, {"base_ppg": 10.0})
+        assert result is not None
+        # Max: base_ppg * 0.30 * TREND_SCALING(0.3) = 10 * 0.30 * 0.3 = 0.9
+        assert result == pytest.approx(0.9)

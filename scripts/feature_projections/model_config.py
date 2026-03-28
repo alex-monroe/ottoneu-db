@@ -154,6 +154,30 @@ MODELS: dict[str, ModelDefinition] = {
         ),
         features=["weighted_ppg_no_qb_trajectory", "age_curve", "regression_to_mean", "qb_backup_penalty"],
     ),
+    "v15_snap_trend": ModelDefinition(
+        name="v15_snap_trend",
+        version=1,
+        description=(
+            "v2 (weighted_ppg + age_curve) + snap count trajectory adjustment. "
+            "Tests whether snap trend adds value over base age-adjusted model."
+        ),
+        features=["weighted_ppg", "age_curve", "snap_trend"],
+    ),
+    "v16_snap_trend_full": ModelDefinition(
+        name="v16_snap_trend_full",
+        version=1,
+        description=(
+            "v14 (current best) + snap count trajectory adjustment. "
+            "Tests whether snap trend improves the best combined model."
+        ),
+        features=[
+            "weighted_ppg_no_qb_trajectory",
+            "age_curve",
+            "regression_to_mean",
+            "qb_backup_penalty",
+            "snap_trend",
+        ],
+    ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
         version=1,
