@@ -58,6 +58,7 @@ python scripts/feature_projections/diagnostics.py --output docs/generated/player
 python scripts/feature_projections/cli.py segment-analysis                                         # Segmented accuracy analysis (all segments, default models/seasons)
 python scripts/feature_projections/cli.py segment-analysis --segments experience,age_bucket         # Specific segments only
 python scripts/feature_projections/cli.py segment-analysis --models v8_age_regression --seasons 2024,2025  # Custom models/seasons
+python scripts/feature_projections/promote.py v14_qb_starter                                           # Promote model to production player_projections table
 
 # Utilities
 python scripts/check_db.py                           # Verify database contents

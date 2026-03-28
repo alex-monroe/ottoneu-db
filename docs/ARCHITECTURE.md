@@ -77,18 +77,19 @@ User accounts with email/password login stored in the `users` table. Passwords a
 
 ## Feature Projection System (`scripts/feature_projections/`)
 
-Generates season-long player PPG projections from historical data using a combination of targeted features. The active production model (`v8_age_regression`) uses a surgical combination of features:
-1. `weighted_ppg` baseline (recency-weighted historical performance)
+Generates season-long player PPG projections from historical data using a combination of targeted features. The active production model (`v14_qb_starter`) uses:
+1. `weighted_ppg_no_qb_trajectory` baseline (recency-weighted PPG, without snap trajectory for QB/K)
 2. `age_curve` adjustment (career arc expectations)
 3. `regression_to_mean` (pulling extreme outliers toward positional averages)
+4. `qb_backup_penalty` (15% PPG penalty for non-starter QBs to deflate small-sample heroics)
 
-This approach replaces an older progressive architecture (v1–v7) which proved that cumulatively stacking too many features (like stat efficiency and usage share) introduced more noise than signal.
+Model history: v1–v7 proved that cumulatively stacking features (stat efficiency, usage share) introduced noise. v8–v12 refined the core three features. v13 tested QB volume trends (no improvement). v14 added the backup penalty using manual starter designations — the key insight was that the starter data's value is in *penalizing backups*, not *boosting starters*.
 
 ### Projection Pipeline
 
 ```
-model_config.py  →  runner.py  →  model_projections table
-    (defines)        (computes)       (stores)
+model_config.py  →  runner.py  →  model_projections table  →  promote.py  →  player_projections table
+    (defines)        (computes)       (stores)                   (copies)        (production, used by web)
 ```
 
 - `model_config.py` — model registry (name, version, features, weights, is_baseline)
@@ -96,10 +97,38 @@ model_config.py  →  runner.py  →  model_projections table
 - `runner.py` — fetches historical player_stats + nfl_stats, loads QB starters, runs combiner, batch upserts
 - `combiner.py` — base feature PPG + weighted sum of adjustment feature deltas
 - `backtest.py` — compares projected_ppg to actual actuals (MAE, RMSE per model)
-- `accuracy_report.py` — side-by-side model comparison table across all seasons
+- `accuracy_report.py` — side-by-side model comparison table across all seasons (no `--models` filter; always runs all models)
+- `promote.py` — copies a model's projections to the production `player_projections` table and sets it as active
 - `sweep_recency_weights.py` — in-memory weight sweep for base feature tuning (no DB writes)
 
+### Feature Architecture
+
+Features are registered in `features/__init__.py` via `FEATURE_REGISTRY` (maps string name → class). They are instantiated with no constructor arguments (`FEATURE_REGISTRY[name]()`), so parameterization must happen via class constants or subclasses.
+
+**Two feature types:**
+- **Base feature** (`is_base=True`) — returns absolute PPG estimate. Exactly one per model, computed first. Example: `weighted_ppg`.
+- **Adjustment feature** (`is_base=False`, default) — returns a PPG delta. Receives `base_ppg` in context. Summed after the base. Examples: `age_curve`, `qb_backup_penalty`.
+
+**To add a new feature:**
+1. Create a class in `features/` extending `ProjectionFeature`
+2. Register it in `features/__init__.py` FEATURE_REGISTRY
+3. Add a model config in `model_config.py` that includes it
+4. Run + backtest via `cli.py run` and `accuracy_report.py --run-backtest`
+5. If it wins, promote via `cli.py promote --model <name>` or `promote.py <name>`
+
+### Promoting a Model to Production
+
+The web frontend reads from `player_projections`, NOT `model_projections`. After validating a new model via backtesting, promote it:
+
+```bash
+venv/bin/python scripts/feature_projections/promote.py v14_qb_starter
+```
+
+This copies all projections to `player_projections`, clears `is_active` from all other models, and sets the promoted model as active. **This is a production data change** — the web app will immediately reflect the new projections.
+
 **Important dependency:** All internal models (v1–v6) share the `weighted_ppg` base feature. Changing `WeightedPPGFeature.RECENCY_WEIGHTS` requires regenerating projections for **every** internal model via `cli.py run`, not just re-running backtests. The `--run-backtest` flag on `accuracy_report.py` only re-backtests existing projections — it does not regenerate them.
+
+**Note on experimental models:** Models registered via `cli.py run` persist in the `projection_models` and `model_projections` DB tables even after removing them from `model_config.py`. There is no cleanup script — stale experimental models remain in the DB but are excluded from `accuracy_report.py` output (which iterates `model_config.MODELS`).
 
 ### External Projection Sources (`external_sources/`)
 

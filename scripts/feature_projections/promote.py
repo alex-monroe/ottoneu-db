@@ -82,3 +82,10 @@ def promote_model(model_name: str) -> int:
 
     print(f"Model '{model_name}' promoted and set as active.")
     return len(records)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python scripts/feature_projections/promote.py <model_name>")
+        sys.exit(1)
+    promote_model(sys.argv[1])
