@@ -14,6 +14,7 @@
 | Components | `web/components/` | Reusable React components |
 | Pages | `web/app/` | Next.js App Router pages |
 | Feature projections | `scripts/feature_projections/` | Feature-based projection system (features, combiner, runner, backtest, CLI) |
+| Data files | `data/` | Manual config data (QB starters, etc.) |
 | CI/CD | `.github/workflows/` | GitHub Actions (tests, scraping, projections) |
 
 ## Python Configuration (`scripts/config.py`)

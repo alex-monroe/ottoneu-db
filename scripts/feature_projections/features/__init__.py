@@ -10,6 +10,10 @@ from scripts.feature_projections.features.games_played import GamesPlayedFeature
 from scripts.feature_projections.features.team_context import TeamContextFeature
 from scripts.feature_projections.features.usage_share import UsageShareFeature
 from scripts.feature_projections.features.regression_to_mean import RegressionToMeanFeature
+from scripts.feature_projections.features.qb_starter_usage import (
+    QBStarterUsageFeature,
+    QBStarterBackupPenaltyFeature,
+)
 
 FEATURE_REGISTRY: dict[str, type] = {
     "weighted_ppg": WeightedPPGFeature,
@@ -20,4 +24,6 @@ FEATURE_REGISTRY: dict[str, type] = {
     "team_context": TeamContextFeature,
     "usage_share": UsageShareFeature,
     "regression_to_mean": RegressionToMeanFeature,
+    "qb_starter_usage": QBStarterUsageFeature,
+    "qb_backup_penalty": QBStarterBackupPenaltyFeature,
 }

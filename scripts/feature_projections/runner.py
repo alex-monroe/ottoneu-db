@@ -19,6 +19,7 @@ from analysis_utils import fetch_multi_season_stats
 from scripts.feature_projections.features import FEATURE_REGISTRY
 from scripts.feature_projections.model_config import ModelDefinition, PositionOverride, get_model
 from scripts.feature_projections.combiner import combine_features
+from scripts.feature_projections.qb_starters import get_all_starter_ids, is_qb_starter
 
 
 def _ensure_model_in_db(supabase, model_def: ModelDefinition) -> str:
@@ -138,6 +139,7 @@ def _build_context(
     target_season: int,
     team_aggregates: dict[str, Any],
     positional_means: dict[str, float] | None = None,
+    qb_starters: dict[int, dict[str, str | None]] | None = None,
 ) -> dict[str, Any]:
     """Build the context dict for a player's feature computation."""
     context: dict[str, Any] = {"target_season": target_season}
@@ -171,6 +173,16 @@ def _build_context(
     # Positional mean PPG for regression-to-mean feature
     if positional_means and position in positional_means:
         context["positional_mean_ppg"] = positional_means[position]
+
+    # QB starter designation
+    if qb_starters and position == "QB":
+        # Check if this player is a designated starter in any historical season
+        is_starter = any(
+            is_qb_starter(player_id, s, qb_starters)
+            for s in qb_starters
+        )
+        context["is_qb_starter"] = is_starter
+        context["qb_starters"] = qb_starters
 
     return context
 
@@ -278,7 +290,7 @@ def run_model(
         return 0
 
     # Fetch players table
-    players_res = supabase.table("players").select("id, position, nfl_team, birth_date, is_college").execute()
+    players_res = supabase.table("players").select("id, name, position, nfl_team, birth_date, is_college").execute()
     players_df = pd.DataFrame(players_res.data or [])
     players_df = players_df.rename(columns={"id": "player_id_ref"})
 
@@ -317,6 +329,11 @@ def run_model(
         # Compute positional mean PPG for regression-to-mean feature
         positional_means = _compute_positional_mean_ppg(history_df, players_df)
 
+        # Load QB starter designations for historical + target seasons
+        qb_starters = get_all_starter_ids(
+            historical_seasons + [target_season], players_df
+        )
+
         # Generate projections for each player
         records = []
         for player_id, player_history in history_df.groupby("player_id"):
@@ -337,6 +354,7 @@ def run_model(
             context = _build_context(
                 player_id_str, position, players_df, nfl_stats_all,
                 target_season, team_aggregates, positional_means,
+                qb_starters,
             )
 
             # Resolve position-specific features

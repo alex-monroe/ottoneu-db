@@ -1,0 +1,974 @@
+{
+  "2020": {
+    "ARI": {
+      "player_name": "Kyler Murray",
+      "confidence": "locked",
+      "notes": "Started all 16 games, 558 att"
+    },
+    "ATL": {
+      "player_name": "Matt Ryan",
+      "confidence": "locked",
+      "notes": "Started all 16 games"
+    },
+    "BAL": {
+      "player_name": "Lamar Jackson",
+      "confidence": "locked",
+      "notes": "Started 15 games"
+    },
+    "BUF": {
+      "player_name": "Josh Allen",
+      "confidence": "locked",
+      "notes": "Started 16 games, 572 att"
+    },
+    "CAR": {
+      "player_name": "Teddy Bridgewater",
+      "confidence": "locked",
+      "notes": "Started 15 games, 492 att"
+    },
+    "CHI": {
+      "player_name": "Mitchell Trubisky",
+      "confidence": "locked",
+      "notes": "Named Week 1 starter over Foles, started 10 games before benching"
+    },
+    "CIN": {
+      "player_name": "Joe Burrow",
+      "confidence": "locked",
+      "notes": "1st overall pick, started 10 games before torn ACL"
+    },
+    "CLE": {
+      "player_name": "Baker Mayfield",
+      "confidence": "locked",
+      "notes": "Started 16 games, 486 att"
+    },
+    "DAL": {
+      "player_name": "Dak Prescott",
+      "confidence": "locked",
+      "notes": "Started 5 games before compound ankle fracture, Dalton filled in"
+    },
+    "DEN": {
+      "player_name": "Drew Lock",
+      "confidence": "locked",
+      "notes": "Started 13 games, 443 att"
+    },
+    "DET": {
+      "player_name": "Matthew Stafford",
+      "confidence": "locked",
+      "notes": "Started all 16 games, 528 att"
+    },
+    "GB": {
+      "player_name": "Aaron Rodgers",
+      "confidence": "locked",
+      "notes": "Started all 16 games, MVP season, 526 att"
+    },
+    "HOU": {
+      "player_name": "Deshaun Watson",
+      "confidence": "locked",
+      "notes": "Started all 16 games, 544 att"
+    },
+    "IND": {
+      "player_name": "Philip Rivers",
+      "confidence": "locked",
+      "notes": "Signed in FA, started all 16 games, 543 att"
+    },
+    "JAX": {
+      "player_name": "Gardner Minshew",
+      "confidence": "locked",
+      "notes": "Week 1 starter, started 9 games before injury/benching"
+    },
+    "KC": {
+      "player_name": "Patrick Mahomes",
+      "confidence": "locked",
+      "notes": "Started 15 games, 588 att"
+    },
+    "LA": {
+      "player_name": "Jared Goff",
+      "confidence": "locked",
+      "notes": "Started 15 games, 552 att"
+    },
+    "LAC": {
+      "player_name": "Tyrod Taylor",
+      "confidence": "locked",
+      "notes": "Named Week 1 starter, punctured lung before Week 2; Herbert took over"
+    },
+    "LV": {
+      "player_name": "Derek Carr",
+      "confidence": "locked",
+      "notes": "Started all 16 games"
+    },
+    "MIA": {
+      "player_name": "Ryan Fitzpatrick",
+      "confidence": "locked",
+      "notes": "Week 1 starter, started 6 games before Tua took over Week 8"
+    },
+    "MIN": {
+      "player_name": "Kirk Cousins",
+      "confidence": "locked",
+      "notes": "Started all 16 games, 516 att"
+    },
+    "NE": {
+      "player_name": "Cam Newton",
+      "confidence": "locked",
+      "notes": "Signed June 2020, started 15 games"
+    },
+    "NO": {
+      "player_name": "Drew Brees",
+      "confidence": "locked",
+      "notes": "Started 12 games, final season"
+    },
+    "NYG": {
+      "player_name": "Daniel Jones",
+      "confidence": "locked",
+      "notes": "Started 14 games, 448 att"
+    },
+    "NYJ": {
+      "player_name": "Sam Darnold",
+      "confidence": "locked",
+      "notes": "Week 1 starter"
+    },
+    "PHI": {
+      "player_name": "Carson Wentz",
+      "confidence": "locked",
+      "notes": "Started 12 games before benching for Hurts"
+    },
+    "PIT": {
+      "player_name": "Ben Roethlisberger",
+      "confidence": "locked",
+      "notes": "Returned from elbow injury, started all 16 games"
+    },
+    "SEA": {
+      "player_name": "Russell Wilson",
+      "confidence": "locked",
+      "notes": "Started all 16 games, 558 att"
+    },
+    "SF": {
+      "player_name": "Jimmy Garoppolo",
+      "confidence": "locked",
+      "notes": "Week 1 starter, high ankle sprain Week 2; Mullens/Beathard filled in"
+    },
+    "TB": {
+      "player_name": "Tom Brady",
+      "confidence": "locked",
+      "notes": "Signed in FA from NE, started all 16 games, won Super Bowl LV"
+    },
+    "TEN": {
+      "player_name": "Ryan Tannehill",
+      "confidence": "locked",
+      "notes": "Started 16 games"
+    },
+    "WAS": {
+      "player_name": "Dwayne Haskins",
+      "confidence": "locked",
+      "notes": "Named Week 1 starter, benched after 4 games for Kyle Allen"
+    }
+  },
+  "2021": {
+    "ARI": {
+      "player_name": "Kyler Murray",
+      "confidence": "locked",
+      "notes": "Started 14 games, 481 att"
+    },
+    "ATL": {
+      "player_name": "Matt Ryan",
+      "confidence": "locked",
+      "notes": "Started all 17 games"
+    },
+    "BAL": {
+      "player_name": "Lamar Jackson",
+      "confidence": "locked",
+      "notes": "Started 12 games, 382 att"
+    },
+    "BUF": {
+      "player_name": "Josh Allen",
+      "confidence": "locked",
+      "notes": "Started all 17 games, 646 att"
+    },
+    "CAR": {
+      "player_name": "Sam Darnold",
+      "confidence": "locked",
+      "notes": "Acquired from NYJ, started 12 games, 406 att"
+    },
+    "CHI": {
+      "player_name": "Andy Dalton",
+      "confidence": "locked",
+      "notes": "Named Week 1 starter, knee injury Week 2; Fields took over permanently"
+    },
+    "CIN": {
+      "player_name": "Joe Burrow",
+      "confidence": "locked",
+      "notes": "Started 16 games, 520 att"
+    },
+    "CLE": {
+      "player_name": "Baker Mayfield",
+      "confidence": "locked",
+      "notes": "Started 14 games, 418 att"
+    },
+    "DAL": {
+      "player_name": "Dak Prescott",
+      "confidence": "locked",
+      "notes": "Returned from ankle fracture, started 16 games, 596 att"
+    },
+    "DEN": {
+      "player_name": "Teddy Bridgewater",
+      "confidence": "locked",
+      "notes": "Won QB competition, started 14 games, 426 att"
+    },
+    "DET": {
+      "player_name": "Jared Goff",
+      "confidence": "locked",
+      "notes": "Acquired from LA in Stafford trade, started 14 games"
+    },
+    "GB": {
+      "player_name": "Aaron Rodgers",
+      "confidence": "locked",
+      "notes": "Started 16 games, MVP season, 531 att"
+    },
+    "HOU": {
+      "player_name": "Tyrod Taylor",
+      "confidence": "locked",
+      "notes": "Named Week 1 starter, started 6 games before injury; Davis Mills took over"
+    },
+    "IND": {
+      "player_name": "Carson Wentz",
+      "confidence": "locked",
+      "notes": "Traded from PHI, started all 17 games"
+    },
+    "JAX": {
+      "player_name": "Trevor Lawrence",
+      "confidence": "locked",
+      "notes": "1st overall pick, started all 17 games"
+    },
+    "KC": {
+      "player_name": "Patrick Mahomes",
+      "confidence": "locked",
+      "notes": "Started all 17 games, 658 att"
+    },
+    "LA": {
+      "player_name": "Matthew Stafford",
+      "confidence": "locked",
+      "notes": "Traded from DET, started all 17 games, 601 att"
+    },
+    "LAC": {
+      "player_name": "Justin Herbert",
+      "confidence": "locked",
+      "notes": "Started all 17 games, 672 att"
+    },
+    "LV": {
+      "player_name": "Derek Carr",
+      "confidence": "locked",
+      "notes": "Started all 17 games, 626 att"
+    },
+    "MIA": {
+      "player_name": "Tua Tagovailoa",
+      "confidence": "locked",
+      "notes": "Started 13 games, 388 att"
+    },
+    "MIN": {
+      "player_name": "Kirk Cousins",
+      "confidence": "locked",
+      "notes": "Started 16 games, 561 att"
+    },
+    "NE": {
+      "player_name": "Mac Jones",
+      "confidence": "locked",
+      "notes": "Cam Newton cut before Week 1; Jones started all 17 games, 521 att"
+    },
+    "NO": {
+      "player_name": "Jameis Winston",
+      "confidence": "locked",
+      "notes": "Won starting job, started 7 games before torn ACL Week 8; Siemian filled in"
+    },
+    "NYG": {
+      "player_name": "Daniel Jones",
+      "confidence": "locked",
+      "notes": "Started 11 games, 361 att"
+    },
+    "NYJ": {
+      "player_name": "Zach Wilson",
+      "confidence": "locked",
+      "notes": "2nd overall pick, started 13 games as rookie"
+    },
+    "PHI": {
+      "player_name": "Jalen Hurts",
+      "confidence": "locked",
+      "notes": "Started 15 games, 432 att"
+    },
+    "PIT": {
+      "player_name": "Ben Roethlisberger",
+      "confidence": "locked",
+      "notes": "Final season, started 16 games"
+    },
+    "SEA": {
+      "player_name": "Russell Wilson",
+      "confidence": "locked",
+      "notes": "Started 14 games, finger injury mid-season"
+    },
+    "SF": {
+      "player_name": "Jimmy Garoppolo",
+      "confidence": "locked",
+      "notes": "Started 15 games, 441 att"
+    },
+    "TB": {
+      "player_name": "Tom Brady",
+      "confidence": "locked",
+      "notes": "Started all 17 games, 5316 yds, 43 TD"
+    },
+    "TEN": {
+      "player_name": "Ryan Tannehill",
+      "confidence": "locked",
+      "notes": "Started 17 games, led Titans to AFC #1 seed"
+    },
+    "WAS": {
+      "player_name": "Ryan Fitzpatrick",
+      "confidence": "locked",
+      "notes": "Named Week 1 starter, season-ending hip injury Week 1; Heinicke took over"
+    }
+  },
+  "2022": {
+    "ARI": {
+      "player_name": "Kyler Murray",
+      "confidence": "locked",
+      "notes": "Started 11 games before torn ACL"
+    },
+    "ATL": {
+      "player_name": "Marcus Mariota",
+      "confidence": "locked",
+      "notes": "Signed in FA, started 13 games"
+    },
+    "BAL": {
+      "player_name": "Lamar Jackson",
+      "confidence": "locked",
+      "notes": "Started 12 games, knee injury late season; Huntley filled in"
+    },
+    "BUF": {
+      "player_name": "Josh Allen",
+      "confidence": "locked",
+      "notes": "Started 16 games, 567 att"
+    },
+    "CAR": {
+      "player_name": "Baker Mayfield",
+      "confidence": "locked",
+      "notes": "Traded from CLE, named Week 1 starter Aug 22; struggled and was benched"
+    },
+    "CHI": {
+      "player_name": "Justin Fields",
+      "confidence": "locked",
+      "notes": "Started 15 games, 318 att"
+    },
+    "CIN": {
+      "player_name": "Joe Burrow",
+      "confidence": "locked",
+      "notes": "Started all 16 games, 606 att"
+    },
+    "CLE": {
+      "player_name": "Jacoby Brissett",
+      "confidence": "locked",
+      "notes": "Watson suspended 11 games, Brissett designated Week 1 starter"
+    },
+    "DAL": {
+      "player_name": "Dak Prescott",
+      "confidence": "locked",
+      "notes": "Started 12 games, thumb fracture Week 1; Cooper Rush filled in"
+    },
+    "DEN": {
+      "player_name": "Russell Wilson",
+      "confidence": "locked",
+      "notes": "Traded from SEA, started 15 games"
+    },
+    "DET": {
+      "player_name": "Jared Goff",
+      "confidence": "locked",
+      "notes": "Started all 17 games, 587 att"
+    },
+    "GB": {
+      "player_name": "Aaron Rodgers",
+      "confidence": "locked",
+      "notes": "Started 17 games, 542 att"
+    },
+    "HOU": {
+      "player_name": "Davis Mills",
+      "confidence": "locked",
+      "notes": "Started 15 games, 479 att"
+    },
+    "IND": {
+      "player_name": "Matt Ryan",
+      "confidence": "locked",
+      "notes": "Traded from ATL, started 12 games before benching"
+    },
+    "JAX": {
+      "player_name": "Trevor Lawrence",
+      "confidence": "locked",
+      "notes": "Started all 17 games, 584 att"
+    },
+    "KC": {
+      "player_name": "Patrick Mahomes",
+      "confidence": "locked",
+      "notes": "Started all 17 games, MVP, 648 att"
+    },
+    "LA": {
+      "player_name": "Matthew Stafford",
+      "confidence": "locked",
+      "notes": "Defending SB champ starter, started 9 games before injury; Mayfield joined mid-season"
+    },
+    "LAC": {
+      "player_name": "Justin Herbert",
+      "confidence": "locked",
+      "notes": "Started all 17 games, 699 att"
+    },
+    "LV": {
+      "player_name": "Derek Carr",
+      "confidence": "locked",
+      "notes": "Started 15 games, benched late December; Stidham started final 2 games"
+    },
+    "MIA": {
+      "player_name": "Tua Tagovailoa",
+      "confidence": "locked",
+      "notes": "Started 13 games, concussion protocol issues"
+    },
+    "MIN": {
+      "player_name": "Kirk Cousins",
+      "confidence": "locked",
+      "notes": "Started 17 games, 643 att"
+    },
+    "NE": {
+      "player_name": "Mac Jones",
+      "confidence": "locked",
+      "notes": "Started 14 games, 442 att"
+    },
+    "NO": {
+      "player_name": "Jameis Winston",
+      "confidence": "locked",
+      "notes": "Week 1 starter returning from 2021 ACL, started 3 games before injury; Dalton took over"
+    },
+    "NYG": {
+      "player_name": "Daniel Jones",
+      "confidence": "locked",
+      "notes": "Started 16 games, 472 att"
+    },
+    "NYJ": {
+      "player_name": "Zach Wilson",
+      "confidence": "locked",
+      "notes": "Designated starter, preseason knee injury missed Wks 1-3; Flacco started Week 1"
+    },
+    "PHI": {
+      "player_name": "Jalen Hurts",
+      "confidence": "locked",
+      "notes": "Started 15 games, MVP runner-up, 460 att"
+    },
+    "PIT": {
+      "player_name": "Mitch Trubisky",
+      "confidence": "locked",
+      "notes": "Named Week 1 starter Sep 6; Pickett replaced him Week 4"
+    },
+    "SEA": {
+      "player_name": "Geno Smith",
+      "confidence": "locked",
+      "notes": "Won competition over Drew Lock, started all 17 games, Comeback Player of Year"
+    },
+    "SF": {
+      "player_name": "Trey Lance",
+      "confidence": "locked",
+      "notes": "Named starter over Garoppolo, season-ending ankle injury Week 2; Garoppolo took over"
+    },
+    "TB": {
+      "player_name": "Tom Brady",
+      "confidence": "locked",
+      "notes": "Un-retired, started all 17 games, final season"
+    },
+    "TEN": {
+      "player_name": "Ryan Tannehill",
+      "confidence": "locked",
+      "notes": "Started 17 games"
+    },
+    "WAS": {
+      "player_name": "Carson Wentz",
+      "confidence": "locked",
+      "notes": "Traded from IND, started 8 games before injury"
+    }
+  },
+  "2023": {
+    "ARI": {
+      "player_name": "Kyler Murray",
+      "confidence": "projected",
+      "notes": "Franchise QB recovering from torn ACL (Dec 2022), returned Week 10; Clayton Tune started Week 1"
+    },
+    "ATL": {
+      "player_name": "Desmond Ridder",
+      "confidence": "locked",
+      "notes": "Started 15 games, 388 att"
+    },
+    "BAL": {
+      "player_name": "Lamar Jackson",
+      "confidence": "locked",
+      "notes": "MVP season, started 16 games"
+    },
+    "BUF": {
+      "player_name": "Josh Allen",
+      "confidence": "locked",
+      "notes": "Started all 17 games, 579 att"
+    },
+    "CAR": {
+      "player_name": "Bryce Young",
+      "confidence": "locked",
+      "notes": "1st overall pick, started 16 games, 527 att"
+    },
+    "CHI": {
+      "player_name": "Justin Fields",
+      "confidence": "locked",
+      "notes": "Started 13 games before thumb injury"
+    },
+    "CIN": {
+      "player_name": "Joe Burrow",
+      "confidence": "locked",
+      "notes": "Started 10 games before wrist injury, 365 att"
+    },
+    "CLE": {
+      "player_name": "Deshaun Watson",
+      "confidence": "locked",
+      "notes": "Week 1 starter, shoulder injury Week 6; Flacco took over and played well"
+    },
+    "DAL": {
+      "player_name": "Dak Prescott",
+      "confidence": "locked",
+      "notes": "Started 17 games"
+    },
+    "DEN": {
+      "player_name": "Russell Wilson",
+      "confidence": "locked",
+      "notes": "Week 1 starter, hamstring injury mid-season; Stidham filled in briefly"
+    },
+    "DET": {
+      "player_name": "Jared Goff",
+      "confidence": "locked",
+      "notes": "Started all 17 games, 605 att"
+    },
+    "GB": {
+      "player_name": "Jordan Love",
+      "confidence": "locked",
+      "notes": "Took over after Rodgers trade to NYJ, started 17 games"
+    },
+    "HOU": {
+      "player_name": "C.J. Stroud",
+      "confidence": "locked",
+      "notes": "2nd overall pick, started 15 games, Offensive ROY"
+    },
+    "IND": {
+      "player_name": "Anthony Richardson",
+      "confidence": "locked",
+      "notes": "4th overall pick, started 4 games before shoulder injury"
+    },
+    "JAX": {
+      "player_name": "Trevor Lawrence",
+      "confidence": "locked",
+      "notes": "Started 16 games, 564 att"
+    },
+    "KC": {
+      "player_name": "Patrick Mahomes",
+      "confidence": "locked",
+      "notes": "Started 17 games"
+    },
+    "LA": {
+      "player_name": "Matthew Stafford",
+      "confidence": "locked",
+      "notes": "Started 15 games, 521 att"
+    },
+    "LAC": {
+      "player_name": "Justin Herbert",
+      "confidence": "locked",
+      "notes": "Started 13 games, 456 att"
+    },
+    "LV": {
+      "player_name": "Jimmy Garoppolo",
+      "confidence": "locked",
+      "notes": "Week 1 starter, benched mid-season; O'Connell took over"
+    },
+    "MIA": {
+      "player_name": "Tua Tagovailoa",
+      "confidence": "locked",
+      "notes": "Started all 17 games, 560 att"
+    },
+    "MIN": {
+      "player_name": "Kirk Cousins",
+      "confidence": "locked",
+      "notes": "Week 1 starter, torn Achilles Week 8"
+    },
+    "NE": {
+      "player_name": "Mac Jones",
+      "confidence": "locked",
+      "notes": "Week 1 starter, later benched for Bailey Zappe"
+    },
+    "NO": {
+      "player_name": "Derek Carr",
+      "confidence": "locked",
+      "notes": "Signed 4-year deal, Week 1 starter"
+    },
+    "NYG": {
+      "player_name": "Daniel Jones",
+      "confidence": "locked",
+      "notes": "Week 1 starter, torn ACL mid-season"
+    },
+    "NYJ": {
+      "player_name": "Aaron Rodgers",
+      "confidence": "locked",
+      "notes": "Traded from GB, tore Achilles on 4th snap of Week 1; Zach Wilson took over"
+    },
+    "PHI": {
+      "player_name": "Jalen Hurts",
+      "confidence": "locked",
+      "notes": "Started 17 games, 538 att"
+    },
+    "PIT": {
+      "player_name": "Kenny Pickett",
+      "confidence": "locked",
+      "notes": "Entered 2023 as starter, started until injuries; Trubisky/Rudolph also played"
+    },
+    "SEA": {
+      "player_name": "Geno Smith",
+      "confidence": "locked",
+      "notes": "Started 15 games, 499 att"
+    },
+    "SF": {
+      "player_name": "Brock Purdy",
+      "confidence": "locked",
+      "notes": "Started 16 games, 444 att"
+    },
+    "TB": {
+      "player_name": "Baker Mayfield",
+      "confidence": "locked",
+      "notes": "Signed in FA, started all 17 games, 566 att"
+    },
+    "TEN": {
+      "player_name": "Ryan Tannehill",
+      "confidence": "locked",
+      "notes": "Week 1 starter, Will Levis took over later in season"
+    },
+    "WAS": {
+      "player_name": "Sam Howell",
+      "confidence": "locked",
+      "notes": "Won starting job in 2023 preseason"
+    }
+  },
+  "2024": {
+    "ARI": {
+      "player_name": "Kyler Murray",
+      "confidence": "locked",
+      "notes": "Started 17 games, 303 pts"
+    },
+    "ATL": {
+      "player_name": "Kirk Cousins",
+      "confidence": "locked",
+      "notes": "Signed 4-year deal in FA, started 14 games"
+    },
+    "BAL": {
+      "player_name": "Lamar Jackson",
+      "confidence": "locked",
+      "notes": "Started 17 games, 438 pts"
+    },
+    "BUF": {
+      "player_name": "Josh Allen",
+      "confidence": "locked",
+      "notes": "Started 16 games, 381 pts"
+    },
+    "CAR": {
+      "player_name": "Bryce Young",
+      "confidence": "locked",
+      "notes": "Week 1 starter, started 14 games"
+    },
+    "CHI": {
+      "player_name": "Caleb Williams",
+      "confidence": "locked",
+      "notes": "1st overall pick, started all 17 games"
+    },
+    "CIN": {
+      "player_name": "Joe Burrow",
+      "confidence": "locked",
+      "notes": "Started 17 games, 383 pts"
+    },
+    "CLE": {
+      "player_name": "Deshaun Watson",
+      "confidence": "locked",
+      "notes": "Week 1 starter, started 7 games before injury"
+    },
+    "DAL": {
+      "player_name": "Dak Prescott",
+      "confidence": "locked",
+      "notes": "Started 8 games before injury"
+    },
+    "DEN": {
+      "player_name": "Bo Nix",
+      "confidence": "locked",
+      "notes": "Rookie starter, started all 17 games"
+    },
+    "DET": {
+      "player_name": "Jared Goff",
+      "confidence": "locked",
+      "notes": "Started all 17 games, 322 pts"
+    },
+    "GB": {
+      "player_name": "Jordan Love",
+      "confidence": "locked",
+      "notes": "Started 15 games, 228 pts"
+    },
+    "HOU": {
+      "player_name": "C.J. Stroud",
+      "confidence": "locked",
+      "notes": "Started all 17 games"
+    },
+    "IND": {
+      "player_name": "Anthony Richardson",
+      "confidence": "locked",
+      "notes": "Week 1 starter, started 11 games before benching; Flacco filled in"
+    },
+    "JAC": {
+      "player_name": "Trevor Lawrence",
+      "confidence": "locked",
+      "notes": "Started 10 games before injury"
+    },
+    "KC": {
+      "player_name": "Patrick Mahomes",
+      "confidence": "locked",
+      "notes": "Started 16 games, 283 pts"
+    },
+    "LA": {
+      "player_name": "Matthew Stafford",
+      "confidence": "locked",
+      "notes": "Started 16 games, 219 pts"
+    },
+    "LAC": {
+      "player_name": "Justin Herbert",
+      "confidence": "locked",
+      "notes": "Started all 17 games, 283 pts"
+    },
+    "LV": {
+      "player_name": "Gardner Minshew",
+      "confidence": "locked",
+      "notes": "Won preseason competition over O'Connell, Week 1 starter"
+    },
+    "MIA": {
+      "player_name": "Tua Tagovailoa",
+      "confidence": "locked",
+      "notes": "Started 11 games, concussion protocol"
+    },
+    "MIN": {
+      "player_name": "Sam Darnold",
+      "confidence": "locked",
+      "notes": "Named starter after J.J. McCarthy preseason ACL tear, started all 17 games"
+    },
+    "NE": {
+      "player_name": "Jacoby Brissett",
+      "confidence": "locked",
+      "notes": "Week 1 starter, Drake Maye took over Week 6"
+    },
+    "NO": {
+      "player_name": "Derek Carr",
+      "confidence": "locked",
+      "notes": "Week 1 starter, injured mid-season; Rattler took over"
+    },
+    "NYG": {
+      "player_name": "Daniel Jones",
+      "confidence": "locked",
+      "notes": "Week 1 starter, benched and released mid-season"
+    },
+    "NYJ": {
+      "player_name": "Aaron Rodgers",
+      "confidence": "locked",
+      "notes": "Returned from 2023 Achilles tear, started 17 games"
+    },
+    "PHI": {
+      "player_name": "Jalen Hurts",
+      "confidence": "locked",
+      "notes": "Started 15 games, 325 pts"
+    },
+    "PIT": {
+      "player_name": "Russell Wilson",
+      "confidence": "locked",
+      "notes": "Signed in FA, won starting job over Justin Fields, Week 1 starter"
+    },
+    "SEA": {
+      "player_name": "Geno Smith",
+      "confidence": "locked",
+      "notes": "Started 17 games, 266 pts"
+    },
+    "SF": {
+      "player_name": "Brock Purdy",
+      "confidence": "locked",
+      "notes": "Started 15 games, 273 pts"
+    },
+    "TB": {
+      "player_name": "Baker Mayfield",
+      "confidence": "locked",
+      "notes": "Started all 17 games, 368 pts"
+    },
+    "TEN": {
+      "player_name": "Will Levis",
+      "confidence": "locked",
+      "notes": "Week 1 starter, started 12 games"
+    },
+    "WAS": {
+      "player_name": "Jayden Daniels",
+      "confidence": "locked",
+      "notes": "2nd overall pick, started all 17 games, Offensive ROY"
+    }
+  },
+  "2025": {
+    "ARI": {
+      "player_name": "Kyler Murray",
+      "confidence": "locked",
+      "notes": "Week 1 starter, foot injury mid-season; Brissett filled in"
+    },
+    "ATL": {
+      "player_name": "Michael Penix",
+      "confidence": "locked",
+      "notes": "Week 1 starter, partial ACL tear Week 11; Cousins finished season"
+    },
+    "BAL": {
+      "player_name": "Lamar Jackson",
+      "confidence": "locked",
+      "notes": "Started 13 games"
+    },
+    "BUF": {
+      "player_name": "Josh Allen",
+      "confidence": "locked",
+      "notes": "Started 17 games, 365 pts"
+    },
+    "CAR": {
+      "player_name": "Bryce Young",
+      "confidence": "locked",
+      "notes": "Started 16 games, 230 pts"
+    },
+    "CHI": {
+      "player_name": "Caleb Williams",
+      "confidence": "locked",
+      "notes": "Started 17 games, 315 pts"
+    },
+    "CIN": {
+      "player_name": "Joe Burrow",
+      "confidence": "locked",
+      "notes": "Week 1 starter, Grade 3 turf toe Week 2 missed 9 games; Flacco filled in"
+    },
+    "CLE": {
+      "player_name": "Joe Flacco",
+      "confidence": "locked",
+      "notes": "Named Week 1 starter; Gabriel and Sanders also started later in season"
+    },
+    "DAL": {
+      "player_name": "Dak Prescott",
+      "confidence": "locked",
+      "notes": "Started 17 games, 311 pts"
+    },
+    "DEN": {
+      "player_name": "Bo Nix",
+      "confidence": "locked",
+      "notes": "Started 17 games, 301 pts"
+    },
+    "DET": {
+      "player_name": "Jared Goff",
+      "confidence": "locked",
+      "notes": "Started all 17 games, 297 pts"
+    },
+    "GB": {
+      "player_name": "Jordan Love",
+      "confidence": "locked",
+      "notes": "Started 15 games, 247 pts"
+    },
+    "HOU": {
+      "player_name": "C.J. Stroud",
+      "confidence": "locked",
+      "notes": "Started 14 games"
+    },
+    "IND": {
+      "player_name": "Daniel Jones",
+      "confidence": "locked",
+      "notes": "Won competition over Anthony Richardson, started 13 games"
+    },
+    "JAC": {
+      "player_name": "Trevor Lawrence",
+      "confidence": "locked",
+      "notes": "Started all 17 games, led JAX to division title"
+    },
+    "KC": {
+      "player_name": "Patrick Mahomes",
+      "confidence": "locked",
+      "notes": "Started 14 games, 283 pts"
+    },
+    "LA": {
+      "player_name": "Matthew Stafford",
+      "confidence": "locked",
+      "notes": "Started all 17 games, 374 pts"
+    },
+    "LAC": {
+      "player_name": "Justin Herbert",
+      "confidence": "locked",
+      "notes": "Started 16 games, 269 pts"
+    },
+    "LV": {
+      "player_name": "Geno Smith",
+      "confidence": "locked",
+      "notes": "Traded from SEA, Week 1 starter"
+    },
+    "MIA": {
+      "player_name": "Tua Tagovailoa",
+      "confidence": "locked",
+      "notes": "Started 14 games"
+    },
+    "MIN": {
+      "player_name": "J.J. McCarthy",
+      "confidence": "locked",
+      "notes": "NFL debut Week 1, started 10 games"
+    },
+    "NE": {
+      "player_name": "Drake Maye",
+      "confidence": "locked",
+      "notes": "Started 17 games, led NE to Super Bowl LX"
+    },
+    "NO": {
+      "player_name": "Spencer Rattler",
+      "confidence": "locked",
+      "notes": "Named Week 1 starter; Shough took over around Week 9"
+    },
+    "NYG": {
+      "player_name": "Russell Wilson",
+      "confidence": "locked",
+      "notes": "Week 1 starter, benched after 0-3 start; Jaxson Dart took over Week 4"
+    },
+    "NYJ": {
+      "player_name": "Justin Fields",
+      "confidence": "locked",
+      "notes": "Signed 2-year deal, Week 1 starter, benched Week 11"
+    },
+    "PHI": {
+      "player_name": "Jalen Hurts",
+      "confidence": "locked",
+      "notes": "Started 16 games, 287 pts"
+    },
+    "PIT": {
+      "player_name": "Aaron Rodgers",
+      "confidence": "locked",
+      "notes": "Signed June 2025, Week 1 starter"
+    },
+    "SEA": {
+      "player_name": "Sam Darnold",
+      "confidence": "locked",
+      "notes": "Signed March 2025 after Geno Smith trade, won Super Bowl LX"
+    },
+    "SF": {
+      "player_name": "Brock Purdy",
+      "confidence": "locked",
+      "notes": "Started 9 games"
+    },
+    "TB": {
+      "player_name": "Baker Mayfield",
+      "confidence": "locked",
+      "notes": "Started all 17 games, 270 pts"
+    },
+    "TEN": {
+      "player_name": "Cameron Ward",
+      "confidence": "locked",
+      "notes": "1st overall pick, named Week 1 starter"
+    },
+    "WAS": {
+      "player_name": "Jayden Daniels",
+      "confidence": "locked",
+      "notes": "Week 1 starter, elbow dislocation Week 9, shut down for season; Mariota finished"
+    }
+  }
+}

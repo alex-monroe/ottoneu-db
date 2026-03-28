@@ -92,7 +92,8 @@ model_config.py  →  runner.py  →  model_projections table
 ```
 
 - `model_config.py` — model registry (name, version, features, weights, is_baseline)
-- `runner.py` — fetches historical player_stats + nfl_stats, runs combiner, batch upserts
+- `qb_starters.py` — loads manual QB starter designations from `data/qb_starters.json`, resolves names to player IDs
+- `runner.py` — fetches historical player_stats + nfl_stats, loads QB starters, runs combiner, batch upserts
 - `combiner.py` — base feature PPG + weighted sum of adjustment feature deltas
 - `backtest.py` — compares projected_ppg to actual actuals (MAE, RMSE per model)
 - `accuracy_report.py` — side-by-side model comparison table across all seasons
