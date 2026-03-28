@@ -87,6 +87,29 @@ python scripts/feature_projections/accuracy_report.py --run-backtest --seasons 2
 
 ---
 
+## Lessons Learned
+
+### Feature interaction effects (from #281 rookie growth)
+
+New features that modify the base PPG can **compound** with existing features in
+unexpected ways. During the v17 rookie growth work, a multiplicative growth
+ratio (×1.04) applied on top of the snap trajectory factor caused systematic
+over-projection because the snap trajectory already captured within-season
+momentum. The fix was to make the growth delta **additive and conditional** —
+only applied when snap data is absent.
+
+**Guideline:** When adding a new adjustment to the projection pipeline:
+1. Check whether the signal is already partially captured by existing features
+   (age_curve, regression_to_mean, snap trajectory)
+2. Test multiplicative vs additive formulations — multiplicative compounds,
+   additive is safer
+3. Use `segment-analysis --segments experience` to isolate the target population
+   before and after the change
+4. If the raw effect is < 5%, dampen it (e.g., 50% scaling) to account for
+   overlap with existing features
+
+---
+
 ## Key Files
 
 | File | Role |
