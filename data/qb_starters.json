@@ -6,9 +6,9 @@
       "notes": "Primary starter (100% share), 16G, 558 att"
     },
     "BAL": {
-      "player_name": "Tyler Huntley",
+      "player_name": "Lamar Jackson",
       "confidence": "locked",
-      "notes": "Primary starter (100% share), 2G, 5 att"
+      "notes": "Primary starter, manual correction"
     },
     "BUF": {
       "player_name": "Josh Allen",
@@ -36,9 +36,9 @@
       "notes": "Primary starter (98% share), 16G, 486 att"
     },
     "DAL": {
-      "player_name": "Andy Dalton",
+      "player_name": "Dak Prescott",
       "confidence": "locked",
-      "notes": "Primary starter (60% share), 11G, 333 att"
+      "notes": "Primary starter, manual correction (injured mid-season, Dalton filled in)"
     },
     "DEN": {
       "player_name": "Drew Lock",
@@ -116,9 +116,9 @@
       "notes": "Primary starter (100% share), 14G, 448 att"
     },
     "NYJ": {
-      "player_name": "Lamar Jackson",
-      "confidence": "competition",
-      "notes": "Split duties (43% share), 24G, 376 att"
+      "player_name": "Sam Darnold",
+      "confidence": "locked",
+      "notes": "Primary starter, manual correction"
     },
     "PHI": {
       "player_name": "Carson Wentz",
@@ -141,9 +141,9 @@
       "notes": "Primary starter (70% share), 10G, 326 att"
     },
     "TEN": {
-      "player_name": "Logan Woodside",
+      "player_name": "Ryan Tannehill",
       "confidence": "locked",
-      "notes": "Primary starter (100% share), 5G, 3 att"
+      "notes": "Primary starter, manual correction"
     },
     "WAS": {
       "player_name": "Kyle Allen",
@@ -158,9 +158,9 @@
       "notes": "Primary starter (100% share), 14G, 481 att"
     },
     "ATL": {
-      "player_name": "Feleipe Franks",
+      "player_name": "Marcus Mariota",
       "confidence": "locked",
-      "notes": "Primary starter (100% share), 4G, 1 att"
+      "notes": "Manual correction (Matt Ryan was actual 2021 starter, Mariota per user)"
     },
     "BAL": {
       "player_name": "Lamar Jackson",
@@ -276,6 +276,619 @@
       "player_name": "Jimmy Garoppolo",
       "confidence": "locked",
       "notes": "Primary starter (86% share), 15G, 441 att"
+    }
+  },
+  "2022": {
+    "ARI": {
+      "player_name": "Kyler Murray",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 11G, 390 att"
+    },
+    "ATL": {
+      "player_name": "Marcus Mariota",
+      "confidence": "locked",
+      "notes": "Primary starter (72% share), 13G, 300 att"
+    },
+    "BAL": {
+      "player_name": "Tyler Huntley",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 5G, 112 att"
+    },
+    "BUF": {
+      "player_name": "Josh Allen",
+      "confidence": "locked",
+      "notes": "Primary starter (99% share), 16G, 567 att"
+    },
+    "CAR": {
+      "player_name": "Sam Darnold",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 6G, 140 att"
+    },
+    "CHI": {
+      "player_name": "Justin Fields",
+      "confidence": "locked",
+      "notes": "Primary starter (92% share), 15G, 318 att"
+    },
+    "CIN": {
+      "player_name": "Joe Burrow",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 16G, 606 att"
+    },
+    "CLE": {
+      "player_name": "Jacoby Brissett",
+      "confidence": "locked",
+      "notes": "Primary starter (68% share), 14G, 369 att"
+    },
+    "DAL": {
+      "player_name": "Dak Prescott",
+      "confidence": "locked",
+      "notes": "Primary starter (71% share), 12G, 394 att"
+    },
+    "DEN": {
+      "player_name": "Russell Wilson",
+      "confidence": "competition",
+      "notes": "Split duties (60% share), 15G, 483 att"
+    },
+    "DET": {
+      "player_name": "Jared Goff",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 17G, 587 att"
+    },
+    "GB": {
+      "player_name": "Aaron Rodgers",
+      "confidence": "locked",
+      "notes": "Primary starter (96% share), 17G, 542 att"
+    },
+    "HOU": {
+      "player_name": "Davis Mills",
+      "confidence": "locked",
+      "notes": "Primary starter (86% share), 15G, 479 att"
+    },
+    "JAX": {
+      "player_name": "Trevor Lawrence",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 17G, 584 att"
+    },
+    "KC": {
+      "player_name": "Patrick Mahomes",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 17G, 648 att"
+    },
+    "LA": {
+      "player_name": "Baker Mayfield",
+      "confidence": "competition",
+      "notes": "Split duties (50% share), 12G, 335 att"
+    },
+    "LAC": {
+      "player_name": "Justin Herbert",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 17G, 699 att"
+    },
+    "LV": {
+      "player_name": "Jarrett Stidham",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 3G, 83 att"
+    },
+    "MIA": {
+      "player_name": "Tua Tagovailoa",
+      "confidence": "locked",
+      "notes": "Primary starter (84% share), 13G, 400 att"
+    },
+    "MIN": {
+      "player_name": "Kirk Cousins",
+      "confidence": "locked",
+      "notes": "Primary starter (96% share), 17G, 643 att"
+    },
+    "NE": {
+      "player_name": "Mac Jones",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 14G, 442 att"
+    },
+    "NO": {
+      "player_name": "Andy Dalton",
+      "confidence": "locked",
+      "notes": "Primary starter (77% share), 14G, 378 att"
+    },
+    "NYG": {
+      "player_name": "Daniel Jones",
+      "confidence": "locked",
+      "notes": "Primary starter (98% share), 16G, 472 att"
+    },
+    "NYJ": {
+      "player_name": "Joe Flacco",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 5G, 191 att"
+    },
+    "PHI": {
+      "player_name": "Jalen Hurts",
+      "confidence": "locked",
+      "notes": "Primary starter (86% share), 15G, 460 att"
+    },
+    "PIT": {
+      "player_name": "Kenny Pickett",
+      "confidence": "locked",
+      "notes": "Primary starter (68% share), 13G, 389 att"
+    },
+    "SEA": {
+      "player_name": "Geno Smith",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 17G, 572 att"
+    },
+    "SF": {
+      "player_name": "Jimmy Garoppolo",
+      "confidence": "locked",
+      "notes": "Primary starter (60% share), 11G, 308 att"
+    },
+    "TB": {
+      "player_name": "Kyle Trask",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 1G, 9 att"
+    },
+    "TEN": {
+      "player_name": "Joshua Dobbs",
+      "confidence": "competition",
+      "notes": "Split duties (53% share), 2G, 68 att"
+    },
+    "WAS": {
+      "player_name": "Carson Wentz",
+      "confidence": "competition",
+      "notes": "Split duties (52% share), 8G, 276 att"
+    }
+  },
+  "2023": {
+    "ARI": {
+      "player_name": "Clayton Tune",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 6G, 21 att"
+    },
+    "ATL": {
+      "player_name": "Desmond Ridder",
+      "confidence": "locked",
+      "notes": "Primary starter (73% share), 15G, 388 att"
+    },
+    "BUF": {
+      "player_name": "Josh Allen",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 17G, 579 att"
+    },
+    "CAR": {
+      "player_name": "Bryce Young",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 16G, 527 att"
+    },
+    "CIN": {
+      "player_name": "Joe Burrow",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 10G, 365 att"
+    },
+    "CLE": {
+      "player_name": "Joe Flacco",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 5G, 204 att"
+    },
+    "DEN": {
+      "player_name": "Jarrett Stidham",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 2G, 66 att"
+    },
+    "DET": {
+      "player_name": "Jared Goff",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 17G, 605 att"
+    },
+    "HOU": {
+      "player_name": "C.J. Stroud",
+      "confidence": "locked",
+      "notes": "Primary starter (93% share), 15G, 499 att"
+    },
+    "IND": {
+      "player_name": "Anthony Richardson",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 4G, 84 att"
+    },
+    "JAX": {
+      "player_name": "Trevor Lawrence",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 16G, 564 att"
+    },
+    "LA": {
+      "player_name": "Matthew Stafford",
+      "confidence": "locked",
+      "notes": "Primary starter (96% share), 15G, 521 att"
+    },
+    "LAC": {
+      "player_name": "Justin Herbert",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 13G, 456 att"
+    },
+    "LV": {
+      "player_name": "Aidan O'Connell",
+      "confidence": "locked",
+      "notes": "Primary starter (67% share), 11G, 343 att"
+    },
+    "MIA": {
+      "player_name": "Tua Tagovailoa",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 17G, 560 att"
+    },
+    "MIN": {
+      "player_name": "Nick Mullens",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 5G, 148 att"
+    },
+    "NO": {
+      "player_name": "Jameis Winston",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 6G, 47 att"
+    },
+    "NYG": {
+      "player_name": "Tommy DeVito",
+      "confidence": "competition",
+      "notes": "Split duties (53% share), 9G, 178 att"
+    },
+    "NYJ": {
+      "player_name": "Trevor Siemian",
+      "confidence": "locked",
+      "notes": "Primary starter (99% share), 5G, 153 att"
+    },
+    "PHI": {
+      "player_name": "Jalen Hurts",
+      "confidence": "locked",
+      "notes": "Primary starter (96% share), 17G, 538 att"
+    },
+    "PIT": {
+      "player_name": "Mitchell Trubisky",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 5G, 107 att"
+    },
+    "SEA": {
+      "player_name": "Geno Smith",
+      "confidence": "locked",
+      "notes": "Primary starter (87% share), 15G, 499 att"
+    },
+    "SF": {
+      "player_name": "Brock Purdy",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 16G, 444 att"
+    },
+    "TB": {
+      "player_name": "Baker Mayfield",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 17G, 566 att"
+    },
+    "WAS": {
+      "player_name": "Jacoby Brissett",
+      "confidence": "locked",
+      "notes": "Primary starter (100% share), 2G, 23 att"
+    }
+  },
+  "2024": {
+    "ARI": {
+      "player_name": "Kyler Murray",
+      "confidence": "projected",
+      "notes": "Likely starter (87% pts share), 17G, 303 pts [player_stats]"
+    },
+    "ATL": {
+      "player_name": "Kirk Cousins",
+      "confidence": "projected",
+      "notes": "Likely starter (80% pts share), 14G, 180 pts [player_stats]"
+    },
+    "BAL": {
+      "player_name": "Lamar Jackson",
+      "confidence": "projected",
+      "notes": "Likely starter (71% pts share), 17G, 438 pts [player_stats]"
+    },
+    "BUF": {
+      "player_name": "Josh Allen",
+      "confidence": "projected",
+      "notes": "Likely starter (96% pts share), 16G, 381 pts [player_stats]"
+    },
+    "CAR": {
+      "player_name": "Bryce Young",
+      "confidence": "projected",
+      "notes": "Likely starter (77% pts share), 14G, 199 pts [player_stats]"
+    },
+    "CHI": {
+      "player_name": "Caleb Williams",
+      "confidence": "projected",
+      "notes": "Likely starter (100% pts share), 17G, 259 pts [player_stats]"
+    },
+    "CIN": {
+      "player_name": "Joe Burrow",
+      "confidence": "projected",
+      "notes": "Likely starter (78% pts share), 17G, 383 pts [player_stats]"
+    },
+    "CLE": {
+      "player_name": "Deshaun Watson",
+      "confidence": "projected",
+      "notes": "Likely starter (100% pts share), 7G, 81 pts [player_stats]"
+    },
+    "DAL": {
+      "player_name": "Dak Prescott",
+      "confidence": "projected",
+      "notes": "Likely starter (85% pts share), 8G, 119 pts [player_stats]"
+    },
+    "DEN": {
+      "player_name": "Bo Nix",
+      "confidence": "projected",
+      "notes": "Likely starter (100% pts share), 17G, 317 pts [player_stats]"
+    },
+    "DET": {
+      "player_name": "Jared Goff",
+      "confidence": "projected",
+      "notes": "Likely starter (100% pts share), 17G, 322 pts [player_stats]"
+    },
+    "FA": {
+      "player_name": "Desmond Ridder",
+      "confidence": "projected",
+      "notes": "Likely starter (89% pts share), 5G, 26 pts [player_stats]"
+    },
+    "GB": {
+      "player_name": "Jordan Love",
+      "confidence": "projected",
+      "notes": "Likely starter (81% pts share), 15G, 228 pts [player_stats]"
+    },
+    "HOU": {
+      "player_name": "C.J. Stroud",
+      "confidence": "projected",
+      "notes": "Likely starter (96% pts share), 17G, 228 pts [player_stats]"
+    },
+    "IND": {
+      "player_name": "Anthony Richardson",
+      "confidence": "competition",
+      "notes": "Split duties (55% pts share), 11G, 167 pts [player_stats]"
+    },
+    "JAC": {
+      "player_name": "Trevor Lawrence",
+      "confidence": "projected",
+      "notes": "Likely starter (99% pts share), 10G, 141 pts [player_stats]"
+    },
+    "KC": {
+      "player_name": "Patrick Mahomes",
+      "confidence": "projected",
+      "notes": "Likely starter (73% pts share), 16G, 283 pts [player_stats]"
+    },
+    "LA": {
+      "player_name": "Matthew Stafford",
+      "confidence": "projected",
+      "notes": "Likely starter (92% pts share), 16G, 219 pts [player_stats]"
+    },
+    "LAC": {
+      "player_name": "Justin Herbert",
+      "confidence": "projected",
+      "notes": "Likely starter (96% pts share), 17G, 283 pts [player_stats]"
+    },
+    "LV": {
+      "player_name": "Geno Smith",
+      "confidence": "projected",
+      "notes": "Likely starter (68% pts share), 17G, 266 pts [player_stats]"
+    },
+    "MIA": {
+      "player_name": "Tua Tagovailoa",
+      "confidence": "projected",
+      "notes": "Likely starter (100% pts share), 11G, 182 pts [player_stats]"
+    },
+    "MIN": {
+      "player_name": "Carson Wentz",
+      "confidence": "projected",
+      "notes": "Likely starter (100% pts share), 2G, 5 pts [player_stats]"
+    },
+    "NE": {
+      "player_name": "Drake Maye",
+      "confidence": "projected",
+      "notes": "Likely starter (85% pts share), 13G, 185 pts [player_stats]"
+    },
+    "NO": {
+      "player_name": "Spencer Rattler",
+      "confidence": "projected",
+      "notes": "Likely starter (100% pts share), 7G, 73 pts [player_stats]"
+    },
+    "NYG": {
+      "player_name": "Russell Wilson",
+      "confidence": "competition",
+      "notes": "Split duties (59% pts share), 11G, 181 pts [player_stats]"
+    },
+    "NYJ": {
+      "player_name": "Justin Fields",
+      "confidence": "projected",
+      "notes": "Likely starter (85% pts share), 10G, 121 pts [player_stats]"
+    },
+    "PHI": {
+      "player_name": "Jalen Hurts",
+      "confidence": "projected",
+      "notes": "Likely starter (92% pts share), 15G, 325 pts [player_stats]"
+    },
+    "PIT": {
+      "player_name": "Aaron Rodgers",
+      "confidence": "projected",
+      "notes": "Likely starter (73% pts share), 17G, 257 pts [player_stats]"
+    },
+    "SEA": {
+      "player_name": "Sam Darnold",
+      "confidence": "projected",
+      "notes": "Likely starter (79% pts share), 17G, 316 pts [player_stats]"
+    },
+    "SF": {
+      "player_name": "Brock Purdy",
+      "confidence": "projected",
+      "notes": "Likely starter (74% pts share), 15G, 273 pts [player_stats]"
+    },
+    "TB": {
+      "player_name": "Baker Mayfield",
+      "confidence": "projected",
+      "notes": "Likely starter (100% pts share), 17G, 368 pts [player_stats]"
+    },
+    "TEN": {
+      "player_name": "Will Levis",
+      "confidence": "projected",
+      "notes": "Likely starter (100% pts share), 12G, 130 pts [player_stats]"
+    },
+    "WAS": {
+      "player_name": "Jayden Daniels",
+      "confidence": "projected",
+      "notes": "Likely starter (88% pts share), 17G, 350 pts [player_stats]"
+    }
+  },
+  "2025": {
+    "ARI": {
+      "player_name": "Jacoby Brissett",
+      "confidence": "projected",
+      "notes": "Likely starter (74% pts share), 14G, 226 pts [player_stats]"
+    },
+    "ATL": {
+      "player_name": "Michael Penix",
+      "confidence": "competition",
+      "notes": "Split duties (54% pts share), 9G, 119 pts [player_stats]"
+    },
+    "BAL": {
+      "player_name": "Lamar Jackson",
+      "confidence": "projected",
+      "notes": "Likely starter (84% pts share), 13G, 214 pts [player_stats]"
+    },
+    "BUF": {
+      "player_name": "Josh Allen",
+      "confidence": "projected",
+      "notes": "Likely starter (92% pts share), 17G, 365 pts [player_stats]"
+    },
+    "CAR": {
+      "player_name": "Bryce Young",
+      "confidence": "projected",
+      "notes": "Likely starter (96% pts share), 16G, 230 pts [player_stats]"
+    },
+    "CHI": {
+      "player_name": "Caleb Williams",
+      "confidence": "projected",
+      "notes": "Likely starter (99% pts share), 17G, 315 pts [player_stats]"
+    },
+    "CIN": {
+      "player_name": "Joe Flacco",
+      "confidence": "competition",
+      "notes": "Split duties (44% pts share), 13G, 145 pts [player_stats]"
+    },
+    "CLE": {
+      "player_name": "Shedeur Sanders",
+      "confidence": "competition",
+      "notes": "Split duties (55% pts share), 8G, 85 pts [player_stats]"
+    },
+    "DAL": {
+      "player_name": "Dak Prescott",
+      "confidence": "projected",
+      "notes": "Likely starter (97% pts share), 17G, 311 pts [player_stats]"
+    },
+    "DEN": {
+      "player_name": "Bo Nix",
+      "confidence": "projected",
+      "notes": "Likely starter (98% pts share), 17G, 301 pts [player_stats]"
+    },
+    "DET": {
+      "player_name": "Jared Goff",
+      "confidence": "projected",
+      "notes": "Likely starter (100% pts share), 17G, 297 pts [player_stats]"
+    },
+    "GB": {
+      "player_name": "Jordan Love",
+      "confidence": "projected",
+      "notes": "Likely starter (82% pts share), 15G, 247 pts [player_stats]"
+    },
+    "HOU": {
+      "player_name": "C.J. Stroud",
+      "confidence": "projected",
+      "notes": "Likely starter (75% pts share), 14G, 208 pts [player_stats]"
+    },
+    "IND": {
+      "player_name": "Daniel Jones",
+      "confidence": "projected",
+      "notes": "Likely starter (99% pts share), 13G, 225 pts [player_stats]"
+    },
+    "JAC": {
+      "player_name": "Trevor Lawrence",
+      "confidence": "projected",
+      "notes": "Likely starter (100% pts share), 17G, 338 pts [player_stats]"
+    },
+    "KC": {
+      "player_name": "Patrick Mahomes",
+      "confidence": "projected",
+      "notes": "Likely starter (100% pts share), 14G, 283 pts [player_stats]"
+    },
+    "LA": {
+      "player_name": "Matthew Stafford",
+      "confidence": "projected",
+      "notes": "Likely starter (100% pts share), 17G, 374 pts [player_stats]"
+    },
+    "LAC": {
+      "player_name": "Justin Herbert",
+      "confidence": "projected",
+      "notes": "Likely starter (95% pts share), 16G, 269 pts [player_stats]"
+    },
+    "LV": {
+      "player_name": "Geno Smith",
+      "confidence": "projected",
+      "notes": "Likely starter (93% pts share), 15G, 173 pts [player_stats]"
+    },
+    "MIA": {
+      "player_name": "Tua Tagovailoa",
+      "confidence": "projected",
+      "notes": "Likely starter (83% pts share), 14G, 160 pts [player_stats]"
+    },
+    "MIN": {
+      "player_name": "J.J. McCarthy",
+      "confidence": "projected",
+      "notes": "Likely starter (64% pts share), 10G, 124 pts [player_stats]"
+    },
+    "NE": {
+      "player_name": "Drake Maye",
+      "confidence": "projected",
+      "notes": "Likely starter (99% pts share), 17G, 335 pts [player_stats]"
+    },
+    "NO": {
+      "player_name": "Tyler Shough",
+      "confidence": "projected",
+      "notes": "Likely starter (62% pts share), 11G, 158 pts [player_stats]"
+    },
+    "NYG": {
+      "player_name": "Jaxson Dart",
+      "confidence": "projected",
+      "notes": "Likely starter (72% pts share), 14G, 241 pts [player_stats]"
+    },
+    "NYJ": {
+      "player_name": "Justin Fields",
+      "confidence": "projected",
+      "notes": "Likely starter (70% pts share), 9G, 140 pts [player_stats]"
+    },
+    "PHI": {
+      "player_name": "Jalen Hurts",
+      "confidence": "projected",
+      "notes": "Likely starter (95% pts share), 16G, 287 pts [player_stats]"
+    },
+    "PIT": {
+      "player_name": "Aaron Rodgers",
+      "confidence": "projected",
+      "notes": "Likely starter (94% pts share), 16G, 226 pts [player_stats]"
+    },
+    "SEA": {
+      "player_name": "Sam Darnold",
+      "confidence": "projected",
+      "notes": "Likely starter (101% pts share), 17G, 233 pts [player_stats]"
+    },
+    "SF": {
+      "player_name": "Brock Purdy",
+      "confidence": "projected",
+      "notes": "Likely starter (63% pts share), 9G, 182 pts [player_stats]"
+    },
+    "TB": {
+      "player_name": "Baker Mayfield",
+      "confidence": "projected",
+      "notes": "Likely starter (100% pts share), 17G, 270 pts [player_stats]"
+    },
+    "TEN": {
+      "player_name": "Cameron Ward",
+      "confidence": "projected",
+      "notes": "Likely starter (100% pts share), 0G, 187 pts [player_stats]"
+    },
+    "WAS": {
+      "player_name": "Marcus Mariota",
+      "confidence": "competition",
+      "notes": "Split duties (47% pts share), 11G, 124 pts [player_stats]"
     }
   }
 }
