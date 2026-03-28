@@ -9,6 +9,22 @@ import pandas as pd
 from scripts.feature_projections.features.base import ProjectionFeature
 
 
+# Position-specific rookie year-1 → year-2 growth ratios (median) and
+# mean rookie PPG for small-sample blending.
+# Computed from 2018-2025 player_stats via analyze_rookie_growth.py.
+ROOKIE_GROWTH_CURVES: dict[str, dict[str, float]] = {
+    "QB": {"growth_ratio": 0.95, "rookie_mean_ppg": 14.22},
+    "RB": {"growth_ratio": 1.047, "rookie_mean_ppg": 9.22},
+    "WR": {"growth_ratio": 1.04, "rookie_mean_ppg": 9.65},
+    "TE": {"growth_ratio": 1.051, "rookie_mean_ppg": 5.14},
+    "K":  {"growth_ratio": 1.022, "rookie_mean_ppg": 7.97},
+}
+
+# Rookies with fewer games than this threshold get PPG blended toward the
+# positional rookie mean to reduce small-sample noise.
+ROOKIE_MIN_GAMES_FULL_WEIGHT = 4
+
+
 class WeightedPPGFeature(ProjectionFeature):
     """Recency-weighted, games-scaled average PPG.
 
@@ -119,6 +135,103 @@ class WeightedPPGNoQBTrajectoryFeature(WeightedPPGFeature):
     @property
     def name(self) -> str:
         return "weighted_ppg_no_qb_trajectory"
+
+    @property
+    def is_base(self) -> bool:
+        return True
+
+
+class WeightedPPGRookieGrowthFeature(WeightedPPGFeature):
+    """WeightedPPG with position-specific rookie growth curves and small-sample blending.
+
+    Enhancements over base WeightedPPGFeature for rookies:
+    1. Small-sample blending: if games_played < ROOKIE_MIN_GAMES_FULL_WEIGHT,
+       PPG is blended toward the positional rookie mean.
+    2. Position-specific growth adjustment: applies historical year-1→year-2
+       median improvement as a dampened additive delta (not multiplicative,
+       to avoid compounding with the snap trajectory factor).
+
+    Formula: base_ppg * snap_factor + growth_delta
+    where growth_delta = base_ppg * (growth_ratio - 1.0) * GROWTH_DAMPING
+
+    Veteran path (2+ seasons) is unchanged.
+    """
+
+    # Scale factor for the positional growth adjustment. The growth delta is
+    # only applied when snap trajectory data is absent (snap_factor == 1.0),
+    # since the snap trajectory already captures within-season momentum.
+    GROWTH_DAMPING = 0.5
+
+    @property
+    def name(self) -> str:
+        return "weighted_ppg_rookie_growth"
+
+    @property
+    def is_base(self) -> bool:
+        return True
+
+    def _rookie_trajectory(self, row: pd.Series, position: str = "") -> Optional[float]:
+        """Rookie projection with growth curves and small-sample blending."""
+        ppg = float(row["ppg"]) if pd.notna(row.get("ppg")) else 0.0
+        if ppg == 0:
+            return None
+
+        # Positions that skip snap trajectory get plain PPG (no growth either,
+        # since the growth ratio is coupled to the trajectory logic).
+        if position in self.NO_TRAJECTORY_POSITIONS:
+            return ppg
+
+        curve = ROOKIE_GROWTH_CURVES.get(position)
+        if not curve:
+            # Unknown position — fall back to snap-only trajectory
+            return super()._rookie_trajectory(row, position)
+
+        games_played = int(row.get("games_played", 0) or 0) if pd.notna(row.get("games_played")) else 0
+
+        # Small-sample blending: blend toward positional rookie mean
+        if games_played < ROOKIE_MIN_GAMES_FULL_WEIGHT and games_played > 0:
+            blend_weight = games_played / ROOKIE_MIN_GAMES_FULL_WEIGHT
+            blended_ppg = ppg * blend_weight + curve["rookie_mean_ppg"] * (1 - blend_weight)
+        else:
+            blended_ppg = ppg
+
+        # Snap trajectory factor (existing logic)
+        h1_snaps = int(row.get("h1_snaps") or 0) if pd.notna(row.get("h1_snaps")) else 0
+        h1_games = max(int(row.get("h1_games") or 1) if pd.notna(row.get("h1_games")) else 1, 1)
+        h2_snaps = int(row.get("h2_snaps") or 0) if pd.notna(row.get("h2_snaps")) else 0
+        h2_games = max(int(row.get("h2_games") or 1) if pd.notna(row.get("h2_games")) else 1, 1)
+
+        h1_spg = h1_snaps / h1_games
+        h2_spg = h2_snaps / h2_games
+
+        if h1_spg == 0:
+            snap_factor = 1.0
+        else:
+            snap_factor = min(max(h2_spg / h1_spg, self.ROOKIE_MIN_FACTOR), self.ROOKIE_MAX_FACTOR)
+
+        # Position-specific growth: only applied when snap trajectory data is
+        # absent (snap_factor == 1.0). When snap data exists, the trajectory
+        # already captures within-season momentum and adding growth over-projects.
+        if snap_factor == 1.0:
+            growth_delta = blended_ppg * (curve["growth_ratio"] - 1.0) * self.GROWTH_DAMPING
+        else:
+            growth_delta = 0.0
+
+        return blended_ppg * snap_factor + growth_delta
+
+
+class WeightedPPGRookieGrowthNoQBFeature(WeightedPPGRookieGrowthFeature):
+    """Rookie growth curves + no QB/K snap trajectory.
+
+    Combines position-specific rookie growth with the QB/K trajectory
+    exclusion from WeightedPPGNoQBTrajectoryFeature.
+    """
+
+    NO_TRAJECTORY_POSITIONS: frozenset[str] = frozenset({"QB", "K"})
+
+    @property
+    def name(self) -> str:
+        return "weighted_ppg_rookie_growth_no_qb"
 
     @property
     def is_base(self) -> bool:
