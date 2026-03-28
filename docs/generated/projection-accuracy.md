@@ -1,6 +1,6 @@
 # Projection Model Accuracy Report
 
-_Generated: 2026-03-28 11:01_
+_Generated: 2026-03-28 12:45_
 
 Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed error (positive = under-projection), **R²** = Goodness of fit (higher is better), **RMSE** = Root mean square error, **N** = player sample size.
 
@@ -24,6 +24,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v12_no_qb_trajectory` | **2.160** | +0.467 | **0.662** | **2.844** | 154 |
 | `v13_qb_starter` | **2.155** | +0.474 | **0.663** | **2.841** | 154 |
 | `v14_qb_starter` | **2.165** | +0.524 | **0.667** | **2.826** | 154 |
+| `v15_snap_trend` | **2.187** | +0.102 | **0.640** | **2.937** | 154 |
+| `v16_snap_trend_full` | **2.142** | +0.496 | **0.670** | **2.811** | 154 |
 | `external_fantasypros_v1` | 2.768 | +1.662 | 0.540 | 3.668 | 133 |
 
 ### QB
@@ -44,6 +46,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v12_no_qb_trajectory` | **3.467** | +0.289 | **0.293** | **4.321** | 36 |
 | `v13_qb_starter` | **3.448** | +0.321 | **0.296** | **4.312** | 36 |
 | `v14_qb_starter` | **3.488** | +0.530 | **0.310** | **4.271** | 36 |
+| `v15_snap_trend` | 3.647 | +0.170 | **0.224** | **4.527** | 36 |
+| `v16_snap_trend_full` | **3.509** | +0.643 | **0.308** | **4.276** | 36 |
 | `external_fantasypros_v1` | 4.669 | +3.096 | -0.055 | 5.825 | 32 |
 
 ### RB
@@ -64,6 +68,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v12_no_qb_trajectory` | **2.506** | -0.059 | **0.558** | **3.059** | 25 |
 | `v13_qb_starter` | **2.506** | -0.059 | **0.558** | **3.059** | 25 |
 | `v14_qb_starter` | **2.506** | -0.059 | **0.558** | **3.059** | 25 |
+| `v15_snap_trend` | 2.780 | -0.949 | 0.479 | 3.319 | 25 |
+| `v16_snap_trend_full` | **2.420** | -0.246 | **0.561** | **3.047** | 25 |
 | `external_fantasypros_v1` | **2.643** | +1.210 | **0.579** | **3.179** | 30 |
 
 ### WR
@@ -84,6 +90,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v12_no_qb_trajectory` | 1.930 | +1.161 | 0.615 | 2.235 | 33 |
 | `v13_qb_starter` | 1.930 | +1.161 | 0.615 | 2.235 | 33 |
 | `v14_qb_starter` | 1.930 | +1.161 | 0.615 | 2.235 | 33 |
+| `v15_snap_trend` | **1.542** | +0.496 | **0.727** | **1.879** | 33 |
+| `v16_snap_trend_full` | **1.851** | +1.058 | **0.656** | **2.112** | 33 |
 | `external_fantasypros_v1` | 1.927 | +1.295 | 0.623 | 2.401 | 36 |
 
 ### TE
@@ -104,6 +112,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v12_no_qb_trajectory` | 1.560 | +0.651 | **0.592** | **1.821** | 36 |
 | `v13_qb_starter` | 1.560 | +0.651 | **0.592** | **1.821** | 36 |
 | `v14_qb_starter` | 1.560 | +0.651 | **0.592** | **1.821** | 36 |
+| `v15_snap_trend` | 1.635 | +0.416 | 0.527 | 1.961 | 36 |
+| `v16_snap_trend_full` | 1.599 | +0.588 | 0.568 | 1.875 | 36 |
 | `external_fantasypros_v1` | 2.001 | +1.117 | 0.368 | 2.346 | 35 |
 
 ### K
@@ -124,6 +134,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v12_no_qb_trajectory` | **1.056** | +0.054 | **-1.029** | **1.521** | 24 |
 | `v13_qb_starter` | **1.056** | +0.054 | **-1.029** | **1.521** | 24 |
 | `v14_qb_starter` | **1.056** | +0.054 | **-1.029** | **1.521** | 24 |
+| `v15_snap_trend` | **1.094** | +0.081 | **-1.181** | **1.577** | 24 |
+| `v16_snap_trend_full` | **1.014** | +0.141 | **-0.940** | **1.487** | 24 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## Season 2023
@@ -146,6 +158,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v12_no_qb_trajectory` | **2.589** | +0.414 | **0.453** | **3.698** | 188 |
 | `v13_qb_starter` | **2.562** | +0.377 | **0.460** | **3.671** | 188 |
 | `v14_qb_starter` | **2.614** | +0.468 | 0.441 | 3.738 | 188 |
+| `v15_snap_trend` | 2.700 | +0.081 | 0.414 | 3.825 | 188 |
+| `v16_snap_trend_full` | 2.658 | +0.443 | 0.425 | 3.791 | 188 |
 | `external_fantasypros_v1` | **2.267** | +1.633 | **0.630** | **3.196** | 176 |
 
 ### QB
@@ -166,6 +180,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v12_no_qb_trajectory` | 3.974 | -0.189 | 0.175 | 5.275 | 39 |
 | `v13_qb_starter` | **3.843** | -0.371 | **0.203** | **5.186** | 39 |
 | `v14_qb_starter` | 4.097 | +0.070 | 0.133 | 5.411 | 39 |
+| `v15_snap_trend` | 4.018 | -0.711 | 0.129 | 5.421 | 39 |
+| `v16_snap_trend_full` | 4.138 | -0.082 | 0.111 | 5.479 | 39 |
 | `external_fantasypros_v1` | **3.640** | +2.361 | 0.166 | **4.770** | 40 |
 
 ### RB
@@ -186,6 +202,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v12_no_qb_trajectory` | **3.306** | +1.328 | **-0.192** | **4.641** | 37 |
 | `v13_qb_starter` | **3.306** | +1.328 | **-0.192** | **4.641** | 37 |
 | `v14_qb_starter` | **3.306** | +1.328 | **-0.192** | **4.641** | 37 |
+| `v15_snap_trend` | 3.593 | +0.842 | -0.345 | 4.929 | 37 |
+| `v16_snap_trend_full` | **3.386** | +1.280 | **-0.243** | **4.738** | 37 |
 | `external_fantasypros_v1` | **2.548** | +2.210 | **0.466** | **3.472** | 40 |
 
 ### WR
@@ -206,6 +224,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v12_no_qb_trajectory` | 2.696 | +0.721 | 0.361 | 3.301 | 44 |
 | `v13_qb_starter` | 2.696 | +0.721 | 0.361 | 3.301 | 44 |
 | `v14_qb_starter` | 2.696 | +0.721 | 0.361 | 3.301 | 44 |
+| `v15_snap_trend` | 2.767 | +0.276 | 0.368 | 3.282 | 44 |
+| `v16_snap_trend_full` | 2.763 | +0.722 | 0.355 | 3.317 | 44 |
 | `external_fantasypros_v1` | **1.903** | +1.239 | **0.602** | **2.450** | 49 |
 
 ### TE
@@ -226,6 +246,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v12_no_qb_trajectory` | **1.526** | +0.121 | **0.529** | **1.982** | 44 |
 | `v13_qb_starter` | **1.526** | +0.121 | **0.529** | **1.982** | 44 |
 | `v14_qb_starter` | **1.526** | +0.121 | **0.529** | **1.982** | 44 |
+| `v15_snap_trend` | **1.633** | -0.019 | **0.483** | **2.076** | 44 |
+| `v16_snap_trend_full` | **1.536** | +0.125 | **0.520** | **2.000** | 44 |
 | `external_fantasypros_v1` | **1.237** | +0.931 | **0.743** | **1.535** | 47 |
 
 ### K
@@ -246,6 +268,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v12_no_qb_trajectory` | **0.984** | -0.041 | **-0.403** | **1.219** | 24 |
 | `v13_qb_starter` | **0.988** | -0.036 | **-0.404** | **1.219** | 24 |
 | `v14_qb_starter` | **0.984** | -0.041 | **-0.403** | **1.219** | 24 |
+| `v15_snap_trend` | **1.015** | +0.022 | -0.669 | 1.329 | 24 |
+| `v16_snap_trend_full` | **0.995** | +0.080 | -0.568 | 1.289 | 24 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## Season 2024
@@ -268,6 +292,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v12_no_qb_trajectory` | **2.603** | +0.450 | **0.505** | **3.439** | 241 |
 | `v13_qb_starter` | **2.623** | +0.429 | **0.488** | **3.498** | 241 |
 | `v14_qb_starter` | **2.599** | +0.520 | **0.520** | **3.386** | 241 |
+| `v15_snap_trend` | **2.704** | +0.236 | **0.465** | **3.575** | 241 |
+| `v16_snap_trend_full` | **2.609** | +0.512 | **0.516** | **3.401** | 241 |
 | `external_fantasypros_v1` | 2.782 | +1.531 | **0.543** | **3.602** | 211 |
 
 ### QB
@@ -288,6 +314,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v12_no_qb_trajectory` | **3.697** | -0.836 | **0.461** | **4.789** | 49 |
 | `v13_qb_starter` | **3.819** | -0.891 | **0.414** | **4.995** | 49 |
 | `v14_qb_starter` | **3.680** | -0.490 | **0.503** | **4.600** | 49 |
+| `v15_snap_trend` | **3.884** | -1.024 | **0.402** | **5.043** | 49 |
+| `v16_snap_trend_full` | **3.645** | -0.525 | **0.507** | **4.578** | 49 |
 | `external_fantasypros_v1` | 4.015 | +2.650 | 0.313 | **5.163** | 47 |
 
 ### RB
@@ -308,6 +336,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v12_no_qb_trajectory` | 3.063 | +1.098 | **0.244** | **3.861** | 49 |
 | `v13_qb_starter` | 3.063 | +1.098 | **0.244** | **3.861** | 49 |
 | `v14_qb_starter` | 3.063 | +1.098 | **0.244** | **3.861** | 49 |
+| `v15_snap_trend` | 3.185 | +0.865 | **0.180** | **4.022** | 49 |
+| `v16_snap_trend_full` | 3.174 | +1.131 | **0.200** | **3.972** | 49 |
 | `external_fantasypros_v1` | 3.281 | +1.622 | **0.409** | **3.898** | 51 |
 
 ### WR
@@ -328,6 +358,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v12_no_qb_trajectory` | **2.643** | +1.082 | **-0.105** | **3.223** | 55 |
 | `v13_qb_starter` | **2.643** | +1.082 | **-0.105** | **3.223** | 55 |
 | `v14_qb_starter` | **2.643** | +1.082 | **-0.105** | **3.223** | 55 |
+| `v15_snap_trend` | **2.731** | +0.658 | **-0.136** | **3.268** | 55 |
+| `v16_snap_trend_full` | **2.608** | +1.026 | **-0.073** | **3.176** | 55 |
 | `external_fantasypros_v1` | **2.353** | +1.365 | **0.187** | **2.832** | 58 |
 
 ### TE
@@ -348,6 +380,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v12_no_qb_trajectory` | 1.859 | +0.383 | 0.411 | 2.311 | 56 |
 | `v13_qb_starter` | 1.859 | +0.383 | 0.411 | 2.311 | 56 |
 | `v14_qb_starter` | 1.859 | +0.383 | 0.411 | 2.311 | 56 |
+| `v15_snap_trend` | 1.934 | +0.314 | 0.370 | 2.392 | 56 |
+| `v16_snap_trend_full` | 1.867 | +0.403 | 0.395 | 2.345 | 56 |
 | `external_fantasypros_v1` | **1.719** | +0.666 | **0.486** | **2.106** | 55 |
 
 ### K
@@ -368,6 +402,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v12_no_qb_trajectory` | **1.455** | +0.456 | **-0.329** | **1.979** | 32 |
 | `v13_qb_starter` | **1.424** | +0.385 | **-0.328** | **1.978** | 32 |
 | `v14_qb_starter` | **1.455** | +0.456 | **-0.329** | **1.979** | 32 |
+| `v15_snap_trend` | **1.466** | +0.340 | **-0.415** | **2.041** | 32 |
+| `v16_snap_trend_full` | **1.455** | +0.456 | **-0.329** | **1.979** | 32 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## Season 2025
@@ -390,6 +426,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v12_no_qb_trajectory` | **2.623** | -0.657 | **0.518** | **3.562** | 261 |
 | `v13_qb_starter` | **2.643** | -0.706 | **0.509** | **3.595** | 261 |
 | `v14_qb_starter` | **2.573** | -0.578 | **0.560** | **3.402** | 261 |
+| `v15_snap_trend` | **2.695** | -0.807 | **0.484** | **3.684** | 261 |
+| `v16_snap_trend_full` | **2.574** | -0.620 | **0.554** | **3.423** | 261 |
 | `external_fantasypros_v1` | **2.613** | +0.721 | **0.538** | **3.637** | 246 |
 
 ### QB
@@ -410,6 +448,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v12_no_qb_trajectory` | **4.155** | -1.382 | **0.244** | **5.580** | 53 |
 | `v13_qb_starter` | **4.145** | -1.576 | **0.232** | **5.628** | 53 |
 | `v14_qb_starter` | **3.907** | -0.990 | **0.378** | **5.065** | 53 |
+| `v15_snap_trend` | **4.288** | -1.790 | **0.184** | **5.799** | 53 |
+| `v16_snap_trend_full` | **3.928** | -1.022 | **0.368** | **5.104** | 53 |
 | `external_fantasypros_v1` | **4.124** | +2.526 | **0.202** | **5.673** | 52 |
 
 ### RB
@@ -430,6 +470,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v12_no_qb_trajectory` | **2.705** | -0.431 | **0.635** | **3.262** | 54 |
 | `v13_qb_starter` | **2.705** | -0.431 | **0.635** | **3.262** | 54 |
 | `v14_qb_starter` | **2.705** | -0.431 | **0.635** | **3.262** | 54 |
+| `v15_snap_trend` | **2.642** | -0.579 | **0.644** | **3.221** | 54 |
+| `v16_snap_trend_full` | **2.665** | -0.552 | **0.637** | **3.252** | 54 |
 | `external_fantasypros_v1` | **2.584** | +0.361 | **0.628** | **3.252** | 64 |
 
 ### WR
@@ -450,6 +492,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v12_no_qb_trajectory` | **2.415** | -0.878 | **0.207** | **3.142** | 62 |
 | `v13_qb_starter` | **2.415** | -0.878 | **0.207** | **3.142** | 62 |
 | `v14_qb_starter` | **2.415** | -0.878 | **0.207** | **3.142** | 62 |
+| `v15_snap_trend` | **2.508** | -0.956 | **0.146** | **3.260** | 62 |
+| `v16_snap_trend_full` | **2.385** | -0.919 | **0.201** | **3.154** | 62 |
 | `external_fantasypros_v1` | **2.398** | -0.494 | **0.333** | **3.004** | 66 |
 
 ### TE
@@ -470,6 +514,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v12_no_qb_trajectory` | **1.912** | -0.257 | **0.553** | **2.342** | 62 |
 | `v13_qb_starter` | **1.912** | -0.257 | **0.553** | **2.342** | 62 |
 | `v14_qb_starter` | **1.912** | -0.257 | **0.553** | **2.342** | 62 |
+| `v15_snap_trend` | **1.920** | -0.296 | **0.531** | **2.398** | 62 |
+| `v16_snap_trend_full` | **1.964** | -0.259 | **0.532** | **2.395** | 62 |
 | `external_fantasypros_v1` | **1.637** | +0.867 | **0.604** | **2.192** | 64 |
 
 ### K
@@ -490,6 +536,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v12_no_qb_trajectory` | **1.671** | -0.156 | **-0.385** | **2.120** | 30 |
 | `v13_qb_starter` | **1.856** | -0.232 | **-0.721** | **2.363** | 30 |
 | `v14_qb_starter` | **1.671** | -0.156 | **-0.385** | **2.120** | 30 |
+| `v15_snap_trend` | 1.959 | -0.233 | -0.896 | 2.481 | 30 |
+| `v16_snap_trend_full` | **1.671** | -0.156 | **-0.385** | **2.120** | 30 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## All Seasons Combined
@@ -514,6 +562,8 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v12_no_qb_trajectory` | **2.525** | +0.103 | **0.526** | **3.438** | 844 |
 | `v13_qb_starter` | **2.530** | +0.075 | **0.520** | **3.459** | 844 |
 | `v14_qb_starter` | **2.515** | +0.170 | **0.542** | **3.380** | 844 |
+| `v15_snap_trend` | **2.606** | -0.146 | **0.492** | **3.561** | 844 |
+| `v16_snap_trend_full` | **2.524** | +0.144 | **0.536** | **3.401** | 844 |
 | `external_fantasypros_v1` | **2.607** | +1.317 | **0.561** | **3.536** | 766 |
 
 ### QB
@@ -534,6 +584,8 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v12_no_qb_trajectory` | **3.848** | -0.628 | **0.299** | **5.060** | 177 |
 | `v13_qb_starter` | **3.846** | -0.735 | **0.289** | **5.109** | 177 |
 | `v14_qb_starter` | **3.801** | -0.309 | **0.344** | **4.868** | 177 |
+| `v15_snap_trend` | **3.986** | -0.942 | **0.241** | **5.268** | 177 |
+| `v16_snap_trend_full` | **3.810** | -0.339 | **0.338** | **4.892** | 177 |
 | `external_fantasypros_v1` | 4.083 | +2.628 | 0.176 | 5.365 | 171 |
 
 ### RB
@@ -554,6 +606,8 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v12_no_qb_trajectory` | **2.916** | +0.474 | **0.322** | **3.762** | 165 |
 | `v13_qb_starter` | **2.916** | +0.474 | **0.322** | **3.762** | 165 |
 | `v14_qb_starter` | **2.916** | +0.474 | **0.322** | **3.762** | 165 |
+| `v15_snap_trend` | **3.037** | +0.112 | **0.259** | **3.914** | 165 |
+| `v16_snap_trend_full` | **2.941** | +0.405 | **0.298** | **3.819** | 165 |
 | `external_fantasypros_v1` | **2.778** | +1.246 | **0.525** | **3.478** | 185 |
 
 ### WR
@@ -574,6 +628,8 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v12_no_qb_trajectory` | **2.461** | +0.387 | **0.223** | **3.070** | 194 |
 | `v13_qb_starter` | **2.461** | +0.387 | **0.223** | **3.070** | 194 |
 | `v14_qb_starter` | **2.461** | +0.387 | **0.223** | **3.070** | 194 |
+| `v15_snap_trend` | **2.465** | +0.028 | **0.215** | **3.077** | 194 |
+| `v16_snap_trend_full` | **2.443** | +0.341 | **0.236** | **3.048** | 194 |
 | `external_fantasypros_v1` | **2.189** | +0.737 | **0.405** | **2.734** | 209 |
 
 ### TE
@@ -594,6 +650,8 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v12_no_qb_trajectory` | **1.747** | +0.173 | **0.515** | **2.169** | 198 |
 | `v13_qb_starter` | **1.747** | +0.173 | **0.515** | **2.169** | 198 |
 | `v14_qb_starter` | **1.747** | +0.173 | **0.515** | **2.169** | 198 |
+| `v15_snap_trend` | **1.808** | +0.067 | **0.474** | **2.253** | 198 |
+| `v16_snap_trend_full` | **1.775** | +0.168 | **0.497** | **2.209** | 198 |
 | `external_fantasypros_v1` | **1.630** | +0.871 | **0.563** | **2.062** | 201 |
 
 ### K
@@ -614,4 +672,6 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v12_no_qb_trajectory` | **1.324** | +0.093 | **-0.513** | **1.787** | 110 |
 | `v13_qb_starter` | **1.366** | +0.053 | **-0.605** | **1.868** | 110 |
 | `v14_qb_starter` | **1.324** | +0.093 | **-0.513** | **1.787** | 110 |
+| `v15_snap_trend` | **1.421** | +0.058 | **-0.769** | **1.954** | 110 |
+| `v16_snap_trend_full` | **1.317** | +0.138 | **-0.530** | **1.791** | 110 |
 | `external_fantasypros_v1` | — | — | — | — | — |
