@@ -44,6 +44,11 @@ docs/
     └── ottoneu-rules.md               # Scoring, roster, salary cap, arbitration rules
 ```
 
+## Worktree Notes
+
+- **Python venv:** The virtualenv lives at the main repo's `venv/`, not in worktrees. In a worktree, use the absolute path `<main-repo>/venv/bin/python` instead of `source venv/bin/activate` or relative `venv/bin/python`. The `source venv/bin/activate` command will fail in worktrees.
+- **Production actions** (like `promote.py`) should run from the main repo after merging, not from a worktree, since they modify shared production data.
+
 ## Python Style
 
 - **Target version: Python 3.9.** Do not use syntax that requires 3.10+.
