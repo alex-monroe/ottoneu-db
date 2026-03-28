@@ -3,7 +3,12 @@
 All features register themselves here. The registry maps feature name -> class.
 """
 
-from scripts.feature_projections.features.weighted_ppg import WeightedPPGFeature, WeightedPPGNoQBTrajectoryFeature
+from scripts.feature_projections.features.weighted_ppg import (
+    WeightedPPGFeature,
+    WeightedPPGNoQBTrajectoryFeature,
+    WeightedPPGRookieGrowthFeature,
+    WeightedPPGRookieGrowthNoQBFeature,
+)
 from scripts.feature_projections.features.age_curve import AgeCurveFeature
 from scripts.feature_projections.features.stat_efficiency import StatEfficiencyFeature
 from scripts.feature_projections.features.games_played import GamesPlayedFeature
@@ -28,4 +33,6 @@ FEATURE_REGISTRY: dict[str, type] = {
     "snap_trend": SnapTrendFeature,
     "qb_starter_usage": QBStarterUsageFeature,
     "qb_backup_penalty": QBStarterBackupPenaltyFeature,
+    "weighted_ppg_rookie_growth": WeightedPPGRookieGrowthFeature,
+    "weighted_ppg_rookie_growth_no_qb": WeightedPPGRookieGrowthNoQBFeature,
 }

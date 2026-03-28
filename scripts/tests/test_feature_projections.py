@@ -8,7 +8,13 @@ Pure functions with no DB or network dependencies.
 import pytest
 import pandas as pd
 
-from scripts.feature_projections.features.weighted_ppg import WeightedPPGFeature
+from scripts.feature_projections.features.weighted_ppg import (
+    WeightedPPGFeature,
+    WeightedPPGRookieGrowthFeature,
+    WeightedPPGRookieGrowthNoQBFeature,
+    ROOKIE_GROWTH_CURVES,
+    ROOKIE_MIN_GAMES_FULL_WEIGHT,
+)
 from scripts.feature_projections.features.age_curve import AgeCurveFeature
 from scripts.feature_projections.features.stat_efficiency import StatEfficiencyFeature
 from scripts.feature_projections.features.games_played import GamesPlayedFeature
@@ -718,6 +724,139 @@ class TestWeightedPPGVeteranCases:
     def test_empty_history_returns_none(self):
         result = self.feature.compute("test", "QB", pd.DataFrame(), pd.DataFrame(), {})
         assert result is None
+
+
+# ---------------------------------------------------------------------------
+# WeightedPPGRookieGrowthFeature
+# ---------------------------------------------------------------------------
+
+class TestWeightedPPGRookieGrowthFeature:
+    """Tests for position-specific rookie growth curves and small-sample blending."""
+
+    def setup_method(self):
+        self.feature = WeightedPPGRookieGrowthFeature()
+        self.no_qb_feature = WeightedPPGRookieGrowthNoQBFeature()
+
+    def _project(self, history_rows, position="WR"):
+        df = make_history_df(history_rows)
+        return self.feature.compute("test", position, df, pd.DataFrame(), {})
+
+    def test_name(self):
+        assert self.feature.name == "weighted_ppg_rookie_growth"
+        assert self.feature.is_base is True
+        assert self.no_qb_feature.name == "weighted_ppg_rookie_growth_no_qb"
+
+    def test_rookie_growth_wr_vs_rb(self):
+        """WR and RB with identical stats (no snap data) get different projections due to growth."""
+        history = [{
+            "season": 2024, "ppg": 10.0, "games_played": 17,
+        }]
+        wr_result = self._project(history, "WR")
+        rb_result = self._project(history, "RB")
+        assert wr_result is not None
+        assert rb_result is not None
+        # No snap data → growth applies. RB growth_ratio (1.047) > WR (1.04)
+        assert rb_result > wr_result
+
+    def test_rookie_small_sample_blending(self):
+        """Rookie with 2 games should blend PPG 50/50 with positional mean."""
+        history = [{
+            "season": 2024, "ppg": 20.0, "games_played": 2,
+        }]
+        result = self._project(history, "WR")
+        # blend_weight = 2/4 = 0.5
+        # blended_ppg = 20.0 * 0.5 + 9.65 * 0.5 = 14.825
+        # No snap data → snap_factor = 1.0
+        # growth_delta = 14.825 * (1.04 - 1.0) * 0.5 = 0.2965
+        # result = 14.825 * 1.0 + 0.2965 = 15.1215
+        wr_curve = ROOKIE_GROWTH_CURVES["WR"]
+        expected_blend = 20.0 * 0.5 + wr_curve["rookie_mean_ppg"] * 0.5
+        growth_delta = expected_blend * (wr_curve["growth_ratio"] - 1.0) * 0.5
+        expected = expected_blend * 1.0 + growth_delta
+        assert result == pytest.approx(expected)
+
+    def test_rookie_full_sample_no_blending(self):
+        """Rookie with 10+ games uses raw PPG — no blending."""
+        history = [{
+            "season": 2024, "ppg": 10.0, "games_played": 10,
+        }]
+        result = self._project(history, "WR")
+        # No snap data → snap_factor = 1.0
+        # growth_delta = 10.0 * (1.04 - 1.0) * 0.5 = 0.2
+        # result = 10.0 * 1.0 + 0.2 = 10.2
+        wr_curve = ROOKIE_GROWTH_CURVES["WR"]
+        growth_delta = 10.0 * (wr_curve["growth_ratio"] - 1.0) * 0.5
+        expected = 10.0 + growth_delta
+        assert result == pytest.approx(expected)
+
+    def test_rookie_growth_ratio_applied_per_position(self):
+        """Each position gets its own growth delta (additive, dampened)."""
+        history = [{"season": 2024, "ppg": 10.0, "games_played": 17}]
+        for position in ["RB", "WR", "TE"]:
+            result = self._project(history, position)
+            curve = ROOKIE_GROWTH_CURVES[position]
+            growth_delta = 10.0 * (curve["growth_ratio"] - 1.0) * 0.5
+            expected = 10.0 + growth_delta  # snap_factor = 1.0 (no snap data)
+            assert result == pytest.approx(expected), f"Failed for {position}"
+
+    def test_rookie_qb_no_trajectory_still_skipped(self):
+        """NoQB variant returns plain PPG for QB — no growth ratio, no snap factor."""
+        history = [{
+            "season": 2024, "ppg": 15.0, "games_played": 17,
+            "h1_snaps": 200, "h1_games": 8, "h2_snaps": 400, "h2_games": 9,
+        }]
+        df = make_history_df(history)
+        result = self.no_qb_feature.compute("test", "QB", df, pd.DataFrame(), {})
+        # QB is in NO_TRAJECTORY_POSITIONS → returns plain PPG
+        assert result == pytest.approx(15.0)
+
+    def test_rookie_unknown_position_fallback(self):
+        """Unknown position falls back to base snap-only trajectory."""
+        history = [{
+            "season": 2024, "ppg": 10.0, "games_played": 17,
+            "h1_snaps": 200, "h1_games": 8,   # 25 SPG
+            "h2_snaps": 360, "h2_games": 9,   # 40 SPG → factor 1.5 (clamped)
+        }]
+        result = self._project(history, "UNKNOWN")
+        # Falls back to base class snap-only: 10 * 1.5 = 15.0
+        assert result == pytest.approx(15.0)
+
+    def test_veteran_path_unchanged(self):
+        """Veterans (2+ seasons) use same weighted average as base class."""
+        history = [
+            {"season": 2023, "ppg": 14.0, "games_played": 17},
+            {"season": 2024, "ppg": 18.0, "games_played": 17},
+        ]
+        growth_result = self._project(history, "WR")
+        base_feature = WeightedPPGFeature()
+        base_result = base_feature.compute("test", "WR", make_history_df(history), pd.DataFrame(), {})
+        assert growth_result == pytest.approx(base_result)
+
+    def test_rookie_snap_trajectory_suppresses_growth(self):
+        """When snap data exists, growth delta is NOT applied (snap captures momentum)."""
+        history = [{
+            "season": 2024, "ppg": 10.0, "games_played": 17,
+            "h1_snaps": 200, "h1_games": 8,   # 25 SPG
+            "h2_snaps": 270, "h2_games": 9,   # 30 SPG → factor = 1.2
+        }]
+        result = self._project(history, "RB")
+        # snap_factor = 30/25 = 1.2, growth_delta = 0 (snap data present)
+        # result = 10.0 * 1.2 = 12.0
+        assert result == pytest.approx(12.0)
+
+    def test_rookie_no_snap_data_gets_growth(self):
+        """Without snap data, growth delta applies (snap_factor == 1.0)."""
+        history = [{
+            "season": 2024, "ppg": 10.0, "games_played": 17,
+        }]
+        result = self._project(history, "RB")
+        # snap_factor = 1.0 (no snap data) → growth applies
+        # growth_delta = 10.0 * (1.047 - 1.0) * 0.5 = 0.235
+        # result = 10.0 * 1.0 + 0.235 = 10.235
+        rb_curve = ROOKIE_GROWTH_CURVES["RB"]
+        growth_delta = 10.0 * (rb_curve["growth_ratio"] - 1.0) * 0.5
+        expected = 10.0 + growth_delta
+        assert result == pytest.approx(expected)
 
 
 # ---------------------------------------------------------------------------

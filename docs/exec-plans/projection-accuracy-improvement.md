@@ -58,7 +58,7 @@ Repair v3-v6 features so they contribute positively.
 - [#278](https://github.com/alex-monroe/ottoneu-db/issues/278) — ~~Fix stat_efficiency~~ ✅ (v10: rate-based efficiency deltas)
 - [#279](https://github.com/alex-monroe/ottoneu-db/issues/279) — ~~Fix team_context~~ ✅ (v11: K exclusion, position-specific scaling 0.02-0.05, historical team tracking via `nfl_stats.recent_team`, team-change dampening. Neutral to v8: MAE 2.535 vs 2.530)
 - [#280](https://github.com/alex-monroe/ottoneu-db/issues/280) — Test snap_trend feature
-- [#281](https://github.com/alex-monroe/ottoneu-db/issues/281) — ~~Improve rookie projection~~ ✅ (v12: disabled H2/H1 snap trajectory for QB and K. A first-year QB taking over mid-season has an inflated H2/H1 snap ratio that reflects role acquisition, not future performance signal. First-year QBs/Ks now use raw season PPG. MAE 2.530→2.525, R² 0.522→0.526; K improves meaningfully, QB neutral)
+- [#281](https://github.com/alex-monroe/ottoneu-db/issues/281) — ~~Improve rookie projection~~ ✅ (v12: disabled H2/H1 snap trajectory for QB and K. v17: added position-specific rookie growth curves computed from 2018-2025 data (WR 1.04, RB 1.047, TE 1.051, QB 0.95) and small-sample blending for <4 game rookies. Growth delta applied only when snap data absent; dampened 50%. Neutral to v14 overall (ALL MAE 2.516 vs 2.515); existing age_curve + regression_to_mean already capture most rookie growth signal. Analysis script `analyze_rookie_growth.py` added for future tuning. Draft capital deferred — no data source.)
 
 ### Phase 4: New Data & ML
 

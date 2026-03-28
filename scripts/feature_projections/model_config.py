@@ -178,6 +178,17 @@ MODELS: dict[str, ModelDefinition] = {
             "snap_trend",
         ],
     ),
+    "v17_rookie_growth": ModelDefinition(
+        name="v17_rookie_growth",
+        version=1,
+        description=(
+            "v14 + position-specific rookie growth curves and small-sample blending. "
+            "Small-sample rookies (<4 games) blend PPG toward positional rookie mean. "
+            "Dampened growth delta applied only when snap trajectory data is absent. "
+            "Neutral to v14 overall (ALL MAE 2.516 vs 2.515); WR MAE slightly improved."
+        ),
+        features=["weighted_ppg_rookie_growth_no_qb", "age_curve", "regression_to_mean", "qb_backup_penalty"],
+    ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
         version=1,
