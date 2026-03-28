@@ -425,9 +425,9 @@
       "notes": "Primary starter (100% share), 1G, 9 att"
     },
     "TEN": {
-      "player_name": "Joshua Dobbs",
-      "confidence": "competition",
-      "notes": "Split duties (53% share), 2G, 68 att"
+      "player_name": "Ryan Tannehill",
+      "confidence": "locked",
+      "notes": "Primary starter, manual correction"
     },
     "WAS": {
       "player_name": "Carson Wentz",
@@ -437,9 +437,9 @@
   },
   "2023": {
     "ARI": {
-      "player_name": "Clayton Tune",
+      "player_name": "Kyler Murray",
       "confidence": "locked",
-      "notes": "Primary starter (100% share), 6G, 21 att"
+      "notes": "Primary starter, manual correction"
     },
     "ATL": {
       "player_name": "Desmond Ridder",
@@ -512,9 +512,9 @@
       "notes": "Primary starter (100% share), 17G, 560 att"
     },
     "MIN": {
-      "player_name": "Nick Mullens",
+      "player_name": "Kirk Cousins",
       "confidence": "locked",
-      "notes": "Primary starter (100% share), 5G, 148 att"
+      "notes": "Primary starter, manual correction (injured mid-season)"
     },
     "NO": {
       "player_name": "Jameis Winston",
@@ -522,9 +522,9 @@
       "notes": "Primary starter (100% share), 6G, 47 att"
     },
     "NYG": {
-      "player_name": "Tommy DeVito",
-      "confidence": "competition",
-      "notes": "Split duties (53% share), 9G, 178 att"
+      "player_name": "Daniel Jones",
+      "confidence": "locked",
+      "notes": "Primary starter, manual correction (injured mid-season)"
     },
     "NYJ": {
       "player_name": "Trevor Siemian",
@@ -557,9 +557,9 @@
       "notes": "Primary starter (100% share), 17G, 566 att"
     },
     "WAS": {
-      "player_name": "Jacoby Brissett",
+      "player_name": "Sam Howell",
       "confidence": "locked",
-      "notes": "Primary starter (100% share), 2G, 23 att"
+      "notes": "Primary starter, manual correction"
     }
   },
   "2024": {
@@ -617,11 +617,6 @@
       "player_name": "Jared Goff",
       "confidence": "projected",
       "notes": "Likely starter (100% pts share), 17G, 322 pts [player_stats]"
-    },
-    "FA": {
-      "player_name": "Desmond Ridder",
-      "confidence": "projected",
-      "notes": "Likely starter (89% pts share), 5G, 26 pts [player_stats]"
     },
     "GB": {
       "player_name": "Jordan Love",
