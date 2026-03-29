@@ -41,6 +41,18 @@ The overall v6 model (ALL positions) was also the worst across every season — 
 - The backfill script populates them correctly.
 - QB remains **excluded** from `usage_share`.
 
+## Usage Share Rewrite (GH #285, March 2026)
+
+The entire `usage_share` feature was rewritten from trend-based to level-based. The old approach
+extrapolated share *trends* with 0.5× scaling, which amplified noise. The new approach uses
+share *level* relative to positional averages as a role stability signal.
+
+**Before (v6):** ALL MAE 4.012, R² -0.392 — worst model by far.
+**After (v19):** ALL MAE 2.520, R² 0.542 — essentially tied with v14 (2.515).
+
+The new feature is neutral in aggregate but improves bias calibration (v19 bias -0.049 vs v14 +0.170)
+and has the best RMSE of any model (3.379). QB remains excluded for the same structural reasons.
+
 ## Alternative Approaches to Try
 
 ### 1. Completion percentage as efficiency signal
