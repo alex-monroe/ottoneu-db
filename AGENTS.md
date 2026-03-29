@@ -99,6 +99,10 @@ When any task modifies the projection system — including `scripts/feature_proj
 
 This ensures every projection change is empirically validated before merge.
 
+### Feature changes require test updates
+
+When adding or rewriting a projection feature, check and update the corresponding tests in `scripts/tests/test_feature_projections.py`. Each feature class has a `Test<FeatureName>Feature` test class. Behavioral changes (e.g., a feature that previously required 2 seasons now works with 1) will cause existing tests to fail in CI if not updated.
+
 ### Rookie snap trajectory (weighted_ppg feature)
 
 The `WeightedPPGFeature` applies an H2/H1 snap-per-game multiplier to first-year players (`_rookie_trajectory`). This is appropriate for skill positions (WR/RB/TE) where rising snap share signals growing role. It is **not** appropriate for:

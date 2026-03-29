@@ -60,6 +60,14 @@ python scripts/feature_projections/cli.py segment-analysis --segments experience
 python scripts/feature_projections/cli.py segment-analysis --models v8_age_regression --seasons 2024,2025  # Custom models/seasons
 python scripts/feature_projections/promote.py v14_qb_starter                                           # Promote model to production player_projections table
 
+# Projection Development Workflow (two-step process)
+# Step 1: Generate projections for the model (required after any feature code change)
+python scripts/feature_projections/cli.py run --model <name> --seasons 2022,2023,2024,2025
+# Step 2: Backtest to evaluate accuracy (uses stored projections from step 1)
+python scripts/feature_projections/cli.py backtest --model <name> --test-seasons 2022,2023,2024,2025
+# Note: accuracy_report.py --run-backtest re-backtests ALL models but does NOT re-generate
+# projections. If you changed feature code, you MUST run step 1 first or results will be stale.
+
 # Utilities
 python scripts/check_db.py                           # Verify database contents
 streamlit run scripts/visualize_app.py               # Streamlit dashboard
