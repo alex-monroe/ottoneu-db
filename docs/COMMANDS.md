@@ -45,6 +45,7 @@ python scripts/scrape_arbitration_progress.py        # Scrape Ottoneu arbitratio
 
 # Feature-based Projections
 python scripts/feature_projections/cli.py list                                              # List available model definitions
+# Note: `run` uses --seasons but `backtest` uses --test-seasons (different flag names)
 python scripts/feature_projections/cli.py run --model v1_baseline_weighted_ppg --seasons 2024,2025,2026  # Generate projections
 python scripts/feature_projections/cli.py backtest --model v1_baseline_weighted_ppg --test-seasons 2024,2025  # Backtest against actuals
 python scripts/feature_projections/cli.py compare --models v1_baseline_weighted_ppg,v2_age_adjusted --season 2024  # Compare models
