@@ -1,4 +1,10 @@
-"""Usage share feature — target/touch/attempt share projection."""
+"""Usage share feature — share level as role stability signal.
+
+Rewritten from trend-based approach (v6, GH #285). Uses share *level*
+relative to positional averages instead of share *trend* extrapolation.
+High-share players have more sustainable production; low-share players
+are more volatile and likely to regress.
+"""
 
 from __future__ import annotations
 
@@ -9,29 +15,48 @@ import pandas as pd
 from scripts.feature_projections.features.base import ProjectionFeature
 
 # Which stat represents "usage" for each position.
-# QB is excluded: passing_attempts share was tested (GH #250) but worsened QB MAE
-# significantly (v6 QB MAE 6.6–8.2 vs v5 baseline 4.4–5.3). Starter QBs have
-# near-constant ~0.95 attempt share, so small fluctuations get amplified by
-# TREND_SCALING into large erroneous deltas. See docs/exec-plans/qb-usage-share.md
-# for full analysis and alternative approaches to try.
+# QB is excluded: passing_attempts share is structurally ~0.95 for starters,
+# so deviations are noise, not signal. See docs/exec-plans/qb-usage-share.md.
 USAGE_STAT_BY_POSITION = {
     "RB": "rushing_attempts",
     "WR": "targets",
     "TE": "targets",
 }
 
-RECENCY_WEIGHTS = [0.60, 0.25, 0.15]
+# Approximate average starter share by position.
+# Used as the "neutral" baseline — deviations from this drive the adjustment.
+NEUTRAL_SHARE = {
+    "RB": 0.35,  # Starter RB ~35% of team rushing attempts (committee era)
+    "WR": 0.18,  # WR1 ~18% of team targets
+    "TE": 0.15,  # TE1 ~15% of team targets
+}
+
+# Minimum volume (season total) to include a season in share calculation.
+# Filters out backup stints and injury-shortened seasons.
+MIN_VOLUME = {
+    "RB": 40,
+    "WR": 25,
+    "TE": 15,
+}
+
+MIN_GAMES = 4  # Minimum games played in a season to include it
+
+RECENCY_WEIGHTS = [0.60, 0.30, 0.10]  # Most recent → oldest (up to 3 seasons)
 
 
 class UsageShareFeature(ProjectionFeature):
-    """Adjusts projection based on player's share of team usage.
+    """Adjusts projection based on player's share level of team usage.
 
     Computes the player's share of team-level volume (targets for WR/TE,
-    rushing attempts for RB), projects the trend,
-    and returns a PPG delta based on whether share is increasing or decreasing.
+    rushing attempts for RB), compares to positional average, and returns
+    a PPG delta based on whether the player commands above- or below-average share.
+
+    High share → role is established, production more sustainable → positive delta.
+    Low share → role is fragile, production less reliable → negative delta.
     """
 
-    TREND_SCALING = 0.5  # How much of the trend to apply
+    SCALING = 0.06  # How much of the share deviation to apply (conservative)
+    MAX_ADJ = 0.06  # Clamp to ±6% of base_ppg
 
     @property
     def name(self) -> str:
@@ -45,7 +70,7 @@ class UsageShareFeature(ProjectionFeature):
         nfl_stats_df: pd.DataFrame,
         context: dict[str, Any],
     ) -> Optional[float]:
-        if nfl_stats_df.empty or len(nfl_stats_df) < 2:
+        if nfl_stats_df.empty:
             return None
 
         base_ppg = context.get("base_ppg")
@@ -56,6 +81,12 @@ class UsageShareFeature(ProjectionFeature):
         if not usage_stat:
             return None
 
+        neutral_share = NEUTRAL_SHARE.get(position)
+        if not neutral_share:
+            return None
+
+        min_volume = MIN_VOLUME.get(position, 0)
+
         team_usage = context.get("team_usage")
         if not team_usage:
             return None
@@ -63,31 +94,40 @@ class UsageShareFeature(ProjectionFeature):
         sorted_df = nfl_stats_df.sort_values("season")
         recent = sorted_df.tail(3)
 
+        # Compute per-season shares, filtering by minimum games and volume
         shares = []
         for _, row in recent.iterrows():
             player_val = float(row.get(usage_stat, 0) or 0)
             games = float(row.get("games_played", 0) or 0)
             season = int(row["season"])
 
+            if games < MIN_GAMES or player_val < min_volume:
+                continue
+
             team_val = team_usage.get(season, {}).get(usage_stat, 0)
-            if team_val > 0 and games > 0:
-                # Per-game share
+            if team_val > 0:
+                # Per-game share normalized to full-season team total
                 player_per_game = player_val / games
-                team_per_game = team_val / 17.0  # normalize team to full season
+                team_per_game = team_val / 17.0
                 if team_per_game > 0:
                     shares.append(player_per_game / team_per_game)
 
-        if len(shares) < 2:
+        if not shares:
             return None
 
-        # Simple trend: most recent share vs previous average
-        recent_share = shares[-1]
-        prev_avg = sum(shares[:-1]) / len(shares[:-1])
+        # Recency-weighted share level
+        weights = RECENCY_WEIGHTS[: len(shares)]
+        # Shares are ordered oldest→newest from tail(3), reverse for weighting
+        shares_reversed = list(reversed(shares))
+        total_weight = sum(weights)
+        weighted_share = sum(s * w for s, w in zip(shares_reversed, weights)) / total_weight
 
-        if prev_avg == 0:
-            return None
+        # Compare to positional neutral share
+        share_ratio = weighted_share / neutral_share
+        delta = base_ppg * (share_ratio - 1.0) * self.SCALING
 
-        pct_change = (recent_share - prev_avg) / prev_avg
+        # Clamp to ±MAX_ADJ of base_ppg
+        max_delta = self.MAX_ADJ * base_ppg
+        delta = max(-max_delta, min(max_delta, delta))
 
-        # Scale the percentage change into a PPG delta
-        return base_ppg * pct_change * self.TREND_SCALING
+        return delta

@@ -429,10 +429,22 @@ class TestUsageShareFeature:
         assert result is not None
         assert result > 0  # increasing share → positive delta
 
-    def test_insufficient_data_returns_none(self):
-        """With only 1 season, should return None (need >= 2 for trend)."""
+    def test_single_season_returns_value(self):
+        """With 1 qualifying season, level-based approach can compute share."""
         nfl_df = make_nfl_stats_df([
             {"season": 2024, "games_played": 17, "targets": 100},
+        ])
+        ctx = {
+            "base_ppg": 10.0,
+            "team_usage": {2024: {"targets": 500}},
+        }
+        result = self.feature.compute("p1", "WR", pd.DataFrame(), nfl_df, ctx)
+        assert result is not None  # level-based only needs 1 season
+
+    def test_insufficient_data_returns_none(self):
+        """With no qualifying seasons (below min volume), should return None."""
+        nfl_df = make_nfl_stats_df([
+            {"season": 2024, "games_played": 17, "targets": 10},  # below MIN_VOLUME of 25
         ])
         ctx = {
             "base_ppg": 10.0,

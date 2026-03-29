@@ -189,6 +189,31 @@ MODELS: dict[str, ModelDefinition] = {
         ),
         features=["weighted_ppg_rookie_growth_no_qb", "age_curve", "regression_to_mean", "qb_backup_penalty"],
     ),
+    "v18_usage_level": ModelDefinition(
+        name="v18_usage_level",
+        version=1,
+        description=(
+            "v2 (weighted_ppg + age_curve) + rewritten usage_share v2: share level "
+            "(not trend) as role stability signal. Isolated test of the new feature. "
+            "GH #285."
+        ),
+        features=["weighted_ppg", "age_curve", "usage_share"],
+    ),
+    "v19_usage_level_full": ModelDefinition(
+        name="v19_usage_level_full",
+        version=1,
+        description=(
+            "v14 (current best) + rewritten usage_share v2: share level as role "
+            "stability signal. Integration test — must not degrade v14. GH #285."
+        ),
+        features=[
+            "weighted_ppg_no_qb_trajectory",
+            "age_curve",
+            "regression_to_mean",
+            "qb_backup_penalty",
+            "usage_share",
+        ],
+    ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
         version=1,
