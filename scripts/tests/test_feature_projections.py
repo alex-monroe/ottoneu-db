@@ -19,7 +19,7 @@ from scripts.feature_projections.features.age_curve import AgeCurveFeature
 from scripts.feature_projections.features.stat_efficiency import StatEfficiencyFeature
 from scripts.feature_projections.features.games_played import GamesPlayedFeature
 from scripts.feature_projections.features.team_context import TeamContextFeature
-from scripts.feature_projections.features.usage_share import UsageShareFeature
+from scripts.feature_projections.features.usage_share import UsageShareFeature, UsageShareRawFeature
 from scripts.feature_projections.features.regression_to_mean import RegressionToMeanFeature
 from scripts.feature_projections.features.snap_trend import SnapTrendFeature
 from scripts.feature_projections.features.qb_starter_usage import QBStarterUsageFeature, QBStarterBackupPenaltyFeature
@@ -1229,3 +1229,215 @@ class TestSnapTrendFeature:
         assert result is not None
         # Max: base_ppg * 0.30 * TREND_SCALING(0.3) = 10 * 0.30 * 0.3 = 0.9
         assert result == pytest.approx(0.9)
+
+
+# ---------------------------------------------------------------------------
+# UsageShareRawFeature (GH #367)
+# ---------------------------------------------------------------------------
+
+class TestUsageShareRawFeature:
+    """Tests for the usage_share_raw feature that exposes raw share for ML ensemble."""
+
+    def setup_method(self):
+        self.feature = UsageShareRawFeature()
+
+    def test_name(self):
+        assert self.feature.name == "usage_share_raw"
+        assert self.feature.is_base is False
+
+    def test_qb_excluded(self):
+        """QB should return None — no usage stat defined for QB."""
+        nfl_df = make_nfl_stats_df([
+            {"season": 2024, "games_played": 17, "passing_attempts": 550},
+        ])
+        ctx = {"team_usage": {2024: {"passing_attempts": 580}}}
+        result = self.feature.compute("p1", "QB", pd.DataFrame(), nfl_df, ctx)
+        assert result is None
+
+    def test_wr_returns_raw_share(self):
+        """WR should return raw weighted share, not a PPG delta."""
+        nfl_df = make_nfl_stats_df([
+            {"season": 2024, "games_played": 17, "targets": 120},
+        ])
+        ctx = {"team_usage": {2024: {"targets": 500}}}
+        result = self.feature.compute("p1", "WR", pd.DataFrame(), nfl_df, ctx)
+        assert result is not None
+        # Player: 120/17 = 7.06 per game. Team: 500/17 = 29.41 per game.
+        # Share = 7.06 / 29.41 = 0.24
+        assert result == pytest.approx(0.24, abs=0.01)
+
+    def test_rb_returns_raw_share(self):
+        """RB uses rushing_attempts share."""
+        nfl_df = make_nfl_stats_df([
+            {"season": 2024, "games_played": 17, "rushing_attempts": 250},
+        ])
+        ctx = {"team_usage": {2024: {"rushing_attempts": 450}}}
+        result = self.feature.compute("p1", "RB", pd.DataFrame(), nfl_df, ctx)
+        assert result is not None
+        # Player: 250/17 = 14.71. Team: 450/17 = 26.47. Share = 14.71/26.47 = 0.556
+        assert result == pytest.approx(0.556, abs=0.01)
+
+    def test_does_not_depend_on_base_ppg(self):
+        """Raw share should NOT require base_ppg in context (unlike UsageShareFeature)."""
+        nfl_df = make_nfl_stats_df([
+            {"season": 2024, "games_played": 17, "targets": 100},
+        ])
+        ctx = {"team_usage": {2024: {"targets": 500}}}  # No base_ppg
+        result = self.feature.compute("p1", "WR", pd.DataFrame(), nfl_df, ctx)
+        assert result is not None
+
+    def test_insufficient_volume_returns_none(self):
+        """Below minimum volume threshold should return None."""
+        nfl_df = make_nfl_stats_df([
+            {"season": 2024, "games_played": 17, "targets": 10},  # below 25
+        ])
+        ctx = {"team_usage": {2024: {"targets": 500}}}
+        result = self.feature.compute("p1", "WR", pd.DataFrame(), nfl_df, ctx)
+        assert result is None
+
+    def test_recency_weighting(self):
+        """Multiple seasons should be recency-weighted (0.60, 0.30, 0.10)."""
+        nfl_df = make_nfl_stats_df([
+            {"season": 2022, "games_played": 17, "targets": 60},
+            {"season": 2023, "games_played": 17, "targets": 80},
+            {"season": 2024, "games_played": 17, "targets": 120},
+        ])
+        ctx = {
+            "team_usage": {
+                2022: {"targets": 500},
+                2023: {"targets": 500},
+                2024: {"targets": 500},
+            },
+        }
+        result = self.feature.compute("p1", "WR", pd.DataFrame(), nfl_df, ctx)
+        assert result is not None
+        # Most recent season (120 targets) gets weight 0.60,
+        # so result should be closer to 120/500 = 0.24 than to 60/500 = 0.12
+        assert result > 0.18
+
+
+# ---------------------------------------------------------------------------
+# LearnedCombiner (GH #367)
+# ---------------------------------------------------------------------------
+
+from scripts.feature_projections.learned_combiner import (
+    build_feature_vector,
+    get_feature_column_names,
+    predict,
+)
+
+
+class TestBuildFeatureVector:
+    """Tests for feature vector construction with interaction terms."""
+
+    def test_basic_features_sorted(self):
+        """Features should appear in alphabetical order."""
+        fv = {"b_feat": 2.0, "a_feat": 1.0}
+        vector = build_feature_vector(fv, "WR", [])
+        assert vector == [1.0, 2.0]
+
+    def test_none_feature_becomes_zero(self):
+        """None feature values should become 0.0."""
+        fv = {"base": 10.0, "adj": None}
+        vector = build_feature_vector(fv, "RB", [])
+        assert vector == [None if v is None else v for v in [0.0, 10.0]]
+        # adj (alphabetically first) = 0.0, base = 10.0
+        assert vector == [0.0, 10.0]
+
+    def test_quadratic_interaction(self):
+        """feat^2 should produce the squared value."""
+        fv = {"usage_share_raw": 0.25}
+        vector = build_feature_vector(fv, "WR", ["usage_share_raw^2"])
+        # [0.25, 0.0625]
+        assert len(vector) == 2
+        assert vector[0] == pytest.approx(0.25)
+        assert vector[1] == pytest.approx(0.0625)
+
+    def test_position_interaction(self):
+        """feat*position should produce 4 dummy columns."""
+        fv = {"usage_share_raw": 0.20}
+        vector = build_feature_vector(fv, "WR", ["usage_share_raw*position"])
+        # [0.20, 0.0 (QB), 0.0 (RB), 0.20 (WR), 0.0 (TE)]
+        assert len(vector) == 5
+        assert vector[0] == 0.20  # raw feature
+        assert vector[1] == 0.0   # QB
+        assert vector[2] == 0.0   # RB
+        assert vector[3] == 0.20  # WR (matched)
+        assert vector[4] == 0.0   # TE
+
+    def test_feature_product_interaction(self):
+        """feat_a*feat_b should produce the product."""
+        fv = {"usage_share_raw": 0.25, "base_ppg": 12.0}
+        vector = build_feature_vector(fv, "RB", ["usage_share_raw*base_ppg"])
+        # Sorted features: [base_ppg=12.0, usage_share_raw=0.25, interaction=3.0]
+        assert len(vector) == 3
+        assert vector[2] == pytest.approx(3.0)
+
+    def test_column_names_match_vector(self):
+        """Column names should match vector length and order."""
+        feature_names = ["base_ppg", "usage_share_raw"]
+        interaction_terms = ["usage_share_raw*position", "usage_share_raw^2"]
+        names = get_feature_column_names(feature_names, interaction_terms)
+        # base_ppg, usage_share_raw, usage_share_raw*QB, *RB, *WR, *TE, usage_share_raw^2
+        assert len(names) == 7
+        assert names[0] == "base_ppg"
+        assert names[1] == "usage_share_raw"
+        assert "usage_share_raw*QB" in names
+        assert "usage_share_raw^2" in names
+
+
+class TestLearnedPredict:
+    """Tests for the Ridge prediction function."""
+
+    def test_basic_prediction(self):
+        """Simple dot product + intercept."""
+        fv = {"feat_a": 2.0, "feat_b": 3.0}
+        params = {
+            "coefficients": [1.0, 2.0],  # feat_a coeff=1, feat_b coeff=2
+            "intercept": 0.5,
+            "interaction_terms": [],
+        }
+        result = predict(fv, "WR", params)
+        # 2.0*1.0 + 3.0*2.0 + 0.5 = 8.5
+        assert result == pytest.approx(8.5)
+
+    def test_prediction_with_scaler(self):
+        """Standardization should be applied when scaler params present."""
+        fv = {"feat_a": 10.0}
+        params = {
+            "coefficients": [1.0],
+            "intercept": 5.0,
+            "interaction_terms": [],
+            "scaler_mean": [10.0],
+            "scaler_scale": [2.0],
+        }
+        result = predict(fv, "WR", params)
+        # Scaled: (10 - 10) / 2 = 0.0. Prediction: 0.0 * 1.0 + 5.0 = 5.0
+        assert result == pytest.approx(5.0)
+
+    def test_prediction_floored_at_zero(self):
+        """Negative predictions should be clamped to 0."""
+        fv = {"feat": 1.0}
+        params = {
+            "coefficients": [-100.0],
+            "intercept": 0.0,
+            "interaction_terms": [],
+        }
+        result = predict(fv, "WR", params)
+        assert result == 0.0
+
+
+class TestModelConfig:
+    """Tests for the v20 learned model definition."""
+
+    def test_v20_model_exists(self):
+        model = get_model("v20_learned_usage")
+        assert model.combiner_type == "learned"
+        assert "usage_share_raw" in model.features
+        assert len(model.interaction_terms) > 0
+
+    def test_existing_models_default_additive(self):
+        """All pre-v20 models should default to additive combiner."""
+        model = get_model("v14_qb_starter")
+        assert model.combiner_type == "additive"
+        assert model.interaction_terms == []

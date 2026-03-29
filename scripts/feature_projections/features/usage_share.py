@@ -4,6 +4,10 @@ Rewritten from trend-based approach (v6, GH #285). Uses share *level*
 relative to positional averages instead of share *trend* extrapolation.
 High-share players have more sustainable production; low-share players
 are more volatile and likely to regress.
+
+Two variants:
+- UsageShareFeature: returns a clamped PPG delta (hand-tuned, for additive combiner)
+- UsageShareRawFeature: returns the raw weighted share value (for learned combiner, GH #367)
 """
 
 from __future__ import annotations
@@ -44,6 +48,63 @@ MIN_GAMES = 4  # Minimum games played in a season to include it
 RECENCY_WEIGHTS = [0.60, 0.30, 0.10]  # Most recent → oldest (up to 3 seasons)
 
 
+def compute_weighted_share(
+    position: str,
+    nfl_stats_df: pd.DataFrame,
+    context: dict[str, Any],
+) -> Optional[float]:
+    """Compute the recency-weighted share level for a player.
+
+    Returns the raw weighted share value (e.g. 0.22 for a WR with 22% target share),
+    or None if insufficient data.
+    """
+    if nfl_stats_df.empty:
+        return None
+
+    usage_stat = USAGE_STAT_BY_POSITION.get(position)
+    if not usage_stat:
+        return None
+
+    min_volume = MIN_VOLUME.get(position, 0)
+
+    team_usage = context.get("team_usage")
+    if not team_usage:
+        return None
+
+    sorted_df = nfl_stats_df.sort_values("season")
+    recent = sorted_df.tail(3)
+
+    # Compute per-season shares, filtering by minimum games and volume
+    shares = []
+    for _, row in recent.iterrows():
+        player_val = float(row.get(usage_stat, 0) or 0)
+        games = float(row.get("games_played", 0) or 0)
+        season = int(row["season"])
+
+        if games < MIN_GAMES or player_val < min_volume:
+            continue
+
+        team_val = team_usage.get(season, {}).get(usage_stat, 0)
+        if team_val > 0:
+            # Per-game share normalized to full-season team total
+            player_per_game = player_val / games
+            team_per_game = team_val / 17.0
+            if team_per_game > 0:
+                shares.append(player_per_game / team_per_game)
+
+    if not shares:
+        return None
+
+    # Recency-weighted share level
+    weights = RECENCY_WEIGHTS[: len(shares)]
+    # Shares are ordered oldest→newest from tail(3), reverse for weighting
+    shares_reversed = list(reversed(shares))
+    total_weight = sum(weights)
+    weighted_share = sum(s * w for s, w in zip(shares_reversed, weights)) / total_weight
+
+    return weighted_share
+
+
 class UsageShareFeature(ProjectionFeature):
     """Adjusts projection based on player's share level of team usage.
 
@@ -70,57 +131,17 @@ class UsageShareFeature(ProjectionFeature):
         nfl_stats_df: pd.DataFrame,
         context: dict[str, Any],
     ) -> Optional[float]:
-        if nfl_stats_df.empty:
-            return None
-
         base_ppg = context.get("base_ppg")
         if not base_ppg or base_ppg <= 0:
-            return None
-
-        usage_stat = USAGE_STAT_BY_POSITION.get(position)
-        if not usage_stat:
             return None
 
         neutral_share = NEUTRAL_SHARE.get(position)
         if not neutral_share:
             return None
 
-        min_volume = MIN_VOLUME.get(position, 0)
-
-        team_usage = context.get("team_usage")
-        if not team_usage:
+        weighted_share = compute_weighted_share(position, nfl_stats_df, context)
+        if weighted_share is None:
             return None
-
-        sorted_df = nfl_stats_df.sort_values("season")
-        recent = sorted_df.tail(3)
-
-        # Compute per-season shares, filtering by minimum games and volume
-        shares = []
-        for _, row in recent.iterrows():
-            player_val = float(row.get(usage_stat, 0) or 0)
-            games = float(row.get("games_played", 0) or 0)
-            season = int(row["season"])
-
-            if games < MIN_GAMES or player_val < min_volume:
-                continue
-
-            team_val = team_usage.get(season, {}).get(usage_stat, 0)
-            if team_val > 0:
-                # Per-game share normalized to full-season team total
-                player_per_game = player_val / games
-                team_per_game = team_val / 17.0
-                if team_per_game > 0:
-                    shares.append(player_per_game / team_per_game)
-
-        if not shares:
-            return None
-
-        # Recency-weighted share level
-        weights = RECENCY_WEIGHTS[: len(shares)]
-        # Shares are ordered oldest→newest from tail(3), reverse for weighting
-        shares_reversed = list(reversed(shares))
-        total_weight = sum(weights)
-        weighted_share = sum(s * w for s, w in zip(shares_reversed, weights)) / total_weight
 
         # Compare to positional neutral share
         share_ratio = weighted_share / neutral_share
@@ -131,3 +152,27 @@ class UsageShareFeature(ProjectionFeature):
         delta = max(-max_delta, min(max_delta, delta))
 
         return delta
+
+
+class UsageShareRawFeature(ProjectionFeature):
+    """Exposes raw weighted share level for use as an ML ensemble input.
+
+    Returns the recency-weighted share value itself (e.g. 0.22 for 22% target share)
+    rather than converting to a PPG delta. The learned combiner uses this alongside
+    interaction terms (share × position, share × base_ppg) to learn the optimal
+    nonlinear mapping from share → PPG adjustment. See GH #367.
+    """
+
+    @property
+    def name(self) -> str:
+        return "usage_share_raw"
+
+    def compute(
+        self,
+        player_id: str,
+        position: str,
+        history_df: pd.DataFrame,
+        nfl_stats_df: pd.DataFrame,
+        context: dict[str, Any],
+    ) -> Optional[float]:
+        return compute_weighted_share(position, nfl_stats_df, context)

@@ -19,6 +19,7 @@ from analysis_utils import fetch_multi_season_stats
 from scripts.feature_projections.features import FEATURE_REGISTRY
 from scripts.feature_projections.model_config import ModelDefinition, PositionOverride, get_model
 from scripts.feature_projections.combiner import combine_features
+from scripts.feature_projections.learned_combiner import combine_features_learned, load_model_params
 from scripts.feature_projections.qb_starters import get_all_starter_ids, is_qb_starter
 
 
@@ -289,6 +290,14 @@ def run_model(
         print("No valid features found, aborting.")
         return 0
 
+    # Load learned model params if needed
+    learned_params = None
+    if model_def.combiner_type == "learned":
+        learned_params = load_model_params(model_name)
+        print(f"Loaded trained model (alpha={learned_params['alpha']}, "
+              f"features={learned_params['training_metadata']['n_features']})")
+
+
     # Fetch players table
     players_res = supabase.table("players").select("id, name, position, nfl_team, birth_date, is_college").execute()
     players_df = pd.DataFrame(players_res.data or [])
@@ -366,15 +375,27 @@ def run_model(
             ]
 
             # Run combiner
-            projected_ppg, feature_values = combine_features(
-                player_feature_instances,
-                player_id_str,
-                position,
-                player_history,
-                player_nfl,
-                context,
-                effective_weights or None,
-            )
+            if learned_params is not None:
+                projected_ppg, feature_values = combine_features_learned(
+                    player_feature_instances,
+                    player_id_str,
+                    position,
+                    player_history,
+                    player_nfl,
+                    context,
+                    learned_params,
+                    effective_weights or None,
+                )
+            else:
+                projected_ppg, feature_values = combine_features(
+                    player_feature_instances,
+                    player_id_str,
+                    position,
+                    player_history,
+                    player_nfl,
+                    context,
+                    effective_weights or None,
+                )
 
             if projected_ppg is not None:
                 records.append({

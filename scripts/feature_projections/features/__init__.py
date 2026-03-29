@@ -13,7 +13,10 @@ from scripts.feature_projections.features.age_curve import AgeCurveFeature
 from scripts.feature_projections.features.stat_efficiency import StatEfficiencyFeature
 from scripts.feature_projections.features.games_played import GamesPlayedFeature
 from scripts.feature_projections.features.team_context import TeamContextFeature
-from scripts.feature_projections.features.usage_share import UsageShareFeature
+from scripts.feature_projections.features.usage_share import (
+    UsageShareFeature,
+    UsageShareRawFeature,
+)
 from scripts.feature_projections.features.regression_to_mean import RegressionToMeanFeature
 from scripts.feature_projections.features.snap_trend import SnapTrendFeature
 from scripts.feature_projections.features.qb_starter_usage import (
@@ -29,6 +32,7 @@ FEATURE_REGISTRY: dict[str, type] = {
     "games_played": GamesPlayedFeature,
     "team_context": TeamContextFeature,
     "usage_share": UsageShareFeature,
+    "usage_share_raw": UsageShareRawFeature,
     "regression_to_mean": RegressionToMeanFeature,
     "snap_trend": SnapTrendFeature,
     "qb_starter_usage": QBStarterUsageFeature,
