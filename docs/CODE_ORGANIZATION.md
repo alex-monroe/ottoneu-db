@@ -27,3 +27,25 @@ All configuration constants live here:
 - Shared Supabase client via `get_supabase_client()`
 
 All scripts import from `scripts/config.py` to eliminate duplication and ensure consistency.
+
+## Path Setup for New Python Scripts
+
+Scripts under `scripts/feature_projections/` need two paths on `sys.path` to resolve all imports:
+
+```python
+import os
+import sys
+
+# Setup paths so imports work when run directly
+script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # → scripts/
+repo_root = os.path.dirname(script_dir)                                    # → project root
+if script_dir not in sys.path:
+    sys.path.insert(0, script_dir)
+if repo_root not in sys.path:
+    sys.path.insert(0, repo_root)
+```
+
+- **`script_dir`** (`scripts/`) — resolves `from config import ...` and `from analysis_utils import ...`
+- **`repo_root`** (project root) — resolves `from scripts.feature_projections.features import ...`
+
+Both are required. Only adding `script_dir` causes `ModuleNotFoundError: No module named 'scripts'`. See `cli.py` for the canonical example.
