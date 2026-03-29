@@ -30,6 +30,8 @@ The combiner stacks features additively. When a feature adds noise (even small),
 | v3-v6 | 2.95–4.01 | degrades | — |
 | `v8_age_regression` | 2.530 | 0.522 | +0.075 |
 | **`v12_no_qb_trajectory`** | **2.525** | **0.526** | **+0.103** |
+| `v14_qb_starter` | 2.515 | 0.542 | +0.170 |
+| **`v20_learned_usage`** | **2.412** | **0.577** | **-0.026** |
 | FantasyPros | 2.607 | 0.561 | +1.317 |
 
 ---
@@ -64,9 +66,10 @@ Repair v3-v6 features so they contribute positively.
 
 New data sources and learned models. Expected: MAE < 2.3, R² > 0.60.
 
-- [#283](https://github.com/alex-monroe/ottoneu-db/issues/283) — Stacked ensemble with learned weights
+- [#283](https://github.com/alex-monroe/ottoneu-db/issues/283) — Stacked ensemble with learned weights (scaffolding via #367)
 - [#284](https://github.com/alex-monroe/ottoneu-db/issues/284) — ADP integration as projection signal
-- [#285](https://github.com/alex-monroe/ottoneu-db/issues/285) — Fix usage_share: complete rethink
+- [#285](https://github.com/alex-monroe/ottoneu-db/issues/285) — ~~Fix usage_share: complete rethink~~ ✅ (v19: level-based, neutral MAE, best RMSE/bias)
+- [#367](https://github.com/alex-monroe/ottoneu-db/issues/367) — ~~Usage share as ML ensemble input~~ ✅ (v20: Ridge regression with interaction terms. ALL MAE 2.412, R² 0.577, bias -0.026. Beats v14 on all metrics and FantasyPros on MAE+bias. Introduces sklearn, learned combiner, LOSO CV scaffolding for future #283 work.)
 
 ---
 
@@ -115,7 +118,9 @@ only applied when snap data is absent.
 | File | Role |
 |------|------|
 | `scripts/feature_projections/model_config.py` | Model definitions — every new model registered here |
-| `scripts/feature_projections/combiner.py` | Feature combination logic — needs changes for position-specific + ensemble |
+| `scripts/feature_projections/combiner.py` | Additive feature combination logic |
+| `scripts/feature_projections/learned_combiner.py` | Learned combiner — Ridge regression with interaction terms (GH #367) |
+| `scripts/feature_projections/train_model.py` | Training script for learned models with LOSO cross-validation |
 | `scripts/feature_projections/features/weighted_ppg.py` | Base feature — recency weights and rookie trajectory |
 | `scripts/feature_projections/features/age_curve.py` | Best adjustment feature — parameter tuning target |
 | `scripts/feature_projections/backtest.py` | Validation framework for measuring all changes |

@@ -28,6 +28,8 @@ class ModelDefinition:
     weights: dict[str, float] = field(default_factory=dict)
     is_baseline: bool = False
     position_overrides: dict[str, PositionOverride] = field(default_factory=dict)
+    combiner_type: str = "additive"  # "additive" or "learned"
+    interaction_terms: list[str] = field(default_factory=list)
 
 
 # === Model Definitions ===
@@ -212,6 +214,29 @@ MODELS: dict[str, ModelDefinition] = {
             "regression_to_mean",
             "qb_backup_penalty",
             "usage_share",
+        ],
+    ),
+    "v20_learned_usage": ModelDefinition(
+        name="v20_learned_usage",
+        version=1,
+        description=(
+            "Ridge regression with raw usage share and interaction terms. "
+            "Learns optimal nonlinear mapping from share → PPG adjustment "
+            "including share × position and share × base_ppg interactions. "
+            "GH #367."
+        ),
+        features=[
+            "weighted_ppg_no_qb_trajectory",
+            "age_curve",
+            "regression_to_mean",
+            "qb_backup_penalty",
+            "usage_share_raw",
+        ],
+        combiner_type="learned",
+        interaction_terms=[
+            "usage_share_raw*position",
+            "usage_share_raw*base_ppg",
+            "usage_share_raw^2",
         ],
     ),
     "external_fantasypros_v1": ModelDefinition(

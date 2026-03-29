@@ -51,6 +51,7 @@ python scripts/feature_projections/cli.py compare --models v1_baseline_weighted_
 python scripts/feature_projections/cli.py promote --model v2_age_adjusted                   # Promote model to production
 python scripts/feature_projections/accuracy_report.py                                       # Generate accuracy table from cached backtest results
 python scripts/feature_projections/accuracy_report.py --run-backtest                        # Re-run all backtests then generate report
+python scripts/feature_projections/train_model.py --model <name> --seasons 2022,2023,2024   # Train a learned model (Ridge + LOSO CV)
 python scripts/feature_projections/accuracy_report.py --seasons 2024,2025 --output PATH    # Custom seasons or output path
 python scripts/feature_projections/cli.py diagnostics                                      # Per-player diagnostics (auto-detects model & season)
 python scripts/feature_projections/cli.py diagnostics --model v6_usage_share --season 2025 --top 20  # Custom options
@@ -67,6 +68,11 @@ python scripts/feature_projections/cli.py run --model <name> --seasons 2022,2023
 python scripts/feature_projections/cli.py backtest --model <name> --test-seasons 2022,2023,2024,2025
 # Note: accuracy_report.py --run-backtest re-backtests ALL models but does NOT re-generate
 # projections. If you changed feature code, you MUST run step 1 first or results will be stale.
+
+# Learned Model Workflow (three-step: train → run → backtest)
+# Step 0: Train the model (fit Ridge coefficients via LOSO cross-validation)
+python scripts/feature_projections/train_model.py --model v20_learned_usage --seasons 2022,2023,2024
+# Step 1-2: Same as above (run → backtest)
 
 # Utilities
 python scripts/check_db.py                           # Verify database contents
