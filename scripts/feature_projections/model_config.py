@@ -239,6 +239,22 @@ MODELS: dict[str, ModelDefinition] = {
             "usage_share_raw^2",
         ],
     ),
+    "v21_tiered_regression": ModelDefinition(
+        name="v21_tiered_regression",
+        version=1,
+        description=(
+            "v14 with tiered regression: three-zone factors — standard "
+            "(0.12) above mean, mild downward (-0.05) floor-to-mean, "
+            "strong downward (-0.20) below floor. Reduces bench-tier "
+            "over-projection bias from -1.27 to -0.87. GH #304."
+        ),
+        features=[
+            "weighted_ppg_no_qb_trajectory",
+            "age_curve",
+            "regression_to_mean_tiered",
+            "qb_backup_penalty",
+        ],
+    ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
         version=1,

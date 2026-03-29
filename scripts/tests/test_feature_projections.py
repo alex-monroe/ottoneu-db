@@ -20,7 +20,10 @@ from scripts.feature_projections.features.stat_efficiency import StatEfficiencyF
 from scripts.feature_projections.features.games_played import GamesPlayedFeature
 from scripts.feature_projections.features.team_context import TeamContextFeature
 from scripts.feature_projections.features.usage_share import UsageShareFeature, UsageShareRawFeature
-from scripts.feature_projections.features.regression_to_mean import RegressionToMeanFeature
+from scripts.feature_projections.features.regression_to_mean import (
+    RegressionToMeanFeature,
+    RegressionToMeanTieredFeature,
+)
 from scripts.feature_projections.features.snap_trend import SnapTrendFeature
 from scripts.feature_projections.features.qb_starter_usage import QBStarterUsageFeature, QBStarterBackupPenaltyFeature
 from scripts.feature_projections.combiner import combine_features
@@ -498,6 +501,57 @@ class TestRegressionToMeanFeature:
     def test_at_mean_returns_zero(self):
         """Player at positional mean → zero delta."""
         ctx = {"base_ppg": 12.0, "positional_mean_ppg": 12.0}
+        result = self.feature.compute("p1", "RB", pd.DataFrame(), pd.DataFrame(), ctx)
+        assert result == pytest.approx(0.0)
+
+
+class TestRegressionToMeanTieredFeature:
+    """Tests for the tiered regression-to-mean feature (GH #304)."""
+
+    def setup_method(self):
+        self.feature = RegressionToMeanTieredFeature()
+
+    def test_name(self):
+        assert self.feature.name == "regression_to_mean_tiered"
+        assert self.feature.is_base is False
+
+    def test_missing_context_returns_none(self):
+        """Missing base_ppg or positional_mean_ppg → None."""
+        result = self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), {})
+        assert result is None
+
+    def test_above_mean_uses_standard_factor(self):
+        """Player above positional mean → standard 0.12 regression toward mean."""
+        ctx = {"base_ppg": 15.0, "positional_mean_ppg": 12.0, "positional_starter_floor": 6.0}
+        result = self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(), ctx)
+        # delta = (12 - 15) * 0.12 = -0.36 (pulled down toward mean)
+        assert result == pytest.approx(-0.36)
+
+    def test_bench_tier_uses_strong_negative_factor(self):
+        """Player below starter floor → strong negative factor (-0.20)."""
+        ctx = {"base_ppg": 4.0, "positional_mean_ppg": 10.0, "positional_starter_floor": 8.0}
+        result = self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(), ctx)
+        # delta = (10 - 4) * -0.20 = -1.20
+        assert result == pytest.approx(-1.20)
+        assert result < 0  # pulls DOWN, not up
+
+    def test_mid_tier_uses_mild_negative_factor(self):
+        """Player between floor and mean → mild negative factor (-0.05)."""
+        ctx = {"base_ppg": 9.0, "positional_mean_ppg": 10.0, "positional_starter_floor": 6.0}
+        result = self.feature.compute("p1", "RB", pd.DataFrame(), pd.DataFrame(), ctx)
+        # delta = (10 - 9) * -0.05 = -0.05
+        assert result == pytest.approx(-0.05)
+
+    def test_missing_floor_two_tier_fallback(self):
+        """No starter floor → only above/below-mean distinction."""
+        ctx = {"base_ppg": 4.0, "positional_mean_ppg": 10.0}
+        result = self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(), ctx)
+        # No floor → falls to mid-tier: delta = (10 - 4) * -0.05 = -0.30
+        assert result == pytest.approx(-0.30)
+
+    def test_at_mean_returns_zero(self):
+        """Player at positional mean → zero delta."""
+        ctx = {"base_ppg": 10.0, "positional_mean_ppg": 10.0, "positional_starter_floor": 6.0}
         result = self.feature.compute("p1", "RB", pd.DataFrame(), pd.DataFrame(), ctx)
         assert result == pytest.approx(0.0)
 
@@ -1441,3 +1495,14 @@ class TestModelConfig:
         model = get_model("v14_qb_starter")
         assert model.combiner_type == "additive"
         assert model.interaction_terms == []
+
+    def test_v21_tiered_regression_model(self):
+        """v21 should mirror v14 but with tiered regression."""
+        model = get_model("v21_tiered_regression")
+        v14 = get_model("v14_qb_starter")
+        assert model.combiner_type == "additive"
+        assert "regression_to_mean_tiered" in model.features
+        assert "regression_to_mean" not in model.features
+        # Same features as v14 except the regression swap
+        expected = [f if f != "regression_to_mean" else "regression_to_mean_tiered" for f in v14.features]
+        assert model.features == expected

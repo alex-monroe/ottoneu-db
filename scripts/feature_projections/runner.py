@@ -107,6 +107,53 @@ def _compute_positional_mean_ppg(
     return {str(pos): float(val) for pos, val in pos_means.items()}
 
 
+def _compute_positional_starter_floor(
+    history_df: pd.DataFrame,
+    players_df: pd.DataFrame,
+    starter_rank: int = 24,
+    min_games: int = MIN_GAMES,
+) -> dict[str, float]:
+    """Compute the starter-floor PPG per position from historical player_stats.
+
+    The starter floor is the PPG of the Nth-ranked player (by average PPG)
+    at each position, where N defaults to 24.  Players below this floor
+    are considered bench-tier and should regress more aggressively.
+
+    Returns dict mapping position -> starter-floor PPG.
+    """
+    if history_df.empty or players_df.empty:
+        return {}
+
+    merged = history_df.merge(
+        players_df[["player_id_ref", "position"]],
+        left_on="player_id",
+        right_on="player_id_ref",
+        how="left",
+    )
+
+    merged["games_played"] = pd.to_numeric(merged["games_played"], errors="coerce").fillna(0)
+    merged["ppg"] = pd.to_numeric(merged["ppg"], errors="coerce").fillna(0)
+    qualified = merged[merged["games_played"] >= min_games]
+
+    if qualified.empty:
+        return {}
+
+    # Average PPG per player first (across seasons), then rank within position
+    player_avg = qualified.groupby(["player_id", "position"])["ppg"].mean().reset_index()
+
+    floors: dict[str, float] = {}
+    for position, pos_df in player_avg.groupby("position"):
+        ranked = pos_df.sort_values("ppg", ascending=False).reset_index(drop=True)
+        if len(ranked) >= starter_rank:
+            # PPG of the player at the starter_rank boundary (0-indexed)
+            floors[str(position)] = float(ranked.iloc[starter_rank - 1]["ppg"])
+        else:
+            # Fewer than starter_rank players — use the minimum
+            floors[str(position)] = float(ranked["ppg"].min())
+
+    return floors
+
+
 def _build_player_team_history(
     player_id: str,
     nfl_stats_all: pd.DataFrame,
@@ -140,6 +187,7 @@ def _build_context(
     target_season: int,
     team_aggregates: dict[str, Any],
     positional_means: dict[str, float] | None = None,
+    positional_starter_floors: dict[str, float] | None = None,
     qb_starters: dict[int, dict[str, str | None]] | None = None,
 ) -> dict[str, Any]:
     """Build the context dict for a player's feature computation."""
@@ -174,6 +222,10 @@ def _build_context(
     # Positional mean PPG for regression-to-mean feature
     if positional_means and position in positional_means:
         context["positional_mean_ppg"] = positional_means[position]
+
+    # Positional starter floor for tiered regression
+    if positional_starter_floors and position in positional_starter_floors:
+        context["positional_starter_floor"] = positional_starter_floors[position]
 
     # QB starter designation
     if qb_starters and position == "QB":
@@ -338,6 +390,9 @@ def run_model(
         # Compute positional mean PPG for regression-to-mean feature
         positional_means = _compute_positional_mean_ppg(history_df, players_df)
 
+        # Compute positional starter floors for tiered regression
+        positional_starter_floors = _compute_positional_starter_floor(history_df, players_df)
+
         # Load QB starter designations for historical + target seasons
         qb_starters = get_all_starter_ids(
             historical_seasons + [target_season], players_df
@@ -363,7 +418,7 @@ def run_model(
             context = _build_context(
                 player_id_str, position, players_df, nfl_stats_all,
                 target_season, team_aggregates, positional_means,
-                qb_starters,
+                positional_starter_floors, qb_starters,
             )
 
             # Resolve position-specific features
