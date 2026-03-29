@@ -17,7 +17,10 @@ from scripts.feature_projections.features.usage_share import (
     UsageShareFeature,
     UsageShareRawFeature,
 )
-from scripts.feature_projections.features.regression_to_mean import RegressionToMeanFeature
+from scripts.feature_projections.features.regression_to_mean import (
+    RegressionToMeanFeature,
+    RegressionToMeanTieredFeature,
+)
 from scripts.feature_projections.features.snap_trend import SnapTrendFeature
 from scripts.feature_projections.features.qb_starter_usage import (
     QBStarterUsageFeature,
@@ -34,6 +37,7 @@ FEATURE_REGISTRY: dict[str, type] = {
     "usage_share": UsageShareFeature,
     "usage_share_raw": UsageShareRawFeature,
     "regression_to_mean": RegressionToMeanFeature,
+    "regression_to_mean_tiered": RegressionToMeanTieredFeature,
     "snap_trend": SnapTrendFeature,
     "qb_starter_usage": QBStarterUsageFeature,
     "qb_backup_penalty": QBStarterBackupPenaltyFeature,
