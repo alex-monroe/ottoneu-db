@@ -26,6 +26,7 @@ from scripts.feature_projections.features.regression_to_mean import (
 )
 from scripts.feature_projections.features.snap_trend import SnapTrendFeature
 from scripts.feature_projections.features.qb_starter_usage import QBStarterUsageFeature, QBStarterBackupPenaltyFeature
+from scripts.feature_projections.features.elite_consistency import EliteConsistencyFeature
 from scripts.feature_projections.combiner import combine_features
 from scripts.feature_projections.model_config import get_model, MODELS, ModelDefinition, PositionOverride
 from scripts.feature_projections.runner import _resolve_features_for_position
@@ -1506,3 +1507,151 @@ class TestModelConfig:
         # Same features as v14 except the regression swap
         expected = [f if f != "regression_to_mean" else "regression_to_mean_tiered" for f in v14.features]
         assert model.features == expected
+
+    def test_v22_elite_consistency_model(self):
+        """v22 should be v8 + elite_consistency."""
+        model = get_model("v22_elite_consistency")
+        assert model.combiner_type == "additive"
+        assert "elite_consistency" in model.features
+        assert "weighted_ppg" in model.features
+        assert "age_curve" in model.features
+        assert "regression_to_mean" in model.features
+
+    def test_v23_tiered_elite_model(self):
+        """v23 should be v21 + elite_consistency."""
+        model = get_model("v23_tiered_elite")
+        v21 = get_model("v21_tiered_regression")
+        assert model.combiner_type == "additive"
+        assert "elite_consistency" in model.features
+        assert "regression_to_mean_tiered" in model.features
+        # Should have all v21 features plus elite_consistency
+        for f in v21.features:
+            assert f in model.features
+
+
+# ---------------------------------------------------------------------------
+# EliteConsistencyFeature
+# ---------------------------------------------------------------------------
+
+
+class TestEliteConsistencyFeature:
+    def setup_method(self):
+        self.feature = EliteConsistencyFeature()
+
+    def test_name_and_type(self):
+        assert self.feature.name == "elite_consistency"
+        assert self.feature.is_base is False
+
+    def test_kicker_returns_none(self):
+        df = make_history_df([
+            {"season": 2022, "ppg": 10.0, "games_played": 16},
+            {"season": 2023, "ppg": 11.0, "games_played": 17},
+            {"season": 2024, "ppg": 12.0, "games_played": 15},
+        ])
+        ctx = {"positional_starter_floor": 5.0}
+        result = self.feature.compute("p1", "K", df, pd.DataFrame(), ctx)
+        assert result is None
+
+    def test_missing_starter_floor_returns_none(self):
+        df = make_history_df([
+            {"season": 2022, "ppg": 15.0, "games_played": 16},
+            {"season": 2023, "ppg": 16.0, "games_played": 17},
+            {"season": 2024, "ppg": 17.0, "games_played": 15},
+        ])
+        result = self.feature.compute("p1", "WR", df, pd.DataFrame(), {})
+        assert result is None
+
+    def test_empty_history_returns_none(self):
+        result = self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(), {"positional_starter_floor": 8.0})
+        assert result is None
+
+    def test_insufficient_seasons_returns_none(self):
+        """Only 1 qualifying season — needs 2+."""
+        df = make_history_df([
+            {"season": 2024, "ppg": 16.0, "games_played": 17},
+        ])
+        ctx = {"positional_starter_floor": 8.0}
+        result = self.feature.compute("p1", "WR", df, pd.DataFrame(), ctx)
+        assert result is None
+
+    def test_insufficient_games_filters_seasons(self):
+        """3 seasons but only 1 has enough games played."""
+        df = make_history_df([
+            {"season": 2022, "ppg": 15.0, "games_played": 3},
+            {"season": 2023, "ppg": 16.0, "games_played": 16},
+            {"season": 2024, "ppg": 17.0, "games_played": 2},
+        ])
+        ctx = {"positional_starter_floor": 8.0}
+        result = self.feature.compute("p1", "WR", df, pd.DataFrame(), ctx)
+        assert result is None
+
+    def test_below_starter_floor_returns_none(self):
+        """Min PPG is below starter floor — not elite."""
+        df = make_history_df([
+            {"season": 2022, "ppg": 7.0, "games_played": 16},
+            {"season": 2023, "ppg": 12.0, "games_played": 17},
+            {"season": 2024, "ppg": 14.0, "games_played": 15},
+        ])
+        ctx = {"positional_starter_floor": 8.0}
+        result = self.feature.compute("p1", "WR", df, pd.DataFrame(), ctx)
+        assert result is None
+
+    def test_consistent_elite_gets_boost(self):
+        """Consistent elite: min_ppg=15, floor=8, low variance."""
+        df = make_history_df([
+            {"season": 2022, "ppg": 15.0, "games_played": 16},
+            {"season": 2023, "ppg": 16.0, "games_played": 17},
+            {"season": 2024, "ppg": 17.0, "games_played": 15},
+        ])
+        ctx = {"positional_starter_floor": 8.0}
+        result = self.feature.compute("p1", "WR", df, pd.DataFrame(), ctx)
+        assert result is not None
+        assert result > 0
+        # min_ppg=15, gap=7, base_boost=3.5, consistency near 1.0
+        assert result > 2.5
+
+    def test_volatile_elite_gets_dampened_boost(self):
+        """High variance dampens the boost via consistency multiplier."""
+        df = make_history_df([
+            {"season": 2022, "ppg": 10.0, "games_played": 16},
+            {"season": 2023, "ppg": 20.0, "games_played": 17},
+            {"season": 2024, "ppg": 25.0, "games_played": 15},
+        ])
+        ctx = {"positional_starter_floor": 8.0}
+        result = self.feature.compute("p1", "WR", df, pd.DataFrame(), ctx)
+        assert result is not None
+        assert result > 0
+        # min_ppg=10, gap=2, base_boost=0.3, high std dampens it
+        # Compare with what a low-variance player with same min_ppg would get
+        low_var_df = make_history_df([
+            {"season": 2022, "ppg": 10.0, "games_played": 16},
+            {"season": 2023, "ppg": 10.5, "games_played": 17},
+            {"season": 2024, "ppg": 11.0, "games_played": 15},
+        ])
+        low_var_result = self.feature.compute("p2", "WR", low_var_df, pd.DataFrame(), ctx)
+        assert low_var_result is not None
+        assert result < low_var_result  # volatile gets less boost
+
+    def test_max_boost_clamped(self):
+        """Extreme gap should be capped at MAX_BOOST (3.0)."""
+        df = make_history_df([
+            {"season": 2022, "ppg": 30.0, "games_played": 16},
+            {"season": 2023, "ppg": 30.5, "games_played": 17},
+            {"season": 2024, "ppg": 31.0, "games_played": 15},
+        ])
+        ctx = {"positional_starter_floor": 5.0}
+        result = self.feature.compute("p1", "QB", df, pd.DataFrame(), ctx)
+        assert result is not None
+        # min_ppg=30, gap=25, base_boost=12.5 — should be capped
+        assert result == pytest.approx(3.0, abs=0.01)
+
+    def test_exactly_at_starter_floor_returns_none(self):
+        """min_ppg == starter_floor should NOT qualify (need strictly above)."""
+        df = make_history_df([
+            {"season": 2022, "ppg": 8.0, "games_played": 16},
+            {"season": 2023, "ppg": 10.0, "games_played": 17},
+            {"season": 2024, "ppg": 12.0, "games_played": 15},
+        ])
+        ctx = {"positional_starter_floor": 8.0}
+        result = self.feature.compute("p1", "WR", df, pd.DataFrame(), ctx)
+        assert result is None

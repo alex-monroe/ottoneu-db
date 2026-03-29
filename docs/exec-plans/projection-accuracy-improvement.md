@@ -124,6 +124,26 @@ players, actively pulling projections *down*. Three-zone approach:
 Result: bench-tier bias -1.274 → -0.866 (32% improvement), starter/elite
 essentially unchanged.
 
+### Elite Consistency Feature (GH #305)
+
+Segment analysis showed elite players (top 12 at position) are under-projected
+by ~2.6 PPG across all models.  The `elite_consistency` feature identifies
+players whose worst qualifying season (2+ seasons, 6+ games) still exceeds
+the positional starter floor, and applies a positive boost:
+
+```
+delta = (min_ppg - starter_floor) * 0.50 * consistency_multiplier
+```
+
+Where `consistency_multiplier = clamp(1.0 - ppg_std/min_ppg, 0.5, 1.0)`.
+Boost is capped at 3.0 PPG.  Asymmetric — never penalises non-qualifying
+players.
+
+Result: elite bias +2.632 → +2.112 (v22 vs v8), R² 0.216 → 0.246.
+Bench/starter tiers minimally affected.  The remaining ~2.1 bias is inherent
+to the base weighted_ppg feature under-projecting elite production, not
+recoverable by an additive adjustment alone.
+
 **Guideline:** When adding a new adjustment to the projection pipeline:
 1. Check whether the signal is already partially captured by existing features
    (age_curve, regression_to_mean, snap trajectory)

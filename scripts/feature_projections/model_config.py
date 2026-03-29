@@ -255,6 +255,34 @@ MODELS: dict[str, ModelDefinition] = {
             "qb_backup_penalty",
         ],
     ),
+    "v22_elite_consistency": ModelDefinition(
+        name="v22_elite_consistency",
+        version=1,
+        description=(
+            "v8 (age_curve + regression_to_mean) + elite consistency boost. "
+            "Isolated test: partially offsets regression-to-mean pull for "
+            "players with 3+ seasons above starter floor. GH #305."
+        ),
+        features=["weighted_ppg", "age_curve", "regression_to_mean", "elite_consistency"],
+    ),
+    "v23_tiered_elite": ModelDefinition(
+        name="v23_tiered_elite",
+        version=1,
+        description=(
+            "v21 (tiered regression) + elite consistency boost. "
+            "Combines three-zone regression with upward correction for "
+            "proven consistent elite producers (3+ seasons, min PPG > "
+            "starter floor). Target: reduce elite bias from +2.6 to ±1.0. "
+            "GH #305."
+        ),
+        features=[
+            "weighted_ppg_no_qb_trajectory",
+            "age_curve",
+            "regression_to_mean_tiered",
+            "qb_backup_penalty",
+            "elite_consistency",
+        ],
+    ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
         version=1,

@@ -26,6 +26,7 @@ from scripts.feature_projections.features.qb_starter_usage import (
     QBStarterUsageFeature,
     QBStarterBackupPenaltyFeature,
 )
+from scripts.feature_projections.features.elite_consistency import EliteConsistencyFeature
 
 FEATURE_REGISTRY: dict[str, type] = {
     "weighted_ppg": WeightedPPGFeature,
@@ -43,4 +44,5 @@ FEATURE_REGISTRY: dict[str, type] = {
     "qb_backup_penalty": QBStarterBackupPenaltyFeature,
     "weighted_ppg_rookie_growth": WeightedPPGRookieGrowthFeature,
     "weighted_ppg_rookie_growth_no_qb": WeightedPPGRookieGrowthNoQBFeature,
+    "elite_consistency": EliteConsistencyFeature,
 }
