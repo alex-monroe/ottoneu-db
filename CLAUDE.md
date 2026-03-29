@@ -24,6 +24,11 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 - **Projection Accuracy Plan:** See [docs/exec-plans/projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md) for the 4-phase accuracy improvement roadmap (Issues #271-#285)
 - **Projection Accuracy:** Use `/projection-accuracy` skill (or run `python scripts/feature_projections/accuracy_report.py`) to generate a model comparison table. **Required when updating any projection code** — see Projection Model Update Requirements in [AGENTS.md](AGENTS.md).
 - **Retrospective:** Use `/retro` skill after completing a task to surface friction points and open a PR with doc/skill improvements.
+- **Feature Projections:** See [docs/exec-plans/feature-projections.md](docs/exec-plans/feature-projections.md)
+- **QB Usage Share:** See [docs/exec-plans/qb-usage-share.md](docs/exec-plans/qb-usage-share.md)
+- **Player Diagnostics:** See [docs/generated/player-diagnostics.md](docs/generated/player-diagnostics.md)
+- **Projection Accuracy Details:** See [docs/generated/projection-accuracy.md](docs/generated/projection-accuracy.md)
+- **Segment Analysis:** See [docs/generated/segment-analysis.md](docs/generated/segment-analysis.md)
 
 ## Documentation Map
 
@@ -40,10 +45,15 @@ docs/
 ├── GIT_WORKFLOW.md                    # Branch strategy, PR requirements
 ├── TESTING.md                         # Python + web test setup and CI
 ├── exec-plans/
+│   ├── feature-projections.md         # Feature-based projection system implementation plan
 │   ├── market-projections.md          # Market-based projection system (DEFERRED)
-│   └── projection-accuracy-improvement.md  # 4-phase accuracy improvement roadmap
+│   ├── projection-accuracy-improvement.md  # 4-phase accuracy improvement roadmap
+│   └── qb-usage-share.md              # QB usage share research and findings
 ├── generated/
-│   └── db-schema.md                   # Database tables, keys, relationships
+│   ├── db-schema.md                   # Database tables, keys, relationships
+│   ├── player-diagnostics.md          # Per-player accuracy diagnostics output
+│   ├── projection-accuracy.md         # Projection model accuracy report
+│   └── segment-analysis.md            # Segment-level projection accuracy report
 └── references/
     ├── environment-variables.md       # .env and .env.local variable reference
     └── ottoneu-rules.md               # Scoring, roster, salary cap, arbitration rules

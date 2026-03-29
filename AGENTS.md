@@ -22,6 +22,11 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 - **Domain rules:** See [docs/references/ottoneu-rules.md](docs/references/ottoneu-rules.md) for scoring, roster, salary cap, and arbitration
 - **Environment:** See [docs/references/environment-variables.md](docs/references/environment-variables.md) for `.env` setup
 - **Market Projections:** See [docs/exec-plans/market-projections.md](docs/exec-plans/market-projections.md) for the market-based projection system implementation plan
+- **Feature Projections:** See [docs/exec-plans/feature-projections.md](docs/exec-plans/feature-projections.md)
+- **QB Usage Share:** See [docs/exec-plans/qb-usage-share.md](docs/exec-plans/qb-usage-share.md)
+- **Player Diagnostics:** See [docs/generated/player-diagnostics.md](docs/generated/player-diagnostics.md)
+- **Projection Accuracy:** See [docs/generated/projection-accuracy.md](docs/generated/projection-accuracy.md)
+- **Segment Analysis:** See [docs/generated/segment-analysis.md](docs/generated/segment-analysis.md)
 
 ## Documentation Map
 
@@ -36,9 +41,14 @@ docs/
 ├── GIT_WORKFLOW.md                    # Branch strategy, PR requirements
 ├── TESTING.md                         # Python + web test setup and CI
 ├── exec-plans/
-│   └── market-projections.md          # Market-based projection system implementation plan
+│   ├── feature-projections.md         # Feature-based projection system implementation plan
+│   ├── market-projections.md          # Market-based projection system implementation plan
+│   └── qb-usage-share.md              # QB usage share research and findings
 ├── generated/
-│   └── db-schema.md                   # Database tables, keys, relationships
+│   ├── db-schema.md                   # Database tables, keys, relationships
+│   ├── player-diagnostics.md          # Per-player accuracy diagnostics output
+│   ├── projection-accuracy.md         # Projection model accuracy report
+│   └── segment-analysis.md            # Segment-level projection accuracy report
 └── references/
     ├── environment-variables.md       # .env and .env.local variable reference
     └── ottoneu-rules.md               # Scoring, roster, salary cap, arbitration rules
