@@ -70,6 +70,7 @@ New data sources and learned models. Expected: MAE < 2.3, R² > 0.60.
 - [#284](https://github.com/alex-monroe/ottoneu-db/issues/284) — ADP integration as projection signal
 - [#285](https://github.com/alex-monroe/ottoneu-db/issues/285) — ~~Fix usage_share: complete rethink~~ ✅ (v19: level-based, neutral MAE, best RMSE/bias)
 - [#367](https://github.com/alex-monroe/ottoneu-db/issues/367) — ~~Usage share as ML ensemble input~~ ✅ (v20: Ridge regression with interaction terms. ALL MAE 2.412, R² 0.577, bias -0.026. Beats v14 on all metrics and FantasyPros on MAE+bias. Introduces sklearn, learned combiner, LOSO CV scaffolding for future #283 work.)
+- [#304](https://github.com/alex-monroe/ottoneu-db/issues/304) — ~~Bench-tier mean-reversion~~ ✅ (v21: tiered regression with negative factors for below-mean players. Bench bias -1.274→-0.866, starter/elite unchanged. Further improvement likely requires variance-aware or learned approaches.)
 
 ---
 
@@ -100,6 +101,28 @@ ratio (×1.04) applied on top of the snap trajectory factor caused systematic
 over-projection because the snap trajectory already captured within-season
 momentum. The fix was to make the growth delta **additive and conditional** —
 only applied when snap data is absent.
+
+### Asymmetric regression effect (from #304 bench-tier bias)
+
+The `regression_to_mean` feature pulls all players toward the positional mean
+with a uniform factor (0.12). For **above-mean** players this pulls projections
+*down* (corrective). For **below-mean** players it pulls projections *up* —
+which *increases* over-projection for bench-tier players who are already
+systematically projected too high.
+
+"Stronger regression" means opposite things depending on which side of the mean
+a player sits:
+- Above mean: stronger → more pull down → reduces elite under-projection ✓
+- Below mean: stronger → more pull up → worsens bench over-projection ✗
+
+The fix (v21_tiered_regression) uses **negative factors** for below-mean
+players, actively pulling projections *down*. Three-zone approach:
+- Above mean: +0.12 (standard)
+- Floor to mean: -0.05 (mild downward)
+- Below starter floor: -0.20 (strong downward)
+
+Result: bench-tier bias -1.274 → -0.866 (32% improvement), starter/elite
+essentially unchanged.
 
 **Guideline:** When adding a new adjustment to the projection pipeline:
 1. Check whether the signal is already partially captured by existing features
