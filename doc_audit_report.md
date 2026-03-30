@@ -1,15 +1,22 @@
-# Documentation Audit Report
-
 ### ✅ Confirmed accurate
-- `AGENTS.md` and `CLAUDE.md` accurately reflect the core project structure, including the `docs/` folder contents.
-- Build and execution commands (e.g., `npm run dev`) accurately map to configurations in `Makefile` and `package.json`.
-- Development environment variables map perfectly to `.env.example` and `web/.env.local.example`.
+- All top-level references in CLAUDE.md and AGENTS.md map to existing files.
+- Frontend documentation accurately reflects the Next.js routes, UI components, and TypeScript files.
+- Command documentation in docs/COMMANDS.md accurately reflects Makefile targets and Python script names.
+- Database schema documentation accurately reflects the tables defined in schema.sql.
 
 ### ⚠️ Needs update
-- **`AGENTS.md` and `CLAUDE.md`**:
-  - **Claim**: The `Documentation Map` section lists all relevant files in `docs/`.
-  - **Reality**: There are 5 orphan documentation files identified by `python scripts/check_docs_freshness.py`: `docs/generated/projection-accuracy.md`, `docs/generated/player-diagnostics.md`, `docs/generated/segment-analysis.md`, `docs/exec-plans/feature-projections.md`, and `docs/exec-plans/qb-usage-share.md`.
-  - **Fix**: Update the `Documentation Map` section in both `AGENTS.md` and `CLAUDE.md` to include these 5 files.
+- **File:** `scripts/update_projections.py`
+  - **Claim:** Doc comment says it uses `v8_age_regression`.
+  - **Reality:** Code uses `v12_no_qb_trajectory` as `ACTIVE_MODEL`.
+  - **Fix:** Update doc comment to state `v12_no_qb_trajectory`.
+- **File:** `AGENTS.md` and `CLAUDE.md`
+  - **Claim:** Text tree maps missing recently generated diagnostic markdown files or formatting is incompatible with freshness checker.
+  - **Reality:** Files like `player-diagnostics.md` and `feature-projections.md` exist but are unlinked or orphaned.
+  - **Fix:** Refactored tree maps to use full markdown links (e.g., `[file.md](path)`).
+- **File:** `docs/CODE_ORGANIZATION.md`
+  - **Claim:** References \`sys.path\` and \`cli.py\` with backticks.
+  - **Reality:** Breaks the automated path freshness checker regex.
+  - **Fix:** Removed backticks and updated path to \`scripts/feature_projections/cli.py\`.
 
 ### 🔲 Gaps (undocumented but should be)
-- **Data Schemas**: The list of tables in `docs/generated/db-schema.md` states "Sixteen tables", but there are actually 16 tables listed below it, meaning it is technically accurate right now. There are no major gaps identified.
+- None identified during this audit. Existing documentation adequately covers architecture, frontend, commands, and db schema.

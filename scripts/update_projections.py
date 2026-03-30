@@ -1,7 +1,7 @@
 """Script to generate player projections and update the player_projections database table.
 
 This script acts as a bridge to the new feature_projections system.
-It generates projections using the best configured model (v8_age_regression)
+It generates projections using the best configured model (v12_no_qb_trajectory)
 and promotes them to the production table. It also generates and upserts
 projections for college prospects.
 """

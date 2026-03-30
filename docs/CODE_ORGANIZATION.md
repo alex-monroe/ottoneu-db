@@ -30,7 +30,7 @@ All scripts import from `scripts/config.py` to eliminate duplication and ensure 
 
 ## Path Setup for New Python Scripts
 
-Scripts under `scripts/feature_projections/` need two paths on `sys.path` to resolve all imports:
+Scripts under `scripts/feature_projections/` need two paths on sys.path to resolve all imports:
 
 ```python
 import os
@@ -48,4 +48,4 @@ if repo_root not in sys.path:
 - **`script_dir`** (`scripts/`) — resolves `from config import ...` and `from analysis_utils import ...`
 - **`repo_root`** (project root) — resolves `from scripts.feature_projections.features import ...`
 
-Both are required. Only adding `script_dir` causes `ModuleNotFoundError: No module named 'scripts'`. See `cli.py` for the canonical example.
+Both are required. Only adding `script_dir` causes `ModuleNotFoundError: No module named 'scripts'`. See `scripts/feature_projections/cli.py` for the canonical example.
