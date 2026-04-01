@@ -23,7 +23,7 @@ jobs:
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo "Manual trigger — skipping season check."
             echo "in_season=true" >> "$GITHUB_OUTPUT"
-          elif [[ $MONTH -ge 1 && $MONTH -le 3 ]]; then
+          elif [[ $MONTH -ge 1 && $MONTH -le 4 ]]; then
             echo "Month $MONTH is in arb season (Jan–Mar). Proceeding."
             echo "in_season=true" >> "$GITHUB_OUTPUT"
           else
