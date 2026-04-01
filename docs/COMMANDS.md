@@ -75,6 +75,13 @@ python scripts/feature_projections/cli.py backtest --model <name> --test-seasons
 python scripts/feature_projections/train_model.py --model v20_learned_usage --seasons 2022,2023,2024
 # Step 1-2: Same as above (run → backtest)
 
+# Model Iteration Tools
+python scripts/feature_projections/hypothesis_test.py --base-model v14_qb_starter --scale-feature age_curve=1.5 --seasons 2022,2023,2024,2025  # Quick weight experiment
+python scripts/feature_projections/hypothesis_test.py --base-model v14_qb_starter --remove-feature qb_backup_penalty --seasons 2022,2023,2024,2025  # Feature removal test
+python scripts/feature_projections/feature_analysis.py --model v20_learned_usage --seasons 2022,2023,2024  # Feature correlation, VIF, importance
+python scripts/feature_projections/residual_analysis.py --model v20_learned_usage --seasons 2022,2023,2024,2025  # Residual distribution, heteroscedasticity, persistent errors
+python scripts/feature_projections/residual_analysis.py --model v20_learned_usage --seasons 2022,2023,2024,2025 --output docs/generated/residual-analysis.md  # Write markdown report
+
 # Utilities
 python scripts/check_db.py                           # Verify database contents
 streamlit run scripts/visualize_app.py               # Streamlit dashboard

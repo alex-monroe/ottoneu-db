@@ -23,11 +23,13 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 - **Environment:** See [docs/references/environment-variables.md](docs/references/environment-variables.md) for `.env` setup
 - **Projection Accuracy Plan:** See [docs/exec-plans/projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md) for the 4-phase accuracy improvement roadmap (Issues #271-#285)
 - **Projection Accuracy:** Use `/projection-accuracy` skill (or run `python scripts/feature_projections/accuracy_report.py`) to generate a model comparison table. **Required when updating any projection code** — see Projection Model Update Requirements in [AGENTS.md](AGENTS.md).
+- **Projection Iteration:** Use `/experiment` to run a full experiment loop (train → project → backtest → verdict). Use `/ablation` for feature ablation studies, `/feature-importance` for learned model inspection, `/compare-models` for side-by-side comparisons, `/diagnose-segment` for segment deep-dives.
+- **Experiment Log:** See [docs/generated/experiment-log.md](docs/generated/experiment-log.md) for history of all model iteration attempts.
 - **Retrospective:** Use `/retro` skill after completing a task to surface friction points and open a PR with doc/skill improvements.
 
 ## Documentation Map
 
-Skills (`.claude/commands/`): `create-pr`, `projection-accuracy`, `retro`, `run-analyses`, `run-scraper`, `run-tests`, `start-dev`
+Skills (`.claude/commands/`): `ablation`, `compare-models`, `create-pr`, `diagnose-segment`, `experiment`, `feature-importance`, `projection-accuracy`, `retro`, `run-analyses`, `run-scraper`, `run-tests`, `start-dev`
 
 ```
 CLAUDE.md                              ← you are here
@@ -46,6 +48,7 @@ docs/
 │   └── qb-usage-share.md              # QB Usage Share findings and next steps
 ├── generated/
 │   ├── db-schema.md                   # Database tables, keys, relationships
+│   ├── experiment-log.md              # History of all model iteration attempts
 │   ├── player-diagnostics.md          # Per-player backtest diagnostics
 │   ├── projection-accuracy.md         # Projection model accuracy report
 │   └── segment-analysis.md            # Segmented projection accuracy analysis
