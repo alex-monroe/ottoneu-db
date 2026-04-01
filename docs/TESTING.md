@@ -26,6 +26,10 @@ cd web && ./node_modules/.bin/tsc --noEmit
 ## Key Test Files
 
 - **`scripts/tests/test_feature_projections.py`** — Tests for all projection features (`TestWeightedPPGFeature`, `TestAgeCurveFeature`, `TestUsageShareFeature`, etc.), the combiner, and model config
+- **`scripts/tests/test_projection_regression.py`** — Regression tests: monotonicity, symmetry, bounds, feature direction, combiner additivity
+- **`scripts/tests/test_feature_contracts.py`** — Contract tests: every feature's `compute()` must return None or float, handle edge cases, stay within range bounds
+- **`scripts/tests/test_learned_model_validation.py`** — Validates trained model JSON artifacts: structure, dimensions, coefficient reasonableness, overfitting detection
+- **`scripts/tests/test_cross_model_consistency.py`** — Cross-model checks: feature registry coverage, baseline existence, learned model files, no duplicates, known equivalences
 - **`scripts/tests/test_architecture.py`** — Structural/architectural enforcement tests
 - **`scripts/tests/test_projection_methods.py`** — Legacy projection method tests
 
