@@ -4,7 +4,7 @@ on:
   # Manual trigger
   workflow_dispatch:
 
-  # Every 6 hours during arbitration season (Jan-Mar)
+  # Every 6 hours during arbitration season (Jan-Mar + Apr 1)
   schedule:
     - cron: "0 */6 * * *"
 
@@ -25,6 +25,9 @@ jobs:
             echo "in_season=true" >> "$GITHUB_OUTPUT"
           elif [[ $MONTH -ge 1 && $MONTH -le 3 ]]; then
             echo "Month $MONTH is in arb season (Jan–Mar). Proceeding."
+            echo "in_season=true" >> "$GITHUB_OUTPUT"
+          elif [[ $MONTH -eq 4 && $(date +%-d) -eq 1 ]]; then
+            echo "April 1st — final arb season catch-up. Proceeding."
             echo "in_season=true" >> "$GITHUB_OUTPUT"
           else
             echo "Month $MONTH is out of arb season. Skipping."
