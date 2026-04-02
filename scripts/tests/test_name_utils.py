@@ -87,3 +87,14 @@ def test_normalize_empty_string():
 def test_normalize_whitespace_only():
     """Test handling of whitespace-only string."""
     assert normalize_player_name("   ") == ""
+
+
+def test_normalize_name_alias():
+    """Test that known name aliases are resolved to canonical Ottoneu names."""
+    assert normalize_player_name("Cam Ward") == "Cameron Ward"
+    assert normalize_player_name("cam ward") == "Cameron Ward"
+
+
+def test_normalize_canonical_name_unchanged():
+    """Test that the canonical form of an aliased name is unchanged."""
+    assert normalize_player_name("Cameron Ward") == "Cameron Ward"
