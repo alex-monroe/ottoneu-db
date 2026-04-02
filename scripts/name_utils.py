@@ -7,6 +7,13 @@ import re
 SUFFIX_REGEX = re.compile(r'\s+(Jr\.?|Sr\.?|II|III|IV|V)$', flags=re.IGNORECASE)
 WHITESPACE_REGEX = re.compile(r'\s+')
 
+# Canonical name aliases: maps alternate names to the canonical form used in Ottoneu.
+# Applied AFTER normalization (title case, no periods, no suffixes).
+# Add entries when a player's common/NFL name differs from their Ottoneu name.
+NAME_ALIASES: dict[str, str] = {
+    "Cam Ward": "Cameron Ward",
+}
+
 
 def normalize_player_name(name: str) -> str:
     """
@@ -54,4 +61,9 @@ def normalize_player_name(name: str) -> str:
     # Title case for consistency
     name = name.title()
 
-    return name.strip()
+    name = name.strip()
+
+    # Apply canonical name aliases for known mismatches between sources
+    name = NAME_ALIASES.get(name, name)
+
+    return name
