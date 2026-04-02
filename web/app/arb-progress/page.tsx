@@ -1,8 +1,10 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { LEAGUE_ID, SEASON, NUM_TEAMS, ARB_MAX_PER_PLAYER_LEAGUE } from "@/lib/config";
+import { LEAGUE_ID, SEASON, NUM_TEAMS, ARB_MAX_PER_PLAYER_LEAGUE, ARB_BUDGET_PER_TEAM } from "@/lib/config";
 import { fetchAndMergeData, fetchProjectionMap, buildHoverDataMap, DEFAULT_PROJECTION_YEAR } from "@/lib/analysis";
 import { getAuthenticatedUser } from "@/lib/auth";
 import DataTable, { Column, HighlightRule } from "@/components/DataTable";
+import AllocationDetailsTable from "./AllocationDetailsTable";
+import TeamSpendingTable, { TeamSpendingData } from "./TeamSpendingTable";
 
 export const metadata = {
   title: "Arbitration Progress | Ottoneu Analytics",
@@ -13,6 +15,14 @@ interface TeamStatus {
   team_name: string;
   is_complete: boolean;
   scraped_at: string;
+}
+
+interface AllocationDetailRow {
+  ottoneu_id: number;
+  player_name: string;
+  owner_team_name: string;
+  allocating_team_name: string;
+  amount: number;
 }
 
 interface Allocation {
@@ -50,8 +60,8 @@ const ALLOCATION_RULES: HighlightRule[] = [
 export default async function ArbProgressPage() {
   const supabase = getSupabaseAdmin();
 
-  // Fetch team status, allocations, and player data in parallel
-  const [teamsRes, allocationsRes, allPlayers, user] = await Promise.all([
+  // Fetch team status, allocations, detail breakdowns, and player data in parallel
+  const [teamsRes, allocationsRes, detailsRes, allPlayers, user] = await Promise.all([
     supabase
       .from("arbitration_progress_teams")
       .select("team_name, is_complete, scraped_at")
@@ -66,6 +76,13 @@ export default async function ArbProgressPage() {
       .eq("league_id", LEAGUE_ID)
       .eq("season", SEASON)
       .order("raise_amount", { ascending: false }),
+    supabase
+      .from("arbitration_allocation_details")
+      .select(
+        "ottoneu_id, player_name, owner_team_name, allocating_team_name, amount"
+      )
+      .eq("league_id", LEAGUE_ID)
+      .eq("season", SEASON),
     fetchAndMergeData(),
     getAuthenticatedUser(),
   ]);
@@ -149,6 +166,56 @@ export default async function ArbProgressPage() {
         (teamRaiseTotals.get(a.team_name) ?? 0) + a.raise_amount
       );
     }
+  }
+
+  // Build allocation detail lookups
+  const allocationDetails = (detailsRes.data ?? []) as AllocationDetailRow[];
+  const hasDetails = allocationDetails.length > 0;
+
+  // By player: ottoneu_id → detail rows (for expandable allocation rows)
+  const detailsByPlayer: Record<number, { allocating_team_name: string; amount: number }[]> = {};
+  for (const d of allocationDetails) {
+    if (!detailsByPlayer[d.ottoneu_id]) {
+      detailsByPlayer[d.ottoneu_id] = [];
+    }
+    detailsByPlayer[d.ottoneu_id].push({
+      allocating_team_name: d.allocating_team_name,
+      amount: d.amount,
+    });
+  }
+
+  // By allocating team: how each team spent their budget
+  const spendingMap = new Map<string, { total: number; allocations: { player_name: string; owner_team_name: string; amount: number }[] }>();
+  for (const d of allocationDetails) {
+    let entry = spendingMap.get(d.allocating_team_name);
+    if (!entry) {
+      entry = { total: 0, allocations: [] };
+      spendingMap.set(d.allocating_team_name, entry);
+    }
+    entry.total += d.amount;
+    entry.allocations.push({
+      player_name: d.player_name,
+      owner_team_name: d.owner_team_name,
+      amount: d.amount,
+    });
+  }
+
+  const teamSpendingData: TeamSpendingData[] = Array.from(spendingMap.entries())
+    .map(([team, info]) => ({
+      row: {
+        team_name: team,
+        total_spent: info.total,
+        players_targeted: info.allocations.length,
+        budget_remaining: ARB_BUDGET_PER_TEAM - info.total,
+      },
+      allocations: info.allocations,
+    }))
+    .sort((a, b) => b.row.total_spent - a.row.total_spent);
+
+  // How much each team spent (for team status cards)
+  const teamSpentTotals = new Map<string, number>();
+  for (const [team, info] of spendingMap) {
+    teamSpentTotals.set(team, info.total);
   }
 
   return (
@@ -248,6 +315,11 @@ export default async function ArbProgressPage() {
                     ${teamRaiseTotals.get(team.team_name)} raised against
                   </p>
                 )}
+                {hasDetails && teamSpentTotals.has(team.team_name) && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 ml-4.5">
+                    ${teamSpentTotals.get(team.team_name)} spent on raises
+                  </p>
+                )}
               </div>
             ))}
           </div>
@@ -274,11 +346,12 @@ export default async function ArbProgressPage() {
                 complete, max ${ARB_MAX_PER_PLAYER_LEAGUE} cap).</>
               )}
             </p>
-            <DataTable
+            <AllocationDetailsTable
               columns={ALLOCATION_COLUMNS}
               data={allocations}
               highlightRules={ALLOCATION_RULES}
               hoverDataMap={hoverDataMap}
+              detailsByPlayer={detailsByPlayer}
             />
           </section>
         )}
@@ -316,6 +389,20 @@ export default async function ArbProgressPage() {
                 }))
                 .sort((a, b) => b.total_raise - a.total_raise)}
             />
+          </section>
+        )}
+
+        {/* Team Spending Breakdown (only when detail data exists) */}
+        {hasDetails && teamSpendingData.length > 0 && (
+          <section>
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
+              Team Spending Breakdown
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
+              How each team allocated their ${ARB_BUDGET_PER_TEAM} arbitration
+              budget. Click a row to see which players they targeted.
+            </p>
+            <TeamSpendingTable data={teamSpendingData} />
           </section>
         )}
 

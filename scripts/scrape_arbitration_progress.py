@@ -36,6 +36,7 @@ FANGRAPHS_LOGIN_URL = "https://blogs.fangraphs.com/wp-login.php"
 ARB_URL_TEMPLATE = "https://ottoneu.fangraphs.com/football/{league_id}/arbitration"
 NON_DIGIT_REGEX = re.compile(r"[^\d]")
 ID_END_REGEX = re.compile(r"(\d+)$")
+ALLOC_LINE_REGEX = re.compile(r"^(.+?)\s*\(\$(\d+)\)$")
 
 
 async def _save_debug_screenshot(page, name: str):
@@ -218,11 +219,22 @@ async def scrape_arbitration_progress(league_id: int, season: int):
             if deadline:
                 print(f"Arbitration deadline: {deadline}")
 
+            # Scrape per-team allocation details (only after arbitration completes)
+            arb_complete = await _is_arbitration_complete(page)
+            detail_count = 0
+            if arb_complete:
+                detail_count = await _scrape_allocation_details(
+                    page, league_id, season, supabase, url
+                )
+            else:
+                print("Arbitration not yet complete, skipping detail scraping")
+
             print("Done!")
             return {
                 "allocations": len(allocations),
                 "teams": len(team_rows),
                 "deadline": deadline,
+                "allocation_details": detail_count,
             }
 
         except Exception as e:
@@ -482,6 +494,155 @@ async def _scrape_all_teams(page) -> set[str]:
             teams.add(name)
 
     return teams
+
+
+async def _is_arbitration_complete(page) -> bool:
+    """Check if the page shows 'Arbitration Complete' status."""
+    result = await page.evaluate("""() => {
+        const headings = document.querySelectorAll('h3');
+        for (const h of headings) {
+            if (h.innerText.toLowerCase().includes('arbitration complete')) return true;
+        }
+        return false;
+    }""")
+    return result
+
+
+async def _get_team_dropdown_options(page) -> list[dict]:
+    """Read team IDs and names from the teamsDropdown select element."""
+    return await page.evaluate("""() => {
+        const sel = document.querySelector('select.teamsDropdown');
+        if (!sel) return [];
+        return Array.from(sel.options)
+            .filter(o => o.value !== '0')
+            .map(o => ({id: parseInt(o.value), name: o.text.trim()}));
+    }""")
+
+
+async def _scrape_allocation_details(
+    page, league_id: int, season: int, supabase, main_url: str
+) -> int:
+    """Scrape per-team allocation breakdowns and store in DB.
+
+    Visits each team's arbitration subpage to get individual allocations
+    (which teams allocated money to which players).
+    """
+    teams = await _get_team_dropdown_options(page)
+    if not teams:
+        print("No teams found in dropdown, skipping detail scraping")
+        return 0
+
+    print(f"Scraping allocation details for {len(teams)} teams...")
+    all_details = []
+
+    for team in teams:
+        team_url = f"{main_url}/{team['id']}"
+        try:
+            await page.goto(team_url, timeout=60000)
+            await page.wait_for_selector("table", timeout=15000)
+            await page.wait_for_timeout(1000)
+
+            details = await _parse_team_allocation_table(page, team["name"])
+            for d in details:
+                all_details.append({
+                    "league_id": league_id,
+                    "season": season,
+                    "ottoneu_id": d["ottoneu_id"],
+                    "player_name": d["player_name"],
+                    "owner_team_name": d["owner_team_name"],
+                    "allocating_team_name": d["allocating_team_name"],
+                    "amount": d["amount"],
+                })
+            print(f"  {team['name']}: {len(details)} allocation detail rows")
+        except Exception as e:
+            print(f"  Warning: Failed to scrape details for {team['name']}: {e}")
+            continue
+
+    # Clear old detail data and insert fresh
+    supabase.table("arbitration_allocation_details").delete().eq(
+        "league_id", league_id
+    ).eq("season", season).execute()
+
+    if all_details:
+        supabase.table("arbitration_allocation_details").insert(
+            all_details
+        ).execute()
+        print(f"Inserted {len(all_details)} allocation detail rows")
+
+    # Navigate back to main arbitration page
+    await page.goto(main_url, timeout=60000)
+
+    return len(all_details)
+
+
+async def _parse_team_allocation_table(page, owner_team_name: str) -> list[dict]:
+    """Parse the per-team allocation table showing individual allocations.
+
+    The table has columns: PLAYER | 20XX PTS | INDIVIDUAL ALLOCATIONS | TOTAL ALLOCATION.
+    The INDIVIDUAL ALLOCATIONS cell contains newline-separated entries like
+    'Team Name ($4)' showing which teams allocated money.
+    """
+    rows_data = await page.evaluate("""() => {
+        const tables = document.querySelectorAll('table');
+        for (const table of tables) {
+            const headers = Array.from(table.querySelectorAll('th'))
+                .map(h => h.innerText.trim().toUpperCase());
+            if (!headers.some(h => h.includes('INDIVIDUAL'))) continue;
+
+            const rows = [];
+            for (const tr of table.querySelectorAll('tbody tr')) {
+                const cells = Array.from(tr.querySelectorAll('td'));
+                if (cells.length < 3) continue;
+
+                const playerCell = cells[0];
+                const playerLink = playerCell.querySelector('a');
+                const playerName = playerLink
+                    ? playerLink.innerText.trim() : playerCell.innerText.trim();
+                const playerHref = playerLink
+                    ? playerLink.getAttribute('href') : null;
+
+                // Individual allocations cell (column index 2)
+                const allocText = cells[2].innerText.trim();
+
+                rows.push({
+                    player_name: playerName,
+                    href: playerHref,
+                    alloc_text: allocText
+                });
+            }
+            return rows;
+        }
+        return [];
+    }""")
+
+    details = []
+    for row in rows_data:
+        # Extract ottoneu_id from player link href
+        ottoneu_id = None
+        if row.get("href"):
+            m = ID_END_REGEX.search(row["href"])
+            if m:
+                ottoneu_id = int(m.group(1))
+
+        if not ottoneu_id:
+            continue
+
+        # Parse individual allocation lines: "Team Name ($4)"
+        for line in row.get("alloc_text", "").split("\n"):
+            line = line.strip()
+            if not line:
+                continue
+            m = ALLOC_LINE_REGEX.match(line)
+            if m:
+                details.append({
+                    "ottoneu_id": ottoneu_id,
+                    "player_name": row["player_name"],
+                    "owner_team_name": owner_team_name,
+                    "allocating_team_name": m.group(1).strip(),
+                    "amount": int(m.group(2)),
+                })
+
+    return details
 
 
 def _parse_dollar(text: str) -> int | None:
