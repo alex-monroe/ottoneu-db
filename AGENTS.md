@@ -117,6 +117,16 @@ The `WeightedPPGFeature` applies an H2/H1 snap-per-game multiplier to first-year
 
 `v12_no_qb_trajectory` (current active model) disables the trajectory for QB and K via `WeightedPPGNoQBTrajectoryFeature`. Do not re-enable it for those positions.
 
+### Database migration workflow
+
+After creating a new migration file in `migrations/` and applying it (via `mcp__supabase__apply_migration` or the Supabase dashboard):
+
+1. **Regenerate TypeScript types** using `mcp__supabase__generate_typescript_types` (or `npx supabase gen types typescript`).
+2. **Update `web/types/supabase.ts`** with the regenerated output so the Supabase client recognizes the new table.
+3. **Update `docs/generated/db-schema.md`** — add the new table to the table list and increment the table count.
+
+Skipping step 2 will cause TypeScript errors like `Argument of type '"new_table"' is not assignable to parameter of type '...'` when querying the new table.
+
 ### Supabase pagination
 
 Supabase's Python client defaults to a **1000-row limit** on `.execute()` calls. Any query that may return more than 1000 rows must use paginated `.range(offset, offset + page_size - 1)` fetching in a loop. This has already caused a silent bug in `promote.py` (now fixed). Apply the same pattern in any new bulk-fetch code.
