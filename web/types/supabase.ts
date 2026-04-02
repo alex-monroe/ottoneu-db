@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      arbitration_allocation_details: {
+        Row: {
+          allocating_team_name: string
+          amount: number
+          id: string
+          league_id: number
+          ottoneu_id: number
+          owner_team_name: string | null
+          player_name: string
+          scraped_at: string
+          season: number
+        }
+        Insert: {
+          allocating_team_name: string
+          amount: number
+          id?: string
+          league_id: number
+          ottoneu_id: number
+          owner_team_name?: string | null
+          player_name: string
+          scraped_at?: string
+          season: number
+        }
+        Update: {
+          allocating_team_name?: string
+          amount?: number
+          id?: string
+          league_id?: number
+          ottoneu_id?: number
+          owner_team_name?: string | null
+          player_name?: string
+          scraped_at?: string
+          season?: number
+        }
+        Relationships: []
+      }
       arbitration_plan_allocations: {
         Row: {
           amount: number
