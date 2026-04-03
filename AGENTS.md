@@ -130,3 +130,7 @@ Skipping step 2 will cause TypeScript errors like `Argument of type '"new_table"
 ### Supabase pagination
 
 Supabase's Python client defaults to a **1000-row limit** on `.execute()` calls. Any query that may return more than 1000 rows must use paginated `.range(offset, offset + page_size - 1)` fetching in a loop. This has already caused a silent bug in `promote.py` (now fixed). Apply the same pattern in any new bulk-fetch code.
+
+### Testing Setup Notes
+- **Frontend Playwright Verification:** To verify UI locally via Playwright, start Next.js in the background (`npm run dev > npm_output.log &`). If caching errors occur (like 'Persisting failed'), clear the `.next` directory (`rm -rf .next`) before starting the server.
+- **Python Test Dependencies:** Running `pytest` locally or via `.github/workflows` requires `pytest-cov` installed (as specified in `pyproject.toml`), otherwise tests will fail with unrecognized argument errors because of `--cov` flags.
