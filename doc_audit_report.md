@@ -23,3 +23,18 @@
 ### 🔲 Gaps (undocumented but should be)
 - Playwright frontend verification (`npm run dev > npm_output.log &`) and explicit cache clearing strategy for local Next.js runs isn't prominently documented.
 - Explicit requirement and details around test coverage plugin dependencies (like `pytest-cov`) for tests mentioned in `.github/workflows`.
+
+### ✅ Confirmed accurate (New Findings)
+- Code layout references and shared configurations (`config.json`, `scripts/config.py`, `web/lib/config.ts`) are structurally aligned.
+- `CLAUDE.md`, `.cursorrules`, and `docs/COMMANDS.md` mention `venv/bin/python`, `make check-arch`, `npm run dev` and `npm test` reliably matching project configurations and `Makefile` entries.
+- The `make check-arch` architectural tests exist in Next.js (`web/__tests__/lib/architecture.test.ts`) and Python (`scripts/tests/test_architecture.py`).
+- Link freshness check `python scripts/check_docs_freshness.py --strict` executes without failing.
+
+### ⚠️ Needs update (New Findings)
+- **File:** `AGENTS.md`, `CLAUDE.md`, `.cursorrules` vs `web/pnpm-lock.yaml`
+- **Claim:** "Strictly use `npm` for all frontend tasks (do not use `yarn`, `pnpm`, or `bun`)."
+- **Reality:** We have a `pnpm-lock.yaml` file in the `web` folder alongside `package-lock.json`.
+- **Fix:** (Flagged for human review) Remove `web/pnpm-lock.yaml` to enforce the rule explicitly stated in the documentation, or update the documentation if `pnpm` is intended.
+
+### 🔲 Gaps (undocumented but should be) (New Findings)
+- The methodology descriptions in `web/app/projections/page.tsx` and `web/app/arbitration/page.tsx` are hardcoded and must reflect the active model's feature set (`ACTIVE_MODEL` in `update_projections.py`), but there is no documentation linking these or outlining a process to update the UI when changing the model. `web/app/projections/page.tsx` is currently stale (shows `v8 — age_regression` instead of `v12_no_qb_trajectory`).
