@@ -1,6 +1,6 @@
 # Database Schema
 
-Seventeen tables, all with UUID primary keys.
+Eighteen tables, all with UUID primary keys.
 
 ## Tables
 
