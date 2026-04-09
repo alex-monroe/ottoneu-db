@@ -21,8 +21,7 @@ export async function fetchAllPlayers(): Promise<PlayerListItem[]> {
     const { data: prices } = await supabase
         .from("league_prices")
         .select("player_id, price, team_name")
-        .eq("league_id", 309)
-        .eq("season", 2025);
+        .eq("league_id", 309);
 
     const { data: transactions } = await supabase
         .from("transactions")
@@ -105,7 +104,6 @@ export async function fetchPlayerCard(
             .select("price, team_name")
             .eq("player_id", player.id)
             .eq("league_id", 309)
-            .eq("season", 2025)
             .maybeSingle(),
         supabase
             .from("transactions")
