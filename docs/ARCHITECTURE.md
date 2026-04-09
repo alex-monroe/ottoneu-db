@@ -77,7 +77,7 @@ User accounts with email/password login stored in the `users` table. Passwords a
 
 ## Feature Projection System (`scripts/feature_projections/`)
 
-Generates season-long player PPG projections from historical data using a combination of targeted features. The active production model (`v14_qb_starter`) uses:
+Generates season-long player PPG projections from historical data using a combination of targeted features. The active production model (`v12_no_qb_trajectory`) uses:
 1. `weighted_ppg_no_qb_trajectory` baseline (recency-weighted PPG, without snap trajectory for QB/K)
 2. `age_curve` adjustment (career arc expectations)
 3. `regression_to_mean` (pulling extreme outliers toward positional averages)
@@ -121,7 +121,7 @@ Features are registered in `features/__init__.py` via `FEATURE_REGISTRY` (maps s
 The web frontend reads from `player_projections`, NOT `model_projections`. After validating a new model via backtesting, promote it:
 
 ```bash
-venv/bin/python scripts/feature_projections/promote.py v14_qb_starter
+venv/bin/python scripts/feature_projections/promote.py v12_no_qb_trajectory
 ```
 
 This copies all projections to `player_projections`, clears `is_active` from all other models, and sets the promoted model as active. **This is a production data change** — the web app will immediately reflect the new projections.

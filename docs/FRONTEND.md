@@ -2,7 +2,7 @@
 
 ## Structure
 
-Next.js App Router with five pages. All pages are server components that fetch live data from Supabase (revalidate every hour) with client wrappers for interactivity.
+Next.js App Router with several pages. All pages are server components that fetch live data from Supabase (revalidate every hour) with client wrappers for interactivity.
 
 ## Routes
 
