@@ -35,7 +35,11 @@ def fetch_multi_season_stats(seasons: list[int]) -> pd.DataFrame:
     """
     supabase = get_supabase_client()
     print(f"Fetching multi-season stats for seasons {seasons}...")
-    res = supabase.table('player_stats').select('*').in_('season', seasons).execute()
+    # Select only Ottoneu-relevant columns; raw NFL stat columns live in nfl_stats
+    res = supabase.table('player_stats').select(
+        'player_id, season, total_points, games_played, snaps, ppg, pps, '
+        'h1_snaps, h1_games, h2_snaps, h2_games'
+    ).in_('season', seasons).execute()
     df = pd.DataFrame(res.data)
     if df.empty:
         return df

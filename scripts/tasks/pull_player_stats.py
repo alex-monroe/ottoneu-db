@@ -149,10 +149,9 @@ def run(params: dict, supabase: Client) -> TaskResult:
 
             season = int(row["season"])
 
-            stat_row: dict = {
-                "player_id": player_uuid,
-                "season": season,
-                "games_played": _safe_int(row.get("games_played")),
+            # Build raw stats dict for points calculation only — these are
+            # NOT persisted to player_stats (raw NFL stats live in nfl_stats)
+            raw_stats = {
                 "passing_yards": _safe_int(row.get("passing_yards")),
                 "passing_tds": _safe_int(row.get("passing_tds")),
                 "interceptions": _safe_int(row.get("interceptions")),
@@ -168,9 +167,16 @@ def run(params: dict, supabase: Client) -> TaskResult:
                 "fg_made_50_plus": _safe_int(row.get("fg_made_50_plus")),
                 "pat_made": _safe_int(row.get("pat_made")),
             }
-            stat_row["total_points"] = round(_calc_points(stat_row), 2)
-            games = stat_row.get("games_played") or 0
-            stat_row["ppg"] = round(stat_row["total_points"] / games, 2) if games > 0 else 0.0
+            total_points = round(_calc_points(raw_stats), 2)
+            games = _safe_int(row.get("games_played")) or 0
+
+            stat_row: dict = {
+                "player_id": player_uuid,
+                "season": season,
+                "games_played": games if games > 0 else None,
+                "total_points": total_points,
+                "ppg": round(total_points / games, 2) if games > 0 else 0.0,
+            }
 
             upsert_rows.append(stat_row)
             matched += 1
