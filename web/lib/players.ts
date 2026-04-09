@@ -6,43 +6,55 @@ import { PlayerListItem, PlayerCardData, Transaction, SeasonStats } from "./type
  * for the index / search page.
  */
 export async function fetchAllPlayers(): Promise<PlayerListItem[]> {
-    const { data: players } = await supabase
-        .from("players")
-        .select("id, ottoneu_id, name, position, nfl_team")
-        .order("name");
+    // Fetch stats, prices, and transactions first to determine which players
+    // are relevant (have stats or are rostered). The players table has thousands
+    // of backfill records that would exceed Supabase's default 1000-row limit.
+    const [statsRes, pricesRes, transactionsRes] = await Promise.all([
+        supabase
+            .from("player_stats")
+            .select("player_id, total_points, games_played, ppg")
+            .eq("season", 2025),
+        supabase
+            .from("league_prices")
+            .select("player_id, price, team_name")
+            .eq("league_id", 309),
+        supabase
+            .from("transactions")
+            .select("player_id, transaction_type, team_name, salary")
+            .eq("league_id", 309)
+            .order("transaction_date", { ascending: false }),
+    ]);
 
-    if (!players) return [];
+    const stats = statsRes.data ?? [];
+    const prices = pricesRes.data ?? [];
+    const transactions = transactionsRes.data ?? [];
 
-    const { data: stats } = await supabase
-        .from("player_stats")
-        .select("player_id, total_points, games_played, ppg")
-        .eq("season", 2025);
+    const statsMap = new Map(stats.map((s) => [s.player_id, s]));
+    const priceMap = new Map(prices.map((p) => [p.player_id, p]));
 
-    const { data: prices } = await supabase
-        .from("league_prices")
-        .select("player_id, price, team_name")
-        .eq("league_id", 309);
-
-    const { data: transactions } = await supabase
-        .from("transactions")
-        .select("player_id, transaction_type, team_name, salary")
-        .eq("league_id", 309)
-        .order("transaction_date", { ascending: false });
-
-    const statsMap = new Map(
-        (stats ?? []).map((s) => [s.player_id, s])
-    );
-    const priceMap = new Map(
-        (prices ?? []).map((p) => [p.player_id, p])
-    );
-
-    // keys are player_id, values are the LATEST transaction (since sorted desc)
     const transactionMap = new Map();
-    (transactions ?? []).forEach((t) => {
+    transactions.forEach((t) => {
         if (!transactionMap.has(t.player_id)) {
             transactionMap.set(t.player_id, t);
         }
     });
+
+    // Collect all relevant player IDs (have stats, prices, or transactions)
+    const relevantIds = new Set<string>();
+    stats.forEach((s) => relevantIds.add(s.player_id));
+    prices.forEach((p) => relevantIds.add(p.player_id));
+    transactions.forEach((t) => relevantIds.add(t.player_id));
+
+    if (relevantIds.size === 0) return [];
+
+    // Fetch only relevant players by ID
+    const { data: players } = await supabase
+        .from("players")
+        .select("id, ottoneu_id, name, position, nfl_team")
+        .in("id", Array.from(relevantIds))
+        .order("name");
+
+    if (!players) return [];
 
     return players.map((p) => {
         const s = statsMap.get(p.id);
