@@ -106,35 +106,21 @@ async def run(params: dict, context, supabase, nfl_stats: pd.DataFrame) -> TaskR
         await page.goto(search_url, timeout=60000)
         await page.wait_for_selector("a.top_players", timeout=30000)
 
-        if level != "pro":
-            # College/both: use form dropdowns + submit
-            await page.select_option("#search_level", level)
-            await page.select_option("#search_position", position)
-            print(f"Submitting search for {position} ({level_label})...")
-            await page.click("#submit_search")
-            # College search returns thousands of rows — wait for rows to appear
-            try:
-                await page.wait_for_selector(
-                    ".table-container table tbody tr",
-                    state="visible", timeout=120000,
-                )
-            except Exception:
-                # Table might be empty if no players exist at this level
-                print(f"  No table rows appeared for {position} ({level_label})")
-            await page.wait_for_timeout(2000)
-        else:
-            # NFL (default): use quick-filter links
-            pos_link = page.locator("a.top_players").filter(
-                has_text=re.compile(f"^{position}$")
-            ).first
-
-            if await pos_link.count() == 0:
-                return TaskResult(success=False, error=f"Could not find filter for {position}")
-
-            print(f"Clicking '{position}' filter...")
-            await pos_link.click()
-            await page.wait_for_selector(".table-container table", state="visible")
-            await page.wait_for_timeout(2000)
+        # Use form submission for all levels to get ALL players, not just
+        # "top players" from the quick-filter links (which miss low-profile players)
+        await page.select_option("#search_level", level)
+        await page.select_option("#search_position", position)
+        print(f"Submitting search for {position} ({level_label})...")
+        await page.click("#submit_search")
+        try:
+            await page.wait_for_selector(
+                ".table-container table tbody tr",
+                state="visible", timeout=120000,
+            )
+        except Exception:
+            # Table might be empty if no players exist at this level/position
+            print(f"  No table rows appeared for {position} ({level_label})")
+        await page.wait_for_timeout(2000)
 
         rows = await page.query_selector_all(".table-container table tbody tr")
         print(f"Found {len(rows)} rows for {position}.")
@@ -258,24 +244,41 @@ async def _process_row(row, page, context, supabase, nfl_stats,
         except (ValueError, AttributeError):
             total_points = 0.0
 
-    # Upsert player
+    # Upsert player — first check for a backfill record (negative synthetic
+    # ottoneu_id) with the same name that should be merged rather than duplicated
     is_college = level == "college" or (nfl_team not in NFL_TEAM_CODES and nfl_team != "Unknown")
-    player_data = {
-        "ottoneu_id": ottoneu_id,
-        "name": name,
-        "position": position,
-        "nfl_team": nfl_team,
-        "is_college": is_college,
-    }
-    data, _ = supabase.table("players").upsert(
-        player_data, on_conflict="ottoneu_id"
-    ).execute()
 
-    returned_rows = data.data if hasattr(data, "data") else data[1]
-    if not returned_rows or len(returned_rows) == 0:
-        return None
+    existing = supabase.table("players").select("id, ottoneu_id").eq(
+        "name", name
+    ).lt("ottoneu_id", 0).maybe_single().execute()
+    existing_backfill = existing.data if hasattr(existing, "data") else None
 
-    player_uuid = returned_rows[0]["id"]
+    if existing_backfill:
+        # Update the backfill record's ottoneu_id to the real one
+        supabase.table("players").update({
+            "ottoneu_id": ottoneu_id,
+            "position": position,
+            "nfl_team": nfl_team,
+            "is_college": is_college,
+        }).eq("id", existing_backfill["id"]).execute()
+        player_uuid = existing_backfill["id"]
+    else:
+        player_data = {
+            "ottoneu_id": ottoneu_id,
+            "name": name,
+            "position": position,
+            "nfl_team": nfl_team,
+            "is_college": is_college,
+        }
+        data, _ = supabase.table("players").upsert(
+            player_data, on_conflict="ottoneu_id"
+        ).execute()
+
+        returned_rows = data.data if hasattr(data, "data") else data[1]
+        if not returned_rows or len(returned_rows) == 0:
+            return None
+
+        player_uuid = returned_rows[0]["id"]
 
     # Upsert league price (current state)
     price_data = {
