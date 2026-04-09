@@ -1,25 +1,22 @@
-# Documentation Maintenance Agent Report
+# Documentation Audit Report
 
 ### ✅ Confirmed accurate
-- `CLAUDE.md`, `AGENTS.md`, `.cursorrules`, and `.github/copilot-instructions.md` all successfully point to valid existing documentation files.
-- The `AGENTS.md` structural tests explicitly enforced by `scripts/tests/test_architecture.py` accurately reflect the project structure.
-- Mentioned environment setups (`venv`) are correct and accurate according to latest usages.
-- Project core logic commands mentioned in `docs/COMMANDS.md` correspond to existing files (`scripts/check_db.py`, `scripts/visualize_app.py`, `scripts/ottoneu_scraper.py`, etc).
+- `CLAUDE.md`, `AGENTS.md`, `.cursorrules`, and `.github/copilot-instructions.md` correctly reference existing documentation files and directories (verified via `scripts/check_docs_freshness.py`).
+- The `npm` requirement for package management is correct and matches actual repository configuration (no `yarn.lock` or `pnpm-lock.yaml` in use for the `web` frontend originally, though `pnpm-lock.yaml` exists, the directives clearly state to avoid it to prevent CI issues).
+- Architectural rules described in `AGENTS.md` accurately match test constraints (e.g., `make check-arch` works as expected).
+- The list of skills in `CLAUDE.md` correctly maps to the `.claude/commands` present in the repository (`ablation`, `compare-models`, `create-pr`, `diagnose-segment`, `experiment`, `feature-importance`, `projection-accuracy`, `retro`, `run-analyses`, `run-scraper`, `run-tests`, `start-dev`).
 
 ### ⚠️ Needs update
-- **File:** `docs/CODE_ORGANIZATION.md`
-  - **Claim:** Referenced Python system path as `` `sys.path` `` inside the paths checker context.
-  - **Reality:** Because of markdown backticks, `scripts/check_docs_freshness.py` mistakenly tracked it as a missing file requirement.
-  - **Fix:** Changed `` `sys.path` `` to `sys.path` without code block backticks to comply with documentation freshness checker.
-- **File:** `docs/CODE_ORGANIZATION.md`
-  - **Claim:** Mentions `cli.py` in the root description for Python CLI layout mapping.
-  - **Reality:** File has been moved or refers to `scripts/feature_projections/cli.py`. The freshness checker flagged it as missing.
-  - **Fix:** Updated the reference to the actual file location `scripts/feature_projections/cli.py` to keep it correctly resolvable.
-- **File:** `AGENTS.md` and `CLAUDE.md`
-  - **Claim:** Mentions multiple files in the documentation tree without standard markdown explicit paths: `projection-accuracy.md`, `player-diagnostics.md`, `segment-analysis.md`, `feature-projections.md`, `qb-usage-share.md`, `market-projections.md`, `db-schema.md`, `experiment-log.md`, `projection-accuracy-improvement.md`.
-  - **Reality:** Since these files were listed in tree format (e.g., `│   ├── projection-accuracy.md`), the `check_docs_freshness.py` script considered them "Orphan documentation files" missing from the explicit link map, though they were physically present in their respective `docs/` directories.
-  - **Fix:** Updated `AGENTS.md` and `CLAUDE.md` to use proper markdown inline linking syntax for all nested documentation files in the tree view (e.g. `[projection-accuracy.md](docs/generated/projection-accuracy.md)`), fully resolving the orphan errors.
+- **Python Version in `AGENTS.md`**: Mentions `Python 3.9+` in the tech stack but the current environment runs `Python 3.12`. While technically `3.12` falls under `3.9+`, the explicit targeting of `3.9` syntax rules might be getting outdated depending on when the system was last upgraded. (Note: No direct fix required as it functions accurately).
 
 ### 🔲 Gaps (undocumented but should be)
-- Playwright frontend verification (`npm run dev > npm_output.log &`) and explicit cache clearing strategy for local Next.js runs isn't prominently documented.
-- Explicit requirement and details around test coverage plugin dependencies (like `pytest-cov`) for tests mentioned in `.github/workflows`.
+- **Undocumented Frontend Routes**: The `docs/FRONTEND.md` file has a `## Routes` section that is missing several active routes present in the `web/app` directory. Unlisted routes include:
+  - `/admin`
+  - `/arb-planner-public`
+  - `/arbitration-simulation`
+  - `/login`
+  - `/players`
+  - `/projection-accuracy`
+  - `/projections`
+  - `/rosters`
+  - `/surplus-adjustments`

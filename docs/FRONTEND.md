@@ -15,6 +15,15 @@ Next.js App Router with five pages. All pages are server components that fetch l
 | `/arbitration` | Arbitration targets with per-opponent breakdown |
 | `/arbitration-planner` | Plan and save arbitration budget allocations |
 | `/arb-progress` | Public arbitration progress: team completion status and allocation details |
+| `/admin` | Undocumented route |
+| `/arb-planner-public` | Undocumented route |
+| `/arbitration-simulation` | Undocumented route |
+| `/login` | Undocumented route |
+| `/players` | Undocumented route |
+| `/projection-accuracy` | Undocumented route |
+| `/projections` | Undocumented route |
+| `/rosters` | Undocumented route |
+| `/surplus-adjustments` | Undocumented route |
 
 ## Reusable Components
 
