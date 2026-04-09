@@ -6,7 +6,7 @@ export const revalidate = 3600 // Revalidate every hour
 
 export default async function Home() {
   // Fetch Players
-  const { data: players } = await supabase.from('players').select('*')
+  const { data: players } = await supabase.from('players').select('*').gt('ottoneu_id', 0)
   const { data: stats } = await supabase.from('player_stats').select('*').eq('season', 2025)
   const { data: prices } = await supabase.from('league_prices').select('*').eq('league_id', 309)
 

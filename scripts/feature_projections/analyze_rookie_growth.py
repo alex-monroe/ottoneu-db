@@ -25,7 +25,7 @@ if script_dir not in sys.path:
 if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
-from config import get_supabase_client, MIN_GAMES
+from config import get_supabase_client, fetch_all_rows, MIN_GAMES
 
 
 def compute_rookie_growth_ratios(
@@ -59,8 +59,8 @@ def compute_rookie_growth_ratios(
     )
 
     # Fetch player positions
-    players_res = supabase.table("players").select("id, position").execute()
-    pos_map = {row["id"]: row["position"] for row in (players_res.data or [])}
+    players_data = fetch_all_rows(supabase, "players", "id, position")
+    pos_map = {row["id"]: row["position"] for row in players_data}
 
     # Organize stats by player
     player_seasons: dict[str, dict[int, dict]] = defaultdict(dict)

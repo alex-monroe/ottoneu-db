@@ -20,6 +20,7 @@ from config import (
     ARB_MAX_PER_PLAYER_PER_TEAM,
     ARB_MAX_PER_PLAYER_LEAGUE,
     get_supabase_client,
+    fetch_all_rows,
 )
 
 
@@ -56,12 +57,12 @@ def fetch_all_data(season: int = SEASON) -> tuple[pd.DataFrame, pd.DataFrame, pd
 
     prices_res = supabase.table('league_prices').select('*').execute()
     stats_res = supabase.table('player_stats').select('*').eq('season', season).execute()
-    players_res = supabase.table('players').select('*').execute()
+    players_data = fetch_all_rows(supabase, 'players')
 
     return (
         pd.DataFrame(prices_res.data),
         pd.DataFrame(stats_res.data),
-        pd.DataFrame(players_res.data),
+        pd.DataFrame(players_data),
     )
 
 

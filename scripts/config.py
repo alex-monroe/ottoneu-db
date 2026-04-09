@@ -80,3 +80,35 @@ def get_supabase_client() -> Client:
         print("Error: SUPABASE_URL and SUPABASE_KEY must be set in .env")
         exit(1)
     return create_client(url, key)
+
+
+def fetch_all_rows(supabase, table: str, select: str = "*",
+                   page_size: int = 1000) -> list[dict]:
+    """Fetch all rows from a Supabase table, paginating past the PostgREST limit.
+
+    PostgREST defaults to returning at most 1000 rows. This helper pages
+    through all results transparently.
+
+    Args:
+        supabase: Supabase client instance.
+        table: Table name to query.
+        select: Column selection string (default "*").
+        page_size: Rows per page (default 1000).
+
+    Returns:
+        List of row dicts.
+    """
+    all_data: list[dict] = []
+    offset = 0
+    while True:
+        batch = (
+            supabase.table(table).select(select)
+            .range(offset, offset + page_size - 1)
+            .execute()
+            .data or []
+        )
+        all_data.extend(batch)
+        if len(batch) < page_size:
+            break
+        offset += page_size
+    return all_data

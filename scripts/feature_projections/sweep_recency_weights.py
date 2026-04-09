@@ -25,7 +25,7 @@ if script_dir not in sys.path:
 if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
-from config import get_supabase_client, POSITIONS, MIN_GAMES
+from config import get_supabase_client, fetch_all_rows, POSITIONS, MIN_GAMES
 from analysis_utils import fetch_multi_season_stats
 from scripts.feature_projections.features.weighted_ppg import WeightedPPGFeature
 
@@ -78,8 +78,8 @@ def _run_projections_for_weights(
     feature = WeightedPPGFeature()
 
     # Fetch players for position mapping
-    players_res = supabase.table("players").select("id, position").execute()
-    pos_map = {row["id"]: row["position"] for row in (players_res.data or [])}
+    players_data = fetch_all_rows(supabase, "players", "id, position")
+    pos_map = {row["id"]: row["position"] for row in players_data}
 
     all_results: dict[int, dict[str, dict]] = {}
 

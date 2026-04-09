@@ -29,7 +29,7 @@ if script_dir not in sys.path:
 if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
-from config import get_supabase_client, POSITIONS, MIN_GAMES
+from config import get_supabase_client, fetch_all_rows, POSITIONS, MIN_GAMES
 
 
 def _compute_distribution_stats(residuals: List[float]) -> dict:
@@ -110,8 +110,8 @@ def collect_residuals(
     model_id = model_res.data[0]["id"]
 
     # Fetch player info
-    players_res = supabase.table("players").select("id, name, position").execute()
-    player_info = {row["id"]: row for row in (players_res.data or [])}
+    players_data = fetch_all_rows(supabase, "players", "id, name, position")
+    player_info = {row["id"]: row for row in players_data}
 
     rows = []
     for season in seasons:

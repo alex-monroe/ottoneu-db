@@ -9,6 +9,10 @@ import { Database } from "../types/supabase"
 
 export const supabase = createClient<Database>(supabaseUrl || "http://localhost:54321", supabaseKey || "fake-anon-key")
 
+// NOTE: The players table has 3000+ rows (most from historical backfill with
+// negative synthetic ottoneu_ids). All web queries MUST add .gt("ottoneu_id", 0)
+// to filter to scraper-origin players and avoid the PostgREST 1000-row limit.
+
 /**
  * Server-side admin client using the secret key — bypasses RLS.
  * Only use in server components, API routes, and server-side auth logic.

@@ -13,7 +13,7 @@ script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if script_dir not in sys.path:
     sys.path.insert(0, script_dir)
 
-from config import get_supabase_client, POSITIONS, MIN_GAMES
+from config import get_supabase_client, fetch_all_rows, POSITIONS, MIN_GAMES
 
 
 def _compute_metrics(projected: list[float], actual: list[float]) -> dict:
@@ -68,8 +68,8 @@ def backtest_model(
     model_id = model_res.data[0]["id"]
 
     # Fetch players for position mapping
-    players_res = supabase.table("players").select("id, position").execute()
-    pos_map = {row["id"]: row["position"] for row in (players_res.data or [])}
+    players_data = fetch_all_rows(supabase, "players", "id, position")
+    pos_map = {row["id"]: row["position"] for row in players_data}
 
     all_results = {}
 

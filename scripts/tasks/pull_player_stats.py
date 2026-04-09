@@ -40,8 +40,8 @@ def _calc_points(row: dict) -> float:
 
 def _build_player_lookup(supabase: Client) -> dict[str, str]:
     """Fetch all players from DB and return normalized_name -> uuid dict."""
-    result = supabase.table("players").select("id, name").execute()
-    players = result.data or []
+    from scripts.config import fetch_all_rows
+    players = fetch_all_rows(supabase, "players", "id, name")
     lookup: dict[str, str] = {}
     for p in players:
         norm = normalize_player_name(p["name"])

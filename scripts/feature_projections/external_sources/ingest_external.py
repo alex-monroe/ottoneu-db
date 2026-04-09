@@ -38,7 +38,7 @@ for _p in [_scripts_dir, _repo_root]:
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from config import get_supabase_client  # noqa: E402
+from config import get_supabase_client, fetch_all_rows  # noqa: E402
 
 from scripts.feature_projections.external_sources.fantasypros_fetcher import (  # noqa: E402
     fetch_all_positions,
@@ -99,8 +99,8 @@ def _ensure_model_in_db(supabase, model_def: dict) -> str:
 
 def _fetch_players(supabase) -> pd.DataFrame:
     """Fetch the players table for name matching."""
-    res = supabase.table("players").select("id, name, position, nfl_team").execute()
-    return pd.DataFrame(res.data or [])
+    players_data = fetch_all_rows(supabase, "players", "id, name, position, nfl_team")
+    return pd.DataFrame(players_data)
 
 
 def _upsert_records(supabase, records: list[dict]) -> None:

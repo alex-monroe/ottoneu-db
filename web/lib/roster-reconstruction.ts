@@ -68,7 +68,7 @@ export async function fetchRosterData(): Promise<RosterData> {
       .eq("league_id", LEAGUE_ID)
       .eq("season", SEASON)
       .order("transaction_date", { ascending: true }),
-    supabase.from("players").select("id, ottoneu_id, name, position, nfl_team"),
+    supabase.from("players").select("id, ottoneu_id, name, position, nfl_team").gt("ottoneu_id", 0),
     supabase
       .from("player_stats")
       .select("player_id, ppg, pps, games_played, snaps")
