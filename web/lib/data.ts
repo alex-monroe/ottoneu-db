@@ -10,7 +10,7 @@
  */
 
 import { supabase } from "./supabase";
-import { LEAGUE_ID, SEASON } from "./config";
+import { LEAGUE_ID, SEASON, SEASON_END_DATE, PRE_ARB_DATE } from "./config";
 import type {
   Player,
   PlayerListItem,
@@ -19,6 +19,134 @@ import type {
   SeasonStats,
   Transaction,
 } from "./types";
+
+// ─── Salary-at-Date (Transaction Replay) ─────────────────────────────────────
+
+/**
+ * Build a player_id → { salary, team_name } map by replaying transactions
+ * up to a cutoff date. For players without transaction history, falls back
+ * to league_prices (nearly all are $1 bench stashes or college prospects).
+ *
+ * @param salaryDate - inclusive cutoff date (YYYY-MM-DD). Transactions on
+ *   this date ARE included.
+ */
+async function buildSalaryMapAtDate(
+  salaryDate: string
+): Promise<Map<string, { salary: number; team_name: string | null }>> {
+  // Fetch ALL transactions (both seasons) — we need the full history
+  // to capture players acquired before the current season.
+  const [txnRes, pricesRes] = await Promise.all([
+    supabase
+      .from("transactions")
+      .select("player_id, transaction_type, team_name, salary, transaction_date")
+      .eq("league_id", LEAGUE_ID)
+      .lte("transaction_date", salaryDate)
+      .order("transaction_date", { ascending: true }),
+    supabase
+      .from("league_prices")
+      .select("player_id, price, team_name")
+      .eq("league_id", LEAGUE_ID),
+  ]);
+
+  const transactions = txnRes.data ?? [];
+  const leaguePrices = pricesRes.data ?? [];
+
+  // Replay transactions to build point-in-time salary state
+  const salaryMap = new Map<string, { salary: number; team_name: string | null }>();
+
+  for (const txn of transactions) {
+    if (!txn.transaction_date) continue;
+    const type = txn.transaction_type.toLowerCase();
+
+    if (type.includes("cut") || type.includes("drop")) {
+      salaryMap.set(txn.player_id, { salary: txn.salary ?? 0, team_name: null });
+    } else {
+      salaryMap.set(txn.player_id, {
+        salary: txn.salary ?? 0,
+        team_name: txn.team_name,
+      });
+    }
+  }
+
+  // For players in league_prices without any transaction history,
+  // fall back to current price. These are overwhelmingly $1 bench stashes
+  // or college prospects whose salary hasn't changed.
+  for (const lp of leaguePrices) {
+    if (!salaryMap.has(lp.player_id) && lp.price != null && lp.team_name) {
+      salaryMap.set(lp.player_id, {
+        salary: Number(lp.price),
+        team_name: lp.team_name,
+      });
+    }
+  }
+
+  return salaryMap;
+}
+
+/**
+ * Fetch players with stats, using salary from a specific historical date
+ * via transaction replay.
+ *
+ * Use `SEASON_END_DATE` for end-of-season analysis (VORP, surplus).
+ * Use `PRE_ARB_DATE` for pre-arbitration analysis (arb targets, simulation).
+ */
+export async function fetchPlayersAtDate(salaryDate: string): Promise<Player[]> {
+  const [playersRes, statsRes, salaryMap] = await Promise.all([
+    supabase.from("players").select("*").gt("ottoneu_id", 0),
+    supabase.from("player_stats").select("*").eq("season", SEASON),
+    buildSalaryMapAtDate(salaryDate),
+  ]);
+
+  if (playersRes.error) throw new Error(`Failed to fetch players: ${playersRes.error.message}`);
+  if (statsRes.error) throw new Error(`Failed to fetch player stats: ${statsRes.error.message}`);
+
+  const players = playersRes.data;
+  const stats = statsRes.data;
+
+  if (!players || !stats) {
+    throw new Error("Failed to fetch data: returned null from Supabase");
+  }
+
+  const statsMap = new Map(stats.map((s) => [String(s.player_id), s]));
+
+  const merged: Player[] = [];
+
+  for (const player of players) {
+    const pStats = statsMap.get(String(player.id));
+    if (!pStats) continue;
+
+    const salaryEntry = salaryMap.get(String(player.id));
+
+    merged.push({
+      player_id: player.id,
+      ottoneu_id: player.ottoneu_id ?? 0,
+      name: player.name,
+      position: player.position ?? "",
+      nfl_team: player.nfl_team ?? "",
+      birth_date: player.birth_date ?? null,
+      is_college: player.is_college ?? false,
+      price: salaryEntry?.salary ?? 0,
+      team_name: salaryEntry?.team_name ?? null,
+      total_points: Number(pStats.total_points) || 0,
+      games_played: Number(pStats.games_played) || 0,
+      snaps: Number(pStats.snaps) || 0,
+      ppg: Number(pStats.ppg) || 0,
+      pps: Number(pStats.pps) || 0,
+    });
+  }
+
+  return merged;
+}
+
+/** Fetch players with end-of-season salaries (before +$4/+$1 bump). */
+export function fetchPlayersEndOfSeason(): Promise<Player[]> {
+  return fetchPlayersAtDate(SEASON_END_DATE);
+}
+
+/** Fetch players with pre-arbitration salaries (after auto bump, before arb results). */
+export function fetchPlayersPreArb(): Promise<Player[]> {
+  return fetchPlayersAtDate(PRE_ARB_DATE);
+}
 
 // ─── Core Fetchers ───────────────────────────────────────────────────────────
 
@@ -198,9 +326,10 @@ export async function fetchPlayerDetail(
 /**
  * Fetch opponent-rostered players with PPG and games played.
  * Used by the public arb planner — no surplus/value data exposed.
+ * Uses pre-arbitration salaries (after auto bump, before arb results).
  */
 export async function fetchPublicArbPlayers(): Promise<PublicArbPlayer[]> {
-  const players = await fetchPlayers();
+  const players = await fetchPlayersPreArb();
 
   return players
     .filter((p) => p.team_name && p.team_name !== "" && p.team_name !== "FA")

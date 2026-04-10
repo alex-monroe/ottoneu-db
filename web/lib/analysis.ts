@@ -18,7 +18,12 @@ export * from "./arb-logic";
 export type { Player, SimulationResult } from "./types";
 
 // Re-export core data fetchers so existing imports from analysis.ts still work
-export { fetchPlayers, fetchPublicArbPlayers } from "./data";
+export {
+  fetchPlayers,
+  fetchPublicArbPlayers,
+  fetchPlayersEndOfSeason,
+  fetchPlayersPreArb,
+} from "./data";
 
 /**
  * @deprecated Use `fetchPlayers()` from `@/lib/data` instead.
@@ -250,9 +255,14 @@ export interface ProjectedPlayer extends Player {
 /**
  * Fetch current-season data + db projections.
  * All rostered players are included.
+ *
+ * @param baseFetcher - optional override for the player data source.
+ *   Use `fetchPlayersPreArb` for pre-arbitration salary context.
  */
-export async function fetchPlayersWithProjectedPpg(): Promise<Player[]> {
-  const currentPlayers = await fetchPlayers();
+export async function fetchPlayersWithProjectedPpg(
+  baseFetcher: () => Promise<Player[]> = fetchPlayers
+): Promise<Player[]> {
+  const currentPlayers = await baseFetcher();
 
   if (currentPlayers.length === 0) {
     throw new Error("Failed to fetch current players data for projection mapping");
@@ -342,11 +352,16 @@ export async function fetchBacktestData(
 /**
  * Fetch current-season data + projections.
  * Players with no projection history are excluded.
+ *
+ * @param projectionYear - season to fetch projections for.
+ * @param baseFetcher - optional override for the player data source.
+ *   Use `fetchPlayersPreArb` for pre-arbitration salary context.
  */
 export async function fetchAndMergeProjectedData(
-  projectionYear: number = DEFAULT_PROJECTION_YEAR
+  projectionYear: number = DEFAULT_PROJECTION_YEAR,
+  baseFetcher: () => Promise<Player[]> = fetchPlayers
 ): Promise<ProjectedPlayer[]> {
-  const currentPlayers = await fetchPlayers();
+  const currentPlayers = await baseFetcher();
 
   if (currentPlayers.length === 0) {
     throw new Error("Failed to fetch current players data for projection mapping");

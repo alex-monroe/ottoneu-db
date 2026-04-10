@@ -1,4 +1,4 @@
-import { fetchAndMergeData, fetchAndMergeProjectedData, fetchProjectionMap, buildHoverDataMap, calculateSurplus, SEASON, LEAGUE_ID, DEFAULT_PROJECTION_YEAR } from "@/lib/analysis";
+import { fetchAndMergeProjectedData, fetchProjectionMap, buildHoverDataMap, calculateSurplus, fetchPlayersPreArb, SEASON, LEAGUE_ID, DEFAULT_PROJECTION_YEAR } from "@/lib/analysis";
 import { computeDollarPerVorp } from "@/lib/surplus";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
@@ -10,8 +10,8 @@ export const revalidate = 0;
 export default async function SurplusAdjustmentsPage() {
   const user = await getAuthenticatedUser();
   const [allPlayers, projectedPlayers, adjRes] = await Promise.all([
-    fetchAndMergeData(),
-    fetchAndMergeProjectedData(DEFAULT_PROJECTION_YEAR),
+    fetchPlayersPreArb(),
+    fetchAndMergeProjectedData(DEFAULT_PROJECTION_YEAR, fetchPlayersPreArb),
     user
       ? getSupabaseAdmin()
           .from("surplus_adjustments")

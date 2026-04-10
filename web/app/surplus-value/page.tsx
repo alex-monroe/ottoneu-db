@@ -1,5 +1,4 @@
 import {
-  fetchAndMergeData,
   fetchProjectionMap,
   buildHoverDataMap,
   calculateSurplus,
@@ -7,6 +6,7 @@ import {
   SEASON,
   DEFAULT_PROJECTION_YEAR,
 } from "@/lib/analysis";
+import { fetchPlayersEndOfSeason } from "@/lib/data";
 import { getAuthenticatedUser } from "@/lib/auth";
 import DataTable, { Column, HighlightRule } from "@/components/DataTable";
 
@@ -68,7 +68,7 @@ const TEAM_SUMMARY_RULES: HighlightRule[] = [
 
 export default async function SurplusValuePage() {
   const [allPlayers, user] = await Promise.all([
-    fetchAndMergeData(),
+    fetchPlayersEndOfSeason(),
     getAuthenticatedUser(),
   ]);
   const projMap = user?.hasProjectionsAccess

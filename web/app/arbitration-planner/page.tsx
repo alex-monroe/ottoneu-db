@@ -1,9 +1,9 @@
 import {
-  fetchAndMergeData,
   fetchProjectionMap,
   buildHoverDataMap,
   analyzeArbitration,
   allocateArbitrationBudget,
+  fetchPlayersPreArb,
   LEAGUE_ID,
   MY_TEAM,
   ARB_BUDGET_PER_TEAM,
@@ -20,8 +20,8 @@ import ArbPlannerClient from "./ArbPlannerClient";
 export default async function ArbitrationPlannerPage() {
   const user = await getAuthenticatedUser();
 
-  // Fetch observed stats — matches the surplus value page's data source
-  const allPlayers = await fetchAndMergeData();
+  // Fetch players with pre-arbitration salaries (after auto bump, before arb results)
+  const allPlayers = await fetchPlayersPreArb();
 
   // Fetch surplus adjustments (applied separately in client, not baked into targets)
   const adjRes = user
