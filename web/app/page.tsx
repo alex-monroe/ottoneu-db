@@ -1,39 +1,21 @@
-import { supabase } from '@/lib/supabase'
+import { fetchPlayers } from '@/lib/data'
 import PlayerEfficiencyClient from '@/components/PlayerEfficiencyClient'
 import { ChartPoint } from '@/lib/types'
 
 export const revalidate = 3600 // Revalidate every hour
 
 export default async function Home() {
-  // Fetch Players
-  const { data: players } = await supabase.from('players').select('*').gt('ottoneu_id', 0)
-  const { data: stats } = await supabase.from('player_stats').select('*').eq('season', 2025)
-  const { data: prices } = await supabase.from('league_prices').select('*').eq('league_id', 309)
-
-  if (!players || !stats || !prices) {
-    return <div>Error loading data or no data found.</div>
-  }
-
-  // Merge Data
-  // Bolt Optimization: Replace O(n^2) array searches with O(1) Map lookups
-  const statsMap = new Map(stats.map((s) => [s.player_id, s]));
-  const pricesMap = new Map(prices.map((p) => [p.player_id, p]));
+  const players = await fetchPlayers()
 
   const data = players.map(player => {
-    const pStats = statsMap.get(player.id);
-    const pPrice = pricesMap.get(player.id);
-
-    if (!pStats || !pPrice) return null;
-
-    const ppg = Number(pStats.ppg) || 0
-    const pps = Number(pStats.pps) || 0
-    const price = Number(pPrice.price) || 0
-    const total_points = Number(pStats.total_points) || 0
+    const ppg = player.ppg
+    const pps = player.pps
+    const price = player.price
+    const total_points = player.total_points
 
     const cost_per_ppg = ppg > 0 ? price / ppg : 0
     const cost_per_pps = pps > 0 ? price / pps : 0
 
-    // Filter out low volume or 0 ppg?
     if (ppg === 0) return null;
 
     return {
@@ -46,8 +28,8 @@ export default async function Home() {
       price,
       cost_per_ppg,
       cost_per_pps,
-      games_played: pStats.games_played,
-      snaps: pStats.snaps
+      games_played: player.games_played,
+      snaps: player.snaps
     }
   }).filter(Boolean) as ChartPoint[]
 

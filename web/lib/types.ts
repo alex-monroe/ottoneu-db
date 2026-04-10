@@ -8,22 +8,40 @@
 import type React from "react";
 
 // === Core Player Types ===
+// Layered type hierarchy: CorePlayer → RosteredPlayer → StatsPlayer
+// Each layer adds data from a different source.
 
-export interface Player {
+/** Core identity — always available from the `players` table. */
+export interface CorePlayer {
   player_id: string;
-  ottoneu_id?: number;
+  ottoneu_id: number;
   name: string;
   position: string;
   nfl_team: string;
-  price: number;
-  team_name: string | null;
-  birth_date?: string | null;
-  is_college?: boolean;
+  birth_date: string | null;
+  is_college: boolean;
+}
+
+/** CorePlayer + Ottoneu league context from `league_prices`. */
+export interface RosteredPlayer extends CorePlayer {
+  price: number;            // from league_prices (0 if unrostered)
+  team_name: string | null; // from league_prices (null if FA)
+}
+
+/** RosteredPlayer + current season stats from `player_stats`. */
+export interface StatsPlayer extends RosteredPlayer {
   total_points: number;
   games_played: number;
   snaps: number;
   ppg: number;
   pps: number;
+}
+
+/**
+ * Full player with stats — used by analysis pages (VORP, surplus, arb, etc.).
+ * Alias for StatsPlayer with index signature for DataTable compatibility.
+ */
+export interface Player extends StatsPlayer {
   [key: string]: string | number | boolean | null | undefined;
 }
 
@@ -47,13 +65,8 @@ export interface ArbitrationTarget extends SurplusPlayer {
   surplus_after_arb: number;
 }
 
-export interface PublicArbPlayer {
-  player_id: string;
-  name: string;
-  position: string;
-  nfl_team: string;
-  price: number;
-  team_name: string | null;
+/** Rostered player with PPG and games — used by the public arb planner. */
+export interface PublicArbPlayer extends RosteredPlayer {
   ppg: number;
   games_played: number;
   [key: string]: string | number | boolean | null | undefined;
@@ -145,6 +158,11 @@ export interface MultiSeasonStats {
   h2_games?: number;
 }
 
+/**
+ * Player list item for the /players directory page.
+ * Uses `id` (not `player_id`) because it maps directly from the players table.
+ * Stats and price are nullable because not all players have current-season data.
+ */
 export interface PlayerListItem {
   id: string;
   ottoneu_id: number;

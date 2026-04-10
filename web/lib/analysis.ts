@@ -1,14 +1,30 @@
+/**
+ * Analysis and projection data fetching.
+ *
+ * This module builds on the unified data layer (data.ts) to provide
+ * projection-enriched player data for analysis pages.
+ *
+ * Core data fetching (fetchPlayers, fetchPlayerList, fetchPlayerDetail)
+ * lives in data.ts — import from there for non-projection needs.
+ */
+
 import { supabase } from "./supabase";
-import {
-  LEAGUE_ID,
-  SEASON,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  MY_TEAM,
-} from "./arb-logic";
+import { LEAGUE_ID, SEASON } from "./config";
+import { fetchPlayers } from "./data";
 import type { Player, PlayerHoverData, BacktestPlayer, ProjectionModel, BacktestMetrics } from "./types";
 
+// Re-export from config/arb-logic for backward compatibility
 export * from "./arb-logic";
 export type { Player, SimulationResult } from "./types";
+
+// Re-export core data fetchers so existing imports from analysis.ts still work
+export { fetchPlayers, fetchPublicArbPlayers } from "./data";
+
+/**
+ * @deprecated Use `fetchPlayers()` from `@/lib/data` instead.
+ * This alias exists for backward compatibility during migration.
+ */
+export const fetchAndMergeData = fetchPlayers;
 
 // === Projection Year Config ===
 export const PROJECTION_YEARS = [2025, 2026] as const;
@@ -17,117 +33,6 @@ export const DEFAULT_PROJECTION_YEAR: ProjectionYear = 2026;
 
 export function getHistoricalSeasonsForYear(year: number): number[] {
   return [year - 3, year - 2, year - 1]; // e.g. 2026 → [2023, 2024, 2025]
-}
-
-// === Data Fetching ===
-export async function fetchAndMergeData(): Promise<Player[]> {
-  const [playersRes, statsRes, pricesRes] = await Promise.all([
-    supabase.from("players").select("*").gt("ottoneu_id", 0),
-    supabase.from("player_stats").select("*").eq("season", SEASON),
-    supabase
-      .from("league_prices")
-      .select("*")
-      .eq("league_id", LEAGUE_ID),
-  ]);
-
-  if (playersRes.error) throw new Error(`Failed to fetch players: ${playersRes.error.message}`);
-  if (statsRes.error) throw new Error(`Failed to fetch player stats: ${statsRes.error.message}`);
-  if (pricesRes.error) throw new Error(`Failed to fetch league prices: ${pricesRes.error.message}`);
-
-  const players = playersRes.data;
-  const stats = statsRes.data;
-  const prices = pricesRes.data;
-
-  if (!players || !stats || !prices) {
-    throw new Error("Failed to fetch data: returned null from Supabase");
-  }
-
-  const statsMap = new Map(stats.map((s) => [String(s.player_id), s]));
-  const pricesMap = new Map(prices.map((p) => [String(p.player_id), p]));
-
-  const merged: Player[] = [];
-
-  for (const player of players) {
-    const pStats = statsMap.get(String(player.id));
-    const pPrice = pricesMap.get(String(player.id));
-
-    // Include all players that have stats, even if no price (free agents)
-    if (!pStats) continue;
-
-    merged.push({
-      player_id: player.id,
-      ottoneu_id: player.ottoneu_id ?? undefined,
-      name: player.name,
-      position: player.position ?? "",
-      nfl_team: player.nfl_team ?? "",
-      price: pPrice ? Number(pPrice.price) || 0 : 0,
-      team_name: pPrice?.team_name || null,
-      birth_date: player.birth_date ?? null,
-      is_college: player.is_college ?? false,
-      total_points: Number(pStats.total_points) || 0,
-      games_played: Number(pStats.games_played) || 0,
-      snaps: Number(pStats.snaps) || 0,
-      ppg: Number(pStats.ppg) || 0,
-      pps: Number(pStats.pps) || 0,
-    });
-  }
-
-  return merged;
-}
-
-/**
- * Fetch opponent-rostered players with 2025 PPG and games played only.
- * Used by the public arb planner — no surplus/value data exposed.
- */
-export async function fetchPublicArbPlayers(): Promise<import("./types").PublicArbPlayer[]> {
-  const [playersRes, statsRes, pricesRes] = await Promise.all([
-    supabase.from("players").select("*").gt("ottoneu_id", 0),
-    supabase.from("player_stats").select("*").eq("season", SEASON),
-    supabase.from("league_prices").select("*").eq("league_id", LEAGUE_ID),
-  ]);
-
-  if (playersRes.error) throw new Error(`Failed to fetch players: ${playersRes.error.message}`);
-  if (statsRes.error) throw new Error(`Failed to fetch player stats: ${statsRes.error.message}`);
-  if (pricesRes.error) throw new Error(`Failed to fetch league prices: ${pricesRes.error.message}`);
-
-  const players = playersRes.data;
-  const stats = statsRes.data;
-  const prices = pricesRes.data;
-
-  if (!players || !stats || !prices) {
-    throw new Error("Failed to fetch data: returned null from Supabase");
-  }
-
-  const statsMap = new Map(stats.map((s) => [String(s.player_id), s]));
-  const pricesMap = new Map(prices.map((p) => [String(p.player_id), p]));
-
-  const result: import("./types").PublicArbPlayer[] = [];
-
-  for (const player of players) {
-    const pStats = statsMap.get(String(player.id));
-    const pPrice = pricesMap.get(String(player.id));
-
-    // Only include players that have stats
-    if (!pStats) continue;
-
-    const teamName = pPrice?.team_name || null;
-
-    // Filter to rostered players only (exclude FA/unrostered)
-    if (!teamName || teamName === "" || teamName === "FA") continue;
-
-    result.push({
-      player_id: String(player.id),
-      name: player.name,
-      position: player.position ?? "",
-      nfl_team: player.nfl_team ?? "",
-      price: pPrice ? Number(pPrice.price) || 0 : 0,
-      team_name: teamName,
-      ppg: Number(pStats.ppg) || 0,
-      games_played: Number(pStats.games_played) || 0,
-    });
-  }
-
-  return result;
 }
 
 // === Projection Model Fetching ===
@@ -347,7 +252,7 @@ export interface ProjectedPlayer extends Player {
  * All rostered players are included.
  */
 export async function fetchPlayersWithProjectedPpg(): Promise<Player[]> {
-  const currentPlayers = await fetchAndMergeData();
+  const currentPlayers = await fetchPlayers();
 
   if (currentPlayers.length === 0) {
     throw new Error("Failed to fetch current players data for projection mapping");
@@ -425,7 +330,7 @@ export async function fetchBacktestData(
       actual_ppg,
       error,
       abs_error: Math.abs(error),
-      seasons_used: 'N/A', // Deprecated stat now that it's in DB
+      seasons_used: 'N/A',
       games_played: Number(targetStats.games_played) || 0,
       projection_method: projEntry.method,
     });
@@ -441,7 +346,7 @@ export async function fetchBacktestData(
 export async function fetchAndMergeProjectedData(
   projectionYear: number = DEFAULT_PROJECTION_YEAR
 ): Promise<ProjectedPlayer[]> {
-  const currentPlayers = await fetchAndMergeData();
+  const currentPlayers = await fetchPlayers();
 
   if (currentPlayers.length === 0) {
     throw new Error("Failed to fetch current players data for projection mapping");

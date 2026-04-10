@@ -54,7 +54,16 @@ update projections → projected salary → VORP → surplus value → arbitrati
 
 The feature projection system (see below) generates per-player PPG projections and stores them in `model_projections`. `promote.py` copies the active model's projections into `player_projections`, which is what the analysis pipeline reads.
 
-Shared config and DB helpers in `scripts/analysis_utils.py`. Five analysis scripts produce markdown reports in `reports/` (gitignored). VORP and surplus value expose `calculate_vorp()` and `calculate_surplus()` for import by downstream scripts. Arbitration simulation uses Monte Carlo methods to predict opponent spending patterns (100 runs with ±20% value variation per team).
+Shared config and DB helpers in `scripts/analysis_utils.py`. The Python analysis scripts (`analyze_*.py`) are **deprecated** — they generate markdown reports but duplicate calculations that now live canonically in the TypeScript web UI (`web/lib/vorp.ts`, `web/lib/surplus.ts`, `web/lib/arbitration.ts`, `web/lib/simulation.ts`). The Python scraper and projection pipelines remain active.
+
+### Web Data Access Layer
+
+All web data fetching goes through `web/lib/data.ts` — the single source of truth for assembling player data from Supabase. Key principles:
+
+- **Salary source of truth:** `league_prices` table for current views. Historical salary uses transaction replay (`roster-reconstruction.ts`).
+- **Type hierarchy:** `CorePlayer → RosteredPlayer → StatsPlayer → Player` — each layer adds data from a different source (players table → league_prices → player_stats).
+- **Calculations are TypeScript-only:** VORP, surplus, arbitration, and projected salary are computed in `web/lib/` and are the canonical implementations.
+- **Scoring formula:** `web/lib/scoring.ts` provides `calculateFantasyPoints()` — the Ottoneu Half PPR formula as a pure function of raw NFL stats.
 
 ### Key Metrics
 

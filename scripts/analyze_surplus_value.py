@@ -1,4 +1,9 @@
-"""Surplus value analysis — dollar value vs. salary for all players."""
+"""DEPRECATED: This script generates markdown reports that duplicate calculations now
+performed by the web UI (TypeScript). The web UI in web/lib/ is the canonical source
+of truth for VORP, surplus, arbitration, and projected salary calculations.
+This script is retained for reference only and may be removed in a future release.
+
+Surplus value analysis — dollar value vs. salary for all players."""
 
 import os
 import pandas as pd

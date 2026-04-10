@@ -25,6 +25,7 @@ import {
 /** Minimal valid Player with sensible defaults. */
 function makePlayer(overrides: Partial<Player> & { player_id: string; name: string; position: string }): Player {
     return {
+        ottoneu_id: 1,
         nfl_team: "BUF",
         price: 10,
         team_name: "Team A",
@@ -382,12 +383,14 @@ describe("allocateArbitrationBudget", () => {
                 const surplus = 50 - i * 10;
                 targets.push({
                     player_id: String(id++),
+                    ottoneu_id: id,
                     name: `P${id}-${team}`,
                     position: "WR",
                     nfl_team: "BUF",
                     price: 10,
                     team_name: team,
                     birth_date: null,
+                    is_college: false,
                     total_points: 100,
                     games_played: 10,
                     snaps: 200,
