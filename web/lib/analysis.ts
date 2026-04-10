@@ -22,7 +22,7 @@ export function getHistoricalSeasonsForYear(year: number): number[] {
 // === Data Fetching ===
 export async function fetchAndMergeData(): Promise<Player[]> {
   const [playersRes, statsRes, pricesRes] = await Promise.all([
-    supabase.from("players").select("*"),
+    supabase.from("players").select("*").gt("ottoneu_id", 0),
     supabase.from("player_stats").select("*").eq("season", SEASON),
     supabase
       .from("league_prices")
@@ -81,7 +81,7 @@ export async function fetchAndMergeData(): Promise<Player[]> {
  */
 export async function fetchPublicArbPlayers(): Promise<import("./types").PublicArbPlayer[]> {
   const [playersRes, statsRes, pricesRes] = await Promise.all([
-    supabase.from("players").select("*"),
+    supabase.from("players").select("*").gt("ottoneu_id", 0),
     supabase.from("player_stats").select("*").eq("season", SEASON),
     supabase.from("league_prices").select("*").eq("league_id", LEAGUE_ID),
   ]);
@@ -207,7 +207,7 @@ export async function fetchModelBacktestData(
   modelId: string
 ): Promise<BacktestPlayer[]> {
   const [playersRes, targetStatsRes, pricesRes] = await Promise.all([
-    supabase.from("players").select("id, name, position, nfl_team"),
+    supabase.from("players").select("id, name, position, nfl_team").gt("ottoneu_id", 0),
     supabase
       .from("player_stats")
       .select("player_id, ppg, games_played")
@@ -370,7 +370,7 @@ export async function fetchBacktestData(
 ): Promise<BacktestPlayer[]> {
   const [playersRes, targetStatsRes, pricesRes] =
     await Promise.all([
-      supabase.from("players").select("id, name, position, nfl_team"),
+      supabase.from("players").select("id, name, position, nfl_team").gt("ottoneu_id", 0),
       supabase
         .from("player_stats")
         .select("player_id, ppg, games_played")

@@ -22,7 +22,7 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from scripts.config import get_supabase_client
+from scripts.config import get_supabase_client, fetch_all_rows
 
 DEFAULT_SEASONS = list(range(2020, 2026))
 OUTPUT_PATH = Path(__file__).parent.parent / "data" / "qb_starters.json"
@@ -187,8 +187,8 @@ def seed_starters(seasons: list[int], dry_run: bool = False) -> dict:
     supabase = get_supabase_client()
 
     # Fetch player info
-    players_res = supabase.table("players").select("id, name, position, nfl_team").execute()
-    players_df = pd.DataFrame(players_res.data or [])
+    players_data = fetch_all_rows(supabase, "players", "id, name, position, nfl_team")
+    players_df = pd.DataFrame(players_data)
     qb_ids = set(players_df[players_df["position"] == "QB"]["id"].values)
     id_to_name = dict(zip(players_df["id"], players_df["name"]))
 

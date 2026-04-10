@@ -33,7 +33,7 @@ if script_dir not in sys.path:
 if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
-from config import get_supabase_client, POSITIONS, MIN_GAMES
+from config import get_supabase_client, fetch_all_rows, POSITIONS, MIN_GAMES
 from analysis_utils import fetch_multi_season_stats
 from scripts.feature_projections.features.weighted_ppg import WeightedPPGFeature
 from scripts.feature_projections.features.age_curve import (
@@ -87,10 +87,10 @@ def _precompute_base_projections(
     feature = WeightedPPGFeature()
 
     # Fetch players for position and birth_date
-    players_res = supabase.table("players").select("id, position, birth_date").execute()
+    players_data = fetch_all_rows(supabase, "players", "id, position, birth_date")
     pos_map = {}
     birth_map = {}
-    for row in (players_res.data or []):
+    for row in players_data:
         pos_map[row["id"]] = row["position"]
         if row.get("birth_date"):
             try:

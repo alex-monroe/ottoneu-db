@@ -24,7 +24,7 @@ if script_dir not in sys.path:
 if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
-from config import get_supabase_client, POSITIONS, MIN_GAMES
+from config import get_supabase_client, fetch_all_rows, POSITIONS, MIN_GAMES
 from scripts.feature_projections.backtest import _compute_metrics
 
 # Default models and seasons
@@ -151,8 +151,8 @@ def run_segment_analysis(
             raise ValueError(f"Model '{mn}' not found in projection_models table")
 
     # Fetch player info (once)
-    players_res = supabase.table("players").select("id, name, position, birth_date").execute()
-    player_info = {row["id"]: row for row in (players_res.data or [])}
+    players_data = fetch_all_rows(supabase, "players", "id, name, position, birth_date")
+    player_info = {row["id"]: row for row in players_data}
 
     # Collect tagged records: list of dicts with segment values + projected/actual
     # keyed by (segment_name) -> (segment_value, model) -> lists of (projected, actual)

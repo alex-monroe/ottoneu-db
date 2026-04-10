@@ -140,8 +140,8 @@ def load_rosters(year: int) -> pd.DataFrame | None:
 
 def build_player_lookup(supabase) -> dict[str, str]:
     """Fetch all players from DB and return normalized_name -> uuid dict."""
-    result = supabase.table("players").select("id, name").execute()
-    players = result.data or []
+    from scripts.config import fetch_all_rows
+    players = fetch_all_rows(supabase, "players", "id, name")
     lookup: dict[str, str] = {}
     for p in players:
         norm = normalize_player_name(p["name"])
@@ -151,8 +151,9 @@ def build_player_lookup(supabase) -> dict[str, str]:
 
 def build_ottoneu_id_set(supabase) -> set[int]:
     """Fetch all existing ottoneu_ids to avoid collisions."""
-    result = supabase.table("players").select("ottoneu_id").execute()
-    return {r["ottoneu_id"] for r in (result.data or [])}
+    from scripts.config import fetch_all_rows
+    rows = fetch_all_rows(supabase, "players", "ottoneu_id")
+    return {r["ottoneu_id"] for r in rows}
 
 
 # --- Core Logic ---

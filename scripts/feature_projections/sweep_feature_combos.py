@@ -27,7 +27,7 @@ if script_dir not in sys.path:
 if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
-from config import get_supabase_client, POSITIONS, MIN_GAMES
+from config import get_supabase_client, fetch_all_rows, POSITIONS, MIN_GAMES
 from analysis_utils import fetch_multi_season_stats
 from scripts.feature_projections.features import FEATURE_REGISTRY
 from scripts.feature_projections.features.base import ProjectionFeature
@@ -93,10 +93,8 @@ def _run_combo(
     all_features = [base_instance] + adj_instances
 
     # Fetch players table
-    players_res = supabase.table("players").select(
-        "id, position, nfl_team, birth_date, is_college"
-    ).execute()
-    players_df = pd.DataFrame(players_res.data or [])
+    players_data = fetch_all_rows(supabase, "players", "id, position, nfl_team, birth_date, is_college")
+    players_df = pd.DataFrame(players_data)
     players_df = players_df.rename(columns={"id": "player_id_ref"})
 
     pos_map = {row["player_id_ref"]: row["position"] for _, row in players_df.iterrows()}

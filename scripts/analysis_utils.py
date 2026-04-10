@@ -20,6 +20,7 @@ from config import (
     ARB_MAX_PER_PLAYER_PER_TEAM,
     ARB_MAX_PER_PLAYER_LEAGUE,
     get_supabase_client,
+    fetch_all_rows,
 )
 
 
@@ -34,7 +35,11 @@ def fetch_multi_season_stats(seasons: list[int]) -> pd.DataFrame:
     """
     supabase = get_supabase_client()
     print(f"Fetching multi-season stats for seasons {seasons}...")
-    res = supabase.table('player_stats').select('*').in_('season', seasons).execute()
+    # Select only Ottoneu-relevant columns; raw NFL stat columns live in nfl_stats
+    res = supabase.table('player_stats').select(
+        'player_id, season, total_points, games_played, snaps, ppg, pps, '
+        'h1_snaps, h1_games, h2_snaps, h2_games'
+    ).in_('season', seasons).execute()
     df = pd.DataFrame(res.data)
     if df.empty:
         return df
@@ -56,12 +61,12 @@ def fetch_all_data(season: int = SEASON) -> tuple[pd.DataFrame, pd.DataFrame, pd
 
     prices_res = supabase.table('league_prices').select('*').execute()
     stats_res = supabase.table('player_stats').select('*').eq('season', season).execute()
-    players_res = supabase.table('players').select('*').execute()
+    players_data = fetch_all_rows(supabase, 'players')
 
     return (
         pd.DataFrame(prices_res.data),
         pd.DataFrame(stats_res.data),
-        pd.DataFrame(players_res.data),
+        pd.DataFrame(players_data),
     )
 
 

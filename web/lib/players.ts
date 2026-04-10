@@ -9,6 +9,7 @@ export async function fetchAllPlayers(): Promise<PlayerListItem[]> {
     const { data: players } = await supabase
         .from("players")
         .select("id, ottoneu_id, name, position, nfl_team")
+        .gt("ottoneu_id", 0)
         .order("name");
 
     if (!players) return [];

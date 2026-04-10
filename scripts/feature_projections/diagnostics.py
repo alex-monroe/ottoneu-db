@@ -29,7 +29,7 @@ if script_dir not in sys.path:
 if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
-from config import get_supabase_client, MIN_GAMES, POSITIONS
+from config import get_supabase_client, fetch_all_rows, MIN_GAMES, POSITIONS
 from scripts.feature_projections.model_config import MODELS
 
 
@@ -144,8 +144,8 @@ def run_diagnostics(
     }
 
     # Fetch player info
-    players_res = supabase.table("players").select("id, name, position, nfl_team").execute()
-    player_info = {row["id"]: row for row in (players_res.data or [])}
+    players_data = fetch_all_rows(supabase, "players", "id, name, position, nfl_team")
+    player_info = {row["id"]: row for row in players_data}
 
     # Count seasons of data per player (for rookie detection)
     stats_res = (
