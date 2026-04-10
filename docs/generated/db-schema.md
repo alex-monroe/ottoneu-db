@@ -8,7 +8,7 @@ Seventeen tables, all with UUID primary keys.
 |-------|---------|-------------------|
 | `users` | User accounts with email/password auth | `email` |
 | `players` | Player metadata (includes `birth_date`, `is_college`) | `ottoneu_id` |
-| `player_stats` | Ottoneu fantasy season records AND raw NFL stats duplication (FK -> `players`) | `(player_id, season)` |
+| `player_stats` | Ottoneu fantasy season records (FK -> `players`) | `(player_id, season)` |
 | `nfl_stats` | Pure NFL stats from nflverse-data, 2010-present (FK -> `players`) | `(player_id, season)` |
 | `league_prices` | Current salaries (FK -> `players`) | `(player_id, league_id)` |
 | `transactions` | Event log of all roster moves (adds, cuts, trades, auctions) | -- |
@@ -55,8 +55,7 @@ Seventeen tables, all with UUID primary keys.
 
 ### `player_stats` columns
 
-Core fantasy columns: `games_played`, `snaps`, `ppg`, `pps`, `h1_snaps`, `h1_games`, `h2_snaps`, `h2_games`, `total_points`.
-*Note:* Due to migration history, this table also duplicates exactly all the raw NFL stat columns found in `nfl_stats` (`passing_yards`, `rushing_tds`, etc.).
+Ottoneu fantasy data only: `games_played`, `snaps`, `ppg`, `pps`, `h1_snaps`, `h1_games`, `h2_snaps`, `h2_games`, `total_points`. Raw NFL stat columns were removed in migration 021 — all NFL stats now live exclusively in `nfl_stats`.
 
 ### `nfl_stats` columns
 
@@ -64,10 +63,7 @@ Core stat columns: `games_played`, `passing_yards`, `passing_tds`, `interception
 
 ## Schema Files
 
-> [!WARNING]
-> The `schema.sql` file is significantly out-of-date and does not reflect recent migrations (such as internal stats for `player_stats` and projection tables). Treat the `migrations/` folder and the live database as the source of truth.
-
-- **Canonical schema:** `schema.sql` (OUT OF DATE)
+- **Canonical schema:** `schema.sql` (auto-generated via Supabase MCP)
 - **Migrations:** `migrations/` (numbered SQL migration files)
 - **Job queue:** `migrations/002_add_scraper_jobs.sql` defines the `scraper_jobs` table for the persistent job queue
 
