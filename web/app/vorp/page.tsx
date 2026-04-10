@@ -1,5 +1,4 @@
 import {
-  fetchAndMergeData,
   fetchProjectionMap,
   buildHoverDataMap,
   calculateVorp,
@@ -10,12 +9,13 @@ import {
   CAP_PER_TEAM,
   DEFAULT_PROJECTION_YEAR,
 } from "@/lib/analysis";
+import { fetchPlayersEndOfSeason } from "@/lib/data";
 import { getAuthenticatedUser } from "@/lib/auth";
 import VorpClient from "./VorpClient";
 
 export default async function VorpPage() {
   const [allPlayers, user] = await Promise.all([
-    fetchAndMergeData(),
+    fetchPlayersEndOfSeason(),
     getAuthenticatedUser(),
   ]);
   const { players, replacementPpg, replacementN } = calculateVorp(allPlayers);

@@ -1,4 +1,9 @@
-"""Arbitration simulation — predict how all teams will allocate arbitration budgets.
+"""DEPRECATED: This script generates markdown reports that duplicate calculations now
+performed by the web UI (TypeScript). The web UI in web/lib/ is the canonical source
+of truth for VORP, surplus, arbitration, and projected salary calculations.
+This script is retained for reference only and may be removed in a future release.
+
+Arbitration simulation — predict how all teams will allocate arbitration budgets.
 
 This analysis simulates independent decision-making by all 12 teams, where each team:
 1. Has slightly different value estimates for players (represents different evaluation philosophies)

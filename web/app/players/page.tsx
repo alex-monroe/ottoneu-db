@@ -1,4 +1,4 @@
-import { fetchAllPlayers } from "@/lib/players";
+import { fetchPlayerList } from "@/lib/data";
 import PlayerSearch from "@/components/PlayerSearch";
 
 export const revalidate = 3600; // Revalidate every hour
@@ -9,7 +9,7 @@ export const metadata = {
 };
 
 export default async function PlayersPage() {
-    const players = await fetchAllPlayers();
+    const players = await fetchPlayerList();
 
     return (
         <main className="min-h-screen bg-white dark:bg-black p-8">

@@ -5,6 +5,7 @@ import {
   buildHoverDataMap,
   analyzeArbitration,
   allocateArbitrationBudget,
+  fetchPlayersPreArb,
   ARB_BUDGET_PER_TEAM,
   ARB_MIN_PER_TEAM,
   ARB_MAX_PER_TEAM,
@@ -91,13 +92,13 @@ export default async function ArbitrationPage({ searchParams }: Props) {
     );
   }
 
-  // Fetch players based on mode
+  // Fetch players with pre-arbitration salaries (after auto bump, before arb results)
   let allPlayers;
   if (isProjected) {
-    allPlayers = await fetchAndMergeProjectedData(DEFAULT_PROJECTION_YEAR);
+    allPlayers = await fetchAndMergeProjectedData(DEFAULT_PROJECTION_YEAR, fetchPlayersPreArb);
   } else {
-    // Raw mode uses projected PPG as the base (same as before)
-    allPlayers = await fetchPlayersWithProjectedPpg();
+    // Raw mode uses projected PPG as the base
+    allPlayers = await fetchPlayersWithProjectedPpg(fetchPlayersPreArb);
   }
 
   const projMap = user?.hasProjectionsAccess

@@ -1,4 +1,10 @@
-"""Orchestrator — runs all analysis scripts in dependency order."""
+"""DEPRECATED: The analysis report generation steps in this orchestrator duplicate
+calculations now performed by the web UI (TypeScript). The web UI in web/lib/ is the
+canonical source of truth for VORP, surplus, arbitration, and projected salary
+calculations. The projection update step (update_projections.py) is NOT deprecated.
+This script is retained for reference only and may be removed in a future release.
+
+Orchestrator — runs all analysis scripts in dependency order."""
 
 import subprocess
 import sys

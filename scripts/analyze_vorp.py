@@ -1,4 +1,9 @@
-"""VORP (Value Over Replacement Player) analysis for positional scarcity."""
+"""DEPRECATED: This script generates markdown reports that duplicate calculations now
+performed by the web UI (TypeScript). The web UI in web/lib/ is the canonical source
+of truth for VORP, surplus, arbitration, and projected salary calculations.
+This script is retained for reference only and may be removed in a future release.
+
+VORP (Value Over Replacement Player) analysis for positional scarcity."""
 
 import os
 import pandas as pd

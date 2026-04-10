@@ -1,4 +1,9 @@
-"""Projected arbitration analysis — uses recency-weighted multi-year PPG projections.
+"""DEPRECATED: This script generates markdown reports that duplicate calculations now
+performed by the web UI (TypeScript). The web UI in web/lib/ is the canonical source
+of truth for VORP, surplus, arbitration, and projected salary calculations.
+This script is retained for reference only and may be removed in a future release.
+
+Projected arbitration analysis — uses recency-weighted multi-year PPG projections.
 
 Unlike analyze_arbitration.py (which uses observed current-season PPG), this script
 projects each player's future PPG via WeightedAveragePPG before running VORP → surplus

@@ -1,4 +1,4 @@
-import { fetchPlayerCard, fetchPlayerProjection } from "@/lib/players";
+import { fetchPlayerDetail, fetchPlayerProjection } from "@/lib/data";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -10,7 +10,7 @@ export async function generateMetadata({
     params: Promise<{ id: string }>;
 }) {
     const { id } = await params;
-    const player = await fetchPlayerCard(Number(id));
+    const player = await fetchPlayerDetail(Number(id));
     if (!player) return { title: "Player Not Found" };
     return {
         title: `${player.name} | Ottoneu Analytics`,
@@ -24,7 +24,7 @@ export default async function PlayerCardPage({
     params: Promise<{ id: string }>;
 }) {
     const { id } = await params;
-    const player = await fetchPlayerCard(Number(id));
+    const player = await fetchPlayerDetail(Number(id));
 
     if (!player) notFound();
 
