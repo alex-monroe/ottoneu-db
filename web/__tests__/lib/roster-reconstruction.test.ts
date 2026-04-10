@@ -141,6 +141,38 @@ describe("reconstructRostersAtDate", () => {
         const result = reconstructRostersAtDate(transactions, makePlayers(), makeStats(), "2025-12-01");
         expect(result).toHaveLength(3);
     });
+
+    it("uses league_prices for current salaries when targetDate is today", () => {
+        const today = new Date().toISOString().slice(0, 10);
+        const transactions = [
+            { player_id: "p1", transaction_type: "Add", team_name: "Team A", salary: 50, transaction_date: "2025-09-01" },
+            { player_id: "p2", transaction_type: "Add", team_name: "Team A", salary: 30, transaction_date: "2025-09-01" },
+        ];
+        const leaguePrices = [
+            { player_id: "p1", price: 54, team_name: "Team A" },
+            { player_id: "p2", price: 31, team_name: "Team B" }, // traded to Team B with new salary
+        ];
+        const result = reconstructRostersAtDate(transactions, makePlayers(), makeStats(), today, leaguePrices);
+        const teamA = getRosterForTeam(result, "Team A");
+        expect(teamA).toBeDefined();
+        expect(teamA!.players).toHaveLength(1);
+        expect(teamA!.players[0].salary).toBe(54); // league_prices salary, not transaction salary
+        const teamB = getRosterForTeam(result, "Team B");
+        expect(teamB).toBeDefined();
+        expect(teamB!.players[0].salary).toBe(31);
+    });
+
+    it("falls back to transaction replay for historical dates even with league_prices", () => {
+        const leaguePrices = [
+            { player_id: "p1", price: 54, team_name: "Team A" },
+        ];
+        const transactions = [
+            { player_id: "p1", transaction_type: "Add", team_name: "Team A", salary: 50, transaction_date: "2025-09-01" },
+        ];
+        const result = reconstructRostersAtDate(transactions, makePlayers(), makeStats(), "2025-10-01", leaguePrices);
+        const teamA = getRosterForTeam(result, "Team A");
+        expect(teamA!.players[0].salary).toBe(50); // transaction salary, not league_prices
+    });
 });
 
 // ---------------------------------------------------------------------------
