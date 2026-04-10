@@ -52,7 +52,7 @@ docs/
 ## Worktree Notes
 
 - **Python venv:** The virtualenv lives at the main repo's `venv/`, not in worktrees. In a worktree, use the absolute path `<main-repo>/venv/bin/python` instead of `source venv/bin/activate` or relative `venv/bin/python`. The `source venv/bin/activate` command will fail in worktrees.
-- **Production actions** (like `promote.py`) should run from the main repo after merging, not from a worktree, since they modify shared production data.
+- **Production actions** (like `scripts/feature_projections/promote.py`) should run from the main repo after merging, not from a worktree, since they modify shared production data.
 
 ## Python Style
 
@@ -85,7 +85,7 @@ Run `make check-arch` to validate these rules locally.
 
 ## Projection Model Update Requirements
 
-When any task modifies the projection system — including `scripts/feature_projections/`, `scripts/projection_methods.py`, `scripts/update_projections.py`, or `model_config.py` — you MUST:
+When any task modifies the projection system — including `scripts/feature_projections/`, `scripts/projection_methods.py`, `scripts/update_projections.py`, or `scripts/feature_projections/model_config.py` — you MUST:
 
 1. **Run the new model for ALL backtest seasons before calling `--run-backtest`.**
    The accuracy report covers seasons 2022–2025. If a new model is missing any of those seasons in `model_projections`, that season will show `—` in the table and the combined averages will be wrong. Run:
@@ -100,7 +100,7 @@ When any task modifies the projection system — including `scripts/feature_proj
    - The task output / conversation summary
    - The PR description body under a `## Projection Accuracy` section
 3. **Highlight improvements** — call out which metrics improved vs the baseline (`v1_baseline_weighted_ppg`) in the PR description narrative above the table.
-4. **Update UI methodology text** when changing `ACTIVE_MODEL` in `update_projections.py`. The pages `web/app/projections/page.tsx` and `web/app/arbitration/page.tsx` contain hardcoded methodology descriptions that must reflect the active model's feature set.
+4. **Update UI methodology text** when changing `ACTIVE_MODEL` in `scripts/update_projections.py`. The pages `web/app/projections/page.tsx` and `web/app/arbitration/page.tsx` contain hardcoded methodology descriptions that must reflect the active model's feature set.
 
 This ensures every projection change is empirically validated before merge.
 
@@ -129,4 +129,4 @@ Skipping step 2 will cause TypeScript errors like `Argument of type '"new_table"
 
 ### Supabase pagination
 
-Supabase's Python client defaults to a **1000-row limit** on `.execute()` calls. Any query that may return more than 1000 rows must use paginated `.range(offset, offset + page_size - 1)` fetching in a loop. This has already caused a silent bug in `promote.py` (now fixed). Apply the same pattern in any new bulk-fetch code.
+Supabase's Python client defaults to a **1000-row limit** on `.execute()` calls. Any query that may return more than 1000 rows must use paginated `.range(offset, offset + page_size - 1)` fetching in a loop. This has already caused a silent bug in `scripts/feature_projections/promote.py` (now fixed). Apply the same pattern in any new bulk-fetch code.
