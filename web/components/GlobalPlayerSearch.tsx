@@ -121,7 +121,7 @@ export default function GlobalPlayerSearch() {
                         if (query.trim() && results.length > 0) setIsOpen(true);
                     }}
                     onKeyDown={handleKeyDown}
-                    className="w-48 sm:w-64 pl-9 pr-8 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all focus:w-64 sm:focus:w-80"
+                    className="w-32 sm:w-48 md:w-64 pl-9 pr-8 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all focus:w-48 sm:focus:w-64 md:focus:w-80"
                     aria-label="Search players globally"
                 />
                 

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
-import { Lock, ExternalLink, ChevronDown, Shield } from "lucide-react";
+import { Lock, ExternalLink, ChevronDown, Shield, Menu, X } from "lucide-react";
 import GlobalPlayerSearch from "./GlobalPlayerSearch";
 
 const PUBLIC_LINKS = [
@@ -137,6 +137,12 @@ export default function Navigation({ isAuthenticated, isAdmin }: NavigationProps
   const pathname = usePathname();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -151,83 +157,73 @@ export default function Navigation({ isAuthenticated, isAdmin }: NavigationProps
     }
   };
 
+  const navLinkClass = (isActive: boolean) =>
+    `px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${
+      isActive
+        ? "bg-blue-600 text-white"
+        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
+    }`;
+
   return (
     <nav className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-black">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
+          {/* Left: hamburger (mobile) + nav links (desktop) */}
           <div className="flex items-center gap-1">
-            {/* Public links */}
-            {PUBLIC_LINKS.map((link) => {
-              const isActive = pathname === link.href;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${isActive
-                    ? "bg-blue-600 text-white"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
-                    }`}
-                >
+            {/* Hamburger button — mobile only */}
+            <button
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileMenuOpen}
+              className="md:hidden p-2 rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
+            >
+              {mobileMenuOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
+            </button>
+
+            {/* Desktop nav links */}
+            <div className="hidden md:flex items-center gap-1">
+              {PUBLIC_LINKS.map((link) => (
+                <Link key={link.href} href={link.href} className={navLinkClass(pathname === link.href)}>
                   {link.label}
                 </Link>
-              );
-            })}
-
-            {/* SOFA League external link */}
-            <a
-              href={SOFA_LEAGUE_LINK.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
-            >
-              {SOFA_LEAGUE_LINK.label}
-              <ExternalLink size={14} />
-            </a>
-
-            {/* Authenticated-only plain links (e.g. public Arb Planner) */}
-            {isAuthenticated &&
-              AUTHENTICATED_LINKS.map((link) => {
-                const isActive = pathname === link.href;
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${isActive
-                        ? "bg-blue-600 text-white"
-                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
-                      }`}
-                  >
-                    {link.label}
-                  </Link>
-                );
-              })}
-
-            {/* Protected dropdown groups (only if authenticated) */}
-            {isAuthenticated &&
-              PRIVATE_GROUPS.map((group) => (
-                <NavDropdown
-                  key={group.label}
-                  label={group.label}
-                  links={group.links}
-                  pathname={pathname}
-                />
               ))}
 
-            {/* Admin link */}
-            {isAdmin && (
-              <Link
-                href="/admin"
-                className={`inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${pathname === "/admin"
-                  ? "bg-blue-600 text-white"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
-                  }`}
+              <a
+                href={SOFA_LEAGUE_LINK.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
               >
-                <Shield size={12} className={pathname === "/admin" ? "opacity-80" : "opacity-60"} aria-hidden="true" />
-                Admin
-              </Link>
-            )}
+                {SOFA_LEAGUE_LINK.label}
+                <ExternalLink size={14} />
+              </a>
+
+              {isAuthenticated &&
+                AUTHENTICATED_LINKS.map((link) => (
+                  <Link key={link.href} href={link.href} className={navLinkClass(pathname === link.href)}>
+                    {link.label}
+                  </Link>
+                ))}
+
+              {isAuthenticated &&
+                PRIVATE_GROUPS.map((group) => (
+                  <NavDropdown key={group.label} label={group.label} links={group.links} pathname={pathname} />
+                ))}
+
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className={`inline-flex items-center gap-1 ${navLinkClass(pathname === "/admin")}`}
+                >
+                  <Shield size={12} className={pathname === "/admin" ? "opacity-80" : "opacity-60"} aria-hidden="true" />
+                  Admin
+                </Link>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-4">
+
+          {/* Right: search + auth — always visible */}
+          <div className="flex items-center gap-2 sm:gap-4">
             <GlobalPlayerSearch />
             {isAuthenticated ? (
               <button
@@ -259,6 +255,51 @@ export default function Navigation({ isAuthenticated, isAdmin }: NavigationProps
           </div>
         </div>
       </div>
+
+      {/* Mobile menu dropdown */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-black">
+          <div className="max-w-7xl mx-auto px-4 py-2 flex flex-col gap-1">
+            {PUBLIC_LINKS.map((link) => (
+              <Link key={link.href} href={link.href} className={navLinkClass(pathname === link.href)}>
+                {link.label}
+              </Link>
+            ))}
+
+            <a
+              href={SOFA_LEAGUE_LINK.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
+            >
+              {SOFA_LEAGUE_LINK.label}
+              <ExternalLink size={14} />
+            </a>
+
+            {isAuthenticated &&
+              AUTHENTICATED_LINKS.map((link) => (
+                <Link key={link.href} href={link.href} className={navLinkClass(pathname === link.href)}>
+                  {link.label}
+                </Link>
+              ))}
+
+            {isAuthenticated &&
+              PRIVATE_GROUPS.map((group) => (
+                <NavDropdown key={group.label} label={group.label} links={group.links} pathname={pathname} />
+              ))}
+
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className={`inline-flex items-center gap-1 ${navLinkClass(pathname === "/admin")}`}
+              >
+                <Shield size={12} className={pathname === "/admin" ? "opacity-80" : "opacity-60"} aria-hidden="true" />
+                Admin
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
