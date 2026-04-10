@@ -164,7 +164,9 @@ class TestConfigSync:
     def test_python_consumes_all_json_keys(self):
         json_keys = self._get_json_keys()
         py_keys = self._get_python_config_keys()
-        missing = json_keys - py_keys
+        # Keys used only by the TypeScript frontend (not needed in Python)
+        frontend_only = {"SEASON_END_DATE", "PRE_ARB_DATE"}
+        missing = json_keys - py_keys - frontend_only
         assert not missing, (
             f"config.json keys not consumed in scripts/config.py: {missing}\n"
             "FIX: Add `CONSTANT = _config[\"KEY\"]` to scripts/config.py for each missing key.\n"
