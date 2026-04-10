@@ -22,14 +22,15 @@ export default function RostersClient({
   transactions,
   players,
   stats,
+  leaguePrices,
   hoverDataMap,
 }: RosterData & { hoverDataMap?: Record<string, PlayerHoverData> | null }) {
   const { min, max } = getDateRange();
-  const [selectedDate, setSelectedDate] = useState("2025-12-10");
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
 
   const rosters = useMemo(
-    () => reconstructRostersAtDate(transactions, players, stats, selectedDate),
-    [transactions, players, stats, selectedDate]
+    () => reconstructRostersAtDate(transactions, players, stats, selectedDate, leaguePrices),
+    [transactions, players, stats, selectedDate, leaguePrices]
   );
 
   const totalCapUsed = rosters.reduce((sum, r) => sum + r.total_salary, 0);

@@ -52,16 +52,23 @@ interface RawStats {
   snaps: number | null;
 }
 
+interface RawLeaguePrice {
+  player_id: string;
+  price: number | null;
+  team_name: string | null;
+}
+
 export interface RosterData {
   transactions: RawTransaction[];
   players: RawPlayer[];
   stats: RawStats[];
+  leaguePrices: RawLeaguePrice[];
 }
 
 // === Data Fetching ===
 
 export async function fetchRosterData(): Promise<RosterData> {
-  const [txnRes, playersRes, statsRes] = await Promise.all([
+  const [txnRes, playersRes, statsRes, pricesRes] = await Promise.all([
     supabase
       .from("transactions")
       .select("player_id, transaction_type, team_name, salary, transaction_date")
@@ -73,12 +80,17 @@ export async function fetchRosterData(): Promise<RosterData> {
       .from("player_stats")
       .select("player_id, ppg, pps, games_played, snaps")
       .eq("season", SEASON),
+    supabase
+      .from("league_prices")
+      .select("player_id, price, team_name")
+      .eq("league_id", LEAGUE_ID),
   ]);
 
   return {
     transactions: (txnRes.data as RawTransaction[]) ?? [],
     players: (playersRes.data as RawPlayer[]) ?? [],
     stats: (statsRes.data as RawStats[]) ?? [],
+    leaguePrices: (pricesRes.data as RawLeaguePrice[]) ?? [],
   };
 }
 
@@ -95,8 +107,74 @@ export function reconstructRostersAtDate(
   transactions: RawTransaction[],
   players: RawPlayer[],
   stats: RawStats[],
-  targetDate: string
+  targetDate: string,
+  leaguePrices?: RawLeaguePrice[]
 ): TeamRoster[] {
+  const today = new Date().toISOString().slice(0, 10);
+  const useCurrentPrices = targetDate >= today && leaguePrices && leaguePrices.length > 0;
+
+  // If viewing current rosters, use league_prices as the source of truth
+  if (useCurrentPrices) {
+    const playerMap = new Map<string, RawPlayer>(players.map((p) => [p.id, p]));
+    const statsMap = new Map<string, RawStats>(stats.map((s) => [s.player_id, s]));
+
+    // Find the latest transaction per player for acquired_date/acquisition_type
+    const latestTxnMap = new Map<string, { acquired_date: string; acquisition_type: string }>();
+    for (const txn of transactions) {
+      if (!txn.transaction_date) continue;
+      const type = txn.transaction_type.toLowerCase();
+      if (type.includes("cut") || type.includes("drop")) continue;
+      const existing = latestTxnMap.get(txn.player_id);
+      if (!existing || txn.transaction_date >= existing.acquired_date) {
+        latestTxnMap.set(txn.player_id, {
+          acquired_date: txn.transaction_date,
+          acquisition_type: txn.transaction_type,
+        });
+      }
+    }
+
+    const teamMap = new Map<string, RosterEntry[]>();
+    for (const lp of leaguePrices) {
+      if (!lp.team_name || lp.price == null) continue;
+      const player = playerMap.get(lp.player_id);
+      if (!player) continue;
+      const pStats = statsMap.get(lp.player_id);
+      const txnInfo = latestTxnMap.get(lp.player_id);
+
+      const entry: RosterEntry = {
+        player_id: lp.player_id,
+        ottoneu_id: player.ottoneu_id,
+        name: player.name,
+        position: player.position,
+        nfl_team: player.nfl_team,
+        salary: lp.price,
+        acquired_date: txnInfo?.acquired_date ?? "",
+        acquisition_type: txnInfo?.acquisition_type ?? "",
+        ppg: pStats?.ppg ?? null,
+        pps: pStats?.pps ?? null,
+        games_played: pStats?.games_played ?? null,
+        snaps: pStats?.snaps ?? null,
+      };
+
+      const list = teamMap.get(lp.team_name) ?? [];
+      list.push(entry);
+      teamMap.set(lp.team_name, list);
+    }
+
+    return Array.from(teamMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([team_name, players]) => {
+        const total_salary = players.reduce((sum, p) => sum + p.salary, 0);
+        return {
+          team_name,
+          players: players.sort((a, b) => a.name.localeCompare(b.name)),
+          total_salary,
+          cap_space: CAP_PER_TEAM - total_salary,
+        };
+      });
+  }
+
+  // Historical reconstruction: replay transactions up to targetDate
   const playerStateMap = new Map<string, PlayerState>();
 
   for (const txn of transactions) {
