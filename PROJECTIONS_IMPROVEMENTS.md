@@ -34,7 +34,7 @@ The database already stores rich historical data like `birth_date`, positional i
 
 ### 6. Workload Sustainability Discount
 **Problem:** RBs who carry the ball 300+ times are statistically prone to injury or efficiency decline the following year (the "Curse of 370").
-**Proposal:** Pull `rushing_attempts` from the `player_stats` table; if an RB exceeded 280-300 carries the previous year, apply a small workload discount to their projection.
+**Proposal:** Pull `rushing_attempts` from the `nfl_stats` table; if an RB exceeded 280-300 carries the previous year, apply a small workload discount to their projection.
 
 ---
 
