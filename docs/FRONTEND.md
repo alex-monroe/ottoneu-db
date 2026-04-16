@@ -42,3 +42,11 @@ Analysis math is ported to `web/lib/analysis.ts` (TS equivalent of `scripts/anal
 ## Configuration
 
 Frontend constants in `web/lib/config.ts` — **must stay in sync with `scripts/config.py`**.
+
+## Troubleshooting
+
+### Local Development & Playwright Verification
+If running the Next.js development server (e.g., `npm run dev > npm_output.log &`) for Playwright verification, ensure previous instances are terminated to avoid port conflicts (e.g., `kill $(lsof -t -i :3000) 2>/dev/null || true`).
+
+### Next.js Cache Errors
+If `npm run dev` fails with Turbopack caching errors such as "Persisting failed..." or "Unable to acquire lock at .next/dev/lock", resolve it by explicitly clearing the cache directory (`rm -rf web/.next`) before restarting the server.

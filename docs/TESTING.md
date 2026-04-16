@@ -4,6 +4,7 @@
 
 - **Location:** `scripts/tests/`
 - **Config:** `pyproject.toml` (or `scripts/pytest.ini`)
+- **Dependencies:** Requires `pytest-cov` installed in the venv (as `pytest.ini` enforces coverage checks).
 - **Venv path:** `venv/` (not `.venv/`) — activate with `source venv/bin/activate`
 - **Run:** `python -m pytest` from project root (venv must be active), or directly via `venv/bin/pytest`
 
