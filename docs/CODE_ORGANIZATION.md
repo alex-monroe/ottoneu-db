@@ -9,7 +9,7 @@
 | TS types | `web/lib/types.ts` | All shared TypeScript interfaces (`CorePlayer → RosteredPlayer → StatsPlayer → Player`) |
 | Data layer | `web/lib/data.ts` | **Unified data access** — all Supabase fetching goes through here |
 | Scoring | `web/lib/scoring.ts` | Ottoneu Half PPR scoring formula (`calculateFantasyPoints`) |
-| Analysis math | `web/lib/analysis.ts` | Projection-enriched data + backtest fetching (builds on `data.ts`) |
+| Analysis math | `web/lib/analysis.ts` | Projection-enriched data + backtest fetching (builds on `web/lib/data.ts`) |
 | Arb logic | `web/lib/arb-logic.ts` | Arbitration simulation logic |
 | DB schema | `schema.sql` | Canonical schema definition |
 | Migrations | `migrations/` | Numbered SQL migration files |
