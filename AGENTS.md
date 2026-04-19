@@ -38,9 +38,11 @@ docs/
 ├── exec-plans/
 │   ├── [feature-projections.md](docs/exec-plans/feature-projections.md)         # Feature-based player projection system
 │   ├── [market-projections.md](docs/exec-plans/market-projections.md)          # Market-based projection system implementation plan
+│   ├── [projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md)  # 4-phase accuracy improvement roadmap
 │   └── [qb-usage-share.md](docs/exec-plans/qb-usage-share.md)              # QB Usage Share findings and next steps
 ├── generated/
 │   ├── [db-schema.md](docs/generated/db-schema.md)                   # Database tables, keys, relationships
+│   ├── [experiment-log.md](docs/generated/experiment-log.md)              # History of all model iteration attempts
 │   ├── [player-diagnostics.md](docs/generated/player-diagnostics.md)          # Per-player backtest diagnostics
 │   ├── [projection-accuracy.md](docs/generated/projection-accuracy.md)         # Projection model accuracy report
 │   └── [segment-analysis.md](docs/generated/segment-analysis.md)            # Segmented projection accuracy analysis

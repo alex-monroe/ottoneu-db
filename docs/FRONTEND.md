@@ -2,19 +2,28 @@
 
 ## Structure
 
-Next.js App Router with five pages. All pages are server components that fetch live data from Supabase (revalidate every hour) with client wrappers for interactivity.
+Next.js App Router. Most pages are server components that fetch live data from Supabase (revalidate every hour) with client wrappers for interactivity. Shared nav structure (see `web/components/Navigation.tsx`) groups routes into top-level pages, Projections, Value, and Arbitration menus.
 
 ## Routes
 
 | Route | Description |
 |-------|-------------|
 | `/` | Player Efficiency scatter chart (PPG/PPS vs salary) |
+| `/players` | Searchable player directory |
+| `/rosters` | League-wide roster view |
+| `/arb-progress` | Public arbitration progress: team completion status and allocation details |
+| `/arb-planner-public` | Public (read-only) arbitration planner view |
 | `/projected-salary` | Keep vs cut decisions for The Witchcraft |
+| `/projections` | Player projections table (reads `player_projections`) |
+| `/projection-accuracy` | Model backtest accuracy explorer |
 | `/vorp` | VORP analysis with bar chart and filterable table |
 | `/surplus-value` | Surplus value rankings, bargains, overpaid, team summaries |
+| `/surplus-adjustments` | Per-user manual value overrides (auth required) |
 | `/arbitration` | Arbitration targets with per-opponent breakdown |
-| `/arbitration-planner` | Plan and save arbitration budget allocations |
-| `/arb-progress` | Public arbitration progress: team completion status and allocation details |
+| `/arbitration-simulation` | Monte Carlo arbitration simulation |
+| `/arbitration-planner` | Plan and save arbitration budget allocations (auth required) |
+| `/login` | Email/password login |
+| `/admin` | User management (admin only) |
 
 ## Reusable Components
 
