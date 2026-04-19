@@ -16,6 +16,8 @@ npm start            # Production server
 
 ## Backend (run from project root, venv must be active)
 
+> **Prefer `just` recipes** for consistency. Use the raw commands below as reference, or when running outside the repo root.
+
 All Python commands below assume the venv is activated. If running without activation, use `venv/bin/python` instead of `python`.
 
 ```bash
@@ -88,17 +90,37 @@ streamlit run scripts/visualize_app.py               # Streamlit dashboard
 python -m pytest                                     # Run all Python tests
 ```
 
-## Makefile Shortcuts
+## just Recipes
+
+Install `just` once with `brew install just`, then run any recipe from the repo root:
 
 ```bash
-make test          # Run all tests (Python + web)
-make lint          # ESLint
-make typecheck     # TypeScript type check
-make build         # Production build
-make dev           # Start dev server
-make check-arch    # Run architectural/structural tests only
-make check-docs    # Check documentation freshness
-make ci            # Full CI suite (lint + typecheck + tests + doc checks)
+just                    # List all recipes
+just install            # Install all dependencies (Python + Node)
+just dev                # Start Next.js dev server on localhost:3000
+just build              # Production build
+just lint               # ESLint
+just typecheck          # TypeScript type check
+just test               # Run all tests (Python + web)
+just test-python        # Python tests with coverage
+just test-web           # Jest tests with coverage
+just scrape             # Full scrape pipeline
+just analyze            # Run all analysis scripts
+just check-db           # Verify database contents
+just check-arch         # Architectural/structural tests only
+just check-docs         # Documentation freshness check
+just ci                 # Full CI suite (lint + typecheck + tests + doc checks)
+
+# Projection CLI
+just list-models                                    # List available models
+just project <model> [seasons]                      # Generate projections
+just backtest <model> [seasons]                     # Backtest against actuals
+just train <model> [seasons]                        # Train a learned model
+just promote <model>                                # Promote model to production
+just compare <models> [season]                      # Compare two or more models
+just diagnostics [--model <m>] [--season <s>] ...  # Per-player diagnostics
+just segment-analysis [--segments <s>] ...          # Segmented accuracy analysis
+just accuracy-report [--run-backtest] ...           # Generate accuracy report
 ```
 
 ## Daily Scheduling (cron)
