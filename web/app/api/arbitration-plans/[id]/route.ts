@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { parseJson } from "@/lib/validate";
+import { UpdatePlanSchema } from "@/lib/schemas/arbitration-plan";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -58,7 +60,9 @@ export async function PUT(req: NextRequest, context: RouteContext) {
   }
   if (plan.user_id !== user.userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { name, notes, allocations } = await req.json();
+  const parsed = await parseJson(req, UpdatePlanSchema);
+  if (!parsed.ok) return parsed.response;
+  const { name, notes, allocations } = parsed.data;
 
   // Update plan metadata
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -78,7 +82,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
   }
 
   // Upsert allocations if provided
-  if (allocations && typeof allocations === "object") {
+  if (allocations) {
     const { error: delError } = await getSupabaseAdmin()
       .from("arbitration_plan_allocations")
       .delete()
@@ -86,7 +90,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
 
     if (delError) return NextResponse.json({ error: delError.message }, { status: 500 });
 
-    const rows = Object.entries(allocations as Record<string, number>)
+    const rows = Object.entries(allocations)
       .filter(([, amount]) => amount > 0)
       .map(([player_id, amount]) => ({
         plan_id: id,

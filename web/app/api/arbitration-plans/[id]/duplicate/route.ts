@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { LEAGUE_ID } from "@/lib/arb-logic";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { parseJson } from "@/lib/validate";
+import { DuplicatePlanSchema } from "@/lib/schemas/arbitration-plan";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -12,11 +14,9 @@ export async function POST(req: NextRequest, context: RouteContext) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await context.params;
-  const { name } = await req.json();
-
-  if (!name || typeof name !== "string" || name.trim().length === 0) {
-    return NextResponse.json({ error: "Name is required" }, { status: 400 });
-  }
+  const parsed = await parseJson(req, DuplicatePlanSchema);
+  if (!parsed.ok) return parsed.response;
+  const { name } = parsed.data;
 
   // Verify ownership of source plan
   const { data: sourcePlan, error: fetchError } = await getSupabaseAdmin()
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
   // Create new plan
   const { data: newPlan, error: planError } = await getSupabaseAdmin()
     .from("arbitration_plans")
-    .insert({ league_id: LEAGUE_ID, user_id: user.userId, name: name.trim() })
+    .insert({ league_id: LEAGUE_ID, user_id: user.userId, name })
     .select("id, name, notes, created_at, updated_at")
     .single();
 

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { LEAGUE_ID } from "@/lib/arb-logic";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { parseJson } from "@/lib/validate";
+import { SurplusAdjustmentsArraySchema } from "@/lib/schemas/surplus-adjustment";
 
 export async function GET() {
   const user = await getAuthenticatedUser();
@@ -17,19 +19,14 @@ export async function GET() {
   return NextResponse.json(data ?? []);
 }
 
-interface AdjustmentRow {
-  player_id: string;
-  adjustment: number;
-  notes?: string;
-}
-
 export async function POST(req: NextRequest) {
   const user = await getAuthenticatedUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body: AdjustmentRow[] = await req.json();
+  const parsed = await parseJson(req, SurplusAdjustmentsArraySchema);
+  if (!parsed.ok) return parsed.response;
 
-  const rows = body.map((item) => ({
+  const rows = parsed.data.map((item) => ({
     player_id: item.player_id,
     league_id: LEAGUE_ID,
     user_id: user.userId,

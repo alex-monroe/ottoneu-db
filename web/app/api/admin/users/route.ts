@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { parseJson } from "@/lib/validate";
+import { CreateUserSchema } from "@/lib/schemas/user";
 
 export async function GET() {
   const user = await getAuthenticatedUser();
@@ -22,26 +24,16 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!user.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { email, password, has_projections_access } = await req.json();
-
-  if (!email || !password) {
-    return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
-  }
-
-  if (password.length < 6) {
-    return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
-  }
-
-  if (password.length > 72) {
-    return NextResponse.json({ error: "Password must be at most 72 characters" }, { status: 400 });
-  }
+  const parsed = await parseJson(req, CreateUserSchema);
+  if (!parsed.ok) return parsed.response;
+  const { email, password, has_projections_access } = parsed.data;
 
   const password_hash = await bcrypt.hash(password, 12);
 
   const { data, error } = await getSupabaseAdmin()
     .from("users")
     .insert({
-      email: email.toLowerCase().trim(),
+      email,
       password_hash,
       has_projections_access: has_projections_access ?? false,
     })

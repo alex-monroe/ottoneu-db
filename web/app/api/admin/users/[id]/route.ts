@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { parseJson } from "@/lib/validate";
+import { UpdateUserSchema } from "@/lib/schemas/user";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -12,7 +14,9 @@ export async function PUT(req: NextRequest, context: RouteContext) {
   if (!user.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await context.params;
-  const { has_projections_access } = await req.json();
+  const parsed = await parseJson(req, UpdateUserSchema);
+  if (!parsed.ok) return parsed.response;
+  const { has_projections_access } = parsed.data;
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (has_projections_access !== undefined) updates.has_projections_access = has_projections_access;

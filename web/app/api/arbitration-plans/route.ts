@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { LEAGUE_ID } from "@/lib/arb-logic";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { parseJson } from "@/lib/validate";
+import { CreatePlanSchema } from "@/lib/schemas/arbitration-plan";
 
 export async function GET() {
   const user = await getAuthenticatedUser();
@@ -22,15 +24,13 @@ export async function POST(req: NextRequest) {
   const user = await getAuthenticatedUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { name, notes } = await req.json();
-
-  if (!name || typeof name !== "string" || name.trim().length === 0) {
-    return NextResponse.json({ error: "Name is required" }, { status: 400 });
-  }
+  const parsed = await parseJson(req, CreatePlanSchema);
+  if (!parsed.ok) return parsed.response;
+  const { name, notes } = parsed.data;
 
   const { data, error } = await getSupabaseAdmin()
     .from("arbitration_plans")
-    .insert({ league_id: LEAGUE_ID, user_id: user.userId, name: name.trim(), notes: notes ?? null })
+    .insert({ league_id: LEAGUE_ID, user_id: user.userId, name, notes: notes ?? null })
     .select("id, name, notes, created_at, updated_at")
     .single();
 
