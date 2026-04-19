@@ -1,0 +1,85 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(just:*)",
+      "Bash(brew install just)",
+      "Bash(git:*)",
+      "Bash(git -C /Users/alexmonroe/dev/ottoneu_db log --oneline -15)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh pr close:*)",
+      "Bash(gh pr edit:*)",
+      "Bash(gh repo view:*)",
+      "Bash(gh api:*)",
+      "Bash(gh issue:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh label:*)",
+      "Bash(gh run:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Bash(gh workflow:*)",
+      "Bash(gh auth:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(grep:*)",
+      "Bash(wc:*)",
+      "Bash(jq:*)",
+      "Bash(find:*)",
+      "Bash(psql:*)",
+      "Bash(supabase --version:*)",
+      "WebSearch",
+      "WebFetch(domain:ottoneu.fangraphs.com)",
+      "WebFetch(domain:community.ottoneu.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.rotowire.com)",
+      "WebFetch(domain:www.fantasypros.com)",
+      "WebFetch(domain:g.espncdn.com)",
+      "WebFetch(domain:openai.com)",
+      "mcp__filesystem__list_directory",
+      "mcp__filesystem__directory_tree",
+      "mcp__filesystem__write_file",
+      "mcp__filesystem__read_text_file",
+      "mcp__filesystem__read_multiple_files",
+      "mcp__filesystem__create_directory",
+      "mcp__filesystem__list_allowed_directories",
+      "mcp__supabase__list_projects",
+      "mcp__supabase__list_migrations",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__apply_migration",
+      "mcp__supabase__get_advisors",
+      "mcp__supabase__search_docs",
+      "mcp__supabase__get_publishable_keys",
+      "mcp__github__get_issue",
+      "mcp__github__create_pull_request",
+      "mcp__github__add_issue_comment",
+      "mcp__github__create_issue",
+      "mcp__github__get_pull_request_status",
+      "Read(//private/tmp/**)",
+      "Read(//Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/bin/**)",
+      "Skill(update-config)"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "filesystem",
+    "supabase",
+    "puppeteer",
+    "github"
+  ],
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /Users/alexmonroe/dev/ottoneu_db && git checkout main && git pull origin main 2>/dev/null || true",
+            "timeout": 30,
+            "statusMessage": "Updating from main..."
+          }
+        ]
+      }
+    ]
+  }
+}
