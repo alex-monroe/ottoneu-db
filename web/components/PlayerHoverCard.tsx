@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import * as HoverCard from "@radix-ui/react-hover-card";
-import type { Column, PlayerHoverData, Position } from "@/lib/types";
-import { POSITION_COLORS } from "@/lib/types";
+import type { Column, PlayerHoverData } from "@/lib/types";
+import PositionBadge from "./PositionBadge";
 
 interface PlayerHoverCardProps {
   name: string;
@@ -16,11 +16,6 @@ export default function PlayerHoverCard({
   ottoneuId,
   hoverData,
 }: PlayerHoverCardProps) {
-  const posColor =
-    hoverData
-      ? POSITION_COLORS[hoverData.position as Position] ?? "#6B7280"
-      : "#6B7280";
-
   return (
     <HoverCard.Root openDelay={200} closeDelay={100}>
       <HoverCard.Trigger asChild>
@@ -43,12 +38,7 @@ export default function PlayerHoverCard({
             <div className="space-y-2">
               {/* Header: Name + Position + Team */}
               <div className="flex items-center gap-2">
-                <span
-                  className="px-1.5 py-0.5 rounded text-[10px] font-bold text-white"
-                  style={{ backgroundColor: posColor }}
-                >
-                  {hoverData.position}
-                </span>
+                <PositionBadge position={hoverData.position} size="sm" />
                 <span className="font-semibold text-sm text-slate-900 dark:text-white truncate">
                   {name}
                 </span>

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { POSITION_COLORS, Position } from "@/lib/types";
+import PositionBadge from "@/components/PositionBadge";
 
 interface SearchResult {
     id: string;
@@ -165,15 +165,7 @@ export default function GlobalPlayerSearch() {
                                             {player.nfl_team}
                                         </span>
                                     </div>
-                                    <span
-                                        className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold text-white shadow-sm"
-                                        style={{
-                                            backgroundColor:
-                                                POSITION_COLORS[player.position as Position] ?? "#6B7280",
-                                        }}
-                                    >
-                                        {player.position}
-                                    </span>
+                                    <PositionBadge position={player.position} size="sm" />
                                 </li>
                             ))}
                         </ul>

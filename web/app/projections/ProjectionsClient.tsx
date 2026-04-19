@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { POSITIONS, PROJECTION_YEARS, SEASON } from "@/lib/analysis";
 import PositionFilter from "@/components/PositionFilter";
 import ProjectionYearSelector from "@/components/ProjectionYearSelector";
-import { Position } from "@/lib/types";
+import DataTable from "@/components/DataTable";
+import PlayerName from "@/components/PlayerName";
+import PositionBadge from "@/components/PositionBadge";
+import type { Column, Position } from "@/lib/types";
 
 export interface ProjectionRow {
   player_id: string;
@@ -22,11 +24,58 @@ export interface ProjectionRow {
   [key: string]: string | number | null | undefined;
 }
 
-type SortKey = keyof Omit<ProjectionRow, "[key: string]">;
-
 interface Props {
   initialData: ProjectionRow[];
   projectionYear: number;
+}
+
+/** Rookie/College badge components for the player name cell. */
+function ProjectionBadges({ method }: { method: string }) {
+  if (method === "rookie_trajectory") {
+    return (
+      <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+        Rookie
+      </span>
+    );
+  }
+  if (method === "college_prospect") {
+    return (
+      <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300">
+        College
+      </span>
+    );
+  }
+  return null;
+}
+
+function getProjectionColumns(projectionYear: number): Column<ProjectionRow>[] {
+  return [
+    {
+      key: "name",
+      label: "Player",
+      renderCell: (value: unknown, row: ProjectionRow) => (
+        <PlayerName
+          name={String(value ?? "—")}
+          ottoneuId={row.ottoneu_id}
+          mode={row.ottoneu_id ? "link" : "plain"}
+          badges={<ProjectionBadges method={row.projection_method} />}
+        />
+      ),
+    },
+    {
+      key: "position",
+      label: "Pos",
+      renderCell: (value: unknown) => (
+        <PositionBadge position={String(value ?? "")} />
+      ),
+    },
+    { key: "nfl_team", label: "Team" },
+    { key: "team_name", label: "Owner" },
+    { key: "price", label: "Salary", format: "currency" },
+    { key: "observed_ppg", label: `${SEASON} PPG`, format: "decimal" },
+    { key: "projected_ppg", label: `Proj ${projectionYear}`, format: "decimal" },
+    { key: "ppg_delta", label: `Δ ${projectionYear} vs ${SEASON}`, format: "decimal" },
+  ];
 }
 
 export default function ProjectionsClient({ initialData, projectionYear }: Props) {
@@ -48,39 +97,10 @@ export default function ProjectionsClient({ initialData, projectionYear }: Props
     );
   };
 
-  const handleSort = (key: string) => {
-    if (sortKey === key) {
-      setSortAsc(!sortAsc);
-    } else {
-      setSortKey(key);
-      setSortAsc(false); // numeric columns default to desc
-    }
-  };
-
   const filteredData = initialData
-    .filter((p) => selectedPositions.includes(p.position as Position))
-    .sort((a, b) => {
-      const av = a[sortKey as SortKey];
-      const bv = b[sortKey as SortKey];
-      if (av == null && bv == null) return 0;
-      if (av == null) return 1;
-      if (bv == null) return -1;
-      if (typeof av === "number" && typeof bv === "number") {
-        return sortAsc ? av - bv : bv - av;
-      }
-      const as = String(av);
-      const bs = String(bv);
-      return sortAsc ? as.localeCompare(bs) : bs.localeCompare(as);
-    });
+    .filter((p) => selectedPositions.includes(p.position as Position));
 
-  const thClass =
-    "px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-300 cursor-pointer select-none whitespace-nowrap hover:bg-slate-200 dark:hover:bg-slate-700";
-  const tdClass = "px-3 py-2 text-slate-800 dark:text-slate-200 whitespace-nowrap";
-
-  const sortIndicator = (key: string) =>
-    sortKey === key ? (
-      <span className="ml-1">{sortAsc ? "▲" : "▼"}</span>
-    ) : null;
+  const columns = getProjectionColumns(projectionYear);
 
   return (
     <section>
@@ -98,104 +118,18 @@ export default function ProjectionsClient({ initialData, projectionYear }: Props
         />
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="bg-slate-100 dark:bg-slate-800">
-              <th className={thClass} onClick={() => handleSort("name")}>
-                Player{sortIndicator("name")}
-              </th>
-              <th className={thClass} onClick={() => handleSort("position")}>
-                Pos{sortIndicator("position")}
-              </th>
-              <th className={thClass} onClick={() => handleSort("nfl_team")}>
-                Team{sortIndicator("nfl_team")}
-              </th>
-              <th className={thClass} onClick={() => handleSort("team_name")}>
-                Owner{sortIndicator("team_name")}
-              </th>
-              <th className={thClass} onClick={() => handleSort("price")}>
-                Salary{sortIndicator("price")}
-              </th>
-              <th className={thClass} onClick={() => handleSort("observed_ppg")}>
-                {SEASON} PPG{sortIndicator("observed_ppg")}
-              </th>
-              <th className={thClass} onClick={() => handleSort("projected_ppg")}>
-                Proj {projectionYear}{sortIndicator("projected_ppg")}
-              </th>
-              <th className={thClass} onClick={() => handleSort("ppg_delta")}>
-                Δ {projectionYear} vs {SEASON}{sortIndicator("ppg_delta")}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredData.map((row, i) => {
-              const delta = row.ppg_delta;
-              const isOutperform = typeof delta === "number" && delta >= 1.5;
-              const isUnderperform = typeof delta === "number" && delta <= -1.5;
-              const rowBg = isOutperform
-                ? "bg-green-50 dark:bg-green-950"
-                : isUnderperform
-                ? "bg-red-50 dark:bg-red-950"
-                : i % 2 === 0
-                ? "bg-white dark:bg-slate-950"
-                : "bg-slate-50 dark:bg-slate-900";
-
-              const isRookie = row.projection_method === "rookie_trajectory";
-              const isCollege = row.projection_method === "college_prospect";
-
-              return (
-                <tr
-                  key={i}
-                  className={`border-t border-slate-100 dark:border-slate-800 ${rowBg}`}
-                >
-                  <td className={tdClass}>
-                    {row.ottoneu_id ? (
-                      <Link
-                        href={`/players/${row.ottoneu_id}`}
-                        className="text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        {row.name}
-                      </Link>
-                    ) : (
-                      row.name
-                    )}
-                    {isRookie && (
-                      <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-                        Rookie
-                      </span>
-                    )}
-                    {isCollege && (
-                      <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300">
-                        College
-                      </span>
-                    )}
-                  </td>
-                  <td className={tdClass}>{row.position}</td>
-                  <td className={tdClass}>{row.nfl_team}</td>
-                  <td className={tdClass}>{row.team_name}</td>
-                  <td className={tdClass}>${row.price}</td>
-                  <td className={tdClass}>
-                    {typeof row.observed_ppg === "number"
-                      ? row.observed_ppg.toFixed(2)
-                      : "—"}
-                  </td>
-                  <td className={tdClass}>
-                    {typeof row.projected_ppg === "number"
-                      ? row.projected_ppg.toFixed(2)
-                      : "—"}
-                  </td>
-                  <td className={tdClass}>
-                    {typeof row.ppg_delta === "number"
-                      ? row.ppg_delta.toFixed(2)
-                      : "—"}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        columns={columns}
+        data={filteredData}
+        highlightRow={(row) => {
+          const delta = row.ppg_delta;
+          if (typeof delta === "number" && delta >= 1.5)
+            return "bg-green-50 dark:bg-green-950";
+          if (typeof delta === "number" && delta <= -1.5)
+            return "bg-red-50 dark:bg-red-950";
+          return undefined;
+        }}
+      />
     </section>
   );
 }

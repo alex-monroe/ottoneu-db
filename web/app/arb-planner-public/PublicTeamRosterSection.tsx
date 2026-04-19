@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { PublicArbPlayer } from "@/lib/types";
+import PlayerName from "@/components/PlayerName";
+import PositionBadge from "@/components/PositionBadge";
+import StatValue from "@/components/StatValue";
 
 interface PublicTeamRosterSectionProps {
     teamName: string;
@@ -63,13 +66,13 @@ export default function PublicTeamRosterSection({
                                     Pos
                                 </th>
                                 <th className="text-left px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
-                                    NFL Team
+                                    Team
                                 </th>
                                 <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
                                     Salary
                                 </th>
                                 <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
-                                    2025 PPG
+                                    PPG
                                 </th>
                                 <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
                                     GP
@@ -90,23 +93,26 @@ export default function PublicTeamRosterSection({
                                         className={`border-b border-slate-100 dark:border-slate-800 ${hasAlloc ? "bg-blue-50 dark:bg-blue-950/20" : ""
                                             }`}
                                     >
-                                        <td className="px-3 py-2 text-slate-900 dark:text-white font-medium">
-                                            {p.name}
+                                        <td className="px-3 py-2">
+                                            <PlayerName
+                                                name={p.name}
+                                                mode="plain"
+                                            />
                                         </td>
-                                        <td className="px-3 py-2 text-slate-600 dark:text-slate-400">
-                                            {p.position}
+                                        <td className="px-3 py-2">
+                                            <PositionBadge position={p.position} />
                                         </td>
                                         <td className="px-3 py-2 text-slate-600 dark:text-slate-400">
                                             {p.nfl_team}
                                         </td>
                                         <td className="px-3 py-2 text-right text-slate-900 dark:text-white">
-                                            ${p.price}
+                                            <StatValue value={p.price} format="currency" />
                                         </td>
                                         <td className="px-3 py-2 text-right text-slate-900 dark:text-white">
-                                            {p.ppg.toFixed(2)}
+                                            <StatValue value={p.ppg} format="decimal" />
                                         </td>
                                         <td className="px-3 py-2 text-right text-slate-600 dark:text-slate-400">
-                                            {p.games_played}
+                                            <StatValue value={p.games_played} format="number" />
                                         </td>
                                         <td className="px-3 py-2 text-center">
                                             <input

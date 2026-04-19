@@ -1,9 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import type { SimulationResult, PlayerHoverData } from "@/lib/types";
-import DataTable, { Column } from "@/components/DataTable";
-import { makePlayerNameColumn } from "@/components/PlayerHoverCard";
+import type { SimulationResult, PlayerHoverData, Column } from "@/lib/types";
+import DataTable from "@/components/DataTable";
+import {
+  playerNameCol,
+  positionCol,
+  salaryCol,
+  valueCol,
+} from "@/components/columns";
 
 interface SimulationTeamsProps {
   results: SimulationResult[];
@@ -12,10 +17,10 @@ interface SimulationTeamsProps {
 
 function getTeamPlayerColumns(hdm: Record<string, PlayerHoverData> | null): Column<SimulationResult>[] {
   return [
-    makePlayerNameColumn<SimulationResult>(hdm),
-    { key: "position", label: "Pos" },
-    { key: "price", label: "Salary", format: "currency" },
-    { key: "dollar_value", label: "Value", format: "currency" },
+    playerNameCol<SimulationResult>({ hoverDataMap: hdm }),
+    positionCol<SimulationResult>(),
+    salaryCol<SimulationResult>(),
+    valueCol<SimulationResult>(),
     { key: "surplus", label: "Surplus", format: "currency" },
     { key: "mean_arb", label: "Expected Arb", format: "currency" },
     { key: "salary_after_arb", label: "After Arb", format: "currency" },

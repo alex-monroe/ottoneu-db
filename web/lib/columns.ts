@@ -3,9 +3,17 @@
  *
  * Centralizes column configurations to ensure consistency across
  * analysis pages and reduce duplication.
+ *
+ * ARCHITECTURE NOTE: This file is in web/lib/ and MUST NOT import from
+ * web/components/. Column factories that inject React components
+ * (PositionBadge, PlayerName, etc.) live in web/components/columns.tsx.
  */
 
 import { Column } from "@/lib/types";
+
+// =====================================================================
+// Static column definitions (pure data, no React components)
+// =====================================================================
 
 export const CORE_PLAYER_COLUMNS: Column[] = [
   { key: "name", label: "Player" },

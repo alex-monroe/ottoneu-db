@@ -8,8 +8,19 @@ import {
 } from "@/lib/analysis";
 import { fetchPlayersEndOfSeason } from "@/lib/data";
 import { getAuthenticatedUser } from "@/lib/auth";
-import DataTable, { Column, HighlightRule } from "@/components/DataTable";
-import type { SurplusPlayer } from "@/lib/types";
+import DataTable from "@/components/DataTable";
+import type { Column, HighlightRule, SurplusPlayer } from "@/lib/types";
+import {
+  corePlayerCols,
+  surplusCols,
+  ppgCol,
+  fullVorpCol,
+  ownerCol,
+  playerNameCol,
+  positionCol,
+  salaryCol,
+  valueCol,
+} from "@/components/columns";
 
 interface TeamSummaryRow {
   team_name: string;
@@ -17,38 +28,39 @@ interface TeamSummaryRow {
   total_salary: number;
   total_value: number;
   total_surplus: number;
+  [key: string]: string | number | null | undefined;
 }
 
-const CORE_COLUMNS: Column<SurplusPlayer>[] = [
-  { key: "name", label: "Player" },
-  { key: "position", label: "Pos" },
-  { key: "nfl_team", label: "Team" },
-  { key: "price", label: "Salary", format: "currency" },
-  { key: "dollar_value", label: "Value", format: "currency" },
-  { key: "surplus", label: "Surplus", format: "currency" },
-  { key: "ppg", label: "PPG", format: "decimal" },
-  { key: "full_season_vorp", label: "VORP", format: "decimal" },
-  { key: "team_name", label: "Owner" },
-];
+function buildCoreCols(hoverDataMap: Record<string, import("@/lib/types").PlayerHoverData> | null): Column<SurplusPlayer>[] {
+  return [
+    ...corePlayerCols<SurplusPlayer>({ hoverDataMap }),
+    ...surplusCols<SurplusPlayer>(),
+    ppgCol<SurplusPlayer>(),
+    fullVorpCol<SurplusPlayer>("VORP"),
+    ownerCol<SurplusPlayer>(),
+  ];
+}
 
-const MY_TEAM_COLUMNS: Column<SurplusPlayer>[] = [
-  { key: "name", label: "Player" },
-  { key: "position", label: "Pos" },
-  { key: "price", label: "Salary", format: "currency" },
-  { key: "dollar_value", label: "Value", format: "currency" },
-  { key: "surplus", label: "Surplus", format: "currency" },
-  { key: "ppg", label: "PPG", format: "decimal" },
-  { key: "full_season_vorp", label: "VORP", format: "decimal" },
-];
+function buildMyTeamCols(hoverDataMap: Record<string, import("@/lib/types").PlayerHoverData> | null): Column<SurplusPlayer>[] {
+  return [
+    playerNameCol<SurplusPlayer>({ hoverDataMap }),
+    positionCol<SurplusPlayer>(),
+    salaryCol<SurplusPlayer>(),
+    valueCol<SurplusPlayer>(),
+    { key: "surplus", label: "Surplus", format: "currency" },
+    ppgCol<SurplusPlayer>(),
+    fullVorpCol<SurplusPlayer>("VORP"),
+  ];
+}
 
-const FA_COLUMNS: Column<SurplusPlayer>[] = [
-  { key: "name", label: "Player" },
-  { key: "position", label: "Pos" },
-  { key: "nfl_team", label: "Team" },
-  { key: "dollar_value", label: "Value", format: "currency" },
-  { key: "ppg", label: "PPG", format: "decimal" },
-  { key: "full_season_vorp", label: "VORP", format: "decimal" },
-];
+function buildFACols(hoverDataMap: Record<string, import("@/lib/types").PlayerHoverData> | null): Column<SurplusPlayer>[] {
+  return [
+    ...corePlayerCols<SurplusPlayer>({ hoverDataMap }),
+    valueCol<SurplusPlayer>(),
+    ppgCol<SurplusPlayer>(),
+    fullVorpCol<SurplusPlayer>("VORP"),
+  ];
+}
 
 const TEAM_SUMMARY_COLUMNS: Column<TeamSummaryRow>[] = [
   { key: "team_name", label: "Team" },
@@ -156,6 +168,10 @@ export default async function SurplusValuePage() {
     }))
     .sort((a, b) => b.total_surplus - a.total_surplus);
 
+  const coreColumns = buildCoreCols(hoverDataMap);
+  const myTeamColumns = buildMyTeamCols(hoverDataMap);
+  const faColumns = buildFACols(hoverDataMap);
+
   return (
     <main className="min-h-screen bg-white dark:bg-black p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -175,10 +191,9 @@ export default async function SurplusValuePage() {
             Top 20 Bargains
           </h2>
           <DataTable
-            columns={CORE_COLUMNS}
+            columns={coreColumns}
             data={bestBargains}
             highlightRules={BARGAIN_RULES}
-            hoverDataMap={hoverDataMap}
           />
         </section>
 
@@ -188,10 +203,9 @@ export default async function SurplusValuePage() {
             Top 20 Most Overpaid
           </h2>
           <DataTable
-            columns={CORE_COLUMNS}
+            columns={coreColumns}
             data={mostOverpaid}
             highlightRules={OVERPAID_RULES}
-            hoverDataMap={hoverDataMap}
           />
         </section>
 
@@ -202,10 +216,9 @@ export default async function SurplusValuePage() {
               {MY_TEAM} — Surplus Breakdown
             </h2>
             <DataTable
-              columns={MY_TEAM_COLUMNS}
+              columns={myTeamColumns}
               data={myTeam}
               highlightRules={MY_TEAM_RULES}
-              hoverDataMap={hoverDataMap}
             />
             <div className="mt-3 flex flex-wrap gap-6 text-sm text-slate-600 dark:text-slate-400">
               <span>
@@ -242,7 +255,7 @@ export default async function SurplusValuePage() {
             <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
               Top Free Agents by Value
             </h2>
-            <DataTable columns={FA_COLUMNS} data={freeAgents} hoverDataMap={hoverDataMap} />
+            <DataTable columns={faColumns} data={freeAgents} />
           </section>
         )}
 

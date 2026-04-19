@@ -16,12 +16,20 @@ import {
   DEFAULT_PROJECTION_YEAR,
   getHistoricalSeasonsForYear,
 } from "@/lib/analysis";
-import type { ArbitrationTarget } from "@/lib/types";
+import type { ArbitrationTarget, Column, HighlightRule } from "@/lib/types";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
-import DataTable, { Column, HighlightRule } from "@/components/DataTable";
+import DataTable from "@/components/DataTable";
 import ArbitrationTeams from "./ArbitrationTeams";
 import ModeToggle, { ValueMode } from "@/components/ModeToggle";
+import {
+  playerNameCol,
+  positionCol,
+  nflTeamCol,
+  ownerCol,
+  salaryCol,
+  valueCol,
+} from "@/components/columns";
 
 interface Props {
   searchParams: Promise<{ mode?: string }>;
@@ -31,31 +39,35 @@ type ProjectedTarget = ArbitrationTarget & {
   observed_ppg?: number;
 };
 
-const BASE_COLUMNS: Column<ProjectedTarget>[] = [
-  { key: "name", label: "Player" },
-  { key: "position", label: "Pos" },
-  { key: "nfl_team", label: "NFL Team" },
-  { key: "team_name", label: "Owner" },
-  { key: "price", label: "Salary", format: "currency" },
-  { key: "dollar_value", label: "Value", format: "currency" },
-  { key: "surplus", label: "Surplus", format: "currency" },
-  { key: "salary_after_arb", label: "After Arb", format: "currency" },
-  { key: "surplus_after_arb", label: "Surplus (Post-Arb)", format: "currency" },
-];
+function buildBaseColumns(hoverDataMap: Record<string, import("@/lib/types").PlayerHoverData> | null): Column<ProjectedTarget>[] {
+  return [
+    playerNameCol<ProjectedTarget>({ hoverDataMap }),
+    positionCol<ProjectedTarget>(),
+    nflTeamCol<ProjectedTarget>(),
+    ownerCol<ProjectedTarget>(),
+    salaryCol<ProjectedTarget>(),
+    valueCol<ProjectedTarget>(),
+    { key: "surplus", label: "Surplus", format: "currency" },
+    { key: "salary_after_arb", label: "After Arb", format: "currency" },
+    { key: "surplus_after_arb", label: "Surplus (Post-Arb)", format: "currency" },
+  ];
+}
 
-const PROJECTED_COLUMNS: Column<ProjectedTarget>[] = [
-  { key: "name", label: "Player" },
-  { key: "position", label: "Pos" },
-  { key: "nfl_team", label: "NFL Team" },
-  { key: "team_name", label: "Owner" },
-  { key: "price", label: "Salary", format: "currency" },
-  { key: "observed_ppg", label: "Obs PPG", format: "decimal" },
-  { key: "ppg", label: "Proj PPG", format: "decimal" },
-  { key: "dollar_value", label: "Value", format: "currency" },
-  { key: "surplus", label: "Surplus", format: "currency" },
-  { key: "salary_after_arb", label: "After Arb", format: "currency" },
-  { key: "surplus_after_arb", label: "Surplus (Post-Arb)", format: "currency" },
-];
+function buildProjectedColumns(hoverDataMap: Record<string, import("@/lib/types").PlayerHoverData> | null): Column<ProjectedTarget>[] {
+  return [
+    playerNameCol<ProjectedTarget>({ hoverDataMap }),
+    positionCol<ProjectedTarget>(),
+    nflTeamCol<ProjectedTarget>(),
+    ownerCol<ProjectedTarget>(),
+    salaryCol<ProjectedTarget>(),
+    { key: "observed_ppg", label: "Obs PPG", format: "decimal" },
+    { key: "ppg", label: "Proj PPG", format: "decimal" },
+    valueCol<ProjectedTarget>(),
+    { key: "surplus", label: "Surplus", format: "currency" },
+    { key: "salary_after_arb", label: "After Arb", format: "currency" },
+    { key: "surplus_after_arb", label: "Surplus (Post-Arb)", format: "currency" },
+  ];
+}
 
 const ARB_TARGET_RULES: HighlightRule<ProjectedTarget>[] = [
   { key: "surplus_after_arb", op: "lt", value: 0, className: "bg-red-50 dark:bg-red-950/30" },
@@ -146,7 +158,7 @@ export default async function ArbitrationPage({ searchParams }: Props) {
   const projectionYear = DEFAULT_PROJECTION_YEAR;
   const historicalSeasons = getHistoricalSeasonsForYear(projectionYear);
   const mostRecentSeason = Math.max(...historicalSeasons);
-  const columns = isProjected ? PROJECTED_COLUMNS : BASE_COLUMNS;
+  const columns = isProjected ? buildProjectedColumns(hoverDataMap) : buildBaseColumns(hoverDataMap);
 
   return (
     <main className="min-h-screen bg-white dark:bg-black p-8">
@@ -259,7 +271,6 @@ export default async function ArbitrationPage({ searchParams }: Props) {
             columns={columns}
             data={targets.slice(0, 20)}
             highlightRules={ARB_TARGET_RULES}
-            hoverDataMap={hoverDataMap}
           />
         </section>
 

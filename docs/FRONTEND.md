@@ -34,8 +34,21 @@ Next.js App Router. Most pages are server components that fetch live data from S
 | `SummaryCard` | Metric display cards with variant styles (default, positive, negative) |
 | `PositionFilter` | Position selection buttons with multi-select support |
 | `ScatterChart` | Player efficiency scatter plot with interactive filters |
+| `PositionBadge` | Colored position pill (QB, RB, etc.) — canonical across all views |
+| `PlayerName` | Player name renderer with link/hover-card/plain-text modes |
+| `StatValue` | Numeric stat formatter with currency/decimal/number/null handling |
+| `PlayerHoverCard` | Rich hover preview card for player context |
 
-Column definitions live in `web/lib/columns.ts` for consistent table layouts.
+### Column Factories (`components/columns.tsx`)
+
+Column definitions for `DataTable` are built via **composable factory functions** to prevent drift across pages. Individual factories (`playerNameCol`, `positionCol`, `salaryCol`, etc.) inject atomic components (`PositionBadge`, `PlayerName`) via `renderCell`. Pages compose columns from these factories:
+
+```typescript
+import { corePlayerCols, salaryCol, ppgCol } from "@/components/columns";
+const columns = [...corePlayerCols({ hoverDataMap }), salaryCol(), ppgCol("Proj PPG")];
+```
+
+Static column arrays (no React components) remain in `web/lib/columns.ts` for backward compatibility.
 
 ## TypeScript Types
 

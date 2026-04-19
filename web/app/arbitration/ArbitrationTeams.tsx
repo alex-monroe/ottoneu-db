@@ -1,9 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import DataTable, { Column } from "@/components/DataTable";
-import { makePlayerNameColumn } from "@/components/PlayerHoverCard";
-import type { PlayerHoverData } from "@/lib/types";
+import DataTable from "@/components/DataTable";
+import type { Column, PlayerHoverData } from "@/lib/types";
+import {
+  playerNameCol,
+  positionCol,
+  salaryCol,
+  valueCol,
+  ownerCol,
+} from "@/components/columns";
 
 interface TeamPlayer {
   name: string;
@@ -25,10 +31,10 @@ interface TeamGroup {
 
 function getBaseColumns(hoverDataMap: Record<string, PlayerHoverData> | null): Column[] {
   return [
-    makePlayerNameColumn(hoverDataMap),
-    { key: "position", label: "Pos" },
-    { key: "price", label: "Salary", format: "currency" },
-    { key: "dollar_value", label: "Value", format: "currency" },
+    playerNameCol({ hoverDataMap }),
+    positionCol(),
+    salaryCol(),
+    valueCol(),
     { key: "surplus", label: "Surplus", format: "currency" },
     { key: "surplus_after_arb", label: "Surplus (Post-Arb)", format: "currency" },
   ];
@@ -36,12 +42,12 @@ function getBaseColumns(hoverDataMap: Record<string, PlayerHoverData> | null): C
 
 function getProjectedColumns(hoverDataMap: Record<string, PlayerHoverData> | null): Column[] {
   return [
-    makePlayerNameColumn(hoverDataMap),
-    { key: "position", label: "Pos" },
-    { key: "price", label: "Salary", format: "currency" },
+    playerNameCol({ hoverDataMap }),
+    positionCol(),
+    salaryCol(),
     { key: "observed_ppg", label: "Obs PPG", format: "decimal" },
     { key: "ppg", label: "Proj PPG", format: "decimal" },
-    { key: "dollar_value", label: "Value", format: "currency" },
+    valueCol(),
     { key: "surplus", label: "Surplus", format: "currency" },
     { key: "surplus_after_arb", label: "Surplus (Post-Arb)", format: "currency" },
   ];
