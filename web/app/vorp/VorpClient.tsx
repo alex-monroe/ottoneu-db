@@ -10,11 +10,22 @@ import {
   Tooltip,
   Cell,
 } from "recharts";
-import DataTable, { Column } from "@/components/DataTable";
-import { makePlayerNameColumn } from "@/components/PlayerHoverCard";
+import DataTable from "@/components/DataTable";
 import { POSITIONS, POSITION_COLORS } from "@/lib/analysis";
 import PositionFilter from "@/components/PositionFilter";
-import type { Position, PlayerHoverData } from "@/lib/types";
+import type { Column, Position, PlayerHoverData } from "@/lib/types";
+import {
+  playerNameCol,
+  positionCol,
+  nflTeamCol,
+  ppgCol,
+  totalPointsCol,
+  gamesPlayedCol,
+  vorpPerGameCol,
+  fullVorpCol,
+  salaryCol,
+  ownerCol,
+} from "@/components/columns";
 
 interface BarData {
   name: string;
@@ -40,16 +51,16 @@ interface VorpTableRow {
 
 function getTableColumns(hoverDataMap: Record<string, PlayerHoverData> | null): Column[] {
   return [
-    makePlayerNameColumn(hoverDataMap),
-    { key: "position", label: "Pos" },
-    { key: "nfl_team", label: "Team" },
-    { key: "ppg", label: "PPG", format: "decimal" },
-    { key: "total_points", label: "Points", format: "decimal" },
-    { key: "games_played", label: "GP", format: "number" },
-    { key: "vorp_per_game", label: "VORP/G", format: "decimal" },
-    { key: "full_season_vorp", label: "Full VORP", format: "decimal" },
-    { key: "price", label: "Salary", format: "currency" },
-    { key: "team_name", label: "Owner" },
+    playerNameCol({ hoverDataMap }),
+    positionCol(),
+    nflTeamCol(),
+    ppgCol(),
+    totalPointsCol(),
+    gamesPlayedCol(),
+    vorpPerGameCol(),
+    fullVorpCol(),
+    salaryCol(),
+    ownerCol(),
   ];
 }
 

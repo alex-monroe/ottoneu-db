@@ -1,8 +1,16 @@
 "use client";
 
-import DataTable, { Column } from "@/components/DataTable";
-import { makePlayerNameColumn } from "@/components/PlayerHoverCard";
-import type { PlayerHoverData } from "@/lib/types";
+import DataTable from "@/components/DataTable";
+import type { Column, PlayerHoverData } from "@/lib/types";
+import {
+  playerNameCol,
+  nflTeamCol,
+  salaryCol,
+  valueCol,
+  ppgCol,
+  totalPointsCol,
+  gamesPlayedCol,
+} from "@/components/columns";
 
 interface PlayerRow {
   player_id: string;
@@ -22,14 +30,14 @@ interface PlayerRow {
 
 function getColumns(hoverDataMap: Record<string, PlayerHoverData> | null): Column[] {
   return [
-    makePlayerNameColumn(hoverDataMap),
-    { key: "nfl_team", label: "Team" },
-    { key: "price", label: "Salary", format: "currency" },
-    { key: "dollar_value", label: "Value", format: "currency" },
+    playerNameCol({ hoverDataMap }),
+    nflTeamCol(),
+    salaryCol(),
+    valueCol(),
     { key: "surplus", label: "Surplus", format: "currency" },
-    { key: "ppg", label: "PPG", format: "decimal" },
-    { key: "total_points", label: "Points", format: "decimal" },
-    { key: "games_played", label: "GP", format: "number" },
+    ppgCol(),
+    totalPointsCol(),
+    gamesPlayedCol(),
     { key: "recommendation", label: "Recommendation" },
   ];
 }

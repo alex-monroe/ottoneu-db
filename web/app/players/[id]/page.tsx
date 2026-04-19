@@ -2,7 +2,9 @@ import { fetchPlayerDetail, fetchPlayerProjection } from "@/lib/data";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { POSITION_COLORS, Position } from "@/lib/types";
+import { POSITION_COLORS, type Position } from "@/lib/types";
+import PositionBadge from "@/components/PositionBadge";
+import StatValue from "@/components/StatValue";
 
 export async function generateMetadata({
     params,
@@ -34,8 +36,7 @@ export default async function PlayerCardPage({
         ? await fetchPlayerProjection(player.id)
         : null;
 
-    const posColor =
-        POSITION_COLORS[player.position as Position] ?? "#6B7280";
+    const posColor = POSITION_COLORS[player.position as Position] ?? "#6B7280";
 
     const age = player.birth_date
         ? (() => {
@@ -68,12 +69,7 @@ export default async function PlayerCardPage({
                                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
                                         {player.name}
                                     </h1>
-                                    <span
-                                        className="px-2 py-1 rounded text-xs font-bold text-white"
-                                        style={{ backgroundColor: posColor }}
-                                    >
-                                        {player.position}
-                                    </span>
+                                    <PositionBadge position={player.position} />
                                 </div>
                                 <p className="text-slate-500 dark:text-slate-400 mt-1">
                                     {player.nfl_team}{age != null ? ` · Age ${age}` : ""} · Ottoneu ID: {player.ottoneu_id}
@@ -149,16 +145,16 @@ export default async function PlayerCardPage({
                                         >
                                             <td className="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">{s.season}</td>
                                             <td className="px-3 py-2 text-right font-mono text-slate-800 dark:text-slate-200">
-                                                {s.total_points != null ? s.total_points.toFixed(1) : "—"}
+                                                <StatValue value={s.total_points} format="decimal" />
                                             </td>
                                             <td className="px-3 py-2 text-right font-mono text-slate-800 dark:text-slate-200">
-                                                {s.games_played ?? "—"}
+                                                <StatValue value={s.games_played} format="number" />
                                             </td>
                                             <td className="px-3 py-2 text-right font-mono text-slate-800 dark:text-slate-200">
                                                 {s.snaps != null ? s.snaps.toLocaleString() : "—"}
                                             </td>
                                             <td className="px-3 py-2 text-right font-mono text-slate-800 dark:text-slate-200">
-                                                {s.ppg != null ? s.ppg.toFixed(2) : "—"}
+                                                <StatValue value={s.ppg} format="decimal" />
                                             </td>
                                             <td className="px-3 py-2 text-right font-mono text-slate-800 dark:text-slate-200">
                                                 {s.pps != null ? s.pps.toFixed(4) : "—"}

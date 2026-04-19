@@ -7,10 +7,17 @@ import {
   NUM_SIMULATIONS,
   VALUE_VARIATION,
 } from "@/lib/analysis";
-import type { Player, PlayerHoverData, SimulationResult } from "@/lib/types";
-import DataTable, { Column, HighlightRule } from "@/components/DataTable";
-import { makePlayerNameColumn } from "@/components/PlayerHoverCard";
+import type { Player, PlayerHoverData, SimulationResult, Column, HighlightRule } from "@/lib/types";
+import DataTable from "@/components/DataTable";
 import SimulationTeams from "./SimulationTeams";
+import {
+  playerNameCol,
+  positionCol,
+  nflTeamCol,
+  ownerCol,
+  salaryCol,
+  valueCol,
+} from "@/components/columns";
 
 interface SimulationControlsProps {
   initialPlayers: Player[];
@@ -21,10 +28,10 @@ interface SimulationControlsProps {
 
 function getMyRosterColumns(hdm: Record<string, PlayerHoverData> | null): Column<SimulationResult>[] {
   return [
-    makePlayerNameColumn<SimulationResult>(hdm),
-    { key: "position", label: "Pos" },
-    { key: "price", label: "Salary", format: "currency" },
-    { key: "dollar_value", label: "Value", format: "currency" },
+    playerNameCol<SimulationResult>({ hoverDataMap: hdm }),
+    positionCol<SimulationResult>(),
+    salaryCol<SimulationResult>(),
+    valueCol<SimulationResult>(),
     { key: "surplus", label: "Surplus", format: "currency" },
     { key: "mean_arb", label: "Expected Arb", format: "currency" },
     { key: "std_arb", label: "Std Dev", format: "currency" },
@@ -35,12 +42,12 @@ function getMyRosterColumns(hdm: Record<string, PlayerHoverData> | null): Column
 
 function getVulnerableColumns(hdm: Record<string, PlayerHoverData> | null): Column<SimulationResult>[] {
   return [
-    makePlayerNameColumn<SimulationResult>(hdm),
-    { key: "position", label: "Pos" },
-    { key: "nfl_team", label: "NFL" },
-    { key: "team_name", label: "Owner" },
-    { key: "price", label: "Salary", format: "currency" },
-    { key: "dollar_value", label: "Value", format: "currency" },
+    playerNameCol<SimulationResult>({ hoverDataMap: hdm }),
+    positionCol<SimulationResult>(),
+    nflTeamCol<SimulationResult>(),
+    ownerCol<SimulationResult>(),
+    salaryCol<SimulationResult>(),
+    valueCol<SimulationResult>(),
     { key: "surplus", label: "Surplus", format: "currency" },
     { key: "mean_arb", label: "Expected Arb", format: "currency" },
     { key: "std_arb", label: "Std Dev", format: "currency" },
@@ -50,12 +57,12 @@ function getVulnerableColumns(hdm: Record<string, PlayerHoverData> | null): Colu
 
 function getCutCandidateColumns(hdm: Record<string, PlayerHoverData> | null): Column<SimulationResult>[] {
   return [
-    makePlayerNameColumn<SimulationResult>(hdm),
-    { key: "position", label: "Pos" },
-    { key: "nfl_team", label: "NFL" },
-    { key: "team_name", label: "Owner" },
-    { key: "price", label: "Salary", format: "currency" },
-    { key: "dollar_value", label: "Value", format: "currency" },
+    playerNameCol<SimulationResult>({ hoverDataMap: hdm }),
+    positionCol<SimulationResult>(),
+    nflTeamCol<SimulationResult>(),
+    ownerCol<SimulationResult>(),
+    salaryCol<SimulationResult>(),
+    valueCol<SimulationResult>(),
     { key: "surplus", label: "Surplus", format: "currency" },
     { key: "mean_arb", label: "Expected Arb", format: "currency" },
     { key: "salary_after_arb", label: "After Arb", format: "currency" },

@@ -6,18 +6,27 @@ import { BacktestPlayer, Position, POSITIONS, ProjectionModel } from "@/lib/type
 import { calculateMetrics, PositionMetrics } from "./metrics";
 import AccuracyScatterChart from "./AccuracyScatterChart";
 import FeatureBreakdown from "./FeatureBreakdown";
-import DataTable, { Column } from "@/components/DataTable";
+import DataTable from "@/components/DataTable";
+import type { Column } from "@/lib/types";
 import PositionFilter from "@/components/PositionFilter";
 import SummaryCard from "@/components/SummaryCard";
+import {
+  playerNameCol,
+  positionCol,
+  nflTeamCol,
+  ownerCol,
+  salaryCol,
+  gamesPlayedCol,
+} from "@/components/columns";
 
 const PLAYER_COLUMNS: Column<BacktestPlayer>[] = [
-  { key: "name", label: "Player" },
-  { key: "position", label: "Pos" },
-  { key: "nfl_team", label: "Team" },
-  { key: "team_name", label: "Owner" },
-  { key: "price", label: "Salary", format: "currency" },
+  playerNameCol<BacktestPlayer>(),
+  positionCol<BacktestPlayer>(),
+  nflTeamCol<BacktestPlayer>(),
+  ownerCol<BacktestPlayer>(),
+  salaryCol<BacktestPlayer>(),
   { key: "seasons_used", label: "Seasons" },
-  { key: "games_played", label: "GP", format: "number" },
+  gamesPlayedCol<BacktestPlayer>(),
   { key: "projected_ppg", label: "Proj PPG", format: "decimal" },
   { key: "actual_ppg", label: "Actual PPG", format: "decimal" },
   { key: "error", label: "Error", format: "decimal" },
@@ -34,9 +43,9 @@ const METRICS_COLUMNS: Column[] = [
 ];
 
 const DELTA_COLUMNS: Column[] = [
-  { key: "name", label: "Player" },
-  { key: "position", label: "Pos" },
-  { key: "nfl_team", label: "Team" },
+  playerNameCol(),
+  positionCol(),
+  nflTeamCol(),
   { key: "proj_a", label: "Model A Proj", format: "decimal" },
   { key: "proj_b", label: "Model B Proj", format: "decimal" },
   { key: "delta", label: "Delta (B−A)", format: "decimal" },

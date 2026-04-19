@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { ArbitrationTarget, PlayerHoverData } from "@/lib/types";
-import PlayerHoverCard from "@/components/PlayerHoverCard";
+import PlayerName from "@/components/PlayerName";
+import PositionBadge from "@/components/PositionBadge";
+import StatValue from "@/components/StatValue";
 
 interface TeamRosterSectionProps {
   teamName: string;
@@ -68,7 +70,7 @@ export default function TeamRosterSection({
                   Pos
                 </th>
                 <th className="text-left px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
-                  NFL Team
+                  Team
                 </th>
                 <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
                   Salary
@@ -80,7 +82,7 @@ export default function TeamRosterSection({
                   Surplus
                 </th>
                 <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
-                  2025 PPG
+                  PPG
                 </th>
                 <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
                   GP
@@ -114,28 +116,25 @@ export default function TeamRosterSection({
                     key={p.player_id}
                     className={`border-b border-slate-100 dark:border-slate-800 ${rowClass}`}
                   >
-                    <td className="px-3 py-2 text-slate-900 dark:text-white font-medium">
-                      {hoverDataMap && p.ottoneu_id ? (
-                        <PlayerHoverCard
-                          name={p.name}
-                          ottoneuId={p.ottoneu_id}
-                          hoverData={hoverDataMap[p.player_id]}
-                        />
-                      ) : (
-                        p.name
-                      )}
+                    <td className="px-3 py-2">
+                      <PlayerName
+                        name={p.name}
+                        ottoneuId={p.ottoneu_id}
+                        mode={hoverDataMap ? "hover" : "link"}
+                        hoverData={hoverDataMap?.[p.player_id]}
+                      />
                     </td>
-                    <td className="px-3 py-2 text-slate-600 dark:text-slate-400">
-                      {p.position}
+                    <td className="px-3 py-2">
+                      <PositionBadge position={p.position} />
                     </td>
                     <td className="px-3 py-2 text-slate-600 dark:text-slate-400">
                       {p.nfl_team}
                     </td>
                     <td className="px-3 py-2 text-right text-slate-900 dark:text-white">
-                      ${p.price}
+                      <StatValue value={p.price} format="currency" />
                     </td>
                     <td className="px-3 py-2 text-right text-slate-900 dark:text-white">
-                      ${p.dollar_value}
+                      <StatValue value={p.dollar_value} format="currency" />
                     </td>
                     <td
                       className={`px-3 py-2 text-right font-medium ${p.surplus >= 0
@@ -143,13 +142,13 @@ export default function TeamRosterSection({
                           : "text-red-600 dark:text-red-400"
                         }`}
                     >
-                      ${p.surplus}
+                      <StatValue value={p.surplus} format="currency" />
                     </td>
                     <td className="px-3 py-2 text-right text-slate-900 dark:text-white">
-                      {p.ppg.toFixed(2)}
+                      <StatValue value={p.ppg} format="decimal" />
                     </td>
                     <td className="px-3 py-2 text-right text-slate-600 dark:text-slate-400">
-                      {p.games_played}
+                      <StatValue value={p.games_played} format="number" />
                     </td>
                     {adjustedSurplus && (
                       <td
@@ -158,7 +157,7 @@ export default function TeamRosterSection({
                             : "text-red-600 dark:text-red-400"
                           }`}
                       >
-                        {adjSurp !== undefined ? `$${adjSurp}` : "-"}
+                        {adjSurp !== undefined ? <StatValue value={adjSurp} format="currency" /> : "—"}
                       </td>
                     )}
                     <td className="px-3 py-2 text-center">
