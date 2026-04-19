@@ -8,7 +8,8 @@ interface RouteContext {
 
 export async function PUT(req: NextRequest, context: RouteContext) {
   const user = await getAuthenticatedUser();
-  if (!user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await context.params;
   const { has_projections_access } = await req.json();
@@ -27,7 +28,8 @@ export async function PUT(req: NextRequest, context: RouteContext) {
 
 export async function DELETE(_req: NextRequest, context: RouteContext) {
   const user = await getAuthenticatedUser();
-  if (!user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await context.params;
 
