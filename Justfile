@@ -48,7 +48,7 @@ test: test-python test-web
 
 # Run Python tests with coverage
 test-python:
-    {{pytest}} --cov=. --cov-report=term-missing
+    {{pytest}}
 
 # Run Jest tests with coverage
 test-web:
