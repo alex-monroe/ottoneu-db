@@ -133,8 +133,9 @@ async def run(params: dict, context, supabase, nfl_stats: pd.DataFrame) -> TaskR
             nfl_stats_opt = pd.DataFrame()
 
         processed = 0
+        errors = 0
 
-        for row in rows:
+        for i, row in enumerate(rows):
             try:
                 result = await _process_row(
                     row, page, context, supabase, nfl_stats_opt,
@@ -144,10 +145,14 @@ async def run(params: dict, context, supabase, nfl_stats: pd.DataFrame) -> TaskR
                     processed += 1
                     if result.get("child_job"):
                         child_jobs.append(result["child_job"])
-            except Exception:
-                pass
+            except Exception as e:
+                errors += 1
+                print(f"  Error processing {position} row {i}: {type(e).__name__}: {e}")
 
-        print(f"Processed {processed} players for {position}.")
+        if errors:
+            print(f"Processed {processed} players for {position} ({errors} errors).")
+        else:
+            print(f"Processed {processed} players for {position}.")
         return TaskResult(success=True, data={"processed": processed}, child_jobs=child_jobs)
 
     except Exception as e:
