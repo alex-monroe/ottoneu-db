@@ -232,8 +232,9 @@ describe("Config JSON Sync", () => {
     const tsKeys = new Set([...tsKeyMatches].map((m) => m[1]));
     tsKeys.delete("json"); // from `import config from "../../config.json"`
 
-    // Keys that are intentionally Python-only
-    const pythonOnly = new Set(["COLLEGE_POSITIONS"]);
+    // Keys that are intentionally Python-only. Currently empty — every config.json key
+    // must be exported by web/lib/config.ts.
+    const pythonOnly = new Set<string>();
 
     const missing: string[] = [];
     for (const key of jsonKeys) {
@@ -247,6 +248,51 @@ describe("Config JSON Sync", () => {
         `config.json keys not consumed in web/lib/config.ts: ${missing.join(", ")}\n` +
           "FIX: Add `export const CONSTANT = config.KEY` to web/lib/config.ts.\n" +
           "If the key is intentionally Python-only, add it to the pythonOnly set in this test."
+      );
+    }
+  });
+
+  /**
+   * WHY: Key presence isn't enough — the *values* must match config.json too.
+   * A future drift could rename, override, or hand-copy a value after import,
+   * and the key-presence checks above would not notice.
+   *
+   * FIX: Always source the value from `config.KEY` rather than reassigning or hardcoding.
+   */
+  test("config.ts exported values match config.json", () => {
+    const configJson = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+    // Use require so the test runs against the actual module exports, not the source text.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const configTs = require("../../lib/config") as Record<string, unknown>;
+
+    // Some exports wrap the raw config.json value in a different runtime shape
+    // (e.g. `Set` instead of `Array`). Normalize before comparing.
+    const normalizers: Record<string, (v: unknown) => unknown> = {
+      NFL_TEAM_CODES: (v) => Array.from(v as Set<string>).sort(),
+    };
+
+    const mismatches: string[] = [];
+    for (const [key, jsonValue] of Object.entries(configJson)) {
+      if (!(key in configTs)) continue; // covered by the presence test above
+      const tsValue = configTs[key];
+      const expected =
+        key in normalizers
+          ? (normalizers[key] as (v: unknown) => unknown)(jsonValue as unknown[])
+          : jsonValue;
+      const actual = key in normalizers ? normalizers[key](tsValue) : tsValue;
+      if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+        mismatches.push(
+          `  ${key}: config.json=${JSON.stringify(expected)} ts=${JSON.stringify(actual)}`
+        );
+      }
+    }
+
+    if (mismatches.length > 0) {
+      fail(
+        "web/lib/config.ts exports values that diverge from config.json.\n" +
+          "FIX: Source the value from `config.KEY` directly — do not reassign or hardcode.\n" +
+          "Mismatches:\n" +
+          mismatches.join("\n")
       );
     }
   });

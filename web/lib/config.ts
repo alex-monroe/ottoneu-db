@@ -46,6 +46,8 @@ export const VALUE_VARIATION = 0.20; // ±20% value variation per team
 
 export const POSITIONS = config.POSITIONS as unknown as readonly ["QB", "RB", "WR", "TE", "K"];
 
+export const COLLEGE_POSITIONS: readonly string[] = config.COLLEGE_POSITIONS;
+
 export const POSITION_COLORS: Record<string, string> = {
     QB: "#EF4444",
     RB: "#3B82F6",
