@@ -5,7 +5,8 @@ import { getAuthenticatedUser } from "@/lib/auth";
 
 export async function GET() {
   const user = await getAuthenticatedUser();
-  if (!user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { data, error } = await getSupabaseAdmin()
     .from("users")
@@ -18,7 +19,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const user = await getAuthenticatedUser();
-  if (!user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { email, password, has_projections_access } = await req.json();
 
