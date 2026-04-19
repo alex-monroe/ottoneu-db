@@ -30,7 +30,7 @@ Group manual permission gates by command family (the first word of the command, 
 | **Command pattern** | e.g. `which`, `mkdir -p`, `curl`, `brew install` |
 | **Count** | How many times in this session |
 | **Purpose** | What was being accomplished |
-| **Already a just target?** | Does an existing `just <recipe>` cover this? |
+| **Just target?** | Does an existing `just <recipe>` cover this? |
 | **Disposition** | One of: `new-just-target` · `new-allowlist-entry` · `use-existing-just` · `one-off` |
 
 ## Step 4 — Make recommendations
