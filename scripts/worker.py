@@ -104,12 +104,23 @@ class ScraperWorker:
                 if not dep_data or dep_data["status"] != "completed":
                     continue
 
-            # Claim it
-            self.supabase.table("scraper_jobs").update({
-                "status": "running",
-                "started_at": "now()",
-                "attempts": job["attempts"] + 1,
-            }).eq("id", job["id"]).execute()
+            # Atomic claim — only succeeds if the row is still 'pending'. If
+            # another worker claimed it first the update affects zero rows and
+            # we move on to the next candidate.
+            claim_result = (
+                self.supabase.table("scraper_jobs")
+                .update({
+                    "status": "running",
+                    "started_at": "now()",
+                    "attempts": job["attempts"] + 1,
+                })
+                .eq("id", job["id"])
+                .eq("status", "pending")
+                .execute()
+            )
+            claimed_rows = claim_result.data if hasattr(claim_result, "data") else claim_result[1]
+            if not claimed_rows:
+                continue
 
             job["attempts"] += 1
             job["status"] = "running"
