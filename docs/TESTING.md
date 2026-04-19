@@ -48,7 +48,7 @@ Harness engineering tests that enforce architectural rules mechanically. Each te
 - **TypeScript:** `web/__tests__/lib/architecture.test.ts` — layer boundaries, type locations, config sync
 
 ```bash
-make check-arch    # Run architectural tests only
+just check-arch    # Run architectural tests only
 ```
 
 ## Documentation Freshness Check
@@ -56,7 +56,7 @@ make check-arch    # Run architectural tests only
 Scans for stale docs, broken links in AGENTS.md/CLAUDE.md, and orphan files.
 
 ```bash
-make check-docs    # Informational (warnings only)
+just check-docs    # Informational (warnings only)
 python scripts/check_docs_freshness.py --strict   # Fail on any issue
 ```
 
@@ -67,6 +67,6 @@ GitHub Actions runs both test suites plus documentation checks on every PR (`.gi
 ## Running All Tests
 
 ```bash
-make test    # Runs both Python and web tests
-make ci      # Full CI suite: lint + typecheck + tests + doc checks
+just test    # Runs both Python and web tests
+just ci      # Full CI suite: lint + typecheck + tests + doc checks
 ```
