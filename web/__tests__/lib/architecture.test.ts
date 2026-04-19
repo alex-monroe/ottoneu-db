@@ -10,6 +10,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import * as configModule from "../../lib/config";
 
 const PROJECT_ROOT = path.resolve(__dirname, "..", "..");
 const WEB_ROOT = PROJECT_ROOT;
@@ -261,9 +262,7 @@ describe("Config JSON Sync", () => {
    */
   test("config.ts exported values match config.json", () => {
     const configJson = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-    // Use require so the test runs against the actual module exports, not the source text.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const configTs = require("../../lib/config") as Record<string, unknown>;
+    const configTs = configModule as unknown as Record<string, unknown>;
 
     // Some exports wrap the raw config.json value in a different runtime shape
     // (e.g. `Set` instead of `Array`). Normalize before comparing.
