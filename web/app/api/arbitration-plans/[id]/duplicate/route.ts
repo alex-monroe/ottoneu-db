@@ -25,7 +25,9 @@ export async function POST(req: NextRequest, context: RouteContext) {
     .eq("id", id)
     .single();
 
-  if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 404 });
+  if (fetchError || !sourcePlan) {
+    return NextResponse.json({ error: fetchError?.message ?? "Plan not found" }, { status: 404 });
+  }
   if (sourcePlan.user_id !== user.userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   // Create new plan
@@ -40,6 +42,9 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "A plan with that name already exists" }, { status: 409 });
     }
     return NextResponse.json({ error: planError.message }, { status: 500 });
+  }
+  if (!newPlan) {
+    return NextResponse.json({ error: "Failed to create plan" }, { status: 500 });
   }
 
   // Copy allocations from source plan
