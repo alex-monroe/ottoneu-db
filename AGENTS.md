@@ -12,7 +12,7 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 
 ## Quick Reference
 
-- **Commands:** See [docs/COMMANDS.md](docs/COMMANDS.md) for all CLI commands (frontend, backend, make, cron)
+- **Commands:** See [docs/COMMANDS.md](docs/COMMANDS.md) for all CLI commands (frontend, backend, just recipes, cron)
 - **Architecture:** See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for system design, data pipeline, and analysis pipeline
 - **Frontend:** See [docs/FRONTEND.md](docs/FRONTEND.md) for routes, components, types, and config
 - **Code layout:** See [docs/CODE_ORGANIZATION.md](docs/CODE_ORGANIZATION.md) for key file locations and config
@@ -73,10 +73,11 @@ These rules are mechanically enforced by structural tests in `scripts/tests/test
 - **No wildcard imports:** Use explicit named imports (`from module import X, Y`).
 - **Documentation exists:** All docs referenced in this file must exist and have content.
 
-Run `make check-arch` to validate these rules locally.
+Run `just check-arch` to validate these rules locally.
 
 ## Critical Rules
 
+- **Always use `just <recipe>`** instead of invoking Python, pytest, or npm scripts directly. This ensures the correct venv and flags are used, and keeps the agent allowlist minimal. Run `just --list` to see all available recipes.
 - **Update documentation:** Always try to update the agent documentation after completing a task. Update existing documents or add new documents and sections as needed to reflect architectural or contextual changes.
 - **Never commit directly to `main`.** All changes go through pull requests.
 - **Always create a PR.** Every task must end with `gh pr create --fill`.
@@ -90,11 +91,11 @@ When any task modifies the projection system — including `scripts/feature_proj
 1. **Run the new model for ALL backtest seasons before calling `--run-backtest`.**
    The accuracy report covers seasons 2022–2025. If a new model is missing any of those seasons in `model_projections`, that season will show `—` in the table and the combined averages will be wrong. Run:
    ```
-   source venv/bin/activate && python scripts/feature_projections/cli.py run --model <name> --seasons 2022,2023,2024,2025
+   just project <name> 2022,2023,2024,2025
    ```
    Then run the full report:
    ```
-   source venv/bin/activate && python scripts/feature_projections/accuracy_report.py --run-backtest --seasons 2022,2023,2024,2025
+   just accuracy-report --run-backtest --seasons 2022,2023,2024,2025
    ```
 2. **Include the full markdown table** (from `docs/generated/projection-accuracy.md`) in:
    - The task output / conversation summary
