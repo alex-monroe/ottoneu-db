@@ -29,7 +29,7 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 
 ## Documentation Map
 
-Skills (`.claude/commands/`): `ablation`, `compare-models`, `create-pr`, `diagnose-segment`, `experiment`, `feature-importance`, `projection-accuracy`, `retro`, `run-analyses`, `run-scraper`, `run-tests`, `start-dev`
+Skills (`.claude/commands/`): `ablation`, `compare-models`, `create-pr`, `diagnose-segment`, `experiment`, `feature-importance`, `projection-accuracy`, `retro`, `review-permission-gates`, `run-analyses`, `run-scraper`, `run-tests`, `start-dev`
 
 ```
 CLAUDE.md                              ← you are here

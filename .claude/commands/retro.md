@@ -4,6 +4,10 @@ description: Retrospective on the current task — identify friction points, pro
 
 Run a retrospective on the task just completed in this conversation. Follow these steps carefully.
 
+## Step 0 — Review permission gates
+
+Before collecting friction points, invoke the `review-permission-gates` skill. Its output identifies manual approval gates from this session — the findings slot directly into the Step 1 table under the `approval-gate` category with concrete proposed fixes already included. Complete Step 0 before proceeding to Step 1.
+
 ## Step 1 — Collect friction points
 
 Review the entire conversation history. Look for:

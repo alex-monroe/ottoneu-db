@@ -5,7 +5,8 @@
 - **Location:** `scripts/tests/`
 - **Config:** `pyproject.toml` (or `scripts/pytest.ini`)
 - **Venv path:** `venv/` (not `.venv/`) — activate with `source venv/bin/activate`
-- **Run:** `python -m pytest` from project root (venv must be active), or directly via `venv/bin/pytest`
+- **Run:** `just test-python` (preferred) or `venv/bin/pytest` from project root
+- **Coverage flags:** `pyproject.toml` sets `addopts = "--cov=scripts --cov-report=term-missing"`. Do not pass `--cov` flags explicitly — they conflict with and override the configured scope.
 
 ## Web Tests
 

@@ -28,6 +28,8 @@
       "Bash(wc:*)",
       "Bash(jq:*)",
       "Bash(find:*)",
+      "Bash(which:*)",
+      "Bash(mkdir:*)",
       "Bash(psql:*)",
       "Bash(supabase --version:*)",
       "WebSearch",
