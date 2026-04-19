@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import * as HoverCard from "@radix-ui/react-hover-card";
-import type { Column, PlayerHoverData, Position, TableRow } from "@/lib/types";
+import type { Column, PlayerHoverData, Position } from "@/lib/types";
 import { POSITION_COLORS } from "@/lib/types";
 
 interface PlayerHoverCardProps {
@@ -111,19 +111,20 @@ export default function PlayerHoverCard({
  * Factory function to create a player name column with hover cards.
  * Pass null for hoverDataMap to get a plain text column (no hover).
  */
-export function makePlayerNameColumn(
+export function makePlayerNameColumn<Row>(
   hoverDataMap: Record<string, PlayerHoverData> | null,
   label = "Player"
-): Column {
+): Column<Row> {
   if (!hoverDataMap) {
     return { key: "name", label };
   }
   return {
     key: "name",
     label,
-    renderCell: (value: unknown, row: TableRow) => {
-      const playerId = row.player_id as string | undefined;
-      const ottoneuId = row.ottoneu_id as number | undefined;
+    renderCell: (value: unknown, row: Row) => {
+      const r = row as { player_id?: string; ottoneu_id?: number };
+      const playerId = r.player_id;
+      const ottoneuId = r.ottoneu_id;
       if (!playerId || !ottoneuId) return String(value ?? "—");
       return (
         <PlayerHoverCard

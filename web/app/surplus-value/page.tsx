@@ -9,8 +9,17 @@ import {
 import { fetchPlayersEndOfSeason } from "@/lib/data";
 import { getAuthenticatedUser } from "@/lib/auth";
 import DataTable, { Column, HighlightRule } from "@/components/DataTable";
+import type { SurplusPlayer } from "@/lib/types";
 
-const CORE_COLUMNS: Column[] = [
+interface TeamSummaryRow {
+  team_name: string;
+  players: number;
+  total_salary: number;
+  total_value: number;
+  total_surplus: number;
+}
+
+const CORE_COLUMNS: Column<SurplusPlayer>[] = [
   { key: "name", label: "Player" },
   { key: "position", label: "Pos" },
   { key: "nfl_team", label: "Team" },
@@ -22,7 +31,7 @@ const CORE_COLUMNS: Column[] = [
   { key: "team_name", label: "Owner" },
 ];
 
-const MY_TEAM_COLUMNS: Column[] = [
+const MY_TEAM_COLUMNS: Column<SurplusPlayer>[] = [
   { key: "name", label: "Player" },
   { key: "position", label: "Pos" },
   { key: "price", label: "Salary", format: "currency" },
@@ -32,7 +41,7 @@ const MY_TEAM_COLUMNS: Column[] = [
   { key: "full_season_vorp", label: "VORP", format: "decimal" },
 ];
 
-const FA_COLUMNS: Column[] = [
+const FA_COLUMNS: Column<SurplusPlayer>[] = [
   { key: "name", label: "Player" },
   { key: "position", label: "Pos" },
   { key: "nfl_team", label: "Team" },
@@ -41,7 +50,7 @@ const FA_COLUMNS: Column[] = [
   { key: "full_season_vorp", label: "VORP", format: "decimal" },
 ];
 
-const TEAM_SUMMARY_COLUMNS: Column[] = [
+const TEAM_SUMMARY_COLUMNS: Column<TeamSummaryRow>[] = [
   { key: "team_name", label: "Team" },
   { key: "players", label: "Players", format: "number" },
   { key: "total_salary", label: "Total Salary", format: "currency" },
@@ -49,20 +58,20 @@ const TEAM_SUMMARY_COLUMNS: Column[] = [
   { key: "total_surplus", label: "Total Surplus", format: "currency" },
 ];
 
-const BARGAIN_RULES: HighlightRule[] = [
+const BARGAIN_RULES: HighlightRule<SurplusPlayer>[] = [
   { key: "surplus", op: "gte", value: 30, className: "bg-green-50 dark:bg-green-950/30" },
 ];
 
-const OVERPAID_RULES: HighlightRule[] = [
+const OVERPAID_RULES: HighlightRule<SurplusPlayer>[] = [
   { key: "surplus", op: "lt", value: -20, className: "bg-red-50 dark:bg-red-950/30" },
 ];
 
-const MY_TEAM_RULES: HighlightRule[] = [
+const MY_TEAM_RULES: HighlightRule<SurplusPlayer>[] = [
   { key: "surplus", op: "lt", value: 0, className: "bg-red-50 dark:bg-red-950/30" },
   { key: "surplus", op: "gte", value: 20, className: "bg-green-50 dark:bg-green-950/30" },
 ];
 
-const TEAM_SUMMARY_RULES: HighlightRule[] = [
+const TEAM_SUMMARY_RULES: HighlightRule<TeamSummaryRow>[] = [
   { key: "team_name", op: "eq", value: MY_TEAM, className: "bg-blue-50 dark:bg-blue-950/30" },
 ];
 
