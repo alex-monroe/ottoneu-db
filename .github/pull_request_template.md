@@ -12,8 +12,8 @@
 
 <!-- How were these changes verified? -->
 
-- [ ] Python tests pass (`make test-python`)
-- [ ] Web tests pass (`make test-web`)
-- [ ] ESLint clean (`make lint`)
-- [ ] TypeScript compiles (`make typecheck`)
-- [ ] Production build succeeds (`make build`)
+- [ ] Python tests pass (`just test-python`)
+- [ ] Web tests pass (`just test-web`)
+- [ ] ESLint clean (`just lint`)
+- [ ] TypeScript compiles (`just typecheck`)
+- [ ] Production build succeeds (`just build`)

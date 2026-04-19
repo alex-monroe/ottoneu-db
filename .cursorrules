@@ -17,4 +17,4 @@ This repository maintains universal instructions for AI agents in `AGENTS.md`.
 ## Key Directives
 - **Package Manager:** Strictly use `npm` for all frontend tasks (do not use `yarn`, `pnpm`, or `bun`).
 - **Commits:** Do not commit directly to `main`. Use PRs.
-- **Architectural Rules:** Adhere strictly to rules in `AGENTS.md` (e.g., config sync, shared Supabase client). Run `make check-arch` to verify.
+- **Architectural Rules:** Adhere strictly to rules in `AGENTS.md` (e.g., config sync, shared Supabase client). Run `just check-arch` to verify.

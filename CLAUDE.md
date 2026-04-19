@@ -12,7 +12,7 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 
 ## Quick Reference
 
-- **Commands:** See [docs/COMMANDS.md](docs/COMMANDS.md) for all CLI commands (frontend, backend, make, cron)
+- **Commands:** See [docs/COMMANDS.md](docs/COMMANDS.md) for all CLI commands (frontend, backend, just recipes, cron)
 - **Architecture:** See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for system design, data pipeline, and analysis pipeline
 - **Frontend:** See [docs/FRONTEND.md](docs/FRONTEND.md) for routes, components, types, and config
 - **Code layout:** See [docs/CODE_ORGANIZATION.md](docs/CODE_ORGANIZATION.md) for key file locations and config
@@ -37,7 +37,7 @@ AGENTS.md                              ← universal agent instructions
 docs/
 ├── ARCHITECTURE.md                    # System design, data + analysis pipelines, tech stack
 ├── CODE_ORGANIZATION.md               # Key file locations, Python/TS config
-├── COMMANDS.md                        # All CLI commands (frontend, backend, make, cron)
+├── COMMANDS.md                        # All CLI commands (frontend, backend, just recipes, cron)
 ├── FRONTEND.md                        # Routes, components, types, analysis logic
 ├── GIT_WORKFLOW.md                    # Branch strategy, PR requirements
 ├── TESTING.md                         # Python + web test setup and CI

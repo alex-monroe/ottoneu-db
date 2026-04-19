@@ -31,7 +31,7 @@ CLAUDE.md                              ← Claude Code specific instructions
 docs/
 ├── ARCHITECTURE.md                    # System design, data + analysis pipelines, tech stack
 ├── CODE_ORGANIZATION.md               # Key file locations, Python/TS config
-├── COMMANDS.md                        # All CLI commands (frontend, backend, make, cron)
+├── COMMANDS.md                        # All CLI commands (frontend, backend, just recipes, cron)
 ├── FRONTEND.md                        # Routes, components, types, analysis logic
 ├── GIT_WORKFLOW.md                    # Branch strategy, PR requirements
 ├── TESTING.md                         # Python + web test setup and CI
