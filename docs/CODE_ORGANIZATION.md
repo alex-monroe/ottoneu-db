@@ -5,7 +5,8 @@
 | Area | Path | Purpose |
 |------|------|---------|
 | Python config | `scripts/config.py` | All league constants, Supabase client factory |
-| TS config | `web/lib/config.ts` | Frontend constants (**must stay in sync with `scripts/config.py`**) |
+| TS config | `web/lib/config.ts` | Frontend constants (every key derives from `config.json`; sync enforced by architecture tests) |
+| Shared config | `config.json` | **Single source of truth** for every constant shared across Python and TypeScript |
 | TS types | `web/lib/types.ts` | All shared TypeScript interfaces (`CorePlayer → RosteredPlayer → StatsPlayer → Player`) |
 | Data layer | `web/lib/data.ts` | **Unified data access** — all Supabase fetching goes through here |
 | Scoring | `web/lib/scoring.ts` | Ottoneu Half PPR scoring formula (`calculateFantasyPoints`) |
@@ -29,6 +30,19 @@ All configuration constants live here:
 - Shared Supabase client via `get_supabase_client()`
 
 All scripts import from `scripts/config.py` to eliminate duplication and ensure consistency.
+
+## Shared Configuration (`config.json`)
+
+`config.json` at the repo root is the single source of truth for every constant shared between Python and TypeScript. Both `scripts/config.py` and `web/lib/config.ts` read from it — never hand-copy a value.
+
+When adding a new shared key, update three places:
+1. `config.json` — add the key/value
+2. `scripts/config.py` — add `CONSTANT = _config["KEY"]`
+3. `web/lib/config.ts` — add `export const CONSTANT = config.KEY`
+
+Drift is caught mechanically by architecture tests:
+- `scripts/tests/test_architecture.py::TestConfigSync` — asserts every `config.json` key is consumed in both `config.py` and `config.ts`, and that neither references a nonexistent key.
+- `web/__tests__/lib/architecture.test.ts::Config JSON Sync` — asserts the TypeScript module's *exported values* match `config.json` (not just key presence).
 
 ## Path Setup for New Python Scripts
 

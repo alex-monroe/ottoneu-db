@@ -176,8 +176,9 @@ class TestConfigSync:
     def test_typescript_consumes_all_json_keys(self):
         json_keys = self._get_json_keys()
         ts_keys = self._get_ts_config_keys()
-        # Some keys may be Python-only (e.g., used only for scraping)
-        python_only = {"COLLEGE_POSITIONS"}
+        # Some keys may be Python-only (e.g., used only for scraping). Currently empty —
+        # every config.json key must be exported by web/lib/config.ts.
+        python_only: set[str] = set()
         expected = json_keys - python_only
         missing = expected - ts_keys
         assert not missing, (
