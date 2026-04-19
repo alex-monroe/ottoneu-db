@@ -31,7 +31,7 @@ type ProjectedTarget = ArbitrationTarget & {
   observed_ppg?: number;
 };
 
-const BASE_COLUMNS: Column[] = [
+const BASE_COLUMNS: Column<ProjectedTarget>[] = [
   { key: "name", label: "Player" },
   { key: "position", label: "Pos" },
   { key: "nfl_team", label: "NFL Team" },
@@ -43,7 +43,7 @@ const BASE_COLUMNS: Column[] = [
   { key: "surplus_after_arb", label: "Surplus (Post-Arb)", format: "currency" },
 ];
 
-const PROJECTED_COLUMNS: Column[] = [
+const PROJECTED_COLUMNS: Column<ProjectedTarget>[] = [
   { key: "name", label: "Player" },
   { key: "position", label: "Pos" },
   { key: "nfl_team", label: "NFL Team" },
@@ -57,7 +57,7 @@ const PROJECTED_COLUMNS: Column[] = [
   { key: "surplus_after_arb", label: "Surplus (Post-Arb)", format: "currency" },
 ];
 
-const ARB_TARGET_RULES: HighlightRule[] = [
+const ARB_TARGET_RULES: HighlightRule<ProjectedTarget>[] = [
   { key: "surplus_after_arb", op: "lt", value: 0, className: "bg-red-50 dark:bg-red-950/30" },
 ];
 

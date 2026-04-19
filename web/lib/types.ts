@@ -37,13 +37,8 @@ export interface StatsPlayer extends RosteredPlayer {
   pps: number;
 }
 
-/**
- * Full player with stats — used by analysis pages (VORP, surplus, arb, etc.).
- * Alias for StatsPlayer with index signature for DataTable compatibility.
- */
-export interface Player extends StatsPlayer {
-  [key: string]: string | number | boolean | null | undefined;
-}
+/** Full player with stats — used by analysis pages (VORP, surplus, arb, etc.). */
+export type Player = StatsPlayer;
 
 export interface VorpPlayer extends Player {
   replacement_ppg: number;
@@ -69,7 +64,6 @@ export interface ArbitrationTarget extends SurplusPlayer {
 export interface PublicArbPlayer extends RosteredPlayer {
   ppg: number;
   games_played: number;
-  [key: string]: string | number | boolean | null | undefined;
 }
 
 export interface TeamAllocation {
@@ -216,7 +210,6 @@ export interface BacktestPlayer {
   games_played: number;
   projection_method: string;  // "rookie_trajectory" | "weighted_average_ppg" | "model"
   feature_values?: Record<string, number | null> | null;
-  [key: string]: string | number | boolean | Record<string, number | null> | null | undefined;
 }
 
 // === Projection Model Types ===
@@ -264,21 +257,35 @@ export interface TeamBudgetStatus {
 
 // === DataTable Types ===
 
-export interface Column {
+/**
+ * Column definition for DataTable, generic over the row type so renderCell
+ * receives a typed `row` instead of an opaque `TableRow`.
+ *
+ * `key` stays `string` (not `keyof Row`) on purpose — pages routinely add
+ * derived columns (computed deltas, projection method labels, etc.) that
+ * don't exist on the source row's static type.
+ */
+export interface Column<Row = TableRow> {
   key: string;
   label: string;
   format?: "currency" | "number" | "decimal" | "percent";
-  renderCell?: (value: unknown, row: TableRow) => React.ReactNode;
+  renderCell?: (value: unknown, row: Row) => React.ReactNode;
 }
 
-export interface HighlightRule {
-  key: string;
+export interface HighlightRule<Row = TableRow> {
+  key: keyof Row & string;
   op: "lt" | "gt" | "gte" | "lte" | "eq";
   value: number | string;
   className: string;
 }
 
-export type TableRow = Record<string, string | number | boolean | null | undefined>;
+/**
+ * Default row shape for tables that don't supply a generic argument.
+ * Loosened to `unknown` (from a primitive union) so rows carrying nested
+ * objects — e.g. BacktestPlayer.feature_values — can flow through DataTable
+ * without an unsafe cast.
+ */
+export type TableRow = Record<string, unknown>;
 
 // === Player Hover Card Types ===
 

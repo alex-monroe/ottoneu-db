@@ -10,9 +10,9 @@ interface SimulationTeamsProps {
   hoverDataMap?: Record<string, PlayerHoverData> | null;
 }
 
-function getTeamPlayerColumns(hdm: Record<string, PlayerHoverData> | null): Column[] {
+function getTeamPlayerColumns(hdm: Record<string, PlayerHoverData> | null): Column<SimulationResult>[] {
   return [
-    makePlayerNameColumn(hdm),
+    makePlayerNameColumn<SimulationResult>(hdm),
     { key: "position", label: "Pos" },
     { key: "price", label: "Salary", format: "currency" },
     { key: "dollar_value", label: "Value", format: "currency" },

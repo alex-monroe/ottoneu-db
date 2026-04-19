@@ -7,18 +7,24 @@ import PlayerHoverCard from "./PlayerHoverCard";
 // Re-export types for backward compatibility with existing imports
 export type { Column, HighlightRule, TableRow };
 
-interface DataTableProps<T extends TableRow = TableRow> {
-  columns: Column[];
-  data: T[];
-  highlightRow?: (row: T) => string | undefined;
-  highlightRules?: HighlightRule[];
-  renderExpandedRow?: (row: T) => React.ReactNode;
+interface DataTableProps<Row> {
+  columns: Column<Row>[];
+  data: Row[];
+  highlightRow?: (row: Row) => string | undefined;
+  highlightRules?: HighlightRule<Row>[];
+  renderExpandedRow?: (row: Row) => React.ReactNode;
   hoverDataMap?: Record<string, PlayerHoverData> | null;
 }
 
-function applyRules<T extends TableRow>(row: T, rules: HighlightRule[]): string | undefined {
+// Internal helper: dynamic key access on a generic Row. The cast is local to
+// DataTable's runtime code — callers see only the typed Row API.
+function read(row: unknown, key: string): unknown {
+  return (row as Record<string, unknown>)[key];
+}
+
+function applyRules<Row>(row: Row, rules: HighlightRule<Row>[]): string | undefined {
   for (const rule of rules) {
-    const val = row[rule.key];
+    const val = read(row, rule.key);
     if (val == null) continue;
     const num = Number(val);
     const ruleNum = Number(rule.value);
@@ -37,14 +43,14 @@ function applyRules<T extends TableRow>(row: T, rules: HighlightRule[]): string 
   return undefined;
 }
 
-export default function DataTable<T extends TableRow = TableRow>({
+export default function DataTable<Row>({
   columns,
   data,
   highlightRow,
   highlightRules,
   renderExpandedRow,
   hoverDataMap,
-}: DataTableProps<T>) {
+}: DataTableProps<Row>) {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortAsc, setSortAsc] = useState(true);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
@@ -69,8 +75,8 @@ export default function DataTable<T extends TableRow = TableRow>({
 
   const sorted = sortKey
     ? [...data].sort((a, b) => {
-        const av = a[sortKey];
-        const bv = b[sortKey];
+        const av = read(a, sortKey);
+        const bv = read(b, sortKey);
         if (av == null && bv == null) return 0;
         if (av == null) return 1;
         if (bv == null) return -1;
@@ -162,23 +168,24 @@ export default function DataTable<T extends TableRow = TableRow>({
                   )}
                   {columns.map((col) => {
                     let cellContent;
+                    const cellValue = read(row, col.key);
                     if (col.renderCell) {
-                      cellContent = col.renderCell(row[col.key], row);
+                      cellContent = col.renderCell(cellValue, row);
                     } else if (
                       col.key === "name" &&
                       hoverDataMap &&
-                      row.player_id &&
-                      row.ottoneu_id
+                      read(row, "player_id") &&
+                      read(row, "ottoneu_id")
                     ) {
                       cellContent = (
                         <PlayerHoverCard
-                          name={String(row[col.key] ?? "—")}
-                          ottoneuId={row.ottoneu_id as number}
-                          hoverData={hoverDataMap[row.player_id as string]}
+                          name={String(cellValue ?? "—")}
+                          ottoneuId={read(row, "ottoneu_id") as number}
+                          hoverData={hoverDataMap[read(row, "player_id") as string]}
                         />
                       );
                     } else {
-                      cellContent = formatCell(row[col.key], col.format);
+                      cellContent = formatCell(cellValue, col.format);
                     }
                     return (
                       <td

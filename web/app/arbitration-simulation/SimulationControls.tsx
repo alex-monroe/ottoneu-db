@@ -7,7 +7,7 @@ import {
   NUM_SIMULATIONS,
   VALUE_VARIATION,
 } from "@/lib/analysis";
-import type { Player, PlayerHoverData } from "@/lib/types";
+import type { Player, PlayerHoverData, SimulationResult } from "@/lib/types";
 import DataTable, { Column, HighlightRule } from "@/components/DataTable";
 import { makePlayerNameColumn } from "@/components/PlayerHoverCard";
 import SimulationTeams from "./SimulationTeams";
@@ -19,9 +19,9 @@ interface SimulationControlsProps {
   hoverDataMap?: Record<string, PlayerHoverData> | null;
 }
 
-function getMyRosterColumns(hdm: Record<string, PlayerHoverData> | null): Column[] {
+function getMyRosterColumns(hdm: Record<string, PlayerHoverData> | null): Column<SimulationResult>[] {
   return [
-    makePlayerNameColumn(hdm),
+    makePlayerNameColumn<SimulationResult>(hdm),
     { key: "position", label: "Pos" },
     { key: "price", label: "Salary", format: "currency" },
     { key: "dollar_value", label: "Value", format: "currency" },
@@ -33,9 +33,9 @@ function getMyRosterColumns(hdm: Record<string, PlayerHoverData> | null): Column
   ];
 }
 
-function getVulnerableColumns(hdm: Record<string, PlayerHoverData> | null): Column[] {
+function getVulnerableColumns(hdm: Record<string, PlayerHoverData> | null): Column<SimulationResult>[] {
   return [
-    makePlayerNameColumn(hdm),
+    makePlayerNameColumn<SimulationResult>(hdm),
     { key: "position", label: "Pos" },
     { key: "nfl_team", label: "NFL" },
     { key: "team_name", label: "Owner" },
@@ -48,9 +48,9 @@ function getVulnerableColumns(hdm: Record<string, PlayerHoverData> | null): Colu
   ];
 }
 
-function getCutCandidateColumns(hdm: Record<string, PlayerHoverData> | null): Column[] {
+function getCutCandidateColumns(hdm: Record<string, PlayerHoverData> | null): Column<SimulationResult>[] {
   return [
-    makePlayerNameColumn(hdm),
+    makePlayerNameColumn<SimulationResult>(hdm),
     { key: "position", label: "Pos" },
     { key: "nfl_team", label: "NFL" },
     { key: "team_name", label: "Owner" },
@@ -63,11 +63,11 @@ function getCutCandidateColumns(hdm: Record<string, PlayerHoverData> | null): Co
   ];
 }
 
-const VULNERABLE_RULES: HighlightRule[] = [
+const VULNERABLE_RULES: HighlightRule<SimulationResult>[] = [
   { key: "surplus_after_arb", op: "gt", value: 15, className: "bg-green-50 dark:bg-green-950/30" },
 ];
 
-const CUT_CANDIDATE_RULES: HighlightRule[] = [
+const CUT_CANDIDATE_RULES: HighlightRule<SimulationResult>[] = [
   { key: "surplus_after_arb", op: "lt", value: -10, className: "bg-red-50 dark:bg-red-950/30" },
 ];
 

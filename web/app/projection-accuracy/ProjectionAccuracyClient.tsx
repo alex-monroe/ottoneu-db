@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { BacktestPlayer, Position, POSITIONS, ProjectionModel, TableRow } from "@/lib/types";
+import { BacktestPlayer, Position, POSITIONS, ProjectionModel } from "@/lib/types";
 import { calculateMetrics, PositionMetrics } from "./metrics";
 import AccuracyScatterChart from "./AccuracyScatterChart";
 import FeatureBreakdown from "./FeatureBreakdown";
@@ -10,7 +10,7 @@ import DataTable, { Column } from "@/components/DataTable";
 import PositionFilter from "@/components/PositionFilter";
 import SummaryCard from "@/components/SummaryCard";
 
-const PLAYER_COLUMNS: Column[] = [
+const PLAYER_COLUMNS: Column<BacktestPlayer>[] = [
   { key: "name", label: "Player" },
   { key: "position", label: "Pos" },
   { key: "nfl_team", label: "Team" },
@@ -509,7 +509,7 @@ export default function ProjectionAccuracyClient({
           </p>
           <DataTable
             columns={DELTA_COLUMNS}
-            data={playerDeltaRows as unknown as TableRow[]}
+            data={playerDeltaRows}
             highlightRules={[
               {
                 key: "abs_delta",
@@ -551,7 +551,7 @@ export default function ProjectionAccuracyClient({
         </div>
         <DataTable
           columns={PLAYER_COLUMNS}
-          data={filteredPlayers as unknown as TableRow[]}
+          data={filteredPlayers}
           highlightRules={[
             {
               key: "error",
@@ -644,7 +644,7 @@ export default function ProjectionAccuracyClient({
           {/* Rookie player table */}
           <DataTable
             columns={PLAYER_COLUMNS}
-            data={filteredRookies as unknown as TableRow[]}
+            data={filteredRookies}
             highlightRules={[
               {
                 key: "error",
