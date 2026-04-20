@@ -54,6 +54,10 @@ test-python:
 test-web:
     cd web && npx jest --coverage
 
+# Run a single web test file (no coverage)  (e.g. just test-web-file __tests__/lib/session.test.ts)
+test-web-file file:
+    cd web && npx jest {{file}} --no-coverage
+
 # ──────────────────────────────────────────────
 # Backend
 # ──────────────────────────────────────────────

@@ -12,7 +12,8 @@
 
 - **Location:** `web/__tests__/`
 - **Config:** `web/jest.config.ts`
-- **Run:** `npm test` from `web/`
+- **Run all:** `just test-web` (runs the full suite with coverage)
+- **Run one file:** `just test-web-file <path>` — e.g. `just test-web-file __tests__/lib/session.test.ts`. Prefer this over raw `npx jest <file>` so the call is covered by the `Bash(just:*)` allowlist.
 
 ### TypeScript type-checking
 

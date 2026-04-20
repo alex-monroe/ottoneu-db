@@ -104,6 +104,7 @@ just typecheck          # TypeScript type check
 just test               # Run all tests (Python + web)
 just test-python        # Python tests with coverage
 just test-web           # Jest tests with coverage
+just test-web-file <path>  # Run a single web test file (e.g. just test-web-file __tests__/lib/session.test.ts)
 just scrape             # Full scrape pipeline
 just analyze            # Run all analysis scripts
 just check-db           # Verify database contents
