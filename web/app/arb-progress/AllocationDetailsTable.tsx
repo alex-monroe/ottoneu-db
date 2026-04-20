@@ -1,25 +1,36 @@
 "use client";
 
 import DataTable, { Column, HighlightRule } from "@/components/DataTable";
-import type { PlayerHoverData, TableRow } from "@/lib/types";
+import type { PlayerHoverData } from "@/lib/types";
+import type { Allocation, PlayerAllocationDetail } from "@/lib/arb-progress";
 
-interface AllocationDetail {
-  allocating_team_name: string;
-  amount: number;
-}
+const COLUMNS: Column[] = [
+  { key: "name", label: "Player" },
+  { key: "team_name", label: "Owner" },
+  { key: "current_salary", label: "Salary", format: "currency" },
+  { key: "raise_amount", label: "Raise", format: "currency" },
+  { key: "new_salary", label: "New Salary", format: "currency" },
+  { key: "projected_raise", label: "Proj. Raise", format: "currency" },
+  { key: "projected_salary", label: "Proj. Salary", format: "currency" },
+];
+
+const HIGHLIGHT_RULES: HighlightRule[] = [
+  {
+    key: "raise_amount",
+    op: "gte",
+    value: 10,
+    className: "bg-red-50 dark:bg-red-950/30",
+  },
+];
 
 interface AllocationDetailsTableProps {
-  columns: Column[];
-  data: TableRow[];
-  highlightRules: HighlightRule[];
+  data: Allocation[];
   hoverDataMap: Record<string, PlayerHoverData> | null;
-  detailsByPlayer: Record<number, AllocationDetail[]>;
+  detailsByPlayer: Record<number, PlayerAllocationDetail[]>;
 }
 
 export default function AllocationDetailsTable({
-  columns,
   data,
-  highlightRules,
   hoverDataMap,
   detailsByPlayer,
 }: AllocationDetailsTableProps) {
@@ -28,9 +39,9 @@ export default function AllocationDetailsTable({
   if (!hasDetails) {
     return (
       <DataTable
-        columns={columns}
+        columns={COLUMNS}
         data={data}
-        highlightRules={highlightRules}
+        highlightRules={HIGHLIGHT_RULES}
         hoverDataMap={hoverDataMap}
       />
     );
@@ -38,9 +49,9 @@ export default function AllocationDetailsTable({
 
   return (
     <DataTable
-      columns={columns}
+      columns={COLUMNS}
       data={data}
-      highlightRules={highlightRules}
+      highlightRules={HIGHLIGHT_RULES}
       hoverDataMap={hoverDataMap}
       renderExpandedRow={(row) => {
         const details = detailsByPlayer[row.ottoneu_id as number] ?? [];

@@ -1,25 +1,7 @@
 "use client";
 
 import DataTable, { Column } from "@/components/DataTable";
-import type { TableRow } from "@/lib/types";
-
-interface PlayerAllocation {
-  player_name: string;
-  owner_team_name: string;
-  amount: number;
-}
-
-export interface TeamSpendingRow extends TableRow {
-  team_name: string;
-  total_spent: number;
-  players_targeted: number;
-  budget_remaining: number;
-}
-
-export interface TeamSpendingData {
-  row: TeamSpendingRow;
-  allocations: PlayerAllocation[];
-}
+import type { TeamSpendingEntry } from "@/lib/arb-progress";
 
 const COLUMNS: Column[] = [
   { key: "team_name", label: "Team" },
@@ -31,10 +13,10 @@ const COLUMNS: Column[] = [
 export default function TeamSpendingTable({
   data,
 }: {
-  data: TeamSpendingData[];
+  data: TeamSpendingEntry[];
 }) {
   const rows = data.map((d) => d.row);
-  const allocationsByTeam: Record<string, PlayerAllocation[]> = {};
+  const allocationsByTeam: Record<string, TeamSpendingEntry["allocations"]> = {};
   for (const d of data) {
     allocationsByTeam[d.row.team_name] = d.allocations;
   }
@@ -47,7 +29,7 @@ export default function TeamSpendingTable({
         const allocations = allocationsByTeam[row.team_name as string] ?? [];
 
         // Group by opponent team, sorted by total allocated desc
-        const byOpponent = new Map<string, PlayerAllocation[]>();
+        const byOpponent = new Map<string, TeamSpendingEntry["allocations"]>();
         for (const a of allocations) {
           const existing = byOpponent.get(a.owner_team_name) ?? [];
           existing.push(a);
