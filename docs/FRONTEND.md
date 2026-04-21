@@ -63,4 +63,11 @@ Analysis math is ported to `web/lib/analysis.ts` (TS equivalent of `scripts/anal
 
 ## Configuration
 
-Frontend constants in `web/lib/config.ts` — **must stay in sync with `scripts/config.py`**.
+Frontend constants in `web/lib/config.ts` derive from `config.json` (the shared Python/TS source of truth). Value-equality is mechanically enforced by architecture tests — see [CODE_ORGANIZATION.md](CODE_ORGANIZATION.md#shared-configuration-configjson) for the add-a-new-constant workflow.
+
+## API Route Validation
+
+API route handlers under `web/app/api/` validate JSON bodies with Zod:
+
+- `web/lib/schemas/` — per-resource Zod schemas (`arbitration-plan.ts`, `surplus-adjustment.ts`, `user.ts`) with `z.infer` types exported alongside each schema.
+- `web/lib/validate.ts` — shared `parseJson(req, schema)` helper that returns either `{ ok: true, data }` (typed) or `{ ok: false, response }` (400 with Zod's `issues` array). Use this at the top of every POST/PATCH/PUT handler instead of reading `req.json()` directly.

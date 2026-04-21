@@ -12,6 +12,9 @@
 | Scoring | `web/lib/scoring.ts` | Ottoneu Half PPR scoring formula (`calculateFantasyPoints`) |
 | Analysis math | `web/lib/analysis.ts` | Projection-enriched data + backtest fetching (builds on `data.ts`) |
 | Arb logic | `web/lib/arb-logic.ts` | Arbitration simulation logic |
+| Arb-progress transforms | `web/lib/arb-progress.ts` | Pure view-model transforms for `/arb-progress` (no DB / React) |
+| API validation helper | `web/lib/validate.ts` | `parseJson(req, schema)` — shared Zod body parser for API routes |
+| API input schemas | `web/lib/schemas/` | Zod schemas + inferred types per resource (arbitration plans, surplus adjustments, users) |
 | DB schema | `schema.sql` | Canonical schema definition |
 | Migrations | `migrations/` | Numbered SQL migration files |
 | Components | `web/components/` | Reusable React components |
