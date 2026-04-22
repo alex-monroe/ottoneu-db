@@ -72,3 +72,10 @@ Note: The local directory is `ottoneu_db` (underscore) but the GitHub repo name 
 - **Always create a PR.** Every task must end with `gh pr create --fill`.
 - **Start from updated main:** `git checkout main && git pull origin main` before branching.
 - See [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) for full details.
+
+## Agent Plans & Specs
+
+The `docs/superpowers` directory contains historical plans and specs for building tooling and capabilities (e.g., the transition from `make` to `just`). These are kept for context:
+
+- [docs/superpowers/plans/2026-04-19-build-system-just.md](docs/superpowers/plans/2026-04-19-build-system-just.md)
+- [docs/superpowers/specs/2026-04-19-build-system-design.md](docs/superpowers/specs/2026-04-19-build-system-design.md)
