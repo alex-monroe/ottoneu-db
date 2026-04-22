@@ -65,6 +65,10 @@ All web data fetching goes through `web/lib/data.ts` — the single source of tr
 - **Calculations are TypeScript-only:** VORP, surplus, arbitration, and projected salary are computed in `web/lib/` and are the canonical implementations.
 - **Scoring formula:** `web/lib/scoring.ts` provides `calculateFantasyPoints()` — the Ottoneu Half PPR formula as a pure function of raw NFL stats.
 
+### API Input Validation
+
+All mutating API routes validate request bodies through Zod schemas in `web/lib/schemas/` via the shared `parseJson(req, schema)` helper in `web/lib/validate.ts`. On failure the helper returns a 400 response carrying Zod's `issues` array; on success the route gets typed, parsed data. Do not hand-roll `if (!body.foo)` checks in new routes — add a schema and use `parseJson`.
+
 ### Key Metrics
 
 - **PPG** (Points Per Game) = total_points / games_played
