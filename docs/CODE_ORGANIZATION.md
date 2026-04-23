@@ -12,6 +12,9 @@
 | Scoring | `web/lib/scoring.ts` | Ottoneu Half PPR scoring formula (`calculateFantasyPoints`) |
 | Analysis math | `web/lib/analysis.ts` | Projection-enriched data + backtest fetching (builds on `data.ts`) |
 | Arb logic | `web/lib/arb-logic.ts` | Arbitration simulation logic |
+| Arb progress | `web/lib/arb-progress.ts` | Pure transforms for `/arb-progress` (no DB/React) |
+| API validation | `web/lib/validate.ts` | `parseJson(req, schema)` helper for Zod-validated API inputs |
+| Zod schemas | `web/lib/schemas/` | Request-body schemas consumed by API routes via `parseJson` |
 | DB schema | `schema.sql` | Canonical schema definition |
 | Migrations | `migrations/` | Numbered SQL migration files |
 | Components | `web/components/` | Reusable React components |
@@ -43,6 +46,21 @@ When adding a new shared key, update three places:
 Drift is caught mechanically by architecture tests:
 - `scripts/tests/test_architecture.py::TestConfigSync` — asserts every `config.json` key is consumed in both `config.py` and `config.ts`, and that neither references a nonexistent key.
 - `web/__tests__/lib/architecture.test.ts::Config JSON Sync` — asserts the TypeScript module's *exported values* match `config.json` (not just key presence).
+
+## API Route Input Validation
+
+API routes that accept a JSON body validate it through `parseJson` from `web/lib/validate.ts` against a Zod schema in `web/lib/schemas/`. On failure the helper returns a 400 response with the Zod `issues` array; on success the body is returned with inferred types.
+
+```typescript
+import { parseJson } from "@/lib/validate";
+import { CreatePlanSchema } from "@/lib/schemas/arbitration-plan";
+
+const parsed = await parseJson(req, CreatePlanSchema);
+if (!parsed.ok) return parsed.response;
+const data = parsed.data; // z.infer<typeof CreatePlanSchema>
+```
+
+Add new schemas alongside `arbitration-plan.ts`, `surplus-adjustment.ts`, `user.ts` — one schema file per resource.
 
 ## Path Setup for New Python Scripts
 
