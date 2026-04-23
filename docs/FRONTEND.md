@@ -59,7 +59,11 @@ Shared type definitions in `web/lib/types.ts`:
 
 ## Analysis Logic
 
-Analysis math is ported to `web/lib/analysis.ts` (TS equivalent of `scripts/analysis_utils.py`). Arbitration simulation logic lives in `web/lib/arb-logic.ts`.
+Analysis math is ported to `web/lib/analysis.ts` (TS equivalent of `scripts/analysis_utils.py`). Arbitration simulation logic lives in `web/lib/arb-logic.ts`. Pure transforms feeding the `/arb-progress` page (status, allocations, raises, completion summary) live in `web/lib/arb-progress.ts` and are rendered by the sub-components under `web/app/arb-progress/` (`TeamStatusGrid`, `AllocationsSection`, `TeamSpendingSection`, `TeamRaisesSummary`, `CompletionSummary`).
+
+## API Routes
+
+Route handlers under `web/app/api/` validate JSON bodies with `parseJson(req, schema)` from `web/lib/validate.ts`, using Zod schemas from `web/lib/schemas/`. See [CODE_ORGANIZATION.md § API Route Input Validation](CODE_ORGANIZATION.md#api-route-input-validation) for the pattern.
 
 ## Configuration
 
