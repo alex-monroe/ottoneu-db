@@ -40,6 +40,11 @@ docs/
 │   ├── [market-projections.md](docs/exec-plans/market-projections.md)          # Market-based projection system implementation plan
 │   ├── [projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md)  # 4-phase accuracy improvement roadmap
 │   └── [qb-usage-share.md](docs/exec-plans/qb-usage-share.md)              # QB Usage Share findings and next steps
+├── superpowers/
+│   ├── plans/
+│   │   └── [2026-04-19-build-system-just.md](docs/superpowers/plans/2026-04-19-build-system-just.md) # Historical plan for build system migration
+│   └── specs/
+│       └── [2026-04-19-build-system-design.md](docs/superpowers/specs/2026-04-19-build-system-design.md) # Historical spec for build system
 ├── generated/
 │   ├── [db-schema.md](docs/generated/db-schema.md)                   # Database tables, keys, relationships
 │   ├── [experiment-log.md](docs/generated/experiment-log.md)              # History of all model iteration attempts
