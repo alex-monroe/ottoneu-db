@@ -14,7 +14,7 @@ Python Scripts (scripts/)
 
 ## Tech Stack
 
-- **Frontend:** Next.js 16, React 19, TypeScript, Tailwind CSS 4, Recharts
+- **Frontend:** Next.js 16, React 19, TypeScript, Tailwind CSS 4, Recharts, Zod (API input validation)
 - **Backend:** Python 3.9+, Playwright (scraping), pandas, nfl_data_py
 - **Database:** Supabase (PostgreSQL)
 - **Environment:** `.env` (root, for Python) and `web/.env.local` (for Next.js) hold Supabase credentials
@@ -83,6 +83,10 @@ User accounts with email/password login stored in the `users` table. Passwords a
   - Admin routes (`/admin`) require `isAdmin`
 - **User-scoped data:** `surplus_adjustments` and `arbitration_plans` are scoped to `user_id` — each user sees only their own data
 - **Admin panel** (`/admin`) allows admins to create users, toggle projections access, and delete users
+
+### API Input Validation
+
+All mutating API routes (`/api/admin/users`, `/api/arbitration-plans/*`, `/api/surplus-adjustments`) validate request bodies via Zod schemas in `web/lib/schemas/`. The shared `parseJson(req, schema)` helper in `web/lib/validate.ts` returns either typed data or a 400 response with a Zod `issues` array — routes never parse `req.json()` directly for validated inputs.
 
 ## Feature Projection System (`scripts/feature_projections/`)
 

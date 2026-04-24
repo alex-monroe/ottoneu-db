@@ -17,7 +17,7 @@ Seventeen tables, all with UUID primary keys.
 | `arbitration_plans` | Named arbitration budget allocation plans per user (FK -> `users`) | `(league_id, name, user_id)` |
 | `arbitration_plan_allocations` | Per-player dollar allocations within a plan (FK -> `arbitration_plans`, `players`) | `(plan_id, player_id)` |
 | `scraper_jobs` | Persistent job queue with status tracking, dependencies, and retry logic | -- |
-| `projection_models` | Registry of versioned projection models (internal v1–v6 and external sources) | `(name, version)` |
+| `projection_models` | Registry of versioned projection models (internal v1–v20+ and external sources) | `(name, version)` |
 | `model_projections` | Per-model projected PPG with raw feature values (FK -> `projection_models`, `players`) | `(model_id, player_id, season)` |
 | `backtest_results` | Cached accuracy metrics per model × season × position (FK -> `projection_models`) | `(model_id, season, position)` |
 | `arbitration_progress` | Scraped player allocation data from Ottoneu arbitration page | -- |
