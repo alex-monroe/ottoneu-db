@@ -59,7 +59,22 @@ Shared type definitions in `web/lib/types.ts`:
 
 ## Analysis Logic
 
-Analysis math is ported to `web/lib/analysis.ts` (TS equivalent of `scripts/analysis_utils.py`). Arbitration simulation logic lives in `web/lib/arb-logic.ts`.
+Analysis math is ported to `web/lib/analysis.ts` (TS equivalent of `scripts/analysis_utils.py`). Arbitration simulation logic lives in `web/lib/arb-logic.ts`. Pure transforms for the `/arb-progress` page (team status, allocation rows, completion summary) live in `web/lib/arb-progress.ts` — the page component orchestrates these into a view.
+
+## API Input Validation
+
+API routes that accept JSON bodies validate inputs against Zod schemas via the shared helper:
+
+```typescript
+import { parseJson } from "@/lib/validate";
+import { ArbitrationPlanCreateSchema } from "@/lib/schemas/arbitration-plan";
+
+const parsed = await parseJson(req, ArbitrationPlanCreateSchema);
+if (!parsed.ok) return parsed.response; // returns 400 with Zod issues
+const data = parsed.data; // typed as z.infer<typeof Schema>
+```
+
+Schemas live in `web/lib/schemas/` (one file per resource). Add tests under `web/__tests__/lib/schemas/`.
 
 ## Configuration
 
