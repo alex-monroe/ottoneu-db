@@ -134,3 +134,8 @@ Skipping step 2 will cause TypeScript errors like `Argument of type '"new_table"
 ### Supabase pagination
 
 Supabase's Python client defaults to a **1000-row limit** on `.execute()` calls. Any query that may return more than 1000 rows must use paginated `.range(offset, offset + page_size - 1)` fetching in a loop. This has already caused a silent bug in `promote.py` (now fixed). Apply the same pattern in any new bulk-fetch code.
+
+## Historical Plans & Specs
+
+- [2026-04-19 Build System Just (Plan)](docs/superpowers/plans/2026-04-19-build-system-just.md)
+- [2026-04-19 Build System Design (Spec)](docs/superpowers/specs/2026-04-19-build-system-design.md)
