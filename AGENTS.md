@@ -21,7 +21,7 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 - **Git workflow:** See [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) for branch and PR requirements
 - **Domain rules:** See [docs/references/ottoneu-rules.md](docs/references/ottoneu-rules.md) for scoring, roster, salary cap, and arbitration
 - **Environment:** See [docs/references/environment-variables.md](docs/references/environment-variables.md) for `.env` setup
-- **Market Projections:** See [docs/exec-plans/market-projections.md](docs/exec-plans/market-projections.md) for the market-based projection system implementation plan
+- **Market Projections (DEFERRED):** See [docs/exec-plans/market-projections.md](docs/exec-plans/market-projections.md) — deprioritized 2026-03-17, retained as a future direction.
 
 ## Documentation Map
 
@@ -37,7 +37,7 @@ docs/
 ├── TESTING.md                         # Python + web test setup and CI
 ├── exec-plans/
 │   ├── [feature-projections.md](docs/exec-plans/feature-projections.md)         # Feature-based player projection system
-│   ├── [market-projections.md](docs/exec-plans/market-projections.md)          # Market-based projection system implementation plan
+│   ├── [market-projections.md](docs/exec-plans/market-projections.md)          # Market-based projection system (DEFERRED)
 │   ├── [projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md)  # 4-phase accuracy improvement roadmap
 │   └── [qb-usage-share.md](docs/exec-plans/qb-usage-share.md)              # QB Usage Share findings and next steps
 ├── generated/
