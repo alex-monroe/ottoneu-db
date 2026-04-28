@@ -10,7 +10,8 @@
 | TS types | `web/lib/types.ts` | All shared TypeScript interfaces (`CorePlayer → RosteredPlayer → StatsPlayer → Player`) |
 | Data layer | `web/lib/data.ts` | **Unified data access** — all Supabase fetching goes through here |
 | Scoring | `web/lib/scoring.ts` | Ottoneu Half PPR scoring formula (`calculateFantasyPoints`) |
-| Analysis math | `web/lib/analysis.ts` | Projection-enriched data + backtest fetching (builds on `data.ts`) |
+| Analysis math | `web/lib/analysis.ts` | Projection-enriched data + backtest fetching (builds on `web/lib/data.ts`) |
+| API validation | `web/lib/validate.ts`, `web/lib/schemas/` | Zod schemas + `parseJson()` helper used by API routes for input validation |
 | Arb logic | `web/lib/arb-logic.ts` | Arbitration simulation logic |
 | DB schema | `schema.sql` | Canonical schema definition |
 | Migrations | `migrations/` | Numbered SQL migration files |
@@ -41,7 +42,7 @@ When adding a new shared key, update three places:
 3. `web/lib/config.ts` — add `export const CONSTANT = config.KEY`
 
 Drift is caught mechanically by architecture tests:
-- `scripts/tests/test_architecture.py::TestConfigSync` — asserts every `config.json` key is consumed in both `config.py` and `config.ts`, and that neither references a nonexistent key.
+- `scripts/tests/test_architecture.py::TestConfigSync` — asserts every `config.json` key is consumed in both `scripts/config.py` and `web/lib/config.ts`, and that neither references a nonexistent key.
 - `web/__tests__/lib/architecture.test.ts::Config JSON Sync` — asserts the TypeScript module's *exported values* match `config.json` (not just key presence).
 
 ## Path Setup for New Python Scripts
