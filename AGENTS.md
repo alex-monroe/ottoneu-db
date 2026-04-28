@@ -74,6 +74,7 @@ These rules are mechanically enforced by structural tests in `scripts/tests/test
 - **Frontend layers:** `web/lib/` must NOT import from `web/components/`. Flow: types → config → lib → components → pages.
 - **Shared types:** Define interfaces in `web/lib/types.ts`, not in component files.
 - **No wildcard imports:** Use explicit named imports (`from module import X, Y`).
+- **API input validation:** Validate POST/PUT/PATCH JSON bodies in API routes using Zod schemas under `web/lib/schemas/` and the `parseJson()` helper in `web/lib/validate.ts`. Don't hand-roll body parsing in route handlers.
 - **Documentation exists:** All docs referenced in this file must exist and have content.
 
 Run `just check-arch` to validate these rules locally.
