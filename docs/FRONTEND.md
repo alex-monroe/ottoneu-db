@@ -30,6 +30,7 @@ Next.js App Router. Most pages are server components that fetch live data from S
 | Component | Purpose |
 |-----------|---------|
 | `Navigation.tsx` | Shared nav bar across all pages |
+| `GlobalPlayerSearch` | Header-wide player search (focus with `/`, navigates to `/players/[ottoneu_id]`) |
 | `DataTable` | Generic sortable table with type safety and highlight rules |
 | `SummaryCard` | Metric display cards with variant styles (default, positive, negative) |
 | `PositionFilter` | Position selection buttons with multi-select support |
