@@ -12,6 +12,7 @@
 | Scoring | `web/lib/scoring.ts` | Ottoneu Half PPR scoring formula (`calculateFantasyPoints`) |
 | Analysis math | `web/lib/analysis.ts` | Projection-enriched data + backtest fetching (builds on `data.ts`) |
 | Arb logic | `web/lib/arb-logic.ts` | Arbitration simulation logic |
+| API validation | `web/lib/validate.ts` + `web/lib/schemas/` | Zod-based request-body validation for API routes (`parseJson` helper + per-route schemas) |
 | DB schema | `schema.sql` | Canonical schema definition |
 | Migrations | `migrations/` | Numbered SQL migration files |
 | Components | `web/components/` | Reusable React components |
@@ -65,3 +66,21 @@ if repo_root not in sys.path:
 - **`repo_root`** (project root) — resolves `from scripts.feature_projections.features import ...`
 
 Both are required. Only adding `script_dir` causes `ModuleNotFoundError: No module named 'scripts'`. See scripts/feature_projections/cli.py for the canonical example.
+
+## API Route Input Validation (`web/lib/validate.ts`, `web/lib/schemas/`)
+
+API route handlers under `web/app/api/` validate request bodies through a shared Zod-based helper instead of hand-rolled checks:
+
+```typescript
+import { parseJson } from "@/lib/validate";
+import { CreatePlanSchema } from "@/lib/schemas/arbitration-plan";
+
+const parsed = await parseJson(req, CreatePlanSchema);
+if (!parsed.ok) return parsed.response;  // 400 with Zod issues array
+const { name, notes } = parsed.data;     // typed via z.infer
+```
+
+- `web/lib/validate.ts` — `parseJson(req, schema)` returns `{ ok: true, data }` or `{ ok: false, response }` (400 with `issues` array on malformed JSON or schema failure).
+- `web/lib/schemas/` — one file per resource (`web/lib/schemas/arbitration-plan.ts`, `web/lib/schemas/surplus-adjustment.ts`, `web/lib/schemas/user.ts`). Each exports the schema and a `z.infer`-derived input type.
+
+When adding a new POST/PATCH/PUT route, add a schema in `web/lib/schemas/` rather than inlining `if (typeof x !== "string") …` checks in the route file.
