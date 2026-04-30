@@ -49,6 +49,11 @@ docs/
 └── references/
     ├── environment-variables.md       # .env and .env.local variable reference
     └── ottoneu-rules.md               # Scoring, roster, salary cap, arbitration rules
+└── superpowers/
+    ├── plans/
+    │   └── [2026-04-19-build-system-just.md](docs/superpowers/plans/2026-04-19-build-system-just.md) # Build system plans
+    └── specs/
+        └── [2026-04-19-build-system-design.md](docs/superpowers/specs/2026-04-19-build-system-design.md) # Build system specs
 ```
 
 ## Worktree Notes
