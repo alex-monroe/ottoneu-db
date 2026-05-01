@@ -61,6 +61,21 @@ Shared type definitions in `web/lib/types.ts`:
 
 Analysis math is ported to `web/lib/analysis.ts` (TS equivalent of `scripts/analysis_utils.py`). Arbitration simulation logic lives in `web/lib/arb-logic.ts`.
 
+## API Request Validation
+
+Mutating API routes (`web/app/api/**/route.ts`) validate JSON bodies via the shared `parseJson` helper in `web/lib/validate.ts`, paired with a Zod schema from `web/lib/schemas/`:
+
+```typescript
+import { parseJson } from "@/lib/validate";
+import { CreatePlanSchema } from "@/lib/schemas/arbitration-plan";
+
+const parsed = await parseJson(req, CreatePlanSchema);
+if (!parsed.ok) return parsed.response; // 400 with Zod issues[]
+const data = parsed.data;               // typed via z.infer
+```
+
+`parseJson` returns either `{ ok: true, data }` (typed) or `{ ok: false, response }` (a 400 carrying Zod's `issues` array). New mutating routes should add a schema under `web/lib/schemas/` rather than hand-rolling `if (!body.x)` checks.
+
 ## Configuration
 
 Frontend constants in `web/lib/config.ts` — **must stay in sync with `scripts/config.py`**.
