@@ -35,6 +35,11 @@ docs/
 ├── FRONTEND.md                        # Routes, components, types, analysis logic
 ├── GIT_WORKFLOW.md                    # Branch strategy, PR requirements
 ├── TESTING.md                         # Python + web test setup and CI
+├── superpowers/
+│   ├── plans/
+│   │   └── [2026-04-19-build-system-just.md](docs/superpowers/plans/2026-04-19-build-system-just.md) # Build system plan
+│   └── specs/
+│       └── [2026-04-19-build-system-design.md](docs/superpowers/specs/2026-04-19-build-system-design.md) # Build system spec
 ├── exec-plans/
 │   ├── [feature-projections.md](docs/exec-plans/feature-projections.md)         # Feature-based player projection system
 │   ├── [market-projections.md](docs/exec-plans/market-projections.md)          # Market-based projection system implementation plan
