@@ -23,8 +23,9 @@ Python Scripts (scripts/)
 
 Uses a worker-based job queue. `scripts/enqueue.py` inserts jobs into the `scraper_jobs` table in Supabase. `scripts/worker.py` polls the queue, dispatches tasks, and manages a shared Playwright browser.
 
-Three task types:
+Four task types (defined in `scripts/tasks/__init__.py`):
 - `pull_nfl_stats` — sync, loads snap counts via `nfl_data_py`
+- `pull_player_stats` — sync, loads multi-season aggregated stats from the nflverse-data `stats_player` parquet release (used for backfill/historical pulls)
 - `scrape_roster` — async, scrapes one position from Ottoneu search page
 - `scrape_player_card` — async, scrapes FA transaction history for real salary
 

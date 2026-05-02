@@ -29,6 +29,7 @@ python scripts/enqueue.py batch                      # Enqueue full pipeline (NF
 python scripts/enqueue.py roster --position QB       # Enqueue single position scrape
 python scripts/enqueue.py player --ottoneu-id 6771 --name "Josh Allen" --player-uuid <uuid>  # Enqueue single player card scrape
 python scripts/enqueue.py nfl-stats                  # Enqueue NFL stats pull only
+python scripts/enqueue.py player-stats --seasons 2022 2023 2024  # Enqueue historical player_stats pull (nflverse parquet)
 python scripts/enqueue.py status                     # Show recent job statuses
 python scripts/worker.py                             # Process pending scraper jobs (exit when done)
 python scripts/worker.py --poll                      # Process jobs continuously (for scheduling)
