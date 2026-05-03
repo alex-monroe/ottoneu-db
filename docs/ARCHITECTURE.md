@@ -64,6 +64,7 @@ All web data fetching goes through `web/lib/data.ts` — the single source of tr
 - **Type hierarchy:** `CorePlayer → RosteredPlayer → StatsPlayer → Player` — each layer adds data from a different source (players table → league_prices → player_stats).
 - **Calculations are TypeScript-only:** VORP, surplus, arbitration, and projected salary are computed in `web/lib/` and are the canonical implementations.
 - **Scoring formula:** `web/lib/scoring.ts` provides `calculateFantasyPoints()` — the Ottoneu Half PPR formula as a pure function of raw NFL stats.
+- **API input validation:** Route handlers under `web/app/api/` validate JSON bodies via `parseJson(req, schema)` from `web/lib/validate.ts`, with per-resource Zod schemas in `web/lib/schemas/`. On failure the helper returns a 400 with Zod's `issues` array; on success it returns the typed, parsed data.
 
 ### Key Metrics
 

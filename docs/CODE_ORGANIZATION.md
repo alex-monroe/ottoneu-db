@@ -12,10 +12,13 @@
 | Scoring | `web/lib/scoring.ts` | Ottoneu Half PPR scoring formula (`calculateFantasyPoints`) |
 | Analysis math | `web/lib/analysis.ts` | Projection-enriched data + backtest fetching (builds on `data.ts`) |
 | Arb logic | `web/lib/arb-logic.ts` | Arbitration simulation logic |
+| API validation | `web/lib/validate.ts` | `parseJson(req, schema)` helper used by every API route |
+| Zod schemas | `web/lib/schemas/` | Per-resource Zod request schemas (user, arbitration-plan, surplus-adjustment) |
 | DB schema | `schema.sql` | Canonical schema definition |
 | Migrations | `migrations/` | Numbered SQL migration files |
 | Components | `web/components/` | Reusable React components |
 | Pages | `web/app/` | Next.js App Router pages |
+| API routes | `web/app/api/` | Next.js route handlers (admin, arbitration-plans, auth, surplus-adjustments) |
 | Feature projections | `scripts/feature_projections/` | Feature-based projection system (features, combiner, runner, backtest, CLI) |
 | Data files | `data/` | Manual config data (QB starters, etc.) |
 | CI/CD | `.github/workflows/` | GitHub Actions (tests, scraping, projections) |
