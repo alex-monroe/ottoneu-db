@@ -50,6 +50,21 @@ const columns = [...corePlayerCols({ hoverDataMap }), salaryCol(), ppgCol("Proj 
 
 Static column arrays (no React components) remain in `web/lib/columns.ts` for backward compatibility.
 
+## API Input Validation
+
+Write-side API routes (`web/app/api/**/route.ts`) validate JSON bodies with Zod before touching the database. The shared helper `parseJson()` in `web/lib/validate.ts` returns either typed data or a 400 `NextResponse` with `issues[]`.
+
+```typescript
+import { parseJson } from "@/lib/validate";
+import { CreatePlanSchema } from "@/lib/schemas/arbitration-plan";
+
+const parsed = await parseJson(req, CreatePlanSchema);
+if (!parsed.ok) return parsed.response;
+const data = parsed.data; // typed as z.infer<typeof CreatePlanSchema>
+```
+
+Schemas live in `web/lib/schemas/` (one file per resource: `arbitration-plan.ts`, `surplus-adjustment.ts`, `user.ts`). Add a new schema file when adding a new write endpoint — do not inline schemas in route handlers.
+
 ## TypeScript Types
 
 Shared type definitions in `web/lib/types.ts`:
