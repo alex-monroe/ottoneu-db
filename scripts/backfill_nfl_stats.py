@@ -84,6 +84,19 @@ def _safe_int(val: Any) -> int | None:
         return None
 
 
+def _safe_float(val: Any) -> float | None:
+    """Convert a value to float, returning None for NaN/None."""
+    if val is None:
+        return None
+    try:
+        f = float(val)
+        if math.isnan(f):
+            return None
+        return f
+    except (TypeError, ValueError):
+        return None
+
+
 def _generate_synthetic_ottoneu_id(nflverse_player_id: str) -> int:
     """Generate a stable negative ottoneu_id from an nflverse player ID.
 
@@ -185,9 +198,20 @@ def process_stats(combined: pd.DataFrame) -> pd.DataFrame:
         "rushing_yards", "rushing_tds", "rushing_attempts",
         "receptions", "targets", "receiving_yards", "receiving_tds",
         "fg_made_0_39", "fg_made_40_49", "fg_made_50_plus", "pat_made",
-        "passing_attempts", "completions",
+        "passing_attempts", "completions", "receiving_air_yards",
     ]
     agg_cols = {c: "sum" for c in stat_cols if c in combined.columns}
+
+    # Rate stats from nflverse are season-totals already — for traded players
+    # take the row with the most games so the dominant team's value wins.
+    rate_cols = ["target_share", "air_yards_share", "wopr", "racr"]
+    if any(c in combined.columns for c in rate_cols) and "games_played" in combined.columns:
+        combined = combined.sort_values(
+            ["player_display_name", "season", "games_played"]
+        )
+    for c in rate_cols:
+        if c in combined.columns:
+            agg_cols[c] = "last"
 
     # Also carry forward player_id for roster matching
     if "player_id" in combined.columns:
@@ -441,6 +465,11 @@ def backfill_seasons(
             "pat_made": _safe_int(getattr(row, "pat_made", None)),
             "passing_attempts": _safe_int(getattr(row, "passing_attempts", None)),
             "completions": _safe_int(getattr(row, "completions", None)),
+            "receiving_air_yards": _safe_int(getattr(row, "receiving_air_yards", None)),
+            "target_share": _safe_float(getattr(row, "target_share", None)),
+            "air_yards_share": _safe_float(getattr(row, "air_yards_share", None)),
+            "wopr": _safe_float(getattr(row, "wopr", None)),
+            "racr": _safe_float(getattr(row, "racr", None)),
         }
 
         # Preserve recent_team for historical team tracking
@@ -481,12 +510,16 @@ def backfill_seasons(
             "rushing_yards", "rushing_tds", "rushing_attempts",
             "receptions", "targets", "receiving_yards", "receiving_tds",
             "fg_made_0_39", "fg_made_40_49", "fg_made_50_plus", "pat_made",
-            "passing_attempts", "completions",
+            "passing_attempts", "completions", "receiving_air_yards",
             "offense_snaps", "defense_snaps", "st_snaps", "total_snaps",
         ]
+        rate_avg_cols = ["target_share", "air_yards_share", "wopr", "racr"]
         dedup_df = pd.DataFrame(upsert_rows)
         present_sum = [c for c in stat_sum_cols if c in dedup_df.columns]
-        agg_dict = {c: "sum" for c in present_sum}
+        present_avg = [c for c in rate_avg_cols if c in dedup_df.columns]
+        agg_dict: dict[str, str] = {c: "sum" for c in present_sum}
+        for c in present_avg:
+            agg_dict[c] = "mean"
         dedup_df = dedup_df.groupby(["player_id", "season"], as_index=False).agg(agg_dict)
         # Recalculate total_points and ppg after summing
         dedup_df["total_points"] = dedup_df.apply(
@@ -495,12 +528,21 @@ def backfill_seasons(
         # pandas sum() promotes int columns with NaN to float64 — cast back to int|None
         for col in present_sum:
             dedup_df[col] = dedup_df[col].apply(_safe_int)
+        # mean() of all-NaN groups produces NaN — JSON can't encode it.
+        for col in present_avg:
+            dedup_df[col] = dedup_df[col].apply(_safe_float)
         dedup_df["ppg"] = dedup_df.apply(
             lambda r: round(r["total_points"] / r["games_played"], 2)
             if r.get("games_played") else 0.0,
             axis=1,
         )
         upsert_rows = dedup_df.to_dict(orient="records")
+        # Replace any lingering NaN floats (pandas float64 columns can't hold None)
+        # with None so JSON encoding succeeds.
+        for r in upsert_rows:
+            for k, v in list(r.items()):
+                if isinstance(v, float) and math.isnan(v):
+                    r[k] = None
         print(f"  After dedup: {len(upsert_rows)} unique player/season rows")
 
     if dry_run:

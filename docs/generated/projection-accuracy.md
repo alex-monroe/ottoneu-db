@@ -1,6 +1,6 @@
 # Projection Model Accuracy Report
 
-_Generated: 2026-03-29 13:11_
+_Generated: 2026-05-05 18:51_
 
 Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed error (positive = under-projection), **R²** = Goodness of fit (higher is better), **RMSE** = Root mean square error, **N** = player sample size.
 
@@ -31,6 +31,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | **2.122** | +0.272 | **0.674** | **2.796** | 154 |
 | `v20_learned_usage` | **2.057** | +0.184 | **0.702** | **2.673** | 154 |
 | `v21_tiered_regression` | 2.255 | +0.645 | **0.637** | **2.950** | 154 |
+| `v22_advanced_receiving` | **2.049** | +0.019 | **0.697** | **2.694** | 154 |
 | `external_fantasypros_v1` | 2.768 | +1.662 | 0.540 | 3.668 | 133 |
 
 ### QB
@@ -58,6 +59,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | **3.488** | +0.530 | **0.310** | **4.271** | 36 |
 | `v20_learned_usage` | **3.285** | +0.354 | **0.392** | **4.008** | 36 |
 | `v21_tiered_regression` | 3.703 | +0.882 | **0.226** | **4.524** | 36 |
+| `v22_advanced_receiving` | **3.352** | -0.198 | **0.356** | **4.124** | 36 |
 | `external_fantasypros_v1` | 4.669 | +3.096 | -0.055 | 5.825 | 32 |
 
 ### RB
@@ -85,6 +87,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | **2.553** | -0.585 | **0.551** | **3.082** | 25 |
 | `v20_learned_usage` | **2.368** | -0.225 | **0.609** | **2.875** | 25 |
 | `v21_tiered_regression` | **2.561** | -0.007 | **0.559** | **3.052** | 25 |
+| `v22_advanced_receiving` | **2.556** | -0.085 | **0.582** | **2.973** | 25 |
 | `external_fantasypros_v1` | **2.643** | +1.210 | **0.579** | **3.179** | 30 |
 
 ### WR
@@ -112,6 +115,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | **1.726** | +0.652 | **0.683** | **2.028** | 33 |
 | `v20_learned_usage` | 2.026 | +1.101 | 0.590 | 2.304 | 33 |
 | `v21_tiered_regression` | **1.810** | +1.000 | **0.635** | **2.175** | 33 |
+| `v22_advanced_receiving` | **1.733** | +0.631 | **0.680** | **2.037** | 33 |
 | `external_fantasypros_v1` | 1.927 | +1.295 | 0.623 | 2.401 | 36 |
 
 ### TE
@@ -139,6 +143,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | **1.529** | +0.404 | **0.594** | **1.817** | 36 |
 | `v20_learned_usage` | **1.264** | -0.100 | **0.692** | **1.582** | 36 |
 | `v21_tiered_regression` | 1.757 | +0.877 | 0.488 | 2.040 | 36 |
+| `v22_advanced_receiving` | **1.242** | +0.166 | **0.684** | **1.603** | 36 |
 | `external_fantasypros_v1` | 2.001 | +1.117 | 0.368 | 2.346 | 35 |
 
 ### K
@@ -166,6 +171,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | **1.056** | +0.054 | **-1.029** | **1.521** | 24 |
 | `v20_learned_usage` | **1.123** | -0.477 | **-0.833** | **1.446** | 24 |
 | `v21_tiered_regression` | **1.123** | +0.136 | -1.358 | 1.639 | 24 |
+| `v22_advanced_receiving` | 1.211 | -0.611 | **-1.031** | **1.522** | 24 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## Season 2023
@@ -195,6 +201,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | **2.623** | +0.245 | 0.445 | 3.724 | 188 |
 | `v20_learned_usage` | **2.558** | -0.018 | **0.504** | **3.519** | 188 |
 | `v21_tiered_regression` | 2.706 | +0.580 | 0.388 | 3.910 | 188 |
+| `v22_advanced_receiving` | **2.495** | -0.157 | **0.516** | **3.476** | 188 |
 | `external_fantasypros_v1` | **2.267** | +1.633 | **0.630** | **3.196** | 176 |
 
 ### QB
@@ -222,6 +229,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | 4.097 | +0.070 | 0.133 | 5.411 | 39 |
 | `v20_learned_usage` | 4.044 | -0.141 | **0.199** | **5.199** | 39 |
 | `v21_tiered_regression` | 4.268 | +0.398 | 0.016 | 5.762 | 39 |
+| `v22_advanced_receiving` | 3.897 | -0.690 | **0.214** | **5.149** | 39 |
 | `external_fantasypros_v1` | **3.640** | +2.361 | 0.166 | **4.770** | 40 |
 
 ### RB
@@ -249,6 +257,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | **3.374** | +0.969 | **-0.193** | **4.643** | 37 |
 | `v20_learned_usage` | **3.061** | +0.876 | **0.070** | **4.098** | 37 |
 | `v21_tiered_regression` | **3.414** | +1.439 | -0.283 | 4.814 | 37 |
+| `v22_advanced_receiving` | **3.068** | +1.011 | **0.041** | **4.162** | 37 |
 | `external_fantasypros_v1` | **2.548** | +2.210 | **0.466** | **3.472** | 40 |
 
 ### WR
@@ -276,6 +285,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | 2.652 | +0.267 | 0.394 | 3.215 | 44 |
 | `v20_learned_usage` | **2.494** | +0.346 | **0.441** | **3.087** | 44 |
 | `v21_tiered_regression` | 2.681 | +0.591 | 0.350 | 3.330 | 44 |
+| `v22_advanced_receiving` | **2.372** | -0.005 | **0.511** | **2.888** | 44 |
 | `external_fantasypros_v1` | **1.903** | +1.239 | **0.602** | **2.450** | 49 |
 
 ### TE
@@ -303,6 +313,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | **1.548** | -0.076 | **0.517** | **2.006** | 44 |
 | `v20_learned_usage` | **1.709** | -0.712 | **0.471** | **2.099** | 44 |
 | `v21_tiered_regression` | **1.679** | +0.327 | **0.463** | **2.116** | 44 |
+| `v22_advanced_receiving` | **1.653** | -0.506 | **0.495** | **2.051** | 44 |
 | `external_fantasypros_v1` | **1.237** | +0.931 | **0.743** | **1.535** | 47 |
 
 ### K
@@ -330,6 +341,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | **0.984** | -0.041 | **-0.403** | **1.219** | 24 |
 | `v20_learned_usage` | **1.043** | -0.594 | -0.555 | 1.283 | 24 |
 | `v21_tiered_regression` | **1.006** | -0.008 | **-0.461** | **1.244** | 24 |
+| `v22_advanced_receiving` | 1.106 | -0.726 | -0.748 | 1.360 | 24 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## Season 2024
@@ -359,6 +371,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | **2.602** | +0.314 | **0.526** | **3.368** | 241 |
 | `v20_learned_usage` | **2.526** | -0.167 | **0.553** | **3.267** | 241 |
 | `v21_tiered_regression` | **2.682** | +0.692 | **0.479** | **3.530** | 241 |
+| `v22_advanced_receiving` | **2.502** | -0.293 | **0.537** | **3.329** | 241 |
 | `external_fantasypros_v1` | 2.782 | +1.531 | **0.543** | **3.602** | 211 |
 
 ### QB
@@ -386,6 +399,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | **3.680** | -0.490 | **0.503** | **4.600** | 49 |
 | `v20_learned_usage` | **3.767** | -0.929 | **0.479** | **4.710** | 49 |
 | `v21_tiered_regression` | **3.746** | +0.004 | **0.457** | **4.808** | 49 |
+| `v22_advanced_receiving` | **3.808** | -1.518 | **0.418** | **4.975** | 49 |
 | `external_fantasypros_v1` | 4.015 | +2.650 | 0.313 | **5.163** | 47 |
 
 ### RB
@@ -413,6 +427,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | 3.063 | +0.722 | **0.250** | **3.845** | 49 |
 | `v20_learned_usage` | **2.994** | +0.194 | **0.325** | **3.650** | 49 |
 | `v21_tiered_regression` | 3.229 | +1.303 | 0.158 | 4.076 | 49 |
+| `v22_advanced_receiving` | **2.994** | +0.459 | **0.331** | **3.632** | 49 |
 | `external_fantasypros_v1` | 3.281 | +1.622 | **0.409** | **3.898** | 51 |
 
 ### WR
@@ -440,6 +455,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | **2.653** | +0.665 | **-0.071** | **3.174** | 55 |
 | `v20_learned_usage` | **2.397** | +0.558 | **0.150** | **2.827** | 55 |
 | `v21_tiered_regression` | **2.680** | +0.924 | **-0.141** | **3.275** | 55 |
+| `v22_advanced_receiving` | **2.307** | +0.172 | **0.169** | **2.795** | 55 |
 | `external_fantasypros_v1` | **2.353** | +1.365 | **0.187** | **2.832** | 58 |
 
 ### TE
@@ -467,6 +483,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | 1.861 | +0.233 | 0.423 | 2.288 | 56 |
 | `v20_learned_usage` | **1.774** | -0.543 | **0.448** | **2.240** | 56 |
 | `v21_tiered_regression` | 1.936 | +0.621 | 0.360 | 2.409 | 56 |
+| `v22_advanced_receiving` | **1.704** | -0.353 | **0.478** | **2.178** | 56 |
 | `external_fantasypros_v1` | **1.719** | +0.666 | **0.486** | **2.106** | 55 |
 
 ### K
@@ -494,6 +511,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | **1.455** | +0.456 | **-0.329** | **1.979** | 32 |
 | `v20_learned_usage` | **1.444** | -0.141 | **-0.196** | **1.877** | 32 |
 | `v21_tiered_regression` | **1.522** | +0.533 | **-0.498** | **2.100** | 32 |
+| `v22_advanced_receiving` | **1.479** | -0.265 | **-0.229** | **1.902** | 32 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## Season 2025
@@ -521,8 +539,9 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v17_rookie_growth` | **2.573** | -0.577 | **0.560** | **3.402** | 261 |
 | `v18_usage_level` | **2.732** | -0.973 | **0.477** | **3.711** | 261 |
 | `v19_usage_level_full` | **2.605** | -0.785 | **0.550** | **3.441** | 261 |
-| `v20_learned_usage` | — | — | — | — | — |
+| `v20_learned_usage` | 2.912 | -1.535 | **0.480** | **3.698** | 261 |
 | `v21_tiered_regression` | **2.607** | -0.220 | **0.552** | **3.434** | 261 |
+| `v22_advanced_receiving` | — | — | — | — | — |
 | `external_fantasypros_v1` | **2.613** | +0.721 | **0.538** | **3.637** | 246 |
 
 ### QB
@@ -548,8 +567,9 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v17_rookie_growth` | **3.907** | -0.990 | **0.378** | **5.065** | 53 |
 | `v18_usage_level` | **4.277** | -1.758 | **0.196** | **5.758** | 53 |
 | `v19_usage_level_full` | **3.907** | -0.990 | **0.378** | **5.065** | 53 |
-| `v20_learned_usage` | — | — | — | — | — |
+| `v20_learned_usage` | **3.698** | -1.453 | **0.421** | **4.885** | 53 |
 | `v21_tiered_regression` | **3.964** | -0.619 | **0.368** | **5.104** | 53 |
+| `v22_advanced_receiving` | — | — | — | — | — |
 | `external_fantasypros_v1` | **4.124** | +2.526 | **0.202** | **5.673** | 52 |
 
 ### RB
@@ -575,8 +595,9 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v17_rookie_growth` | **2.705** | -0.431 | **0.635** | **3.262** | 54 |
 | `v18_usage_level` | **2.713** | -0.809 | **0.636** | **3.257** | 54 |
 | `v19_usage_level_full` | **2.725** | -0.782 | **0.635** | **3.263** | 54 |
-| `v20_learned_usage` | — | — | — | — | — |
+| `v20_learned_usage` | 3.275 | -1.712 | 0.464 | 3.953 | 54 |
 | `v21_tiered_regression` | **2.762** | +0.111 | **0.626** | **3.303** | 54 |
+| `v22_advanced_receiving` | — | — | — | — | — |
 | `external_fantasypros_v1` | **2.584** | +0.361 | **0.628** | **3.252** | 64 |
 
 ### WR
@@ -602,8 +623,9 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v17_rookie_growth` | **2.415** | -0.878 | **0.207** | **3.142** | 62 |
 | `v18_usage_level` | **2.632** | -1.323 | **0.067** | **3.407** | 62 |
 | `v19_usage_level_full` | **2.519** | -1.286 | **0.131** | **3.288** | 62 |
-| `v20_learned_usage` | — | — | — | — | — |
+| `v20_learned_usage` | 2.981 | -2.015 | -0.092 | 3.687 | 62 |
 | `v21_tiered_regression` | **2.499** | -0.556 | **0.190** | **3.174** | 62 |
+| `v22_advanced_receiving` | — | — | — | — | — |
 | `external_fantasypros_v1` | **2.398** | -0.494 | **0.333** | **3.004** | 66 |
 
 ### TE
@@ -629,8 +651,9 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v17_rookie_growth` | **1.910** | -0.254 | **0.555** | **2.338** | 62 |
 | `v18_usage_level` | **1.904** | -0.454 | **0.527** | **2.408** | 62 |
 | `v19_usage_level_full` | **1.926** | -0.416 | **0.539** | **2.379** | 62 |
-| `v20_learned_usage` | — | — | — | — | — |
+| `v20_learned_usage` | 2.417 | -1.313 | 0.368 | 2.784 | 62 |
 | `v21_tiered_regression` | **1.817** | +0.062 | **0.565** | **2.310** | 62 |
+| `v22_advanced_receiving` | — | — | — | — | — |
 | `external_fantasypros_v1` | **1.637** | +0.867 | **0.604** | **2.192** | 64 |
 
 ### K
@@ -656,8 +679,9 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v17_rookie_growth` | **1.671** | -0.156 | **-0.385** | **2.120** | 30 |
 | `v18_usage_level` | 1.959 | -0.233 | -0.896 | 2.481 | 30 |
 | `v19_usage_level_full` | **1.671** | -0.156 | **-0.385** | **2.120** | 30 |
-| `v20_learned_usage` | — | — | — | — | — |
+| `v20_learned_usage` | **1.745** | -0.828 | **-0.407** | **2.137** | 30 |
 | `v21_tiered_regression` | **1.784** | -0.000 | **-0.575** | **2.260** | 30 |
+| `v22_advanced_receiving` | — | — | — | — | — |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## All Seasons Combined
@@ -687,8 +711,9 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v17_rookie_growth` | **2.516** | +0.163 | **0.542** | **3.380** | 844 |
 | `v18_usage_level` | **2.621** | -0.339 | **0.490** | **3.568** | 844 |
 | `v19_usage_level_full` | **2.520** | -0.049 | **0.542** | **3.379** | 844 |
-| `v20_learned_usage` | **2.412** | -0.026 | **0.577** | **3.208** | 583 |
+| `v20_learned_usage` | **2.567** | -0.493 | **0.547** | **3.367** | 844 |
 | `v21_tiered_regression` | **2.586** | +0.376 | **0.510** | **3.493** | 844 |
+| `v22_advanced_receiving` | **2.380** | -0.167 | **0.572** | **3.224** | 583 |
 | `external_fantasypros_v1` | **2.607** | +1.317 | **0.561** | **3.536** | 766 |
 
 ### QB
@@ -714,8 +739,9 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v17_rookie_growth` | **3.801** | -0.309 | **0.344** | **4.868** | 177 |
 | `v18_usage_level` | **3.950** | -0.912 | **0.249** | **5.238** | 177 |
 | `v19_usage_level_full` | **3.801** | -0.309 | **0.344** | **4.868** | 177 |
-| `v20_learned_usage` | **3.714** | -0.309 | **0.366** | **4.683** | 124 |
+| `v20_learned_usage` | **3.709** | -0.651 | **0.382** | **4.744** | 177 |
 | `v21_tiered_regression` | **3.917** | +0.083 | **0.286** | **5.067** | 177 |
+| `v22_advanced_receiving` | **3.704** | -0.874 | **0.336** | **4.802** | 124 |
 | `external_fantasypros_v1` | 4.083 | +2.628 | 0.176 | 5.365 | 171 |
 
 ### RB
@@ -741,8 +767,9 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v17_rookie_growth` | **2.920** | +0.467 | **0.321** | **3.764** | 165 |
 | `v18_usage_level` | **3.063** | -0.205 | **0.262** | **3.913** | 165 |
 | `v19_usage_level_full` | **2.945** | +0.087 | **0.322** | **3.761** | 165 |
-| `v20_learned_usage` | **2.875** | +0.327 | **0.304** | **3.652** | 111 |
+| `v20_learned_usage` | **3.006** | -0.341 | **0.356** | **3.753** | 165 |
 | `v21_tiered_regression` | **3.016** | +0.745 | **0.273** | **3.888** | 165 |
+| `v22_advanced_receiving` | **2.920** | +0.520 | **0.291** | **3.686** | 111 |
 | `external_fantasypros_v1` | **2.778** | +1.246 | **0.525** | **3.478** | 185 |
 
 ### WR
@@ -768,8 +795,9 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v17_rookie_growth` | **2.456** | +0.381 | **0.224** | **3.068** | 194 |
 | `v18_usage_level` | **2.533** | -0.364 | **0.174** | **3.154** | 194 |
 | `v19_usage_level_full` | **2.452** | -0.051 | **0.227** | **3.058** | 194 |
-| `v20_learned_usage` | **2.336** | +0.623 | **0.357** | **2.799** | 132 |
+| `v20_learned_usage` | **2.542** | -0.220 | **0.213** | **3.110** | 194 |
 | `v21_tiered_regression` | **2.474** | +0.388 | **0.208** | **3.095** | 194 |
+| `v22_advanced_receiving` | **2.185** | +0.228 | **0.411** | **2.660** | 132 |
 | `external_fantasypros_v1` | **2.189** | +0.737 | **0.405** | **2.734** | 209 |
 
 ### TE
@@ -795,8 +823,9 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v17_rookie_growth` | **1.749** | +0.156 | **0.514** | **2.169** | 198 |
 | `v18_usage_level` | **1.813** | -0.108 | **0.470** | **2.262** | 198 |
 | `v19_usage_level_full` | **1.751** | -0.008 | **0.511** | **2.179** | 198 |
-| `v20_learned_usage` | **1.618** | -0.481 | **0.520** | **2.038** | 136 |
+| `v20_learned_usage` | 1.868 | -0.741 | **0.472** | 2.298 | 198 |
 | `v21_tiered_regression` | **1.809** | +0.427 | **0.470** | **2.250** | 198 |
+| `v22_advanced_receiving` | **1.565** | -0.265 | **0.538** | **1.999** | 136 |
 | `external_fantasypros_v1` | **1.630** | +0.871 | **0.563** | **2.062** | 201 |
 
 ### K
@@ -822,6 +851,7 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v17_rookie_growth` | **1.324** | +0.093 | **-0.513** | **1.787** | 110 |
 | `v18_usage_level` | **1.430** | +0.013 | **-0.755** | **1.951** | 110 |
 | `v19_usage_level_full` | **1.324** | +0.093 | **-0.513** | **1.787** | 110 |
-| `v20_learned_usage` | **1.228** | -0.378 | **-0.495** | **1.591** | 80 |
+| `v20_learned_usage` | **1.369** | -0.501 | **-0.471** | **1.756** | 110 |
 | `v21_tiered_regression` | **1.394** | +0.183 | **-0.698** | **1.897** | 110 |
+| `v22_advanced_receiving` | **1.287** | -0.507 | **-0.625** | **1.642** | 80 |
 | `external_fantasypros_v1` | — | — | — | — | — |

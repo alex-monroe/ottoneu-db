@@ -74,6 +74,48 @@ New data sources and learned models. Expected: MAE < 2.3, R² > 0.60.
 
 ---
 
+## Prioritized Backlog (2026-05-05)
+
+Issue audit (2026-05-05) consolidated duplicates and ranked open work by impact × effort, weighted toward **early, season-long projection accuracy** (i.e., features knowable in the offseason are favored). Closed: #56, #58, #59, #60 (done or stale); #392 (dup of #376), #394 (dup of #378), #393 (split into #375 + #379).
+
+### Tier 1 — Do first (high impact, low/medium effort)
+
+| # | Title | Effort | Why first |
+|---|---|---|---|
+| [#380](https://github.com/alex-monroe/ottoneu-db/issues/380) | Backfill 2021 training season | medium | Enabler — raises feature-dimension ceiling for everything below |
+| [#376](https://github.com/alex-monroe/ottoneu-db/issues/376) | NFL draft capital | low | Biggest rookie/year-2 fix; same-day data; visible week 1 |
+| [#391](https://github.com/alex-monroe/ottoneu-db/issues/391) | Depth chart / offseason movement | medium | Directly targets early-season failure mode (team/role changes invisible to historical PPG) |
+| ~~[#375](https://github.com/alex-monroe/ottoneu-db/issues/375)~~ | ~~Advanced receiving (target_share, air_yards, WOPR)~~ ✅ | low | v22_advanced_receiving: ALL MAE 2.380 (vs v20 2.412), R² 0.572, n=583 backtest seasons |
+| [#378](https://github.com/alex-monroe/ottoneu-db/issues/378) | Vegas implied team totals | low | 32 numbers/year; large QB upside; replaces broken `team_context` |
+
+### Tier 2 — Strong second wave (medium effort)
+
+| # | Title | Effort | Notes |
+|---|---|---|---|
+| [#377](https://github.com/alex-monroe/ottoneu-db/issues/377) | Expand raw features + asymmetric regression fix | medium | Addresses +2.69 elite under-projection bias |
+| [#379](https://github.com/alex-monroe/ottoneu-db/issues/379) | Red zone usage from PBP | medium | New pipeline cost; RB/TE TD signal |
+| [#381](https://github.com/alex-monroe/ottoneu-db/issues/381) | LightGBM combiner | medium | Eliminates manual interaction terms; benefits from #380 |
+| [#382](https://github.com/alex-monroe/ottoneu-db/issues/382) | Position-specific learned models | medium | Biggest QB win; benefits from #380 |
+
+### Tier 3 — High impact but heavy
+
+| # | Title | Effort | Notes |
+|---|---|---|---|
+| [#384](https://github.com/alex-monroe/ottoneu-db/issues/384) | Injury availability model | high | 24% of error budget; two-stage modeling, possibly new data |
+| [#383](https://github.com/alex-monroe/ottoneu-db/issues/383) | Stacked ensemble | medium | Worth most after #381 + #382 land |
+
+### Tier 4 — Defer
+
+| # | Title | Effort | Notes |
+|---|---|---|---|
+| [#387](https://github.com/alex-monroe/ottoneu-db/issues/387) | Coaching/scheme change detection | high | Vegas (#378) captures most of the same signal more efficiently |
+| [#386](https://github.com/alex-monroe/ottoneu-db/issues/386) | Transfer learning weekly→season | high | Requires weekly data pipeline; high complexity |
+| [#385](https://github.com/alex-monroe/ottoneu-db/issues/385) | Bayesian hierarchical model | high | Small MAE gain; main value is decision-quality intervals |
+
+Issues are labeled `priority:p1`–`priority:p4` and `effort:low/medium/high` on GitHub.
+
+---
+
 ## Verification
 
 Every change measured via:

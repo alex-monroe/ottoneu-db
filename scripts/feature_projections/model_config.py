@@ -255,6 +255,38 @@ MODELS: dict[str, ModelDefinition] = {
             "qb_backup_penalty",
         ],
     ),
+    "v22_advanced_receiving": ModelDefinition(
+        name="v22_advanced_receiving",
+        version=1,
+        description=(
+            "v20 (learned ridge w/ usage_share_raw) + advanced receiving metrics "
+            "from nflverse: target_share, air_yards_share, wopr, racr. WR/TE only. "
+            "Captures opportunity independent of efficiency — the strongest WR/TE "
+            "volume signal. Interaction terms target_share*position and "
+            "wopr*base_ppg let the learned combiner find position-specific "
+            "and volume-conditional effects. GH #375."
+        ),
+        features=[
+            "weighted_ppg_no_qb_trajectory",
+            "age_curve",
+            "regression_to_mean",
+            "qb_backup_penalty",
+            "usage_share_raw",
+            "target_share_raw",
+            "air_yards_share_raw",
+            "wopr_raw",
+            "racr_raw",
+        ],
+        combiner_type="learned",
+        interaction_terms=[
+            "usage_share_raw*position",
+            "usage_share_raw*base_ppg",
+            "usage_share_raw^2",
+            "target_share_raw*position",
+            "wopr_raw*base_ppg",
+            "wopr_raw^2",
+        ],
+    ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
         version=1,
