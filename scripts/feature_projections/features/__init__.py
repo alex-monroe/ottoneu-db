@@ -26,6 +26,12 @@ from scripts.feature_projections.features.qb_starter_usage import (
     QBStarterUsageFeature,
     QBStarterBackupPenaltyFeature,
 )
+from scripts.feature_projections.features.advanced_receiving import (
+    TargetShareRawFeature,
+    AirYardsShareRawFeature,
+    WOPRRawFeature,
+    RACRRawFeature,
+)
 
 FEATURE_REGISTRY: dict[str, type] = {
     "weighted_ppg": WeightedPPGFeature,
@@ -43,4 +49,8 @@ FEATURE_REGISTRY: dict[str, type] = {
     "qb_backup_penalty": QBStarterBackupPenaltyFeature,
     "weighted_ppg_rookie_growth": WeightedPPGRookieGrowthFeature,
     "weighted_ppg_rookie_growth_no_qb": WeightedPPGRookieGrowthNoQBFeature,
+    "target_share_raw": TargetShareRawFeature,
+    "air_yards_share_raw": AirYardsShareRawFeature,
+    "wopr_raw": WOPRRawFeature,
+    "racr_raw": RACRRawFeature,
 }

@@ -23,3 +23,4 @@ _Tracks every model iteration attempt to prevent re-trying failed approaches._
 | 2026-03-10 | v19 | v14 + usage_share v2 (level) | 2.510 | 0.545 | — | NEUTRAL | — |
 | 2026-03-29 | v20 | Ridge regression + interactions | 2.412 | 0.577 | -0.026 | BEST | #370 |
 | 2026-03-29 | v21 | v14 + tiered regression | 2.515 | 0.542 | — | NEUTRAL (bench bias improved) | #373 |
+| 2026-05-05 | v22 | v20 + advanced receiving (target_share, air_yards_share, wopr, racr) | 2.380 | 0.572 | -0.167 | IMPROVEMENT (vs v20 on matched 583 player-seasons: -0.033 MAE; WR MAE -0.06) | #375 |
