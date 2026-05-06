@@ -84,6 +84,10 @@ User accounts with email/password login stored in the `users` table. Passwords a
 - **User-scoped data:** `surplus_adjustments` and `arbitration_plans` are scoped to `user_id` — each user sees only their own data
 - **Admin panel** (`/admin`) allows admins to create users, toggle projections access, and delete users
 
+## API Input Validation
+
+All API route bodies are validated through Zod schemas in `web/lib/schemas/` (one file per resource: `arbitration-plan.ts`, `surplus-adjustment.ts`, `user.ts`). Routes call `parseJson(req, Schema)` from `web/lib/validate.ts`, which returns either `{ ok: true, data }` (typed via `z.infer`) or `{ ok: false, response }` — a 400 carrying Zod's `issues` array. Schemas enforce email normalization, the bcrypt 72-byte password ceiling, plan name/notes bounds, non-negative integer allocations, and finite (no NaN/Infinity) numeric adjustments. Add new validation by defining a schema in `web/lib/schemas/` and replacing hand-rolled checks with the helper.
+
 ## Feature Projection System (`scripts/feature_projections/`)
 
 Generates season-long player PPG projections from historical data using a combination of targeted features. The active production model (`v14_qb_starter`) uses:
