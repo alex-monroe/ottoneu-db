@@ -19,7 +19,11 @@ from analysis_utils import fetch_multi_season_stats
 from scripts.feature_projections.features import FEATURE_REGISTRY
 from scripts.feature_projections.model_config import ModelDefinition, PositionOverride, get_model
 from scripts.feature_projections.combiner import combine_features
-from scripts.feature_projections.learned_combiner import combine_features_learned, load_model_params
+from scripts.feature_projections.learned_combiner import (
+    combine_features_learned,
+    combine_features_residual,
+    load_model_params,
+)
 from scripts.feature_projections.qb_starters import get_all_starter_ids, is_qb_starter
 
 
@@ -350,10 +354,17 @@ def run_model(
     model_id = _ensure_model_in_db(supabase, model_def)
     print(f"Model '{model_name}' registered with id={model_id}")
 
-    # Compute union of all feature names (default + all overrides)
+    # Compute union of all feature names (default + all overrides). Residual
+    # models also evaluate the base model's features so its prediction is
+    # reproducible without re-loading anything else.
     all_feature_names = set(model_def.features)
     for override in model_def.position_overrides.values():
         all_feature_names.update(override.features)
+    if model_def.combiner_type == "residual" and model_def.base_model_name:
+        base_def = get_model(model_def.base_model_name)
+        all_feature_names.update(base_def.features)
+        for override in base_def.position_overrides.values():
+            all_feature_names.update(override.features)
 
     # Instantiate all features into a dict for lookup
     feature_pool: dict[str, Any] = {}
@@ -367,12 +378,20 @@ def run_model(
         print("No valid features found, aborting.")
         return 0
 
-    # Load learned model params if needed
+    # Load trained params for learned/residual models. Residual JSON embeds
+    # the full base model under base_model_params.
     learned_params = None
-    if model_def.combiner_type == "learned":
+    if model_def.combiner_type in {"learned", "residual"}:
         learned_params = load_model_params(model_name)
-        print(f"Loaded trained model (alpha={learned_params['alpha']}, "
-              f"features={learned_params['training_metadata']['n_features']})")
+        if model_def.combiner_type == "learned":
+            print(f"Loaded trained model (alpha={learned_params['alpha']}, "
+                  f"features={learned_params['training_metadata']['n_features']})")
+        else:
+            base_md = learned_params.get("base_model_params", {}).get("training_metadata", {})
+            print(f"Loaded residual model (alpha={learned_params['alpha']}, "
+                  f"residual_features={learned_params['training_metadata']['n_features']}, "
+                  f"base={learned_params['base_model_name']}, "
+                  f"base_features={base_md.get('n_features')})")
 
 
     # Fetch players table
@@ -450,16 +469,35 @@ def run_model(
                 draft_capital=draft_capital_lookup,
             )
 
-            # Resolve position-specific features
+            # Resolve position-specific features. For residual models, the
+            # union of base + residual features is computed so the embedded
+            # base model can be evaluated without re-loading anything.
             effective_features, effective_weights = _resolve_features_for_position(
                 model_def, position
             )
+            if model_def.combiner_type == "residual" and model_def.base_model_name:
+                base_def = get_model(model_def.base_model_name)
+                base_eff, _ = _resolve_features_for_position(base_def, position)
+                effective_features = list(
+                    dict.fromkeys(list(base_eff) + list(effective_features))
+                )
             player_feature_instances = [
                 feature_pool[f] for f in effective_features if f in feature_pool
             ]
 
             # Run combiner
-            if learned_params is not None:
+            if model_def.combiner_type == "residual" and learned_params is not None:
+                projected_ppg, feature_values = combine_features_residual(
+                    player_feature_instances,
+                    player_id_str,
+                    position,
+                    player_history,
+                    player_nfl,
+                    context,
+                    learned_params,
+                    effective_weights or None,
+                )
+            elif learned_params is not None:
                 projected_ppg, feature_values = combine_features_learned(
                     player_feature_instances,
                     player_id_str,

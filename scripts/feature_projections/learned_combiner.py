@@ -167,6 +167,8 @@ def predict(
 
     Args:
         feature_values: Raw feature outputs from compute_features_for_player.
+            Extra keys not seen at training time are dropped (residual models
+            evaluate a superset of features).
         position: Player position.
         model_params: Loaded from trained_models JSON (coefficients, intercept,
                       feature_names, interaction_terms, scaler params).
@@ -175,6 +177,17 @@ def predict(
         Predicted PPG, or None if feature vector cannot be built.
     """
     interaction_terms = model_params["interaction_terms"]
+
+    # Restrict to the raw features this model was trained on. The saved
+    # ``feature_names`` list contains both raw columns and interaction columns
+    # (e.g. ``usage_share_raw*WR``); raw columns are those without ``*`` or
+    # ``^``. Filtering avoids shape mismatches when the caller hands in a
+    # superset of feature_values (e.g. a residual model also computing the
+    # base model's features alongside its own).
+    saved_columns = model_params.get("feature_names")
+    if saved_columns:
+        raw_feature_names = [c for c in saved_columns if "*" not in c and "^" not in c]
+        feature_values = {k: feature_values.get(k) for k in raw_feature_names}
 
     vector = build_feature_vector(feature_values, position, interaction_terms)
     if vector is None:
@@ -236,4 +249,69 @@ def combine_features_learned(
         return None, feature_values
 
     predicted = predict(feature_values, position, model_params)
+    return predicted, feature_values
+
+
+def predict_residual(
+    feature_values: dict[str, Optional[float]],
+    position: str,
+    model_params: dict[str, Any],
+) -> Optional[float]:
+    """Apply a residual model on top of its embedded base model.
+
+    `model_params` is the JSON saved by ``train_ridge_residual``. It carries the
+    full base model under ``base_model_params`` plus the residual coefficients.
+    Returns ``base_pred + residual`` (clamped at 0). The residual model has
+    ``intercept=0`` and is fit with ``fit_intercept=False`` so a sample whose
+    residual feature values are all zero contributes exactly zero — those
+    samples receive byte-identical base predictions.
+    """
+    base_params = model_params.get("base_model_params")
+    if not base_params:
+        return None
+
+    base_pred = predict(feature_values, position, base_params)
+    if base_pred is None:
+        return None
+
+    residual_features = model_params.get("feature_names") or []
+    interaction_terms = model_params.get("interaction_terms") or []
+
+    # Build the residual vector using only the residual model's features.
+    residual_fv = {f: feature_values.get(f) for f in residual_features}
+    vector = build_feature_vector(residual_fv, position, interaction_terms)
+    if vector is None:
+        return max(0.0, base_pred)
+
+    coefficients = np.array(model_params["coefficients"], dtype=np.float64)
+    delta = float(np.dot(np.array(vector, dtype=np.float64), coefficients))
+    return max(0.0, base_pred + delta)
+
+
+def combine_features_residual(
+    features: list[ProjectionFeature],
+    player_id: str,
+    position: str,
+    history_df: pd.DataFrame,
+    nfl_stats_df: pd.DataFrame,
+    context: dict[str, Any],
+    model_params: dict[str, Any],
+    weights: dict[str, float] | None = None,
+) -> tuple[Optional[float], dict[str, Optional[float]]]:
+    """Residual combiner entry point.
+
+    `features` should include both the base model's features (so its prediction
+    is reproducible) and the residual model's features. The runner is
+    responsible for assembling that union — this function just computes
+    everything that's passed in and hands it to ``predict_residual``.
+    """
+    feature_values = compute_features_for_player(
+        features, player_id, position, history_df, nfl_stats_df, context, weights
+    )
+
+    base_feature_name = next((f.name for f in features if f.is_base), None)
+    if base_feature_name and feature_values.get(base_feature_name) is None:
+        return None, feature_values
+
+    predicted = predict_residual(feature_values, position, model_params)
     return predicted, feature_values

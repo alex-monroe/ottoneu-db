@@ -28,8 +28,19 @@ class ModelDefinition:
     weights: dict[str, float] = field(default_factory=dict)
     is_baseline: bool = False
     position_overrides: dict[str, PositionOverride] = field(default_factory=dict)
-    combiner_type: str = "additive"  # "additive" or "learned"
+    combiner_type: str = "additive"  # "additive" | "learned" | "residual"
     interaction_terms: list[str] = field(default_factory=list)
+    # Residual combiner — leaves base model untouched and adds a learned delta.
+    # `base_model_name` names a pre-trained model whose JSON we load and call
+    # for the base prediction. `features` and `interaction_terms` describe the
+    # tiny secondary Ridge model trained on (actual − base_pred), which is
+    # fit with fit_intercept=False so vets (whose feature values are zero)
+    # receive a residual contribution of exactly zero — and therefore the
+    # base model's prediction byte-for-byte. `training_filter` restricts the
+    # residual training set; max_seasons_since_draft=3 keeps the residual
+    # focused on rookies/sophs/3rd-year players.
+    base_model_name: str | None = None
+    training_filter: dict[str, int] = field(default_factory=dict)
 
 
 # === Model Definitions ===
@@ -321,6 +332,26 @@ MODELS: dict[str, ModelDefinition] = {
             "wopr_raw^2",
             "draft_capital_raw*position",
         ],
+    ),
+    "v25_draft_capital_residual": ModelDefinition(
+        name="v25_draft_capital_residual",
+        version=1,
+        description=(
+            "Two-stage residual model: v22 (advanced receiving learned ridge) "
+            "as the unchanged base, plus a tiny secondary Ridge on "
+            "draft_capital_raw + draft_capital_raw*position fit to v22 "
+            "residuals on rookie/sophomore/3rd-year samples only "
+            "(seasons_since_draft <= 3). Fit with fit_intercept=False so "
+            "veterans (whose feature value is 0) receive an exactly-zero "
+            "residual contribution — their predictions are byte-identical "
+            "to v22. Designed to deliver the rookie/soph lift v23 produced "
+            "without v23's collateral veteran regression. GH #376 follow-up."
+        ),
+        features=["draft_capital_raw"],
+        combiner_type="residual",
+        base_model_name="v22_advanced_receiving",
+        interaction_terms=["draft_capital_raw*position"],
+        training_filter={"max_seasons_since_draft": 3},
     ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
