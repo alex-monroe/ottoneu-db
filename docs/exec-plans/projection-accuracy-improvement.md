@@ -21,18 +21,23 @@ The combiner stacks features additively. When a feature adds noise (even small),
 
 ---
 
-## Current Accuracy (All Seasons Combined, ALL positions)
+## Current Accuracy (All Seasons Combined, ALL positions, n=583 across 2022–2025)
 
 | Model | MAE | R² | Bias |
 |-------|-----|-----|------|
-| `v1_baseline` | 2.666 | 0.472 | -0.389 |
-| `v2_age_adjusted` | 2.584 | 0.499 | -0.120 |
-| v3-v6 | 2.95–4.01 | degrades | — |
-| `v8_age_regression` | 2.530 | 0.522 | +0.075 |
-| **`v12_no_qb_trajectory`** | **2.525** | **0.526** | **+0.103** |
-| `v14_qb_starter` | 2.515 | 0.542 | +0.170 |
-| **`v20_learned_usage`** | **2.412** | **0.577** | **-0.026** |
-| FantasyPros | 2.607 | 0.561 | +1.317 |
+| `v1_baseline` | 2.559 | 0.492 | -0.044 |
+| `v2_age_adjusted` | 2.536 | 0.503 | +0.169 |
+| v3-v6 | 2.81–3.98 | degrades | — |
+| `v8_age_regression` | 2.482 | 0.526 | +0.426 |
+| `v12_no_qb_trajectory` | 2.482 | 0.530 | +0.441 |
+| `v14_qb_starter` | 2.489 | 0.533 | +0.504 |
+| `v20_learned_usage` | 2.412 | 0.577 | -0.026 |
+| `v22_advanced_receiving` | 2.380 | 0.572 | -0.167 |
+| `v23_draft_capital` (full refit) | 2.379 | **0.585** | **-0.026** |
+| **`v25_draft_capital_residual`** | **2.370** | 0.575 | -0.191 |
+| FantasyPros | 2.604 | 0.572 | +1.599 |
+
+`v25` is the current best on MAE; `v23` retains the best R²/bias but at the cost of perturbing veteran predictions (see Lessons Learned). The full per-position breakdown lives in [docs/generated/projection-accuracy.md](../generated/projection-accuracy.md).
 
 ---
 
@@ -71,6 +76,8 @@ New data sources and learned models. Expected: MAE < 2.3, R² > 0.60.
 - [#285](https://github.com/alex-monroe/ottoneu-db/issues/285) — ~~Fix usage_share: complete rethink~~ ✅ (v19: level-based, neutral MAE, best RMSE/bias)
 - [#367](https://github.com/alex-monroe/ottoneu-db/issues/367) — ~~Usage share as ML ensemble input~~ ✅ (v20: Ridge regression with interaction terms. ALL MAE 2.412, R² 0.577, bias -0.026. Beats v14 on all metrics and FantasyPros on MAE+bias. Introduces sklearn, learned combiner, LOSO CV scaffolding for future #283 work.)
 - [#304](https://github.com/alex-monroe/ottoneu-db/issues/304) — ~~Bench-tier mean-reversion~~ ✅ (v21: tiered regression with negative factors for below-mean players. Bench bias -1.274→-0.866, starter/elite unchanged. Further improvement likely requires variance-aware or learned approaches.)
+- [#375](https://github.com/alex-monroe/ottoneu-db/issues/375) — ~~Advanced receiving metrics~~ ✅ (v22: target_share, air_yards_share, wopr, racr from nflverse for WR/TE only. ALL MAE 2.380, WR MAE 2.336→2.185 vs v20.)
+- [#376](https://github.com/alex-monroe/ottoneu-db/issues/376) — ~~NFL draft capital~~ ✅ (Two iterations: v23 full refit hit a vet-regression problem; v25 two-stage residual fixed it. ALL MAE 2.370, current best.)
 
 ---
 
@@ -83,7 +90,7 @@ Issue audit (2026-05-05) consolidated duplicates and ranked open work by impact 
 | # | Title | Effort | Why first |
 |---|---|---|---|
 | [#380](https://github.com/alex-monroe/ottoneu-db/issues/380) | Backfill 2021 training season | medium | Enabler — raises feature-dimension ceiling for everything below |
-| [#376](https://github.com/alex-monroe/ottoneu-db/issues/376) | NFL draft capital | low | Biggest rookie/year-2 fix; same-day data; visible week 1 |
+| ~~[#376](https://github.com/alex-monroe/ottoneu-db/issues/376)~~ | ~~NFL draft capital~~ ✅ | low | v25_draft_capital_residual: ALL MAE 2.370 (current best), R² 0.575, vet predictions byte-identical to v22 |
 | [#391](https://github.com/alex-monroe/ottoneu-db/issues/391) | Depth chart / offseason movement | medium | Directly targets early-season failure mode (team/role changes invisible to historical PPG) |
 | ~~[#375](https://github.com/alex-monroe/ottoneu-db/issues/375)~~ | ~~Advanced receiving (target_share, air_yards, WOPR)~~ ✅ | low | v22_advanced_receiving: ALL MAE 2.380 (vs v20 2.412), R² 0.572, n=583 backtest seasons |
 | [#378](https://github.com/alex-monroe/ottoneu-db/issues/378) | Vegas implied team totals | low | 32 numbers/year; large QB upside; replaces broken `team_context` |
@@ -176,6 +183,46 @@ essentially unchanged.
 4. If the raw effect is < 5%, dampen it (e.g., 50% scaling) to account for
    overlap with existing features
 
+### Full ridge refit vs two-stage residual (from #376 draft capital)
+
+When a new feature only carries signal for a minority subset (e.g., draft
+capital is identically 0 for 4+-year veterans), refitting the entire learned
+model is risky. v23 added `draft_capital_raw` and re-fit the full ridge on all
+583 player-seasons; the new feature's coefficient was nominally what we
+expected, **but unrelated coefficients also shifted** (`weighted_ppg` 4.76→4.07,
+`regression_to_mean` 1.09→0.74) to absorb the now-explained rookie variance.
+Result: vets — for whom the new feature is exactly 0 — still saw their
+predictions drift, and LOSO CV regressed (2.406 → 2.428).
+
+The fix (v25) was a **two-stage residual**:
+- Freeze the previous best model (v22) as the base.
+- Fit a tiny ridge on `(actual − base_pred)` using only the new feature(s)
+  and only on samples where the feature is meaningful
+  (`seasons_since_draft ≤ 3`).
+- Use `fit_intercept=False` so a sample whose residual feature values are all
+  zero contributes exactly zero — those samples receive byte-identical base
+  predictions.
+
+The residual model JSON embeds the base model's params under
+`base_model_params` so deployment stays single-file. Result: all-seasons MAE
+2.380 → 2.370 with provable veteran stability and no upstream coefficient
+drift.
+
+**Guideline:** Prefer a two-stage residual when:
+- The new feature is informative for a minority of samples and zero/missing
+  for the rest.
+- You want to ship the new feature without risking regressions in the
+  unaffected cohort.
+- Retraining the base independently (e.g., with new training-season data)
+  shouldn't invalidate the residual; the residual remains valid as long as
+  the base predictions don't change.
+
+Caveats:
+- The residual gives up the bias-correction that a joint refit can provide
+  (v23's all-seasons bias was -0.026 vs v25's -0.191).
+- The base remains fixed: if the base itself has issues on the residual's
+  target subset, the residual can mask but not repair them.
+
 ---
 
 ## Key Files
@@ -184,10 +231,13 @@ essentially unchanged.
 |------|------|
 | `scripts/feature_projections/model_config.py` | Model definitions — every new model registered here |
 | `scripts/feature_projections/combiner.py` | Additive feature combination logic |
-| `scripts/feature_projections/learned_combiner.py` | Learned combiner — Ridge regression with interaction terms (GH #367) |
-| `scripts/feature_projections/train_model.py` | Training script for learned models with LOSO cross-validation |
+| `scripts/feature_projections/learned_combiner.py` | Learned (`combine_features_learned` / `predict`) and residual (`combine_features_residual` / `predict_residual`) combiners — Ridge with interactions (#367, #376) |
+| `scripts/feature_projections/train_model.py` | Training: `train_ridge_loso` for full-refit learned models, `train_ridge_residual` for two-stage residuals (#376) |
 | `scripts/feature_projections/features/weighted_ppg.py` | Base feature — recency weights and rookie trajectory |
 | `scripts/feature_projections/features/age_curve.py` | Best adjustment feature — parameter tuning target |
+| `scripts/feature_projections/features/advanced_receiving.py` | Target share / air-yards share / WOPR / RACR for WR/TE (#375) |
+| `scripts/feature_projections/features/draft_capital.py` | Log-scaled overall pick, first 3 NFL seasons, 0 for vets (#376) |
 | `scripts/feature_projections/backtest.py` | Validation framework for measuring all changes |
 | `scripts/feature_projections/accuracy_report.py` | Comparison table generation |
 | `scripts/feature_projections/features/__init__.py` | Feature registry — add new features here |
+| `scripts/backfill_draft_capital.py` | nflverse → `draft_capital` table loader (#376) |
