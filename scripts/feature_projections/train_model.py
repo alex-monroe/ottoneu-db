@@ -40,9 +40,12 @@ from scripts.feature_projections.model_config import get_model
 from scripts.feature_projections.runner import (
     _build_context,
     _build_draft_capital_lookup,
+    _build_vegas_lines_lookup,
+    _collect_feature_names_recursive,
     _compute_positional_mean_ppg,
     _compute_team_aggregates,
     _resolve_features_for_position,
+    _resolve_residual_base_features,
 )
 from scripts.feature_projections.qb_starters import get_all_starter_ids
 from scripts.feature_projections.learned_combiner import (
@@ -79,14 +82,12 @@ def collect_training_data(
     # Fetch draft capital once (used across all training seasons)
     draft_capital_lookup = _build_draft_capital_lookup(supabase)
 
-    # Instantiate features. Residual models also need the BASE model's features
-    # in the pool so the trainer can compute the base prediction per sample.
-    all_feature_names = set(model_def.features)
-    if model_def.combiner_type == "residual" and model_def.base_model_name:
-        base_def = get_model(model_def.base_model_name)
-        all_feature_names.update(base_def.features)
-        for pos_override in base_def.position_overrides.values():
-            all_feature_names.update(pos_override.features)
+    # Fetch Vegas implied team totals once (used across all training seasons)
+    vegas_lookup, vegas_league_means = _build_vegas_lines_lookup(supabase)
+
+    # Instantiate features. Residual stacks pull in features from every
+    # nested base so the trainer can compute the base prediction per sample.
+    all_feature_names = _collect_feature_names_recursive(model_def)
     feature_pool = {}
     for fname in all_feature_names:
         if fname in FEATURE_REGISTRY:
@@ -164,14 +165,16 @@ def collect_training_data(
                 target_season, team_aggregates, positional_means,
                 qb_starters=qb_starters,
                 draft_capital=draft_capital_lookup,
+                vegas_lines=vegas_lookup,
+                vegas_league_means=vegas_league_means,
             )
 
             effective_features, effective_weights = _resolve_features_for_position(model_def, position)
-            # For residual models, also evaluate the base model's features so the
-            # trainer can compute the base prediction (and the residual to fit).
-            if model_def.combiner_type == "residual" and model_def.base_model_name:
-                base_def = get_model(model_def.base_model_name)
-                base_eff, _ = _resolve_features_for_position(base_def, position)
+            # For residual models, also evaluate every nested base's features
+            # so the trainer can compute the base prediction (and the residual
+            # to fit).
+            base_eff = _resolve_residual_base_features(model_def, position)
+            if base_eff:
                 effective_features = list(dict.fromkeys(list(base_eff) + list(effective_features)))
             player_feature_instances = [
                 feature_pool[f] for f in effective_features if f in feature_pool
@@ -360,6 +363,7 @@ def train_ridge_residual(
     from scripts.feature_projections.learned_combiner import (
         load_model_params,
         predict as learned_predict,
+        predict_residual as learned_predict_residual,
     )
 
     if alpha_candidates is None:
@@ -397,7 +401,12 @@ def train_ridge_residual(
         # base predict() builds its own vector from base_params["feature_names"]
         # in the canonical alphabetical order, so extra keys in `fv` are
         # ignored — only the features the base model knows about are used.
-        base_pred = learned_predict(fv, position, base_params)
+        # If the base is itself a residual model (nested residuals), use
+        # predict_residual so its own residual layer is applied. GH #378.
+        if base_params.get("combiner_type") == "residual":
+            base_pred = learned_predict_residual(fv, position, base_params)
+        else:
+            base_pred = learned_predict(fv, position, base_params)
         if base_pred is None:
             continue
 

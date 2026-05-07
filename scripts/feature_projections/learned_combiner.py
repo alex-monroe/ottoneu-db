@@ -270,7 +270,13 @@ def predict_residual(
     if not base_params:
         return None
 
-    base_pred = predict(feature_values, position, base_params)
+    # Nested residuals: a residual model can sit on top of another residual
+    # model. Recurse so v25 (v22 + draft_capital residual) can serve as the
+    # base for v26 (… + vegas residual). GH #378.
+    if base_params.get("combiner_type") == "residual":
+        base_pred = predict_residual(feature_values, position, base_params)
+    else:
+        base_pred = predict(feature_values, position, base_params)
     if base_pred is None:
         return None
 

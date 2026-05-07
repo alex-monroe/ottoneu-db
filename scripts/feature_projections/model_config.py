@@ -353,6 +353,64 @@ MODELS: dict[str, ModelDefinition] = {
         interaction_terms=["draft_capital_raw*position"],
         training_filter={"max_seasons_since_draft": 3},
     ),
+    "v26_vegas_residual": ModelDefinition(
+        name="v26_vegas_residual",
+        version=1,
+        description=(
+            "Stacked residual: v25 (v22 + draft_capital residual) as the "
+            "frozen base, plus a tiny secondary Ridge on "
+            "implied_team_total_raw + implied_team_total_raw*position fit "
+            "to v25 residuals across all players (no training filter — "
+            "Vegas signal is informative for every position). Fit with "
+            "fit_intercept=False so a player on a league-average team "
+            "(centered implied total ≈ 0) receives an exactly-zero residual "
+            "contribution. Designed to add the market-efficient team "
+            "scoring signal without disturbing v25's veteran-stable "
+            "predictions. Replaces the broken team_context feature. "
+            "GH #378."
+        ),
+        features=["implied_team_total_raw"],
+        combiner_type="residual",
+        base_model_name="v25_draft_capital_residual",
+        interaction_terms=["implied_team_total_raw*position"],
+        training_filter={},
+    ),
+    "v27_vegas_full_refit": ModelDefinition(
+        name="v27_vegas_full_refit",
+        version=1,
+        description=(
+            "Full Ridge refit on v23's feature set (usage + advanced "
+            "receiving + draft_capital) plus implied_team_total_raw, with "
+            "interaction terms for position-conditional Vegas effects. "
+            "Tests whether jointly fitting all signals captures interactions "
+            "the residual stack misses, at the risk of v23-style coefficient "
+            "drift on veterans. GH #378."
+        ),
+        features=[
+            "weighted_ppg_no_qb_trajectory",
+            "age_curve",
+            "regression_to_mean",
+            "qb_backup_penalty",
+            "usage_share_raw",
+            "target_share_raw",
+            "air_yards_share_raw",
+            "wopr_raw",
+            "racr_raw",
+            "draft_capital_raw",
+            "implied_team_total_raw",
+        ],
+        combiner_type="learned",
+        interaction_terms=[
+            "usage_share_raw*position",
+            "usage_share_raw*base_ppg",
+            "usage_share_raw^2",
+            "target_share_raw*position",
+            "wopr_raw*base_ppg",
+            "wopr_raw^2",
+            "draft_capital_raw*position",
+            "implied_team_total_raw*position",
+        ],
+    ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
         version=1,
