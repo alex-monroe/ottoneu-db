@@ -246,6 +246,32 @@ the new feature is sparse *and* the dataset is small. Once at least one
 is worth retrying — the joint fit can recover bias that a frozen base
 keeps trapped (v25 bias -0.627 → v27 -0.041).
 
+### Graceful degradation when Vegas data is missing
+
+Sportsbook **win totals** are published in March/April but per-game
+spread/total lines (which `implied_total` is derived from) require the
+NFL schedule, typically released in mid-May. For a few weeks every
+spring `team_vegas_lines` may carry `win_total` while `implied_total`
+is `NULL`. A 2026 row was seeded on 2026-05-07 with this shape.
+
+The `implied_team_total_raw` feature is **centered** against each
+season's league mean (so the average value is ≈ 0). When inference
+encounters a player on a team with no `implied_total`, the feature
+returns `None`, the learned combiner substitutes `0.0` in the feature
+vector, the scaler normalizes that to roughly `-mean/scale ≈ 0`, and
+the position-conditional vegas coefficients add a near-zero PPG delta.
+**v27 with no `implied_total` collapses to roughly v23 behavior**
+(full refit minus the vegas signal): ALL MAE 2.535 / R² 0.557 /
+bias -0.437.
+
+So if you need season-projection accuracy *before* the schedule drops
+each spring, v27 stays the right active model — its preseason output
+without vegas is still better than v25 (2.551). Once
+`backfill_vegas_lines.py` runs after schedule release and populates
+`implied_total`, v27 picks up its full -0.093 MAE edge automatically
+(`run --model v27_vegas_full_refit --seasons {season}` re-projects
+with the now-present feature).
+
 ---
 
 ## Key Files
