@@ -12,7 +12,10 @@ Adding a new projection method = one new class, no pipeline changes needed.
 """
 
 from __future__ import annotations
-from typing import Optional, Protocol, TypedDict
+
+import math
+from collections import defaultdict
+from typing import Iterable, Optional, Protocol, TypedDict
 
 
 class SeasonData(TypedDict, total=False):
@@ -135,4 +138,68 @@ class CollegeProspectPPG:
         """
         if not position:
             return None
+        return self._avg_ppg.get(position)
+
+
+class RookieDraftCapitalPPG:
+    """Projection for true rookies (no NFL stats yet) using draft capital.
+
+    Fits a per-position OLS of year-1 PPG on a log-scaled overall pick score,
+    x = log(TOTAL_PICKS) − log(overall_pick), from historical rookies who
+    have a draft_capital row and a qualifying year-1 PPG. At projection
+    time, returns ``intercept + slope * x`` clamped to ≥ 0. Positions with
+    fewer than ``MIN_SAMPLES`` historical rookies (or rookies without a
+    ``draft_capital`` row, e.g. UDFAs and college players) fall back to a
+    supplied position-mean rookie PPG — same behavior as CollegeProspectPPG.
+    """
+
+    name = "rookie_draft_capital"
+    TOTAL_PICKS = 257
+    MIN_SAMPLES = 5
+
+    def __init__(
+        self,
+        coefficients: dict[str, tuple[float, float]],
+        avg_rookie_ppg_by_position: dict[str, float] | None = None,
+    ):
+        self._coef = coefficients
+        self._avg_ppg = avg_rookie_ppg_by_position or {}
+
+    @classmethod
+    def fit(
+        cls,
+        rookie_samples: Iterable[tuple[str, int, float]],
+    ) -> dict[str, tuple[float, float]]:
+        """Fit per-position OLS from (position, overall_pick, year1_ppg) tuples."""
+        import numpy as np
+
+        by_pos: dict[str, list[tuple[float, float]]] = defaultdict(list)
+        for pos, pick, ppg in rookie_samples:
+            if not pos or pick is None or int(pick) <= 0:
+                continue
+            x = math.log(cls.TOTAL_PICKS) - math.log(int(pick))
+            by_pos[pos].append((x, float(ppg)))
+
+        coef: dict[str, tuple[float, float]] = {}
+        for pos, pairs in by_pos.items():
+            if len(pairs) < cls.MIN_SAMPLES:
+                continue
+            x_arr = np.array([p[0] for p in pairs])
+            y_arr = np.array([p[1] for p in pairs])
+            slope, intercept = np.polyfit(x_arr, y_arr, 1)
+            coef[pos] = (float(intercept), float(slope))
+        return coef
+
+    def project_ppg(
+        self,
+        history: list[SeasonData],
+        position: str | None = None,
+        overall_pick: int | None = None,
+    ) -> Optional[float]:
+        if not position:
+            return None
+        if overall_pick is not None and int(overall_pick) > 0 and position in self._coef:
+            x = math.log(self.TOTAL_PICKS) - math.log(int(overall_pick))
+            intercept, slope = self._coef[position]
+            return max(0.0, intercept + slope * x)
         return self._avg_ppg.get(position)

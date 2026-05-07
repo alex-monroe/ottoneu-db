@@ -10,6 +10,8 @@ To switch which model the website serves, promote a different model:
     python scripts/feature_projections/cli.py promote --model v25_draft_capital_residual
 """
 
+from __future__ import annotations
+
 import os
 import subprocess
 import sys
@@ -21,7 +23,7 @@ if script_dir not in sys.path:
     sys.path.append(script_dir)
 from config import get_supabase_client, MIN_GAMES
 from analysis_utils import fetch_multi_season_stats
-from projection_methods import CollegeProspectPPG
+from projection_methods import CollegeProspectPPG, RookieDraftCapitalPPG
 
 cli_path = os.path.join(script_dir, "feature_projections", "cli.py")
 TARGET_SEASONS = [2024, 2025, 2026]
@@ -71,23 +73,72 @@ def compute_avg_rookie_ppg(multi_season_df: pd.DataFrame, players_df: pd.DataFra
     return {pos: sum(ppgs) / len(ppgs) for pos, ppgs in rookie_ppgs.items() if ppgs}
 
 
+def compute_rookie_draft_samples(multi_season_df: pd.DataFrame, players_df: pd.DataFrame,
+                                  pick_by_player: dict[str, int],
+                                  min_games: int = MIN_GAMES) -> list[tuple[str, int, float]]:
+    """Build (position, overall_pick, year1_ppg) samples from historical rookies.
+
+    A "rookie sample" is a player whose only season in the window is their
+    first, who qualifies by min_games, has a known position, and has a
+    ``draft_capital`` row. Used to fit RookieDraftCapitalPPG's per-position OLS.
+    """
+    if multi_season_df.empty or players_df.empty or not pick_by_player:
+        return []
+    pos_map = dict(zip(players_df['player_id_ref'], players_df['position']))
+    samples: list[tuple[str, int, float]] = []
+    for player_id, group in multi_season_df.groupby('player_id'):
+        if len(group) != 1:
+            continue
+        row = group.iloc[0]
+        if int(row['games_played']) < min_games:
+            continue
+        pos = pos_map.get(str(player_id))
+        if not pos or pos == 'K':
+            continue
+        pick = pick_by_player.get(str(player_id))
+        if not pick or int(pick) <= 0:
+            continue
+        samples.append((pos, int(pick), float(row['ppg'])))
+    return samples
+
+
 def generate_college_projections(avg_rookie_ppg: dict[str, float],
-                                  college_players: list[dict], target_season: int) -> pd.DataFrame:
-    """Generate projections for college players using average rookie PPG."""
-    if not avg_rookie_ppg:
-        return pd.DataFrame()
+                                  college_players: list[dict], target_season: int,
+                                  rookie_method: RookieDraftCapitalPPG | None = None,
+                                  pick_by_player: dict[str, int] | None = None) -> pd.DataFrame:
+    """Generate projections for rookies (drafted + true college).
+
+    Drafted rookies (have an entry in ``pick_by_player``) are projected via
+    ``rookie_method`` using their overall pick and tagged
+    ``rookie_draft_capital``. Other rookies fall back to the position-mean
+    ``CollegeProspectPPG``. Rows without a usable projection are skipped.
+    """
     if not college_players:
         return pd.DataFrame()
-    method = CollegeProspectPPG(avg_rookie_ppg)
+    college_method = CollegeProspectPPG(avg_rookie_ppg) if avg_rookie_ppg else None
+    pick_by_player = pick_by_player or {}
     records = []
     for player in college_players:
-        projected = method.project_ppg([], position=player['position'])
-        if projected is not None:
+        pid = str(player['id'])
+        position = player['position']
+        pick = pick_by_player.get(pid)
+        projected: float | None = None
+        method_name: str | None = None
+
+        if rookie_method is not None and pick:
+            projected = rookie_method.project_ppg([], position=position, overall_pick=pick)
+            method_name = rookie_method.name
+
+        if projected is None and college_method is not None:
+            projected = college_method.project_ppg([], position=position)
+            method_name = college_method.name
+
+        if projected is not None and method_name is not None:
             records.append({
-                'player_id': str(player['id']),
+                'player_id': pid,
                 'season': target_season,
                 'projected_ppg': float(projected),
-                'projection_method': method.name,
+                'projection_method': method_name,
             })
     return pd.DataFrame(records)
 
@@ -114,6 +165,7 @@ def upsert_college_projections():
         return
 
     drafted_no_stats: set[str] = set()
+    pick_by_player: dict[str, int] = {}
     if 'is_college' in players_df.columns:
         # Players with real NFL history go through the full feature_projections
         # pipeline. Rows with games_played == 0 don't count — the roster scraper
@@ -124,8 +176,13 @@ def upsert_college_projections():
         with_stats = {
             r['player_id'] for r in all_stats if (r.get('games_played') or 0) > 0
         }
-        all_draft = fetch_all_rows(supabase, 'draft_capital', 'player_id')
+        all_draft = fetch_all_rows(supabase, 'draft_capital', 'player_id, overall_pick')
         drafted = {r['player_id'] for r in all_draft}
+        pick_by_player = {
+            r['player_id']: int(r['overall_pick'])
+            for r in all_draft
+            if r.get('overall_pick') is not None
+        }
         non_college_ids = set(
             players_df[players_df['is_college'] == False]['player_id_ref'].tolist()  # noqa: E712
         )
@@ -145,9 +202,23 @@ def upsert_college_projections():
         historical_seasons = list(range(season - 3, season))
         multi_season_df = fetch_multi_season_stats(historical_seasons)
         avg_rookie_ppg = compute_avg_rookie_ppg(multi_season_df, players_df)
-        if avg_rookie_ppg:
-            print(f"  Avg rookie PPG for {season}: {avg_rookie_ppg}")
-            college_df = generate_college_projections(avg_rookie_ppg, college_players, season)
+
+        rookie_method: RookieDraftCapitalPPG | None = None
+        samples = compute_rookie_draft_samples(multi_season_df, players_df, pick_by_player)
+        if samples:
+            coef = RookieDraftCapitalPPG.fit(samples)
+            if coef:
+                rookie_method = RookieDraftCapitalPPG(coef, avg_rookie_ppg)
+                print(f"  Rookie draft-capital fit for {season}: "
+                      f"{ {p: (round(a, 2), round(b, 2)) for p, (a, b) in coef.items()} }")
+
+        if avg_rookie_ppg or rookie_method is not None:
+            if avg_rookie_ppg:
+                print(f"  Avg rookie PPG for {season}: {avg_rookie_ppg}")
+            college_df = generate_college_projections(
+                avg_rookie_ppg, college_players, season,
+                rookie_method=rookie_method, pick_by_player=pick_by_player,
+            )
             if not college_df.empty:
                 all_records.extend(college_df.to_dict('records'))
 

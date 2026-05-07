@@ -71,6 +71,14 @@ def backtest_model(
     players_data = fetch_all_rows(supabase, "players", "id, position")
     pos_map = {row["id"]: row["position"] for row in players_data}
 
+    # Fetch all qualifying player_stats rows once. Used to identify "true
+    # rookies" (no prior NFL games) so they can be excluded from accuracy —
+    # the rookie projection path is the same across all models, so including
+    # them would only add shared noise to cross-model comparisons.
+    all_stats = fetch_all_rows(
+        supabase, "player_stats", "player_id, games_played, season"
+    )
+
     all_results = {}
 
     for season in test_seasons:
@@ -101,12 +109,23 @@ def backtest_model(
             print(f"  No actual stats found for season {season}")
             continue
 
+        # Players with at least one qualifying NFL season prior to this one.
+        # Excludes true rookies from accuracy (see comment near all_stats fetch).
+        had_prior_stats: set[str] = {
+            r["player_id"]
+            for r in all_stats
+            if r.get("season") is not None
+            and int(r["season"]) < int(season)
+            and (r.get("games_played") or 0) > 0
+        }
+
         # Build paired data by position
         position_data: dict[str, tuple[list[float], list[float]]] = {
             pos: ([], []) for pos in POSITIONS
         }
         all_projected: list[float] = []
         all_actual: list[float] = []
+        rookies_skipped = 0
 
         for row in actuals_res.data:
             pid = row["player_id"]
@@ -114,6 +133,9 @@ def backtest_model(
             if games < min_games:
                 continue
             if pid not in proj_map:
+                continue
+            if pid not in had_prior_stats:
+                rookies_skipped += 1
                 continue
 
             actual_ppg = float(row["ppg"])
@@ -126,6 +148,9 @@ def backtest_model(
             if position and position in position_data:
                 position_data[position][0].append(projected_ppg)
                 position_data[position][1].append(actual_ppg)
+
+        if rookies_skipped:
+            print(f"  Excluded {rookies_skipped} true-rookie player(s) from accuracy")
 
         # Compute metrics
         season_results = {}

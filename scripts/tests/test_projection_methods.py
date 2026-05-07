@@ -1,14 +1,17 @@
 """
 Unit tests for projection methods — WeightedAveragePPG, RookieTrajectoryPPG,
-and CollegeProspectPPG.
+CollegeProspectPPG, and RookieDraftCapitalPPG.
 
 These are pure functions with no DB or network dependencies.
 """
+import math
+
 import pytest
 from scripts.projection_methods import (
     CollegeProspectPPG,
-    WeightedAveragePPG,
+    RookieDraftCapitalPPG,
     RookieTrajectoryPPG,
+    WeightedAveragePPG,
 )
 
 
@@ -246,3 +249,67 @@ class TestCollegeProspectPPG:
 
     def test_method_name(self):
         assert self.method.name == "college_prospect"
+
+
+# ---------------------------------------------------------------------------
+# RookieDraftCapitalPPG
+# ---------------------------------------------------------------------------
+
+class TestRookieDraftCapitalPPG:
+    """Tests for the draft-capital-based rookie projection."""
+
+    def _x(self, pick: int) -> float:
+        return math.log(RookieDraftCapitalPPG.TOTAL_PICKS) - math.log(pick)
+
+    def test_method_name(self):
+        method = RookieDraftCapitalPPG({}, {})
+        assert method.name == "rookie_draft_capital"
+
+    def test_fit_skips_positions_below_min_samples(self):
+        # 4 RB samples, but MIN_SAMPLES is 5 — RB should be dropped.
+        samples = [("RB", 1, 12.0), ("RB", 32, 8.0), ("RB", 100, 4.0), ("RB", 200, 2.0)]
+        coef = RookieDraftCapitalPPG.fit(samples)
+        assert "RB" not in coef
+
+    def test_fit_recovers_linear_relation(self):
+        # y = 1 + 2*x exactly for picks {1, 16, 64, 128, 200}
+        picks = [1, 16, 64, 128, 200]
+        samples = [("WR", p, 1.0 + 2.0 * self._x(p)) for p in picks]
+        coef = RookieDraftCapitalPPG.fit(samples)
+        intercept, slope = coef["WR"]
+        assert intercept == pytest.approx(1.0, abs=1e-6)
+        assert slope == pytest.approx(2.0, abs=1e-6)
+
+    def test_fit_ignores_invalid_picks(self):
+        good = [("WR", p, 1.0 + 2.0 * self._x(p)) for p in [1, 16, 64, 128, 200]]
+        bad = [("WR", 0, 99.0), ("WR", -5, 99.0), ("", 10, 5.0)]
+        coef = RookieDraftCapitalPPG.fit(good + bad)
+        intercept, slope = coef["WR"]
+        assert intercept == pytest.approx(1.0, abs=1e-6)
+        assert slope == pytest.approx(2.0, abs=1e-6)
+
+    def test_project_uses_fit_when_pick_known(self):
+        method = RookieDraftCapitalPPG({"WR": (1.0, 2.0)}, {"WR": 5.0})
+        expected = 1.0 + 2.0 * self._x(32)
+        assert method.project_ppg([], position="WR", overall_pick=32) == pytest.approx(expected)
+
+    def test_project_clamps_negative_to_zero(self):
+        # Steep negative slope + high pick → negative prediction → clamp to 0.
+        method = RookieDraftCapitalPPG({"WR": (-100.0, 0.0)}, {})
+        assert method.project_ppg([], position="WR", overall_pick=1) == pytest.approx(0.0)
+
+    def test_project_falls_back_to_avg_when_no_pick(self):
+        method = RookieDraftCapitalPPG({"WR": (1.0, 2.0)}, {"WR": 5.5})
+        assert method.project_ppg([], position="WR", overall_pick=None) == pytest.approx(5.5)
+
+    def test_project_falls_back_to_avg_when_position_has_no_fit(self):
+        method = RookieDraftCapitalPPG({"WR": (1.0, 2.0)}, {"RB": 6.5})
+        assert method.project_ppg([], position="RB", overall_pick=10) == pytest.approx(6.5)
+
+    def test_project_returns_none_with_no_fit_and_no_avg(self):
+        method = RookieDraftCapitalPPG({}, {})
+        assert method.project_ppg([], position="QB", overall_pick=5) is None
+
+    def test_project_returns_none_when_position_missing(self):
+        method = RookieDraftCapitalPPG({"WR": (1.0, 2.0)}, {"WR": 5.0})
+        assert method.project_ppg([], position=None, overall_pick=5) is None

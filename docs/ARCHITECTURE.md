@@ -110,7 +110,7 @@ model_config.py  →  runner.py  →  model_projections table  →  promote.py  
 - `qb_starters.py` — loads manual QB starter designations from `data/qb_starters.json`, resolves names to player IDs
 - `runner.py` — fetches historical player_stats + nfl_stats, loads QB starters, runs combiner, batch upserts
 - `combiner.py` — base feature PPG + weighted sum of adjustment feature deltas
-- `backtest.py` — compares projected_ppg to actual actuals (MAE, RMSE per model)
+- `backtest.py` — compares projected_ppg to actual actuals (MAE, RMSE per model). True rookies (no `player_stats` row with games > 0 in any season prior to the target) are excluded from accuracy metrics — the rookie projection path is shared across all models, so including them only adds correlated noise to cross-model comparisons.
 - `accuracy_report.py` — side-by-side model comparison table across all seasons (no `--models` filter; always runs all models)
 - `promote.py` — copies a model's projections to the production `player_projections` table and sets it as active
 - `sweep_recency_weights.py` — in-memory weight sweep for base feature tuning (no DB writes)
@@ -139,11 +139,13 @@ venv/bin/python scripts/feature_projections/promote.py <model_name>
 ```
 
 What promotion does, in order, for each season the new model has projections for:
-1. **Deletes all non-`college_prospect` rows** in `player_projections` for that season — this clears ghost rows from previously-active models that the new model didn't project (without it, players the prior model covered but the new one doesn't would silently retain stale projections forever).
+1. **Deletes all non-rookie-fallback rows** in `player_projections` for that season — this clears ghost rows from previously-active models that the new model didn't project (without it, players the prior model covered but the new one doesn't would silently retain stale projections forever). Rows tagged `college_prospect` or `rookie_draft_capital` are preserved.
 2. **Upserts the new model's projections** keyed on `(player_id, season)`.
 3. Clears `is_active` on every other model and sets it on the promoted one.
 
-`college_prospect` rows (no-NFL-history fallback for drafted rookies / college prospects) are preserved across promotions — `update_projections.py` recomputes them on every full pipeline run.
+Rookie fallback rows (no-NFL-history players) are preserved across promotions and recomputed by `update_projections.py` on every full pipeline run. Two flavors are produced:
+- `rookie_draft_capital` — drafted rookies with a `draft_capital` row, projected from a per-position OLS of historical year-1 PPG on log-scaled overall pick.
+- `college_prospect` — undrafted/college rookies (no `draft_capital`), projected as the position-mean rookie PPG.
 
 **Production-side note:** `update_projections.py` reads `is_active` dynamically, then runs the active model and calls `promote.py` itself, so a new active model is automatically picked up on the next pipeline run. After a manual `promote.py <model_name>` invocation, run `update_projections.py` if you also want the rookie/college fallback regenerated against the new active model. **This is a production data change** — the web app reflects the change on the next request.
 
