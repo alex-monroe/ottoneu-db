@@ -133,3 +133,32 @@ segment-analysis *args:
 # Generate accuracy report  (e.g. just accuracy-report --run-backtest)
 accuracy-report *args:
     {{python}} scripts/feature_projections/accuracy_report.py {{args}}
+
+# ──────────────────────────────────────────────
+# Backfills / seeds
+# ──────────────────────────────────────────────
+
+# Backfill NFL stats  (e.g. just backfill-nfl-stats --seasons 2024 ; or --seasons 2018 2019 2020 ; --dry-run supported)
+backfill-nfl-stats *args:
+    {{python}} scripts/backfill_nfl_stats.py {{args}}
+
+# Backfill draft capital  (e.g. just backfill-draft-capital --since 2010 ; --dry-run supported)
+backfill-draft-capital *args:
+    {{python}} scripts/backfill_draft_capital.py {{args}}
+
+# Backfill Vegas lines  (e.g. just backfill-vegas --since 2016 ; --dry-run supported)
+backfill-vegas *args:
+    {{python}} scripts/backfill_vegas_lines.py {{args}}
+
+# Seed preseason win totals  (e.g. just seed-win-totals --season 2026)
+seed-win-totals *args:
+    {{python}} scripts/seed_preseason_win_totals.py {{args}}
+
+# ──────────────────────────────────────────────
+# Ad-hoc DB queries
+# ──────────────────────────────────────────────
+
+# Run a one-off Python snippet against the project venv (read-only diagnostics)
+# Usage: just py "from scripts.config import get_supabase_client; print(get_supabase_client().table('players').select('id', count='exact').execute().count)"
+py snippet:
+    {{python}} -c {{quote(snippet)}}
