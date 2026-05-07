@@ -6,8 +6,10 @@
 # VS Code
 .vscode/
 
-# Claude Code worktrees
+# Claude Code local state
 .claude/worktrees/
+.claude/plans/
+.claude/projects/
 
 # Python / Backend
 venv/
