@@ -108,27 +108,27 @@ class TestBaseline:
 # ---------------------------------------------------------------------------
 
 class TestLearnedModels:
-    """Learned models must have a trained JSON file."""
+    """Learned and residual models must have a trained JSON file."""
 
     def _get_learned_models(self):
         return [
             (name, m) for name, m in MODELS.items()
-            if m.combiner_type == "learned"
+            if m.combiner_type in {"learned", "residual"}
         ]
 
     def test_learned_models_have_trained_file(self):
-        """Every learned model must have a corresponding JSON in trained_models/."""
+        """Every learned/residual model must have a corresponding JSON in trained_models/."""
         for name, model in self._get_learned_models():
             path = TRAINED_MODELS_DIR / f"{name}.json"
             assert path.exists(), (
-                f"Learned model '{name}' has no trained model file at {path}"
+                f"Trainable model '{name}' has no trained model file at {path}"
             )
 
     def test_learned_models_have_interaction_terms(self):
-        """Learned models should specify interaction terms."""
+        """Learned/residual models should specify interaction terms."""
         for name, model in self._get_learned_models():
             assert len(model.interaction_terms) > 0, (
-                f"Learned model '{name}' has no interaction_terms specified"
+                f"Trainable model '{name}' has no interaction_terms specified"
             )
 
 
@@ -182,11 +182,25 @@ class TestKnownEquivalences:
 class TestCombinerType:
     """Combiner type must be one of the valid options."""
 
-    VALID_COMBINER_TYPES = {"additive", "learned"}
+    VALID_COMBINER_TYPES = {"additive", "learned", "residual"}
 
     @pytest.mark.parametrize("model_name", list(MODELS.keys()))
     def test_valid_combiner_type(self, model_name):
         model = MODELS[model_name]
         assert model.combiner_type in self.VALID_COMBINER_TYPES, (
             f"Model '{model_name}' has invalid combiner_type '{model.combiner_type}'"
+        )
+
+    @pytest.mark.parametrize("model_name", list(MODELS.keys()))
+    def test_residual_models_have_base_model(self, model_name):
+        """Residual models must reference an existing base model."""
+        model = MODELS[model_name]
+        if model.combiner_type != "residual":
+            return
+        assert model.base_model_name, (
+            f"Residual model '{model_name}' must specify base_model_name"
+        )
+        assert model.base_model_name in MODELS, (
+            f"Residual model '{model_name}' references unknown base "
+            f"'{model.base_model_name}'"
         )

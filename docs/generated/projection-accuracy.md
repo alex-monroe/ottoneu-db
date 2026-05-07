@@ -1,6 +1,6 @@
 # Projection Model Accuracy Report
 
-_Generated: 2026-05-06 18:54_
+_Generated: 2026-05-06 21:05_
 
 Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed error (positive = under-projection), **R²** = Goodness of fit (higher is better), **RMSE** = Root mean square error, **N** = player sample size.
 
@@ -33,6 +33,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v21_tiered_regression` | 2.255 | +0.645 | **0.637** | **2.950** | 154 |
 | `v22_advanced_receiving` | **2.049** | +0.019 | **0.697** | **2.694** | 154 |
 | `v23_draft_capital` | **2.009** | +0.204 | **0.705** | **2.659** | 154 |
+| `v25_draft_capital_residual` | **2.044** | +0.004 | **0.695** | **2.705** | 154 |
 | `external_fantasypros_v1` | 2.768 | +1.662 | 0.540 | 3.668 | 133 |
 
 ### QB
@@ -62,6 +63,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v21_tiered_regression` | 3.703 | +0.882 | **0.226** | **4.524** | 36 |
 | `v22_advanced_receiving` | **3.352** | -0.198 | **0.356** | **4.124** | 36 |
 | `v23_draft_capital` | **3.249** | +0.732 | **0.381** | **4.046** | 36 |
+| `v25_draft_capital_residual` | **3.375** | -0.073 | **0.338** | **4.181** | 36 |
 | `external_fantasypros_v1` | 4.669 | +3.096 | -0.055 | 5.825 | 32 |
 
 ### RB
@@ -91,6 +93,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v21_tiered_regression` | **2.561** | -0.007 | **0.559** | **3.052** | 25 |
 | `v22_advanced_receiving` | **2.556** | -0.085 | **0.582** | **2.973** | 25 |
 | `v23_draft_capital` | **2.663** | -0.210 | **0.564** | **3.036** | 25 |
+| `v25_draft_capital_residual` | **2.617** | -0.222 | **0.575** | **2.999** | 25 |
 | `external_fantasypros_v1` | **2.643** | +1.210 | **0.579** | **3.179** | 30 |
 
 ### WR
@@ -120,6 +123,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v21_tiered_regression` | **1.810** | +1.000 | **0.635** | **2.175** | 33 |
 | `v22_advanced_receiving` | **1.733** | +0.631 | **0.680** | **2.037** | 33 |
 | `v23_draft_capital` | **1.655** | +0.514 | **0.696** | **1.984** | 33 |
+| `v25_draft_capital_residual` | **1.644** | +0.462 | **0.708** | **1.944** | 33 |
 | `external_fantasypros_v1` | 1.927 | +1.295 | 0.623 | 2.401 | 36 |
 
 ### TE
@@ -149,6 +153,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v21_tiered_regression` | 1.757 | +0.877 | 0.488 | 2.040 | 36 |
 | `v22_advanced_receiving` | **1.242** | +0.166 | **0.684** | **1.603** | 36 |
 | `v23_draft_capital` | **1.230** | +0.147 | **0.697** | **1.571** | 36 |
+| `v25_draft_capital_residual` | **1.238** | +0.229 | **0.685** | **1.601** | 36 |
 | `external_fantasypros_v1` | 2.001 | +1.117 | 0.368 | 2.346 | 35 |
 
 ### K
@@ -178,6 +183,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v21_tiered_regression` | **1.123** | +0.136 | -1.358 | 1.639 | 24 |
 | `v22_advanced_receiving` | 1.211 | -0.611 | **-1.031** | **1.522** | 24 |
 | `v23_draft_capital` | **1.125** | -0.495 | **-0.842** | **1.449** | 24 |
+| `v25_draft_capital_residual` | 1.212 | -0.612 | **-1.034** | **1.523** | 24 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## Season 2023
@@ -209,6 +215,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v21_tiered_regression` | 2.706 | +0.580 | 0.388 | 3.910 | 188 |
 | `v22_advanced_receiving` | **2.495** | -0.157 | **0.516** | **3.476** | 188 |
 | `v23_draft_capital` | **2.537** | -0.036 | **0.521** | **3.457** | 188 |
+| `v25_draft_capital_residual` | **2.496** | -0.187 | **0.516** | **3.478** | 188 |
 | `external_fantasypros_v1` | **2.267** | +1.633 | **0.630** | **3.196** | 176 |
 
 ### QB
@@ -238,6 +245,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v21_tiered_regression` | 4.268 | +0.398 | 0.016 | 5.762 | 39 |
 | `v22_advanced_receiving` | 3.897 | -0.690 | **0.214** | **5.149** | 39 |
 | `v23_draft_capital` | 4.054 | +0.213 | **0.219** | **5.135** | 39 |
+| `v25_draft_capital_residual` | 3.923 | -0.593 | **0.215** | **5.148** | 39 |
 | `external_fantasypros_v1` | **3.640** | +2.361 | 0.166 | **4.770** | 40 |
 
 ### RB
@@ -267,6 +275,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v21_tiered_regression` | **3.414** | +1.439 | -0.283 | 4.814 | 37 |
 | `v22_advanced_receiving` | **3.068** | +1.011 | **0.041** | **4.162** | 37 |
 | `v23_draft_capital` | **3.020** | +0.832 | **0.100** | **4.032** | 37 |
+| `v25_draft_capital_residual` | **3.059** | +0.902 | **0.049** | **4.145** | 37 |
 | `external_fantasypros_v1` | **2.548** | +2.210 | **0.466** | **3.472** | 40 |
 
 ### WR
@@ -296,6 +305,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v21_tiered_regression` | 2.681 | +0.591 | 0.350 | 3.330 | 44 |
 | `v22_advanced_receiving` | **2.372** | -0.005 | **0.511** | **2.888** | 44 |
 | `v23_draft_capital` | **2.405** | -0.136 | **0.493** | **2.940** | 44 |
+| `v25_draft_capital_residual` | **2.381** | -0.173 | **0.499** | **2.923** | 44 |
 | `external_fantasypros_v1` | **1.903** | +1.239 | **0.602** | **2.450** | 49 |
 
 ### TE
@@ -325,6 +335,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v21_tiered_regression` | **1.679** | +0.327 | **0.463** | **2.116** | 44 |
 | `v22_advanced_receiving` | **1.653** | -0.506 | **0.495** | **2.051** | 44 |
 | `v23_draft_capital` | **1.726** | -0.572 | **0.466** | **2.110** | 44 |
+| `v25_draft_capital_residual` | **1.631** | -0.464 | **0.497** | **2.047** | 44 |
 | `external_fantasypros_v1` | **1.237** | +0.931 | **0.743** | **1.535** | 47 |
 
 ### K
@@ -354,6 +365,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v21_tiered_regression` | **1.006** | -0.008 | **-0.461** | **1.244** | 24 |
 | `v22_advanced_receiving` | 1.106 | -0.726 | -0.748 | 1.360 | 24 |
 | `v23_draft_capital` | **1.056** | -0.612 | -0.577 | 1.292 | 24 |
+| `v25_draft_capital_residual` | 1.107 | -0.727 | -0.749 | 1.361 | 24 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## Season 2024
@@ -385,6 +397,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v21_tiered_regression` | **2.682** | +0.692 | **0.479** | **3.530** | 241 |
 | `v22_advanced_receiving` | **2.502** | -0.293 | **0.537** | **3.329** | 241 |
 | `v23_draft_capital` | **2.492** | -0.165 | **0.558** | **3.251** | 241 |
+| `v25_draft_capital_residual` | **2.479** | -0.318 | **0.545** | **3.300** | 241 |
 | `external_fantasypros_v1` | 2.782 | +1.531 | **0.543** | **3.602** | 211 |
 
 ### QB
@@ -414,6 +427,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v21_tiered_regression` | **3.746** | +0.004 | **0.457** | **4.808** | 49 |
 | `v22_advanced_receiving` | **3.808** | -1.518 | **0.418** | **4.975** | 49 |
 | `v23_draft_capital` | **3.786** | -0.625 | **0.472** | **4.740** | 49 |
+| `v25_draft_capital_residual` | **3.746** | -1.426 | **0.431** | **4.921** | 49 |
 | `external_fantasypros_v1` | 4.015 | +2.650 | 0.313 | **5.163** | 47 |
 
 ### RB
@@ -443,6 +457,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v21_tiered_regression` | 3.229 | +1.303 | 0.158 | 4.076 | 49 |
 | `v22_advanced_receiving` | **2.994** | +0.459 | **0.331** | **3.632** | 49 |
 | `v23_draft_capital` | **3.005** | +0.326 | **0.333** | **3.626** | 49 |
+| `v25_draft_capital_residual` | **2.993** | +0.342 | **0.340** | **3.609** | 49 |
 | `external_fantasypros_v1` | 3.281 | +1.622 | **0.409** | **3.898** | 51 |
 
 ### WR
@@ -472,6 +487,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v21_tiered_regression` | **2.680** | +0.924 | **-0.141** | **3.275** | 55 |
 | `v22_advanced_receiving` | **2.307** | +0.172 | **0.169** | **2.795** | 55 |
 | `v23_draft_capital` | **2.251** | +0.097 | **0.197** | **2.748** | 55 |
+| `v25_draft_capital_residual` | **2.278** | +0.031 | **0.185** | **2.767** | 55 |
 | `external_fantasypros_v1` | **2.353** | +1.365 | **0.187** | **2.832** | 58 |
 
 ### TE
@@ -501,6 +517,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v21_tiered_regression` | 1.936 | +0.621 | 0.360 | 2.409 | 56 |
 | `v22_advanced_receiving` | **1.704** | -0.353 | **0.478** | **2.178** | 56 |
 | `v23_draft_capital` | **1.734** | -0.452 | **0.465** | **2.204** | 56 |
+| `v25_draft_capital_residual` | **1.690** | -0.298 | **0.484** | **2.164** | 56 |
 | `external_fantasypros_v1` | **1.719** | +0.666 | **0.486** | **2.106** | 55 |
 
 ### K
@@ -530,6 +547,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v21_tiered_regression` | **1.522** | +0.533 | **-0.498** | **2.100** | 32 |
 | `v22_advanced_receiving` | **1.479** | -0.265 | **-0.229** | **1.902** | 32 |
 | `v23_draft_capital` | **1.461** | -0.156 | **-0.213** | **1.890** | 32 |
+| `v25_draft_capital_residual` | **1.479** | -0.266 | **-0.228** | **1.902** | 32 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## All Seasons Combined
@@ -563,6 +581,7 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v21_tiered_regression` | 2.577 | +0.643 | 0.491 | 3.518 | 583 |
 | `v22_advanced_receiving` | **2.380** | -0.167 | **0.572** | **3.224** | 583 |
 | `v23_draft_capital` | **2.379** | -0.026 | **0.585** | **3.176** | 583 |
+| `v25_draft_capital_residual` | **2.370** | -0.191 | **0.575** | **3.215** | 583 |
 | `external_fantasypros_v1` | 2.604 | +1.599 | **0.572** | **3.487** | 520 |
 
 ### QB
@@ -592,6 +611,7 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v21_tiered_regression` | 3.897 | +0.383 | 0.251 | 5.052 | 124 |
 | `v22_advanced_receiving` | **3.704** | -0.874 | **0.336** | **4.802** | 124 |
 | `v23_draft_capital` | **3.715** | +0.032 | **0.366** | **4.682** | 124 |
+| `v25_draft_capital_residual` | **3.694** | -0.771 | **0.336** | **4.794** | 124 |
 | `external_fantasypros_v1` | 4.065 | +2.673 | 0.165 | 5.225 | 119 |
 
 ### RB
@@ -621,6 +641,7 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v21_tiered_regression` | 3.140 | +1.053 | 0.101 | **4.142** | 111 |
 | `v22_advanced_receiving` | **2.920** | +0.520 | **0.291** | **3.686** | 111 |
 | `v23_draft_capital` | **2.933** | +0.374 | **0.308** | **3.647** | 111 |
+| `v25_draft_capital_residual` | **2.930** | +0.402 | **0.296** | **3.674** | 111 |
 | `external_fantasypros_v1` | **2.881** | +1.714 | **0.470** | **3.591** | 121 |
 
 ### WR
@@ -650,6 +671,7 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v21_tiered_regression` | **2.463** | +0.832 | **0.217** | **3.057** | 132 |
 | `v22_advanced_receiving` | **2.185** | +0.228 | **0.411** | **2.660** | 132 |
 | `v23_draft_capital` | **2.153** | +0.123 | **0.421** | **2.648** | 132 |
+| `v25_draft_capital_residual` | **2.154** | +0.071 | **0.421** | **2.643** | 132 |
 | `external_fantasypros_v1` | **2.092** | +1.304 | **0.439** | **2.600** | 143 |
 
 ### TE
@@ -679,6 +701,7 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v21_tiered_regression` | 1.805 | +0.594 | 0.427 | 2.223 | 136 |
 | `v22_advanced_receiving` | **1.565** | -0.265 | **0.538** | **1.999** | 136 |
 | `v23_draft_capital` | **1.598** | -0.332 | **0.526** | **2.023** | 136 |
+| `v25_draft_capital_residual` | **1.551** | -0.212 | **0.542** | **1.991** | 136 |
 | `external_fantasypros_v1` | **1.626** | +0.872 | **0.544** | **1.999** | 137 |
 
 ### K
@@ -708,4 +731,5 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v21_tiered_regression` | **1.248** | +0.252 | **-0.745** | **1.742** | 80 |
 | `v22_advanced_receiving` | 1.287 | -0.507 | **-0.625** | **1.642** | 80 |
 | `v23_draft_capital` | **1.239** | -0.395 | **-0.511** | **1.600** | 80 |
+| `v25_draft_capital_residual` | 1.287 | -0.508 | **-0.626** | **1.642** | 80 |
 | `external_fantasypros_v1` | — | — | — | — | — |

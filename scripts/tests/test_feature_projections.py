@@ -1629,3 +1629,136 @@ class TestV23DraftCapitalModel:
     def test_interaction_terms_include_position(self):
         model = get_model("v23_draft_capital")
         assert "draft_capital_raw*position" in model.interaction_terms
+
+
+# ---------------------------------------------------------------------------
+# Residual combiner (v25)
+# ---------------------------------------------------------------------------
+
+from scripts.feature_projections.learned_combiner import predict_residual
+
+
+class TestV25DraftCapitalResidualModel:
+    """Tests for the v25_draft_capital_residual model definition."""
+
+    def test_model_exists(self):
+        model = get_model("v25_draft_capital_residual")
+        assert model.combiner_type == "residual"
+        assert model.base_model_name == "v22_advanced_receiving"
+        assert model.features == ["draft_capital_raw"]
+
+    def test_training_filter_present(self):
+        model = get_model("v25_draft_capital_residual")
+        assert model.training_filter == {"max_seasons_since_draft": 3}
+
+    def test_interaction_terms(self):
+        model = get_model("v25_draft_capital_residual")
+        assert "draft_capital_raw*position" in model.interaction_terms
+
+
+class TestPredictResidual:
+    """Tests for the residual prediction path."""
+
+    def _base_params(self) -> dict:
+        # Trivial 1-feature base model: pred = 2 * feat_a + 5
+        return {
+            "coefficients": [2.0],
+            "intercept": 5.0,
+            "feature_names": ["feat_a"],
+            "interaction_terms": [],
+        }
+
+    def test_zero_residual_features_yields_base_prediction(self):
+        """When all residual feature values are 0, output equals base."""
+        params = {
+            "base_model_params": self._base_params(),
+            "coefficients": [10.0],  # large coefficient — magnifies any leak
+            "intercept": 0.0,
+            "feature_names": ["feat_b"],
+            "interaction_terms": [],
+        }
+        # feat_a=3 → base = 11. feat_b=0 → residual = 0. Total = 11.
+        fv = {"feat_a": 3.0, "feat_b": 0.0}
+        result = predict_residual(fv, "WR", params)
+        assert result == pytest.approx(11.0)
+
+    def test_nonzero_residual_features_add_delta(self):
+        """Non-zero residual features add their dot product."""
+        params = {
+            "base_model_params": self._base_params(),
+            "coefficients": [3.0],
+            "intercept": 0.0,
+            "feature_names": ["feat_b"],
+            "interaction_terms": [],
+        }
+        # base = 2*1 + 5 = 7. residual = 3*2 = 6. total = 13.
+        fv = {"feat_a": 1.0, "feat_b": 2.0}
+        result = predict_residual(fv, "WR", params)
+        assert result == pytest.approx(13.0)
+
+    def test_extra_keys_ignored_by_base(self):
+        """Extra keys in feature_values are dropped before base predict."""
+        params = {
+            "base_model_params": self._base_params(),
+            "coefficients": [1.0],
+            "intercept": 0.0,
+            "feature_names": ["feat_b"],
+            "interaction_terms": [],
+        }
+        # Only feat_a should reach the base model. feat_a=2 → base = 9. feat_b=0 → 0.
+        fv = {"feat_a": 2.0, "feat_b": 0.0, "extra_unused": 999.0}
+        result = predict_residual(fv, "WR", params)
+        assert result == pytest.approx(9.0)
+
+    def test_position_interaction(self):
+        """Position-interaction terms only fire for the player's position."""
+        params = {
+            "base_model_params": self._base_params(),
+            "coefficients": [
+                0.0,    # feat_b base
+                1.0,    # feat_b*QB
+                2.0,    # feat_b*RB
+                3.0,    # feat_b*WR
+                4.0,    # feat_b*TE
+            ],
+            "intercept": 0.0,
+            "feature_names": ["feat_b"],
+            "interaction_terms": ["feat_b*position"],
+        }
+        # feat_a=0 → base = 5. feat_b=1, position=WR → only WR coef fires.
+        fv = {"feat_a": 0.0, "feat_b": 1.0}
+        result_wr = predict_residual(fv, "WR", params)
+        assert result_wr == pytest.approx(8.0)  # 5 + 3
+        result_qb = predict_residual(fv, "QB", params)
+        assert result_qb == pytest.approx(6.0)  # 5 + 1
+
+    def test_floor_at_zero(self):
+        """Negative residual + small base still floors at 0."""
+        params = {
+            "base_model_params": self._base_params(),
+            "coefficients": [-100.0],
+            "intercept": 0.0,
+            "feature_names": ["feat_b"],
+            "interaction_terms": [],
+        }
+        # base = 5, residual = -100*1 = -100, sum = -95 → clamped to 0.
+        fv = {"feat_a": 0.0, "feat_b": 1.0}
+        result = predict_residual(fv, "WR", params)
+        assert result == 0.0
+
+    def test_predict_filters_extra_keys(self):
+        """The base predict() should drop keys not in its feature_names."""
+        # Regression test for the v25 training crash where feature_values
+        # carried both v22 features and draft_capital_raw, and the base
+        # model's predict() built a 22-column vector instead of 21.
+        from scripts.feature_projections.learned_combiner import predict
+        params = {
+            "coefficients": [2.0, 3.0],
+            "intercept": 1.0,
+            "feature_names": ["a", "b"],
+            "interaction_terms": [],
+        }
+        # Pass a superset; result should only depend on a and b.
+        fv = {"a": 1.0, "b": 2.0, "unrelated": 999.0}
+        result = predict(fv, "WR", params)
+        assert result == pytest.approx(2.0 * 1.0 + 3.0 * 2.0 + 1.0)

@@ -79,8 +79,14 @@ def collect_training_data(
     # Fetch draft capital once (used across all training seasons)
     draft_capital_lookup = _build_draft_capital_lookup(supabase)
 
-    # Instantiate features
+    # Instantiate features. Residual models also need the BASE model's features
+    # in the pool so the trainer can compute the base prediction per sample.
     all_feature_names = set(model_def.features)
+    if model_def.combiner_type == "residual" and model_def.base_model_name:
+        base_def = get_model(model_def.base_model_name)
+        all_feature_names.update(base_def.features)
+        for pos_override in base_def.position_overrides.values():
+            all_feature_names.update(pos_override.features)
     feature_pool = {}
     for fname in all_feature_names:
         if fname in FEATURE_REGISTRY:
@@ -161,6 +167,12 @@ def collect_training_data(
             )
 
             effective_features, effective_weights = _resolve_features_for_position(model_def, position)
+            # For residual models, also evaluate the base model's features so the
+            # trainer can compute the base prediction (and the residual to fit).
+            if model_def.combiner_type == "residual" and model_def.base_model_name:
+                base_def = get_model(model_def.base_model_name)
+                base_eff, _ = _resolve_features_for_position(base_def, position)
+                effective_features = list(dict.fromkeys(list(base_eff) + list(effective_features)))
             player_feature_instances = [
                 feature_pool[f] for f in effective_features if f in feature_pool
             ]
@@ -180,13 +192,20 @@ def collect_training_data(
             if base_name and feature_values.get(base_name) is None:
                 continue
 
-            rows.append({
+            row_record = {
                 "player_id": player_id_str,
                 "position": position,
                 "season": target_season,
                 "feature_values": feature_values,
                 "actual_ppg": actuals_lookup[player_id_str],
-            })
+            }
+            # Residual models filter on draft seasonality at fit time.
+            dc = context.get("draft_capital")
+            if dc and isinstance(dc, dict):
+                row_record["seasons_since_draft"] = (
+                    int(target_season) - int(dc.get("season_drafted", target_season))
+                )
+            rows.append(row_record)
 
         print(f"  Collected {sum(1 for r in rows if r['season'] == target_season)} samples")
 
@@ -317,6 +336,148 @@ def train_ridge_loso(
     }
 
 
+def train_ridge_residual(
+    training_data: pd.DataFrame,
+    base_model_name: str,
+    residual_features: list[str],
+    interaction_terms: list[str],
+    training_filter: dict[str, int],
+    alpha_candidates: list[float] | None = None,
+) -> dict[str, Any]:
+    """Train a Ridge residual on top of a frozen base model.
+
+    The base model's coefficients are NOT re-optimized — they are loaded from
+    its saved JSON and used to compute predictions on every training sample.
+    The residual model is then fit on (actual − base_pred) using only
+    `residual_features` and `interaction_terms`, with fit_intercept=False so
+    samples whose residual feature values are zero (veterans for
+    `draft_capital_raw`) receive an exactly-zero correction.
+
+    Returns a dict suitable for JSON serialization. The saved file embeds the
+    base model's params alongside the residual coefficients so inference is
+    self-contained.
+    """
+    from scripts.feature_projections.learned_combiner import (
+        load_model_params,
+        predict as learned_predict,
+    )
+
+    if alpha_candidates is None:
+        alpha_candidates = ALPHA_CANDIDATES
+
+    # Apply training filter (e.g. only rookie/soph/3rd-year for residual fit)
+    filtered = training_data
+    max_ssd = training_filter.get("max_seasons_since_draft")
+    if max_ssd is not None:
+        filtered = filtered[
+            filtered["seasons_since_draft"].notna()
+            & (filtered["seasons_since_draft"] <= max_ssd)
+            & (filtered["seasons_since_draft"] >= 0)
+        ]
+    print(f"\nResidual training set: {len(filtered)} samples "
+          f"(filtered from {len(training_data)} via {training_filter})")
+    if filtered.empty:
+        raise ValueError("No samples remain after applying training_filter")
+
+    base_params = load_model_params(base_model_name)
+    print(f"Loaded base model '{base_model_name}' "
+          f"(alpha={base_params['alpha']}, n_features={base_params['training_metadata']['n_features']})")
+
+    # Build (residual_feature_vector, residual_target) pairs
+    all_X: list[list[float]] = []
+    all_y: list[float] = []
+    all_seasons_col: list[int] = []
+    residual_feature_names: list[str] | None = None
+
+    for _, row in filtered.iterrows():
+        fv = row["feature_values"]
+        position = row["position"]
+
+        # Base prediction: feed the FULL feature dict to the base model. The
+        # base predict() builds its own vector from base_params["feature_names"]
+        # in the canonical alphabetical order, so extra keys in `fv` are
+        # ignored — only the features the base model knows about are used.
+        base_pred = learned_predict(fv, position, base_params)
+        if base_pred is None:
+            continue
+
+        # Residual feature vector — restrict feature_values to just the
+        # residual model's features so build_feature_vector orders columns
+        # over only those.
+        residual_fv = {f: fv.get(f) for f in residual_features}
+        vector = build_feature_vector(residual_fv, position, interaction_terms)
+        if vector is None:
+            continue
+
+        if residual_feature_names is None:
+            residual_feature_names = get_feature_column_names(residual_features, interaction_terms)
+
+        residual = float(row["actual_ppg"]) - float(base_pred)
+        all_X.append(vector)
+        all_y.append(residual)
+        all_seasons_col.append(int(row["season"]))
+
+    if not all_X:
+        raise ValueError("No residual training rows produced")
+
+    X = np.array(all_X, dtype=np.float64)
+    y = np.array(all_y, dtype=np.float64)
+    season_arr = np.array(all_seasons_col)
+
+    print(f"Residual feature matrix: {X.shape[0]} samples × {X.shape[1]} features")
+    print(f"Residual columns: {residual_feature_names}")
+
+    # LOSO CV alpha selection. fit_intercept=False so vets get a 0 contribution.
+    seasons = sorted(set(all_seasons_col))
+    best_alpha = alpha_candidates[0]
+    best_mae = float("inf")
+
+    for alpha in alpha_candidates:
+        fold_maes: list[float] = []
+        for holdout in seasons:
+            train_mask = season_arr != holdout
+            test_mask = season_arr == holdout
+            if not np.any(train_mask) or not np.any(test_mask):
+                continue
+            model = Ridge(alpha=alpha, fit_intercept=False)
+            model.fit(X[train_mask], y[train_mask])
+            preds = model.predict(X[test_mask])
+            fold_maes.append(float(np.mean(np.abs(preds - y[test_mask]))))
+        avg = float(np.mean(fold_maes)) if fold_maes else float("inf")
+        print(f"  Alpha={alpha:>6.2f} → LOSO residual MAE: {avg:.4f}")
+        if avg < best_mae:
+            best_mae = avg
+            best_alpha = alpha
+
+    print(f"\nBest residual alpha: {best_alpha} (LOSO MAE: {best_mae:.4f})")
+
+    final_model = Ridge(alpha=best_alpha, fit_intercept=False)
+    final_model.fit(X, y)
+
+    print("\nResidual coefficients (PPG delta per unit feature):")
+    for name, coef in zip(residual_feature_names, final_model.coef_):
+        print(f"  {name:>35s}: {coef:>+8.4f}")
+
+    return {
+        "combiner_type": "residual",
+        "base_model_name": base_model_name,
+        "base_model_params": base_params,
+        "alpha": best_alpha,
+        "coefficients": final_model.coef_.tolist(),
+        "intercept": 0.0,
+        "feature_names": residual_features,
+        "interaction_terms": interaction_terms,
+        "training_filter": training_filter,
+        "training_metadata": {
+            "seasons": [int(s) for s in seasons],
+            "n_samples": int(X.shape[0]),
+            "n_features": int(X.shape[1]),
+            "loso_residual_mae": best_mae,
+            "trained_at": datetime.utcnow().isoformat(),
+        },
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description="Train a learned projection model")
     parser.add_argument("--model", required=True, help="Model name from model_config.py")
@@ -328,13 +489,16 @@ def main():
     seasons = [int(s.strip()) for s in args.seasons.split(",")]
 
     model_def = get_model(model_name)
-    if model_def.combiner_type != "learned":
-        print(f"Error: Model '{model_name}' has combiner_type='{model_def.combiner_type}', expected 'learned'")
+    if model_def.combiner_type not in {"learned", "residual"}:
+        print(f"Error: Model '{model_name}' has combiner_type='{model_def.combiner_type}', expected 'learned' or 'residual'")
         sys.exit(1)
 
     print(f"Training model: {model_name}")
     print(f"Seasons: {seasons}")
     print(f"Interaction terms: {model_def.interaction_terms}")
+    if model_def.combiner_type == "residual":
+        print(f"Base model: {model_def.base_model_name}")
+        print(f"Training filter: {model_def.training_filter}")
 
     # Collect training data
     training_data = collect_training_data(model_name, seasons, args.max_history)
@@ -343,7 +507,19 @@ def main():
         sys.exit(1)
 
     # Train
-    model_params = train_ridge_loso(training_data, model_def.interaction_terms)
+    if model_def.combiner_type == "residual":
+        if not model_def.base_model_name:
+            print(f"Error: residual model '{model_name}' requires base_model_name")
+            sys.exit(1)
+        model_params = train_ridge_residual(
+            training_data,
+            base_model_name=model_def.base_model_name,
+            residual_features=model_def.features,
+            interaction_terms=model_def.interaction_terms,
+            training_filter=model_def.training_filter,
+        )
+    else:
+        model_params = train_ridge_loso(training_data, model_def.interaction_terms)
 
     # Save
     TRAINED_MODELS_DIR.mkdir(parents=True, exist_ok=True)
