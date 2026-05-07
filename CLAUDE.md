@@ -67,6 +67,7 @@ Note: The local directory is `ottoneu_db` (underscore) but the GitHub repo name 
 
 ## Critical Rules
 
+- **Prefer `just <recipe>` over raw commands.** Run `just --list` to see available recipes. Common ones: `just typecheck`, `just lint`, `just test-web`, `just test-python`, `just train MODEL`, `just project MODEL`, `just backtest MODEL`, `just promote MODEL`, `just accuracy-report`, `just diagnostics`, `just segment-analysis`, `just backfill-nfl-stats`, `just backfill-draft-capital`, `just backfill-vegas`, `just seed-win-totals`. For ad-hoc DB inspection use `just py "<snippet>"`.
 - **Update documentation:** Always try to update the agent documentation after completing a task. Update existing documents or add new documents and sections as needed to reflect architectural or contextual changes.
 - **Never commit directly to `main`.** All changes go through pull requests.
 - **Always create a PR.** Every task must end with `gh pr create --fill`.
