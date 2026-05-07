@@ -32,7 +32,9 @@ Jobs support dependencies, retries (up to 3 attempts), and batch grouping. `otto
 
 ### NFL Stats (separate from Ottoneu data)
 
-`nfl_stats` stores pure NFL statistical data from nflverse-data (2010–present), kept separate from the Ottoneu fantasy data in `player_stats`. Backfilled via `scripts/backfill_nfl_stats.py` or the `Backfill NFL Stats` GitHub Action.
+`nfl_stats` stores pure NFL statistical data from nflverse-data (2010–present), kept separate from the Ottoneu fantasy data in `player_stats`. Backfilled via `scripts/backfill_nfl_stats.py` or the `Backfill NFL Stats` GitHub Action. Advanced receiving metrics (`target_share`, `air_yards_share`, `wopr`, `racr`, `receiving_air_yards` — added in migration 022) are populated for 2018+ via the same backfill from nflverse `stats_player`.
+
+Static draft-pick metadata lives in the `draft_capital` table (one row per drafted player, sourced from the nflverse `draft_picks` parquet via `scripts/backfill_draft_capital.py`, migration 023). It powers the `draft_capital_raw` feature for rookie/early-career projections.
 
 - **`player_stats`** = Ottoneu fantasy data (total_points, ppg, pps, snaps from scraping)
 - **`nfl_stats`** = Real NFL stats (passing_yards, rushing_tds, snap counts, etc. from nflverse)
@@ -105,10 +107,12 @@ model_config.py  →  runner.py  →  model_projections table  →  promote.py  
     (defines)        (computes)       (stores)                   (copies)        (production, used by web)
 ```
 
-- `model_config.py` — model registry (name, version, features, weights, is_baseline)
+- `model_config.py` — model registry (name, version, features, weights, is_baseline, `combiner_type`). Each model declares one of three combiners: `additive` (default — base PPG + weighted feature deltas), `learned` (Ridge regression with interactions, e.g. v20+/v22/v23), or `residual` (two-stage: a frozen base model + a tiny secondary Ridge fit to its residuals on a filtered training subset, e.g. v25 — see #376 follow-up).
 - `qb_starters.py` — loads manual QB starter designations from `data/qb_starters.json`, resolves names to player IDs
-- `runner.py` — fetches historical player_stats + nfl_stats, loads QB starters, runs combiner, batch upserts
-- `combiner.py` — base feature PPG + weighted sum of adjustment feature deltas
+- `runner.py` — fetches historical player_stats + nfl_stats, loads QB starters, runs the appropriate combiner, batch upserts. For `residual` models it evaluates the union of base + residual features and reuses the embedded base parameters.
+- `combiner.py` — additive combiner: base feature PPG + weighted sum of adjustment feature deltas
+- `learned_combiner.py` — learned (`combine_features_learned` / `predict`) and residual (`combine_features_residual` / `predict_residual`) combiners. The base model's `predict()` drops feature_values keys it wasn't trained on so a residual's superset of features doesn't break shape.
+- `train_model.py` — `train_ridge_loso` for full-refit learned models; `train_ridge_residual` loads the base model JSON, computes residuals on its predictions, applies a `training_filter` (e.g. `max_seasons_since_draft=3`), and fits a secondary Ridge with `fit_intercept=False` so samples whose residual features are all zero contribute exactly zero.
 - `backtest.py` — compares projected_ppg to actual actuals (MAE, RMSE per model)
 - `accuracy_report.py` — side-by-side model comparison table across all seasons (no `--models` filter; always runs all models)
 - `promote.py` — copies a model's projections to the production `player_projections` table and sets it as active

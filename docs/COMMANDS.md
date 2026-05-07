@@ -84,6 +84,11 @@ python scripts/feature_projections/feature_analysis.py --model v20_learned_usage
 python scripts/feature_projections/residual_analysis.py --model v20_learned_usage --seasons 2022,2023,2024,2025  # Residual distribution, heteroscedasticity, persistent errors
 python scripts/feature_projections/residual_analysis.py --model v20_learned_usage --seasons 2022,2023,2024,2025 --output docs/generated/residual-analysis.md  # Write markdown report
 
+# Backfills
+python scripts/backfill_nfl_stats.py                 # Backfill nfl_stats from nflverse-data (2010+); also populates advanced receiving (target_share, air_yards_share, wopr, racr) for 2018+
+python scripts/backfill_draft_capital.py             # Backfill NFL draft pick metadata from nflverse `draft_picks` parquet into `draft_capital` (used by the draft_capital_raw feature for rookie/early-career projections)
+python scripts/backfill_draft_capital.py --since 2015 --dry-run  # Backfill from a custom season; --dry-run parses without writing
+
 # Utilities
 python scripts/check_db.py                           # Verify database contents
 streamlit run scripts/visualize_app.py               # Streamlit dashboard
