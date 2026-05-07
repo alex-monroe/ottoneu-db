@@ -44,11 +44,14 @@ export default async function VegasLinesPage({ searchParams }: Props) {
   const rows = await fetchVegasLinesForSeason(targetSeason);
   const lineByTeam = new Map(rows.map((r) => [r.team, r]));
 
-  const totalsForLeagueMean = rows.map((r) => r.implied_total);
+  const totalsForLeagueMean = rows
+    .map((r) => r.implied_total)
+    .filter((v): v is number => v !== null);
   const leagueMean =
     totalsForLeagueMean.length > 0
       ? totalsForLeagueMean.reduce((sum, v) => sum + v, 0) / totalsForLeagueMean.length
       : null;
+  const hasImpliedTotals = totalsForLeagueMean.length > 0;
 
   const knownCodes = new Set(
     DIVISIONS.flatMap((d) => d.teams.map((t) => t.code)),
@@ -75,13 +78,24 @@ export default async function VegasLinesPage({ searchParams }: Props) {
           <SeasonSelector currentSeason={targetSeason} seasons={seasons} />
         </header>
 
-        {leagueMean !== null && (
+        {hasImpliedTotals && leagueMean !== null ? (
           <section className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
             <span className="font-medium text-slate-900 dark:text-white">
               League average implied total:
             </span>{" "}
             {formatNumber(leagueMean, 1)} points · {rows.length} teams ·
             sum-of-game-implied-points across the regular season.
+          </section>
+        ) : (
+          <section className="rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
+            <span className="font-medium">Implied totals not yet available for {targetSeason}.</span>{" "}
+            Win totals are sportsbook preseason consensus; per-game lines (and
+            therefore implied totals) populate once the NFL schedule is released
+            and nflverse picks it up. Run{" "}
+            <code className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-xs">
+              venv/bin/python scripts/backfill_vegas_lines.py
+            </code>{" "}
+            after schedule release to backfill.
           </section>
         )}
 
@@ -112,6 +126,8 @@ export default async function VegasLinesPage({ searchParams }: Props) {
   );
 }
 
+type LineForTeam = { implied_total: number | null; win_total: number | null };
+
 function ConferenceSection({
   label,
   divisions,
@@ -120,7 +136,7 @@ function ConferenceSection({
 }: {
   label: string;
   divisions: typeof DIVISIONS;
-  lineByTeam: Map<string, { implied_total: number; win_total: number | null }>;
+  lineByTeam: Map<string, LineForTeam>;
   leagueMean: number | null;
 }) {
   return (
@@ -151,7 +167,7 @@ function DivisionCard({
 }: {
   label: string;
   teams: readonly { code: string; name: string }[];
-  lineByTeam: Map<string, { implied_total: number; win_total: number | null }>;
+  lineByTeam: Map<string, LineForTeam>;
   leagueMean: number | null;
 }) {
   const sorted = [...teams].sort((a, b) => {
@@ -180,7 +196,7 @@ function DivisionCard({
           {sorted.map((team) => {
             const line = lineByTeam.get(team.code);
             const delta =
-              line && leagueMean !== null
+              line && line.implied_total !== null && leagueMean !== null
                 ? line.implied_total - leagueMean
                 : null;
             return (
@@ -197,7 +213,9 @@ function DivisionCard({
                   </div>
                 </td>
                 <td className="px-4 py-2 text-right font-mono text-slate-900 dark:text-white">
-                  {line ? formatNumber(line.implied_total, 1) : "—"}
+                  {line && line.implied_total !== null
+                    ? formatNumber(line.implied_total, 1)
+                    : "—"}
                 </td>
                 <td className="px-4 py-2 text-right font-mono text-slate-900 dark:text-white">
                   {line && line.win_total !== null
