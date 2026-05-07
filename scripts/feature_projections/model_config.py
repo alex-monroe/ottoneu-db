@@ -287,6 +287,41 @@ MODELS: dict[str, ModelDefinition] = {
             "wopr_raw^2",
         ],
     ),
+    "v23_draft_capital": ModelDefinition(
+        name="v23_draft_capital",
+        version=1,
+        description=(
+            "v22 (advanced receiving learned ridge) + draft_capital_raw: "
+            "log-scaled overall pick for players in their first three NFL "
+            "seasons, 0 for veterans. Injects pre-NFL signal that age_curve "
+            "and regression_to_mean cannot capture for rookies/sophomores. "
+            "Interaction term draft_capital_raw*position lets the learned "
+            "combiner find position-specific effects (e.g. RB vs WR rookies). "
+            "GH #376."
+        ),
+        features=[
+            "weighted_ppg_no_qb_trajectory",
+            "age_curve",
+            "regression_to_mean",
+            "qb_backup_penalty",
+            "usage_share_raw",
+            "target_share_raw",
+            "air_yards_share_raw",
+            "wopr_raw",
+            "racr_raw",
+            "draft_capital_raw",
+        ],
+        combiner_type="learned",
+        interaction_terms=[
+            "usage_share_raw*position",
+            "usage_share_raw*base_ppg",
+            "usage_share_raw^2",
+            "target_share_raw*position",
+            "wopr_raw*base_ppg",
+            "wopr_raw^2",
+            "draft_capital_raw*position",
+        ],
+    ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
         version=1,

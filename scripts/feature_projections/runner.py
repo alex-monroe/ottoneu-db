@@ -154,6 +154,24 @@ def _compute_positional_starter_floor(
     return floors
 
 
+def _build_draft_capital_lookup(supabase) -> dict[str, dict[str, int]]:
+    """Fetch draft_capital and return player_id -> {season_drafted, round, overall_pick}."""
+    rows = fetch_all_rows(
+        supabase, "draft_capital", "player_id, season_drafted, round, overall_pick"
+    )
+    lookup: dict[str, dict[str, int]] = {}
+    for r in rows:
+        pid = r.get("player_id")
+        if not pid:
+            continue
+        lookup[pid] = {
+            "season_drafted": int(r["season_drafted"]),
+            "round": int(r["round"]),
+            "overall_pick": int(r["overall_pick"]),
+        }
+    return lookup
+
+
 def _build_player_team_history(
     player_id: str,
     nfl_stats_all: pd.DataFrame,
@@ -189,6 +207,7 @@ def _build_context(
     positional_means: dict[str, float] | None = None,
     positional_starter_floors: dict[str, float] | None = None,
     qb_starters: dict[int, dict[str, str | None]] | None = None,
+    draft_capital: dict[str, dict[str, int]] | None = None,
 ) -> dict[str, Any]:
     """Build the context dict for a player's feature computation."""
     context: dict[str, Any] = {"target_season": target_season}
@@ -226,6 +245,12 @@ def _build_context(
     # Positional starter floor for tiered regression
     if positional_starter_floors and position in positional_starter_floors:
         context["positional_starter_floor"] = positional_starter_floors[position]
+
+    # Draft capital (round + overall pick) for the draft_capital_raw feature.
+    if draft_capital is not None:
+        record = draft_capital.get(player_id)
+        if record:
+            context["draft_capital"] = record
 
     # QB starter designation
     if qb_starters and position == "QB":
@@ -355,6 +380,9 @@ def run_model(
     players_df = pd.DataFrame(players_data)
     players_df = players_df.rename(columns={"id": "player_id_ref"})
 
+    # Fetch draft capital once (used across all target seasons)
+    draft_capital_lookup = _build_draft_capital_lookup(supabase)
+
     total_records = 0
 
     for target_season in seasons:
@@ -419,6 +447,7 @@ def run_model(
                 player_id_str, position, players_df, nfl_stats_all,
                 target_season, team_aggregates, positional_means,
                 positional_starter_floors, qb_starters,
+                draft_capital=draft_capital_lookup,
             )
 
             # Resolve position-specific features

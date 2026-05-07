@@ -1506,3 +1506,126 @@ class TestModelConfig:
         # Same features as v14 except the regression swap
         expected = [f if f != "regression_to_mean" else "regression_to_mean_tiered" for f in v14.features]
         assert model.features == expected
+
+
+# ---------------------------------------------------------------------------
+# DraftCapitalRawFeature (GH #376)
+# ---------------------------------------------------------------------------
+
+import math
+
+from scripts.feature_projections.features.draft_capital import (
+    DraftCapitalRawFeature,
+    TOTAL_PICKS,
+    VETERAN_CUTOFF_SEASONS,
+)
+
+
+class TestDraftCapitalRawFeature:
+    """Tests for the draft_capital_raw feature (pre-NFL signal for rookies)."""
+
+    def setup_method(self):
+        self.feature = DraftCapitalRawFeature()
+
+    def test_name(self):
+        assert self.feature.name == "draft_capital_raw"
+        assert self.feature.is_base is False
+
+    def test_no_draft_capital_returns_none(self):
+        """Players with no draft_capital record (UDFAs, pre-2010) return None."""
+        ctx = {"target_season": 2025}
+        result = self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(), ctx)
+        assert result is None
+
+    def test_first_overall_returns_max_signal(self):
+        """Pick 1 should return the highest log-scaled signal."""
+        ctx = {
+            "target_season": 2025,
+            "draft_capital": {"season_drafted": 2025, "round": 1, "overall_pick": 1},
+        }
+        result = self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), ctx)
+        assert result == pytest.approx(math.log(TOTAL_PICKS), abs=1e-6)
+
+    def test_late_round_returns_low_signal(self):
+        """Late picks should return a small positive signal."""
+        ctx = {
+            "target_season": 2025,
+            "draft_capital": {"season_drafted": 2025, "round": 7, "overall_pick": 250},
+        }
+        result = self.feature.compute("p1", "RB", pd.DataFrame(), pd.DataFrame(), ctx)
+        assert result == pytest.approx(math.log(TOTAL_PICKS) - math.log(250), abs=1e-6)
+        assert 0 <= result < 0.5
+
+    def test_pick_value_monotonic(self):
+        """Earlier picks should always produce higher signal than later picks."""
+        def value_for(pick: int) -> float:
+            ctx = {
+                "target_season": 2025,
+                "draft_capital": {"season_drafted": 2025, "round": 1, "overall_pick": pick},
+            }
+            return self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(), ctx)
+
+        assert value_for(1) > value_for(10) > value_for(50) > value_for(200)
+
+    def test_veteran_returns_zero(self):
+        """4+ seasons since draft → signal decays to 0."""
+        ctx = {
+            "target_season": 2025,
+            "draft_capital": {"season_drafted": 2021, "round": 1, "overall_pick": 5},
+        }
+        result = self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(), ctx)
+        assert result == 0.0
+
+    def test_third_year_still_active(self):
+        """3 seasons since draft (year 4) → still get signal? No, cutoff is at 4."""
+        # Drafted 2022, target 2025 → seasons_since_draft = 3, still in window
+        ctx = {
+            "target_season": 2025,
+            "draft_capital": {"season_drafted": 2022, "round": 1, "overall_pick": 10},
+        }
+        result = self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(), ctx)
+        assert result is not None
+        assert result > 0
+
+    def test_cutoff_boundary(self):
+        """At exactly VETERAN_CUTOFF_SEASONS, signal should be 0."""
+        ctx = {
+            "target_season": 2025,
+            "draft_capital": {
+                "season_drafted": 2025 - VETERAN_CUTOFF_SEASONS,
+                "round": 1, "overall_pick": 1,
+            },
+        }
+        result = self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(), ctx)
+        assert result == 0.0
+
+    def test_future_draft_returns_zero(self):
+        """Drafted after target season (shouldn't normally happen) → 0."""
+        ctx = {
+            "target_season": 2024,
+            "draft_capital": {"season_drafted": 2025, "round": 1, "overall_pick": 1},
+        }
+        result = self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(), ctx)
+        assert result == 0.0
+
+    def test_invalid_pick_returns_none(self):
+        """Zero or negative overall_pick (corrupt data) returns None."""
+        ctx = {
+            "target_season": 2025,
+            "draft_capital": {"season_drafted": 2025, "round": 0, "overall_pick": 0},
+        }
+        result = self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(), ctx)
+        assert result is None
+
+
+class TestV23DraftCapitalModel:
+    """Tests for the v23_draft_capital model definition."""
+
+    def test_model_exists(self):
+        model = get_model("v23_draft_capital")
+        assert model.combiner_type == "learned"
+        assert "draft_capital_raw" in model.features
+
+    def test_interaction_terms_include_position(self):
+        model = get_model("v23_draft_capital")
+        assert "draft_capital_raw*position" in model.interaction_terms

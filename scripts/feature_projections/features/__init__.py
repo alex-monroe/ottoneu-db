@@ -32,6 +32,7 @@ from scripts.feature_projections.features.advanced_receiving import (
     WOPRRawFeature,
     RACRRawFeature,
 )
+from scripts.feature_projections.features.draft_capital import DraftCapitalRawFeature
 
 FEATURE_REGISTRY: dict[str, type] = {
     "weighted_ppg": WeightedPPGFeature,
@@ -53,4 +54,5 @@ FEATURE_REGISTRY: dict[str, type] = {
     "air_yards_share_raw": AirYardsShareRawFeature,
     "wopr_raw": WOPRRawFeature,
     "racr_raw": RACRRawFeature,
+    "draft_capital_raw": DraftCapitalRawFeature,
 }
