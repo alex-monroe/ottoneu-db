@@ -24,3 +24,4 @@ _Tracks every model iteration attempt to prevent re-trying failed approaches._
 | 2026-03-29 | v20 | Ridge regression + interactions | 2.412 | 0.577 | -0.026 | BEST | #370 |
 | 2026-03-29 | v21 | v14 + tiered regression | 2.515 | 0.542 | — | NEUTRAL (bench bias improved) | #373 |
 | 2026-05-05 | v22 | v20 + advanced receiving (target_share, air_yards_share, wopr, racr) | 2.380 | 0.572 | -0.167 | IMPROVEMENT (vs v20 on matched 583 player-seasons: -0.033 MAE; WR MAE -0.06) | #375 |
+| 2026-05-06 | v23 | v22 + draft_capital_raw (log overall pick, first 3 NFL seasons) | 2.009 (2024) | 0.705 (2024) | +0.204 (2024) | IMPROVEMENT (best 2024 ALL MAE; learned position interactions: WR 0.23, RB 0.19, QB 0.03, TE -0.17) | #376 |

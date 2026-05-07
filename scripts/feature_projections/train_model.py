@@ -39,6 +39,7 @@ from scripts.feature_projections.features import FEATURE_REGISTRY
 from scripts.feature_projections.model_config import get_model
 from scripts.feature_projections.runner import (
     _build_context,
+    _build_draft_capital_lookup,
     _compute_positional_mean_ppg,
     _compute_team_aggregates,
     _resolve_features_for_position,
@@ -74,6 +75,9 @@ def collect_training_data(
     players_data = fetch_all_rows(supabase, "players", "id, name, position, nfl_team, birth_date, is_college")
     players_df = pd.DataFrame(players_data)
     players_df = players_df.rename(columns={"id": "player_id_ref"})
+
+    # Fetch draft capital once (used across all training seasons)
+    draft_capital_lookup = _build_draft_capital_lookup(supabase)
 
     # Instantiate features
     all_feature_names = set(model_def.features)
@@ -151,7 +155,9 @@ def collect_training_data(
 
             context = _build_context(
                 player_id_str, position, players_df, nfl_stats_all,
-                target_season, team_aggregates, positional_means, qb_starters,
+                target_season, team_aggregates, positional_means,
+                qb_starters=qb_starters,
+                draft_capital=draft_capital_lookup,
             )
 
             effective_features, effective_weights = _resolve_features_for_position(model_def, position)

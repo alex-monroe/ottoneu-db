@@ -1,6 +1,6 @@
 # Database Schema
 
-Seventeen tables, all with UUID primary keys.
+Eighteen tables, all with UUID primary keys.
 
 ## Tables
 
@@ -23,6 +23,7 @@ Seventeen tables, all with UUID primary keys.
 | `arbitration_progress` | Scraped player allocation data from Ottoneu arbitration page | -- |
 | `arbitration_progress_teams` | Per-team arbitration completion status | `(league_id, season, team_name)` |
 | `arbitration_allocation_details` | Per-team individual allocation breakdowns (which team allocated how much to which player) | `(league_id, season, ottoneu_id, allocating_team_name)` |
+| `draft_capital` | NFL draft pick metadata sourced from nflverse `draft_picks` (FK -> `players`) | `(player_id)` |
 
 ### Projection tables detail
 
