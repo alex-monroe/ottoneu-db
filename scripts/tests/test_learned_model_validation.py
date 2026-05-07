@@ -319,7 +319,10 @@ class TestResidualSchema:
 
     @pytest.mark.parametrize("model_path", MODEL_FILES, ids=MODEL_IDS)
     def test_base_model_is_complete(self, model_path):
-        """Embedded ``base_model_params`` must satisfy the learned schema."""
+        """Embedded ``base_model_params`` must satisfy either the learned or
+        residual schema. Stacked residuals (e.g. v26 on top of v25) have a
+        residual base whose own ``base_model_params`` is the learned ridge.
+        """
         params = _load_model(model_path)
         if not _is_residual(params):
             pytest.skip("Not a residual model")
@@ -327,9 +330,14 @@ class TestResidualSchema:
         assert isinstance(base, dict) and base, (
             f"{model_path.name}: base_model_params missing or empty"
         )
-        missing = LEARNED_REQUIRED_KEYS - set(base.keys())
+        expected_keys = (
+            RESIDUAL_REQUIRED_KEYS if _is_residual(base) else LEARNED_REQUIRED_KEYS
+        )
+        missing = expected_keys - set(base.keys())
         assert not missing, (
-            f"{model_path.name}: base_model_params missing keys {missing}"
+            f"{model_path.name}: base_model_params "
+            f"({'residual' if _is_residual(base) else 'learned'} schema) "
+            f"missing keys {missing}"
         )
 
     @pytest.mark.parametrize("model_path", MODEL_FILES, ids=MODEL_IDS)

@@ -33,6 +33,9 @@ from scripts.feature_projections.features.advanced_receiving import (
     RACRRawFeature,
 )
 from scripts.feature_projections.features.draft_capital import DraftCapitalRawFeature
+from scripts.feature_projections.features.vegas_team_total import (
+    ImpliedTeamTotalRawFeature,
+)
 
 FEATURE_REGISTRY: dict[str, type] = {
     "weighted_ppg": WeightedPPGFeature,
@@ -55,4 +58,5 @@ FEATURE_REGISTRY: dict[str, type] = {
     "wopr_raw": WOPRRawFeature,
     "racr_raw": RACRRawFeature,
     "draft_capital_raw": DraftCapitalRawFeature,
+    "implied_team_total_raw": ImpliedTeamTotalRawFeature,
 }

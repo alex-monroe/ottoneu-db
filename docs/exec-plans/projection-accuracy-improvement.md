@@ -21,23 +21,24 @@ The combiner stacks features additively. When a feature adds noise (even small),
 
 ---
 
-## Current Accuracy (All Seasons Combined, ALL positions, n=583 across 2022–2025)
+## Current Accuracy (All Seasons Combined, ALL positions, n=844 across 2022–2025)
 
 | Model | MAE | R² | Bias |
 |-------|-----|-----|------|
-| `v1_baseline` | 2.559 | 0.492 | -0.044 |
-| `v2_age_adjusted` | 2.536 | 0.503 | +0.169 |
-| v3-v6 | 2.81–3.98 | degrades | — |
-| `v8_age_regression` | 2.482 | 0.526 | +0.426 |
-| `v12_no_qb_trajectory` | 2.482 | 0.530 | +0.441 |
-| `v14_qb_starter` | 2.489 | 0.533 | +0.504 |
-| `v20_learned_usage` | 2.412 | 0.577 | -0.026 |
-| `v22_advanced_receiving` | 2.380 | 0.572 | -0.167 |
-| `v23_draft_capital` (full refit) | 2.379 | **0.585** | **-0.026** |
-| **`v25_draft_capital_residual`** | **2.370** | 0.575 | -0.191 |
-| FantasyPros | 2.604 | 0.572 | +1.599 |
+| `v1_baseline` | 2.671 | 0.472 | -0.379 |
+| `v2_age_adjusted` | 2.587 | 0.499 | -0.110 |
+| v3-v6 | 2.95–4.01 | degrades | — |
+| `v8_age_regression` | 2.534 | 0.521 | +0.084 |
+| `v14_qb_starter` | 2.519 | 0.541 | +0.179 |
+| `v20_learned_usage` | 2.566 | 0.547 | -0.483 |
+| `v22_advanced_receiving` | 2.551 | 0.534 | -0.601 |
+| `v23_draft_capital` (full refit) | 2.535 | 0.557 | -0.437 |
+| `v25_draft_capital_residual` | 2.551 | 0.534 | -0.627 |
+| `v26_vegas_residual` | 2.530 | 0.537 | -0.647 |
+| **`v27_vegas_full_refit`** | **2.458** | **0.582** | **-0.041** |
+| FantasyPros | 2.544 | 0.584 | +1.299 |
 
-`v25` is the current best on MAE; `v23` retains the best R²/bias but at the cost of perturbing veteran predictions (see Lessons Learned). The full per-position breakdown lives in [docs/generated/projection-accuracy.md](../generated/projection-accuracy.md).
+`v27` is the new best across every metric — it pushes MAE below v25 by 0.093 and shrinks bias from -0.627 to -0.041 (six-fold reduction). It also wins every position vs v25 (QB -0.084, RB -0.105, WR -0.171, K -0.117; TE flat). Counter-intuitively, the v23-style full refit *did not* repeat the vet-regression problem: vet-heavy WR is the biggest winner. v26 (Vegas as residual on top of v25) only marginally improves MAE — see Lessons Learned below. The full per-position breakdown lives in [docs/generated/projection-accuracy.md](../generated/projection-accuracy.md).
 
 ---
 
@@ -78,6 +79,7 @@ New data sources and learned models. Expected: MAE < 2.3, R² > 0.60.
 - [#304](https://github.com/alex-monroe/ottoneu-db/issues/304) — ~~Bench-tier mean-reversion~~ ✅ (v21: tiered regression with negative factors for below-mean players. Bench bias -1.274→-0.866, starter/elite unchanged. Further improvement likely requires variance-aware or learned approaches.)
 - [#375](https://github.com/alex-monroe/ottoneu-db/issues/375) — ~~Advanced receiving metrics~~ ✅ (v22: target_share, air_yards_share, wopr, racr from nflverse for WR/TE only. ALL MAE 2.380, WR MAE 2.336→2.185 vs v20.)
 - [#376](https://github.com/alex-monroe/ottoneu-db/issues/376) — ~~NFL draft capital~~ ✅ (Two iterations: v23 full refit hit a vet-regression problem; v25 two-stage residual fixed it. ALL MAE 2.370, current best.)
+- [#378](https://github.com/alex-monroe/ottoneu-db/issues/378) — ~~Vegas implied team totals~~ ✅ (Two variants: v26 stacked-residual on v25 [neutral, −0.021 MAE]; **v27 full refit including draft + Vegas [BEST: ALL MAE 2.458, R² 0.582, bias −0.041]**. Source: nflverse `games.csv` aggregated to per-team season implied points; PFR is now Cloudflare-walled.)
 
 ---
 
@@ -93,7 +95,7 @@ Issue audit (2026-05-05) consolidated duplicates and ranked open work by impact 
 | ~~[#376](https://github.com/alex-monroe/ottoneu-db/issues/376)~~ | ~~NFL draft capital~~ ✅ | low | v25_draft_capital_residual: ALL MAE 2.370 (current best), R² 0.575, vet predictions byte-identical to v22 |
 | [#391](https://github.com/alex-monroe/ottoneu-db/issues/391) | Depth chart / offseason movement | medium | Directly targets early-season failure mode (team/role changes invisible to historical PPG) |
 | ~~[#375](https://github.com/alex-monroe/ottoneu-db/issues/375)~~ | ~~Advanced receiving (target_share, air_yards, WOPR)~~ ✅ | low | v22_advanced_receiving: ALL MAE 2.380 (vs v20 2.412), R² 0.572, n=583 backtest seasons |
-| [#378](https://github.com/alex-monroe/ottoneu-db/issues/378) | Vegas implied team totals | low | 32 numbers/year; large QB upside; replaces broken `team_context` |
+| ~~[#378](https://github.com/alex-monroe/ottoneu-db/issues/378)~~ | ~~Vegas implied team totals~~ ✅ | low | v27_vegas_full_refit: ALL MAE 2.458 (vs v25 2.551), R² 0.582, bias −0.041. 320 (team, season) rows from nflverse; replaces broken `team_context` |
 
 ### Tier 2 — Strong second wave (medium effort)
 
@@ -223,6 +225,27 @@ Caveats:
 - The base remains fixed: if the base itself has issues on the residual's
   target subset, the residual can mask but not repair them.
 
+### When a full refit *does* win (from #378 Vegas)
+
+v27 refit the full ridge on v22's features + `draft_capital_raw` +
+`implied_team_total_raw` and beat v25 by 0.093 MAE — without the v23-style
+vet regression. Two factors flipped the outcome:
+
+1. **Vegas is dense.** Unlike `draft_capital_raw` (zero for 4+-year vets),
+   `implied_team_total_raw` is non-zero for every player. The ridge has a
+   real feature distinguishing vets-on-good-offenses from vets-on-bad-ones,
+   so it doesn't have to drift `weighted_ppg` to absorb variance the model
+   couldn't otherwise explain.
+2. **More training data.** The 2026-05 backtest spans 844 player-seasons
+   vs the 583 v23 was trained on; coefficient drift shrinks with sample
+   size.
+
+**Refined guideline:** Two-stage residual remains the safe default when
+the new feature is sparse *and* the dataset is small. Once at least one
+**dense** new feature lands and the training set has grown, a full refit
+is worth retrying — the joint fit can recover bias that a frozen base
+keeps trapped (v25 bias -0.627 → v27 -0.041).
+
 ---
 
 ## Key Files
@@ -237,7 +260,9 @@ Caveats:
 | `scripts/feature_projections/features/age_curve.py` | Best adjustment feature — parameter tuning target |
 | `scripts/feature_projections/features/advanced_receiving.py` | Target share / air-yards share / WOPR / RACR for WR/TE (#375) |
 | `scripts/feature_projections/features/draft_capital.py` | Log-scaled overall pick, first 3 NFL seasons, 0 for vets (#376) |
+| `scripts/feature_projections/features/vegas_team_total.py` | Vegas implied team total centered vs season league mean (#378) |
 | `scripts/feature_projections/backtest.py` | Validation framework for measuring all changes |
 | `scripts/feature_projections/accuracy_report.py` | Comparison table generation |
 | `scripts/feature_projections/features/__init__.py` | Feature registry — add new features here |
 | `scripts/backfill_draft_capital.py` | nflverse → `draft_capital` table loader (#376) |
+| `scripts/backfill_vegas_lines.py` | nflverse `games.csv` → `team_vegas_lines` table loader (#378) |

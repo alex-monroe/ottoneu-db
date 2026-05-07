@@ -1,0 +1,182 @@
+{
+  "combiner_type": "residual",
+  "base_model_name": "v25_draft_capital_residual",
+  "base_model_params": {
+    "combiner_type": "residual",
+    "base_model_name": "v22_advanced_receiving",
+    "base_model_params": {
+      "alpha": 1.0,
+      "coefficients": [
+        0.37938910599426623,
+        0.5288381479365057,
+        0.3275563621230448,
+        -0.10015214368142562,
+        1.0941100833226813,
+        0.08508363810347246,
+        0.19102101795960819,
+        4.759094203900097,
+        0.25180047272268913,
+        0.0,
+        0.2106687872654569,
+        -0.3255171400161221,
+        -0.1848562347259754,
+        0.0,
+        -0.33164860411862956,
+        0.0,
+        0.0,
+        0.16925484884407416,
+        -0.11201173600137586,
+        0.0,
+        -0.5439390234377343
+      ],
+      "intercept": 10.102444061962142,
+      "feature_names": [
+        "age_curve",
+        "air_yards_share_raw",
+        "qb_backup_penalty",
+        "racr_raw",
+        "regression_to_mean",
+        "target_share_raw",
+        "usage_share_raw",
+        "weighted_ppg_no_qb_trajectory",
+        "wopr_raw",
+        "usage_share_raw*QB",
+        "usage_share_raw*RB",
+        "usage_share_raw*WR",
+        "usage_share_raw*TE",
+        "usage_share_raw*base_ppg",
+        "usage_share_raw^2",
+        "target_share_raw*QB",
+        "target_share_raw*RB",
+        "target_share_raw*WR",
+        "target_share_raw*TE",
+        "wopr_raw*base_ppg",
+        "wopr_raw^2"
+      ],
+      "interaction_terms": [
+        "usage_share_raw*position",
+        "usage_share_raw*base_ppg",
+        "usage_share_raw^2",
+        "target_share_raw*position",
+        "wopr_raw*base_ppg",
+        "wopr_raw^2"
+      ],
+      "scaler_mean": [
+        -0.21361765041980776,
+        0.05474849950629333,
+        -0.4523531543268744,
+        0.32087051644155085,
+        -0.25254494989097837,
+        0.046943418892296834,
+        0.9624161174323902,
+        10.104530505870228,
+        0.10873907799285056,
+        0.0,
+        0.8288223921653797,
+        0.09087874216229834,
+        0.04271498310471203,
+        0.0,
+        79.60182318296032,
+        0.0,
+        0.0,
+        0.029358936650500666,
+        0.01758448224179619,
+        0.0,
+        0.04980277528485961
+      ],
+      "scaler_scale": [
+        0.8915988302610639,
+        0.10417111039845238,
+        0.938610074613748,
+        0.5858767986193536,
+        0.49105398261153527,
+        0.08233747314017516,
+        8.869925501370735,
+        4.867388668071876,
+        0.19488095905481442,
+        1.0,
+        8.870308036419237,
+        0.44161593144705197,
+        0.16554098518304225,
+        1.0,
+        1127.149065286596,
+        1.0,
+        1.0,
+        0.0736892011895397,
+        0.048804554208537736,
+        1.0,
+        0.10663890151248806
+      ],
+      "training_metadata": {
+        "seasons": [
+          2022,
+          2023,
+          2024
+        ],
+        "n_samples": 581,
+        "n_features": 21,
+        "loso_mae": 2.405909785845888,
+        "train_mae": 2.355018599159203,
+        "train_r2": 0.5827700120435555,
+        "trained_at": "2026-05-06T01:49:35.356659"
+      }
+    },
+    "alpha": 100.0,
+    "coefficients": [
+      0.016669356459502235,
+      -0.12936207724515955,
+      0.16121320079269416,
+      0.13068063076546654,
+      -0.1272911028675757
+    ],
+    "intercept": 0.0,
+    "feature_names": [
+      "draft_capital_raw"
+    ],
+    "interaction_terms": [
+      "draft_capital_raw*position"
+    ],
+    "training_filter": {
+      "max_seasons_since_draft": 3
+    },
+    "training_metadata": {
+      "seasons": [
+        2022,
+        2023,
+        2024
+      ],
+      "n_samples": 223,
+      "n_features": 5,
+      "loso_residual_mae": 2.588013781443474,
+      "trained_at": "2026-05-07T04:01:37.477810"
+    }
+  },
+  "alpha": 100.0,
+  "coefficients": [
+    0.005237339230631099,
+    0.001343280039686287,
+    0.0029833947704388285,
+    0.004298653968991477,
+    -0.003387989548402827
+  ],
+  "intercept": 0.0,
+  "feature_names": [
+    "implied_team_total_raw"
+  ],
+  "interaction_terms": [
+    "implied_team_total_raw*position"
+  ],
+  "training_filter": {},
+  "training_metadata": {
+    "seasons": [
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "n_samples": 839,
+    "n_features": 5,
+    "loso_residual_mae": 2.4648910707381404,
+    "trained_at": "2026-05-07T16:19:01.338536"
+  }
+}

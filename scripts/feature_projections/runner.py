@@ -64,6 +64,33 @@ def _ensure_model_in_db(supabase, model_def: ModelDefinition) -> str:
     return result.data[0]["id"]
 
 
+def _collect_feature_names_recursive(model_def: ModelDefinition) -> set[str]:
+    """Union of feature names across a model and all transitively-nested base
+    models. Residual stacks like v26 (vegas) → v25 (draft_capital) → v22
+    (advanced receiving) need every layer's features instantiated so the
+    learned combiner can evaluate the chain. GH #378.
+    """
+    names: set[str] = set(model_def.features)
+    for override in model_def.position_overrides.values():
+        names.update(override.features)
+    if model_def.combiner_type == "residual" and model_def.base_model_name:
+        base_def = get_model(model_def.base_model_name)
+        names.update(_collect_feature_names_recursive(base_def))
+    return names
+
+
+def _resolve_residual_base_features(
+    model_def: ModelDefinition, position: str
+) -> list[str]:
+    """Union of position-resolved features across all nested base models."""
+    if model_def.combiner_type != "residual" or not model_def.base_model_name:
+        return []
+    base_def = get_model(model_def.base_model_name)
+    base_features, _ = _resolve_features_for_position(base_def, position)
+    deeper = _resolve_residual_base_features(base_def, position)
+    return list(dict.fromkeys(list(deeper) + list(base_features)))
+
+
 def _resolve_features_for_position(
     model_def: ModelDefinition, position: str
 ) -> tuple[list[str], dict[str, float]]:
@@ -176,6 +203,42 @@ def _build_draft_capital_lookup(supabase) -> dict[str, dict[str, int]]:
     return lookup
 
 
+def _build_vegas_lines_lookup(
+    supabase,
+) -> tuple[dict[tuple[str, int], dict[str, float]], dict[int, float]]:
+    """Fetch team_vegas_lines and return ((team, season) -> record, season -> league_mean).
+
+    The first dict powers the implied_team_total_raw feature; the second
+    is used to center each team's implied total against the league
+    average for that season so the feature is comparable across years.
+    """
+    rows = fetch_all_rows(
+        supabase, "team_vegas_lines", "team, season, implied_total, win_total"
+    )
+    lookup: dict[tuple[str, int], dict[str, float]] = {}
+    season_totals: dict[int, list[float]] = {}
+    for r in rows:
+        team = r.get("team")
+        season = r.get("season")
+        implied = r.get("implied_total")
+        if not team or season is None or implied is None:
+            continue
+        season_int = int(season)
+        record = {
+            "implied_total": float(implied),
+            "win_total": float(r["win_total"]) if r.get("win_total") is not None else None,
+        }
+        lookup[(str(team), season_int)] = record
+        season_totals.setdefault(season_int, []).append(record["implied_total"])
+
+    league_means = {
+        season: sum(totals) / len(totals)
+        for season, totals in season_totals.items()
+        if totals
+    }
+    return lookup, league_means
+
+
 def _build_player_team_history(
     player_id: str,
     nfl_stats_all: pd.DataFrame,
@@ -212,6 +275,8 @@ def _build_context(
     positional_starter_floors: dict[str, float] | None = None,
     qb_starters: dict[int, dict[str, str | None]] | None = None,
     draft_capital: dict[str, dict[str, int]] | None = None,
+    vegas_lines: dict[tuple[str, int], dict[str, float]] | None = None,
+    vegas_league_means: dict[int, float] | None = None,
 ) -> dict[str, Any]:
     """Build the context dict for a player's feature computation."""
     context: dict[str, Any] = {"target_season": target_season}
@@ -255,6 +320,15 @@ def _build_context(
         record = draft_capital.get(player_id)
         if record:
             context["draft_capital"] = record
+
+    # Vegas implied team totals for the implied_team_total_raw feature. The
+    # feature looks up (effective_team, target_season); the league means let
+    # it center against the season's league average to remove year-over-year
+    # scoring drift.
+    if vegas_lines is not None:
+        context["vegas_lines"] = vegas_lines
+    if vegas_league_means is not None:
+        context["vegas_league_mean_implied"] = vegas_league_means
 
     # QB starter designation
     if qb_starters and position == "QB":
@@ -354,17 +428,10 @@ def run_model(
     model_id = _ensure_model_in_db(supabase, model_def)
     print(f"Model '{model_name}' registered with id={model_id}")
 
-    # Compute union of all feature names (default + all overrides). Residual
-    # models also evaluate the base model's features so its prediction is
-    # reproducible without re-loading anything else.
-    all_feature_names = set(model_def.features)
-    for override in model_def.position_overrides.values():
-        all_feature_names.update(override.features)
-    if model_def.combiner_type == "residual" and model_def.base_model_name:
-        base_def = get_model(model_def.base_model_name)
-        all_feature_names.update(base_def.features)
-        for override in base_def.position_overrides.values():
-            all_feature_names.update(override.features)
+    # Compute union of all feature names across the model and any nested
+    # residual base models so every layer of the residual stack can be
+    # evaluated.
+    all_feature_names = _collect_feature_names_recursive(model_def)
 
     # Instantiate all features into a dict for lookup
     feature_pool: dict[str, Any] = {}
@@ -401,6 +468,9 @@ def run_model(
 
     # Fetch draft capital once (used across all target seasons)
     draft_capital_lookup = _build_draft_capital_lookup(supabase)
+
+    # Fetch Vegas implied team totals once (used across all target seasons)
+    vegas_lookup, vegas_league_means = _build_vegas_lines_lookup(supabase)
 
     total_records = 0
 
@@ -467,17 +537,18 @@ def run_model(
                 target_season, team_aggregates, positional_means,
                 positional_starter_floors, qb_starters,
                 draft_capital=draft_capital_lookup,
+                vegas_lines=vegas_lookup,
+                vegas_league_means=vegas_league_means,
             )
 
             # Resolve position-specific features. For residual models, the
-            # union of base + residual features is computed so the embedded
-            # base model can be evaluated without re-loading anything.
+            # union of every nested base layer's features is computed so the
+            # full residual stack can be evaluated without re-loading anything.
             effective_features, effective_weights = _resolve_features_for_position(
                 model_def, position
             )
-            if model_def.combiner_type == "residual" and model_def.base_model_name:
-                base_def = get_model(model_def.base_model_name)
-                base_eff, _ = _resolve_features_for_position(base_def, position)
+            base_eff = _resolve_residual_base_features(model_def, position)
+            if base_eff:
                 effective_features = list(
                     dict.fromkeys(list(base_eff) + list(effective_features))
                 )
