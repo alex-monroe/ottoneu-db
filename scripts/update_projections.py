@@ -67,16 +67,46 @@ def generate_college_projections(avg_rookie_ppg: dict[str, float],
 
 
 def upsert_college_projections():
-    """Generate and upsert college prospect projections."""
+    """Generate and upsert rookie/college-prospect projections.
+
+    Covers two flavors of "no NFL track record yet" players:
+      - is_college=True: still in college (Ottoneu allows rostering them).
+      - Recently drafted: is_college=False with a draft_capital row but no
+        player_stats history. After the draft we flip is_college off, so
+        relying on that flag alone would orphan their projection.
+    Both groups receive the position-average rookie PPG.
+    """
     supabase = get_supabase_client()
-    players_res = supabase.table('players').select('id, position, is_college').execute()
-    players_df = pd.DataFrame(players_res.data or [])
+    # Paginated fetch — the players table exceeds the 1000-row default page size
+    # and a plain .execute() silently truncates, dropping newly-inserted rookies.
+    from config import fetch_all_rows
+    players_data = fetch_all_rows(supabase, 'players', 'id, position, is_college')
+    players_df = pd.DataFrame(players_data)
     players_df = players_df.rename(columns={'id': 'player_id_ref'})
 
+    if players_df.empty:
+        return
+
+    drafted_no_stats: set[str] = set()
+    if 'is_college' in players_df.columns:
+        # Players with any player_stats row are excluded — they go through the
+        # full feature_projections pipeline. We only need the rookies.
+        all_stats = fetch_all_rows(supabase, 'player_stats', 'player_id')
+        with_stats = {r['player_id'] for r in all_stats}
+        all_draft = fetch_all_rows(supabase, 'draft_capital', 'player_id')
+        drafted = {r['player_id'] for r in all_draft}
+        non_college_ids = set(
+            players_df[players_df['is_college'] == False]['player_id_ref'].tolist()  # noqa: E712
+        )
+        drafted_no_stats = (drafted & non_college_ids) - with_stats
+
     college_players = []
-    if not players_df.empty and 'is_college' in players_df.columns:
-        college_df = players_df[players_df['is_college'] == True]
-        for _, row in college_df.iterrows():
+    if 'is_college' in players_df.columns:
+        rookie_mask = (players_df['is_college'] == True) | (
+            players_df['player_id_ref'].isin(drafted_no_stats)
+        )
+        rookie_df = players_df[rookie_mask]
+        for _, row in rookie_df.iterrows():
             college_players.append({'id': row['player_id_ref'], 'position': row['position']})
 
     all_records = []
