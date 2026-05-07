@@ -1,7 +1,11 @@
 """Validation tests for trained model JSON files.
 
 Ensures trained model artifacts have correct structure, dimensions,
-and reasonable values to catch corruption or overfitting.
+and reasonable values to catch corruption or overfitting. Residual
+models have a different schema (no scaler, residual-specific metadata,
+and an embedded base model under ``base_model_params``); residual-only
+expectations are encoded in the helpers below and the relevant tests
+branch on the saved ``combiner_type``.
 """
 
 from __future__ import annotations
@@ -14,7 +18,8 @@ import pytest
 
 TRAINED_MODELS_DIR = Path(__file__).parent.parent / "feature_projections" / "trained_models"
 
-REQUIRED_KEYS = {
+# Schema for the standard learned ridge model (has its own StandardScaler).
+LEARNED_REQUIRED_KEYS = {
     "alpha",
     "coefficients",
     "intercept",
@@ -24,14 +29,34 @@ REQUIRED_KEYS = {
     "scaler_scale",
     "training_metadata",
 }
-
-REQUIRED_METADATA_KEYS = {
+LEARNED_REQUIRED_METADATA_KEYS = {
     "seasons",
     "n_samples",
     "n_features",
     "loso_mae",
     "train_mae",
     "train_r2",
+    "trained_at",
+}
+
+# Schema for the residual model. No scaler (raw passthrough on residual fit),
+# no train_mae/train_r2 (those describe absolute-PPG fit, not residual fit).
+RESIDUAL_REQUIRED_KEYS = {
+    "alpha",
+    "coefficients",
+    "intercept",
+    "feature_names",
+    "interaction_terms",
+    "training_metadata",
+    "base_model_name",
+    "base_model_params",
+    "combiner_type",
+}
+RESIDUAL_REQUIRED_METADATA_KEYS = {
+    "seasons",
+    "n_samples",
+    "n_features",
+    "loso_residual_mae",
     "trained_at",
 }
 
@@ -49,6 +74,27 @@ def _load_model(path):
         return json.load(f)
 
 
+def _is_residual(params: dict) -> bool:
+    return params.get("combiner_type") == "residual"
+
+
+def _expected_column_count(params: dict) -> int:
+    """Number of fitted coefficients implied by raw features + interaction_terms.
+
+    Mirrors the layout produced by ``learned_combiner.get_feature_column_names``:
+    one column per raw feature, one per ``feat^2``, four per ``feat*position``,
+    and one for any other ``feat_a*feat_b`` interaction.
+    """
+    raw_count = len(params["feature_names"])
+    interaction_count = 0
+    for term in params["interaction_terms"]:
+        if term.endswith("*position"):
+            interaction_count += 4  # one column per QB/RB/WR/TE dummy
+        else:
+            interaction_count += 1
+    return raw_count + interaction_count
+
+
 # Collect all model files for parametrization
 MODEL_FILES = _discover_trained_models()
 MODEL_IDS = [p.stem for p in MODEL_FILES]
@@ -62,7 +108,8 @@ class TestTrainedModelStructure:
     def test_required_keys_exist(self, model_path):
         """All required top-level keys must be present."""
         params = _load_model(model_path)
-        missing = REQUIRED_KEYS - set(params.keys())
+        required = RESIDUAL_REQUIRED_KEYS if _is_residual(params) else LEARNED_REQUIRED_KEYS
+        missing = required - set(params.keys())
         assert not missing, f"Missing keys in {model_path.name}: {missing}"
 
     @pytest.mark.parametrize("model_path", MODEL_FILES, ids=MODEL_IDS)
@@ -70,27 +117,46 @@ class TestTrainedModelStructure:
         """Training metadata must have all required keys."""
         params = _load_model(model_path)
         metadata = params.get("training_metadata", {})
-        missing = REQUIRED_METADATA_KEYS - set(metadata.keys())
+        required = (
+            RESIDUAL_REQUIRED_METADATA_KEYS
+            if _is_residual(params)
+            else LEARNED_REQUIRED_METADATA_KEYS
+        )
+        missing = required - set(metadata.keys())
         assert not missing, f"Missing metadata keys in {model_path.name}: {missing}"
 
 
 @pytest.mark.skipif(len(MODEL_FILES) == 0, reason="No trained model files found")
 class TestDimensionConsistency:
-    """Validate that array dimensions are consistent across model components."""
+    """Validate that array dimensions are consistent across model components.
+
+    Learned models store one ``feature_name`` per coefficient (the trainer flattens
+    interactions into the saved name list). Residual models store only the raw
+    feature names — coefficients include the expanded interaction columns —
+    so the residual checks compute the expected column count from
+    ``feature_names`` + ``interaction_terms``.
+    """
 
     @pytest.mark.parametrize("model_path", MODEL_FILES, ids=MODEL_IDS)
     def test_coefficient_count_matches_features(self, model_path):
-        """len(coefficients) must equal len(feature_names)."""
         params = _load_model(model_path)
-        assert len(params["coefficients"]) == len(params["feature_names"]), (
-            f"{model_path.name}: {len(params['coefficients'])} coefficients "
-            f"but {len(params['feature_names'])} feature names"
-        )
+        if _is_residual(params):
+            expected = _expected_column_count(params)
+            assert len(params["coefficients"]) == expected, (
+                f"{model_path.name}: {len(params['coefficients'])} coefficients "
+                f"but expected {expected} from raw features + interactions"
+            )
+        else:
+            assert len(params["coefficients"]) == len(params["feature_names"]), (
+                f"{model_path.name}: {len(params['coefficients'])} coefficients "
+                f"but {len(params['feature_names'])} feature names"
+            )
 
     @pytest.mark.parametrize("model_path", MODEL_FILES, ids=MODEL_IDS)
     def test_scaler_mean_matches_features(self, model_path):
-        """len(scaler_mean) must equal len(feature_names)."""
         params = _load_model(model_path)
+        if _is_residual(params):
+            pytest.skip("Residual models do not standardize their fit")
         assert len(params["scaler_mean"]) == len(params["feature_names"]), (
             f"{model_path.name}: {len(params['scaler_mean'])} scaler_mean "
             f"but {len(params['feature_names'])} feature names"
@@ -98,8 +164,9 @@ class TestDimensionConsistency:
 
     @pytest.mark.parametrize("model_path", MODEL_FILES, ids=MODEL_IDS)
     def test_scaler_scale_matches_features(self, model_path):
-        """len(scaler_scale) must equal len(feature_names)."""
         params = _load_model(model_path)
+        if _is_residual(params):
+            pytest.skip("Residual models do not standardize their fit")
         assert len(params["scaler_scale"]) == len(params["feature_names"]), (
             f"{model_path.name}: {len(params['scaler_scale'])} scaler_scale "
             f"but {len(params['feature_names'])} feature names"
@@ -107,13 +174,19 @@ class TestDimensionConsistency:
 
     @pytest.mark.parametrize("model_path", MODEL_FILES, ids=MODEL_IDS)
     def test_n_features_matches(self, model_path):
-        """training_metadata.n_features must match actual feature count."""
         params = _load_model(model_path)
         metadata = params["training_metadata"]
-        assert metadata["n_features"] == len(params["feature_names"]), (
-            f"{model_path.name}: metadata says {metadata['n_features']} features "
-            f"but {len(params['feature_names'])} feature names"
-        )
+        if _is_residual(params):
+            expected = _expected_column_count(params)
+            assert metadata["n_features"] == expected, (
+                f"{model_path.name}: metadata says {metadata['n_features']} features "
+                f"but expected {expected} from raw features + interactions"
+            )
+        else:
+            assert metadata["n_features"] == len(params["feature_names"]), (
+                f"{model_path.name}: metadata says {metadata['n_features']} features "
+                f"but {len(params['feature_names'])} feature names"
+            )
 
 
 @pytest.mark.skipif(len(MODEL_FILES) == 0, reason="No trained model files found")
@@ -133,15 +206,28 @@ class TestTrainingMetadataReasonableness:
     def test_loso_mae_reasonable(self, model_path):
         """LOSO MAE should be < 5.0 (fantasy PPG scale)."""
         params = _load_model(model_path)
-        loso_mae = params["training_metadata"]["loso_mae"]
+        metadata = params["training_metadata"]
+        # Residual fits report MAE on the residual signal (actual - base_pred),
+        # which sits on the same PPG scale and should obey the same bound.
+        loso_mae = metadata.get("loso_mae", metadata.get("loso_residual_mae"))
+        assert loso_mae is not None, (
+            f"{model_path.name}: no loso_mae or loso_residual_mae in metadata"
+        )
         assert loso_mae < 5.0, (
             f"{model_path.name}: LOSO MAE = {loso_mae} (should be < 5.0)"
         )
 
     @pytest.mark.parametrize("model_path", MODEL_FILES, ids=MODEL_IDS)
     def test_no_severe_overfitting(self, model_path):
-        """LOSO MAE should be within 50% of training MAE."""
+        """LOSO MAE should be within 50% of training MAE.
+
+        Residual models don't track a separate train MAE (their fit target
+        is the residual, not absolute PPG), so this check only applies to
+        learned models.
+        """
         params = _load_model(model_path)
+        if _is_residual(params):
+            pytest.skip("Residual models do not record a train_mae for this comparison")
         metadata = params["training_metadata"]
         loso_mae = metadata["loso_mae"]
         train_mae = metadata["train_mae"]
@@ -159,6 +245,8 @@ class TestTrainingMetadataReasonableness:
     def test_positive_r2(self, model_path):
         """Training R² should be positive (model better than mean)."""
         params = _load_model(model_path)
+        if _is_residual(params):
+            pytest.skip("Residual models do not produce a meaningful absolute R²")
         train_r2 = params["training_metadata"]["train_r2"]
         assert train_r2 > 0, (
             f"{model_path.name}: train R² = {train_r2} (should be > 0)"
@@ -197,6 +285,8 @@ class TestScalerValidity:
     def test_no_zero_scale(self, model_path):
         """No scaler_scale value should be exactly 0 (causes division by zero)."""
         params = _load_model(model_path)
+        if _is_residual(params):
+            pytest.skip("Residual models do not standardize their fit")
         for i, (name, scale) in enumerate(zip(params["feature_names"], params["scaler_scale"])):
             # Zero scale means constant feature — the predict function handles this,
             # but it indicates a potentially useless feature
@@ -207,6 +297,8 @@ class TestScalerValidity:
     def test_no_negative_scale(self, model_path):
         """No scaler_scale value should be negative."""
         params = _load_model(model_path)
+        if _is_residual(params):
+            pytest.skip("Residual models do not standardize their fit")
         for name, scale in zip(params["feature_names"], params["scaler_scale"]):
             assert scale >= 0, (
                 f"{model_path.name}: scaler_scale for '{name}' = {scale} (negative)"
@@ -218,4 +310,34 @@ class TestScalerValidity:
         params = _load_model(model_path)
         assert params["alpha"] > 0, (
             f"{model_path.name}: alpha = {params['alpha']} (should be > 0)"
+        )
+
+
+@pytest.mark.skipif(len(MODEL_FILES) == 0, reason="No trained model files found")
+class TestResidualSchema:
+    """Residual-specific structural checks."""
+
+    @pytest.mark.parametrize("model_path", MODEL_FILES, ids=MODEL_IDS)
+    def test_base_model_is_complete(self, model_path):
+        """Embedded ``base_model_params`` must satisfy the learned schema."""
+        params = _load_model(model_path)
+        if not _is_residual(params):
+            pytest.skip("Not a residual model")
+        base = params.get("base_model_params")
+        assert isinstance(base, dict) and base, (
+            f"{model_path.name}: base_model_params missing or empty"
+        )
+        missing = LEARNED_REQUIRED_KEYS - set(base.keys())
+        assert not missing, (
+            f"{model_path.name}: base_model_params missing keys {missing}"
+        )
+
+    @pytest.mark.parametrize("model_path", MODEL_FILES, ids=MODEL_IDS)
+    def test_residual_intercept_is_zero(self, model_path):
+        """Residual fits use ``fit_intercept=False`` so vets stay byte-identical to base."""
+        params = _load_model(model_path)
+        if not _is_residual(params):
+            pytest.skip("Not a residual model")
+        assert params["intercept"] == 0.0, (
+            f"{model_path.name}: residual intercept = {params['intercept']} (must be 0)"
         )
