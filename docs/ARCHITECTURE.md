@@ -90,13 +90,14 @@ All API route bodies are validated through Zod schemas in `web/lib/schemas/` (on
 
 ## Feature Projection System (`scripts/feature_projections/`)
 
-Generates season-long player PPG projections from historical data using a combination of targeted features. The active production model (`v14_qb_starter`) uses:
-1. `weighted_ppg_no_qb_trajectory` baseline (recency-weighted PPG, without snap trajectory for QB/K)
-2. `age_curve` adjustment (career arc expectations)
-3. `regression_to_mean` (pulling extreme outliers toward positional averages)
-4. `qb_backup_penalty` (15% PPG penalty for non-starter QBs to deflate small-sample heroics)
+Generates season-long player PPG projections from historical data using a combination of targeted features.
 
-Model history: v1–v7 proved that cumulatively stacking features (stat efficiency, usage share) introduced noise. v8–v12 refined the core three features. v13 tested QB volume trends (no improvement). v14 added the backup penalty using manual starter designations — the key insight was that the starter data's value is in *penalizing backups*, not *boosting starters*.
+**Single source of truth:** the `projection_models` table — exactly one row has `is_active=TRUE` at any time. The web UI surfaces it via `fetchActiveProjectionModel()` (`web/lib/data.ts`) and the `<ActiveModelCard>` component, which renders the live model name, version, description, and feature list on `/projections`, `/arbitration` (projected mode), and `/projection-accuracy`. Don't hardcode model names in UI copy — they drift the moment a new model is promoted.
+
+To check the live active model:
+```sql
+SELECT name, version, features FROM projection_models WHERE is_active = TRUE;
+```
 
 ### Projection Pipeline
 
@@ -134,10 +135,17 @@ Features are registered in `features/__init__.py` via `FEATURE_REGISTRY` (maps s
 The web frontend reads from `player_projections`, NOT `model_projections`. After validating a new model via backtesting, promote it:
 
 ```bash
-venv/bin/python scripts/feature_projections/promote.py v14_qb_starter
+venv/bin/python scripts/feature_projections/promote.py <model_name>
 ```
 
-This copies all projections to `player_projections`, clears `is_active` from all other models, and sets the promoted model as active. **This is a production data change** — the web app will immediately reflect the new projections.
+What promotion does, in order, for each season the new model has projections for:
+1. **Deletes all non-`college_prospect` rows** in `player_projections` for that season — this clears ghost rows from previously-active models that the new model didn't project (without it, players the prior model covered but the new one doesn't would silently retain stale projections forever).
+2. **Upserts the new model's projections** keyed on `(player_id, season)`.
+3. Clears `is_active` on every other model and sets it on the promoted one.
+
+`college_prospect` rows (no-NFL-history fallback for drafted rookies / college prospects) are preserved across promotions — `update_projections.py` recomputes them on every full pipeline run.
+
+**Production-side note:** `update_projections.py` reads `is_active` dynamically, then runs the active model and calls `promote.py` itself, so a new active model is automatically picked up on the next pipeline run. After a manual `promote.py <model_name>` invocation, run `update_projections.py` if you also want the rookie/college fallback regenerated against the new active model. **This is a production data change** — the web app reflects the change on the next request.
 
 **Important dependency:** All internal models (v1–v6) share the `weighted_ppg` base feature. Changing `WeightedPPGFeature.RECENCY_WEIGHTS` requires regenerating projections for **every** internal model via `cli.py run`, not just re-running backtests. The `--run-backtest` flag on `accuracy_report.py` only re-backtests existing projections — it does not regenerate them.
 

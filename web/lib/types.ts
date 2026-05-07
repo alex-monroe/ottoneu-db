@@ -208,7 +208,7 @@ export interface BacktestPlayer {
   abs_error: number;
   seasons_used: string;       // pre-serialized: "2022, 2023, 2024"
   games_played: number;
-  projection_method: string;  // "rookie_trajectory" | "weighted_average_ppg" | "model"
+  projection_method: string;  // active model name (e.g. "v25_draft_capital_residual"), "college_prospect", or "model" for ad-hoc backtests
   feature_values?: Record<string, number | null> | null;
 }
 

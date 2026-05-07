@@ -1,6 +1,7 @@
 import { fetchBacktestData, fetchAvailableModels, fetchModelBacktestData } from "@/lib/analysis";
 import { calculateMetricsByPosition } from "./metrics";
 import { POSITIONS, BacktestPlayer, ProjectionModel } from "@/lib/types";
+import ActiveModelCard from "@/components/ActiveModelCard";
 import ProjectionAccuracyClient from "./ProjectionAccuracyClient";
 
 export const revalidate = 3600;
@@ -65,49 +66,38 @@ export default async function ProjectionAccuracyPage({ searchParams }: Props) {
             Projection Accuracy — {targetSeason}
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2">
-            Backtesting composite projections: WeightedAveragePPG for veterans
-            (2+ seasons) and RookieTrajectoryPPG for first-year players.
-            Projections built from prior seasons compared to actual {targetSeason} results.
+            Backtest of the active projection model — projections built from
+            prior seasons are compared against actual {targetSeason} results.
+            Pick a different model below to compare alternatives.
           </p>
         </header>
 
-        {/* Methodology */}
-        <section className="bg-slate-50 dark:bg-slate-900 rounded-lg p-5 border border-slate-200 dark:border-slate-800 space-y-3 text-sm text-slate-700 dark:text-slate-300">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-            Methodology
-          </h2>
-          <p>
-            For each target season, prior seasons are used as projection inputs.
-            Players with <strong>2+ seasons</strong> of history use{" "}
-            <strong>WeightedAveragePPG</strong> (recency weights 0.50 / 0.30 /
-            0.20, games-scaled). Players with <strong>exactly 1 prior season</strong>{" "}
-            use <strong>RookieTrajectoryPPG</strong> (season PPG × H2/H1 snap
-            trajectory factor, clamped ±50%). Rookies are broken out separately
-            at the bottom. The resulting projection is compared to the player&apos;s
-            actual PPG in the target season.
-          </p>
-          <ul className="list-disc list-inside space-y-1">
-            <li>
-              <strong>Error</strong> = Actual PPG − Projected PPG (positive =
-              outperformed)
-            </li>
-            <li>
-              <strong>MAE</strong> — mean absolute error (lower is better)
-            </li>
-            <li>
-              <strong>Bias</strong> — mean signed error (positive = model
-              under-projects)
-            </li>
-            <li>
-              <strong>R²</strong> — proportion of variance explained (higher is
-              better, capped at 0)
-            </li>
-            <li>
-              <strong>RMSE</strong> — root mean squared error (penalises large
-              misses)
-            </li>
-          </ul>
-        </section>
+        {/* Active model — driven by projection_models.is_active */}
+        <ActiveModelCard
+          footer={
+            <ul className="list-disc list-inside space-y-1 pt-1">
+              <li>
+                <strong>Error</strong> = Actual PPG − Projected PPG (positive =
+                outperformed)
+              </li>
+              <li>
+                <strong>MAE</strong> — mean absolute error (lower is better)
+              </li>
+              <li>
+                <strong>Bias</strong> — mean signed error (positive = model
+                under-projects)
+              </li>
+              <li>
+                <strong>R²</strong> — proportion of variance explained (higher
+                is better)
+              </li>
+              <li>
+                <strong>RMSE</strong> — root mean squared error (penalises large
+                misses)
+              </li>
+            </ul>
+          }
+        />
 
         {players.length === 0 ? (
           <p className="text-slate-500 dark:text-slate-400">

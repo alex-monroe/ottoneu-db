@@ -71,8 +71,10 @@ export default async function VegasLinesPage({ searchParams }: Props) {
             </h1>
             <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
               Per-team season implied total points and Pythagorean expected
-              wins, aggregated from nflverse game lines. Used as a feature in
-              the <code>v27_vegas_full_refit</code> projection model.
+              wins, aggregated from nflverse game lines. Available as the
+              <code className="ml-1">implied_team_total_raw</code> feature for
+              projection models — see <a href="/projections" className="underline">/projections</a>{" "}
+              for which model is currently active.
             </p>
           </div>
           <SeasonSelector currentSeason={targetSeason} seasons={seasons} />

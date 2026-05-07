@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BacktestPlayer, Position, POSITIONS, ProjectionModel } from "@/lib/types";
-import { calculateMetrics, PositionMetrics } from "./metrics";
+import { PositionMetrics } from "./metrics";
 import AccuracyScatterChart from "./AccuracyScatterChart";
 import FeatureBreakdown from "./FeatureBreakdown";
 import DataTable from "@/components/DataTable";
@@ -154,18 +154,7 @@ export default function ProjectionAccuracyClient({
     setShowCompareDropdown(false);
   };
 
-  const rookiePlayers = players.filter(
-    (p) => p.projection_method === "rookie_trajectory"
-  );
-  const rookieMetrics = calculateMetrics(rookiePlayers, "Rookies");
-
   const filteredPlayers = players.filter(
-    (p) =>
-      selectedPositions.includes(p.position as Position) &&
-      p.games_played >= minGames
-  );
-
-  const filteredRookies = rookiePlayers.filter(
     (p) =>
       selectedPositions.includes(p.position as Position) &&
       p.games_played >= minGames
@@ -591,86 +580,6 @@ export default function ProjectionAccuracyClient({
           }
         />
       </section>
-
-      {/* Rookie breakdown — only show for legacy mode */}
-      {!selectedModelId && rookiePlayers.length > 0 && (
-        <section className="border border-amber-200 dark:border-amber-800 rounded-lg p-5 space-y-4">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-              Rookie Projections
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-                Rookie
-              </span>
-            </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Players projected using <strong>RookieTrajectoryPPG</strong> (one
-              prior season). Projection = prior-season PPG × H2/H1 snap
-              trajectory, clamped ±50%.
-            </p>
-          </div>
-
-          {/* Rookie summary metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-            <SummaryCard
-              label="Rookies Backtested"
-              value={String(rookieMetrics.count)}
-            />
-            <SummaryCard
-              label="MAE"
-              value={rookieMetrics.mae.toFixed(2)}
-            />
-            <SummaryCard
-              label="Bias"
-              value={
-                (rookieMetrics.bias >= 0 ? "+" : "") +
-                rookieMetrics.bias.toFixed(2)
-              }
-              variant={
-                Math.abs(rookieMetrics.bias) < 0.2
-                  ? "default"
-                  : rookieMetrics.bias > 0
-                  ? "positive"
-                  : "negative"
-              }
-            />
-            <SummaryCard
-              label="R²"
-              value={rookieMetrics.r2.toFixed(2)}
-              variant={
-                rookieMetrics.r2 >= 0.5
-                  ? "positive"
-                  : rookieMetrics.r2 >= 0.25
-                  ? "default"
-                  : "negative"
-              }
-            />
-            <SummaryCard
-              label="RMSE"
-              value={rookieMetrics.rmse.toFixed(2)}
-            />
-          </div>
-
-          {/* Rookie player table */}
-          <DataTable
-            columns={PLAYER_COLUMNS}
-            data={filteredRookies}
-            highlightRules={[
-              {
-                key: "error",
-                op: "gte",
-                value: 3,
-                className: "bg-green-50 dark:bg-green-950",
-              },
-              {
-                key: "error",
-                op: "lte",
-                value: -3,
-                className: "bg-red-50 dark:bg-red-950",
-              },
-            ]}
-          />
-        </section>
-      )}
     </div>
   );
 }

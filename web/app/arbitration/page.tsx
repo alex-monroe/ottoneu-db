@@ -21,6 +21,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
 import DataTable from "@/components/DataTable";
 import ArbitrationTeams from "./ArbitrationTeams";
+import ActiveModelCard from "@/components/ActiveModelCard";
 import ModeToggle, { ValueMode } from "@/components/ModeToggle";
 import {
   playerNameCol,
@@ -197,26 +198,17 @@ export default async function ArbitrationPage({ searchParams }: Props) {
           )}
         </header>
 
-        {/* Projection Methodology (only in projected mode) */}
+        {/* Projection Methodology — driven by projection_models.is_active */}
         {isProjected && (
-          <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-5">
-            <h2 className="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-1">
-              Projection Methodology
-            </h2>
-            <p className="text-sm text-blue-800 dark:text-blue-300">
-              <strong>v8 model (age_regression):</strong> games-weighted, recency-weighted
-              average over {historicalSeasons.join(", ")} seasons (weights:{" "}
-              <code className="text-xs bg-blue-100 dark:bg-blue-900 px-1 rounded">
-                50% / 30% / 20%
-              </code>
-              , each scaled by{" "}
-              <code className="text-xs bg-blue-100 dark:bg-blue-900 px-1 rounded">
-                games_played / 17
-              </code>
-              ) + positional age curve + regression to positional mean.
-              College prospects use positional rookie PPG averages.
-            </p>
-          </div>
+          <ActiveModelCard
+            variant="blue"
+            footer={
+              <p className="text-xs text-blue-800/80 dark:text-blue-300/80 pt-1">
+                Built from {historicalSeasons.join(", ")} history. College
+                prospects fall back to positional rookie PPG averages.
+              </p>
+            }
+          />
         )}
 
         {/* Budget Info */}
