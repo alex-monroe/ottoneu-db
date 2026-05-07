@@ -62,7 +62,7 @@ python scripts/feature_projections/diagnostics.py --output docs/generated/player
 python scripts/feature_projections/cli.py segment-analysis                                         # Segmented accuracy analysis (all segments, default models/seasons)
 python scripts/feature_projections/cli.py segment-analysis --segments experience,age_bucket         # Specific segments only
 python scripts/feature_projections/cli.py segment-analysis --models v8_age_regression --seasons 2024,2025  # Custom models/seasons
-python scripts/feature_projections/promote.py v14_qb_starter                                           # Promote model to production player_projections table
+python scripts/feature_projections/promote.py <model_name>                                             # Promote a model to production (clears stale rows + upserts new + flips is_active)
 
 # Projection Development Workflow (two-step process)
 # Step 1: Generate projections for the model (required after any feature code change)
@@ -77,9 +77,9 @@ python scripts/feature_projections/cli.py backtest --model <name> --test-seasons
 python scripts/feature_projections/train_model.py --model v20_learned_usage --seasons 2022,2023,2024
 # Step 1-2: Same as above (run → backtest)
 
-# Model Iteration Tools
-python scripts/feature_projections/hypothesis_test.py --base-model v14_qb_starter --scale-feature age_curve=1.5 --seasons 2022,2023,2024,2025  # Quick weight experiment
-python scripts/feature_projections/hypothesis_test.py --base-model v14_qb_starter --remove-feature qb_backup_penalty --seasons 2022,2023,2024,2025  # Feature removal test
+# Model Iteration Tools (substitute --base-model with whatever currently has is_active=TRUE)
+python scripts/feature_projections/hypothesis_test.py --base-model <model_name> --scale-feature age_curve=1.5 --seasons 2022,2023,2024,2025  # Quick weight experiment
+python scripts/feature_projections/hypothesis_test.py --base-model <model_name> --remove-feature qb_backup_penalty --seasons 2022,2023,2024,2025  # Feature removal test
 python scripts/feature_projections/feature_analysis.py --model v20_learned_usage --seasons 2022,2023,2024  # Feature correlation, VIF, importance
 python scripts/feature_projections/residual_analysis.py --model v20_learned_usage --seasons 2022,2023,2024,2025  # Residual distribution, heteroscedasticity, persistent errors
 python scripts/feature_projections/residual_analysis.py --model v20_learned_usage --seasons 2022,2023,2024,2025 --output docs/generated/residual-analysis.md  # Write markdown report

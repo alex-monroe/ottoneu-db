@@ -369,3 +369,44 @@ export async function fetchPlayerProjection(
     projection_method: data.projection_method,
   };
 }
+
+// ─── Active Projection Model ──────────────────────────────────────────────────
+
+export interface ActiveProjectionModel {
+  id: string;
+  name: string;
+  version: number;
+  description: string | null;
+  features: string[];
+}
+
+/**
+ * Fetch the projection model currently flagged is_active=TRUE.
+ *
+ * Single source of truth for "which model is the site serving right now".
+ * Methodology blurbs across /projections, /arbitration, /projection-accuracy
+ * read from this so they stay in sync with what `promote.py` last set.
+ */
+export async function fetchActiveProjectionModel(): Promise<ActiveProjectionModel | null> {
+  const { data, error } = await supabase
+    .from("projection_models")
+    .select("id, name, version, description, features")
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  const features = Array.isArray(data.features)
+    ? (data.features as string[])
+    : typeof data.features === "string"
+      ? (JSON.parse(data.features) as string[])
+      : [];
+
+  return {
+    id: data.id,
+    name: data.name,
+    version: data.version,
+    description: data.description ?? null,
+    features,
+  };
+}

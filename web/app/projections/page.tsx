@@ -5,6 +5,7 @@ import {
   getHistoricalSeasonsForYear,
   SEASON,
 } from "@/lib/analysis";
+import ActiveModelCard from "@/components/ActiveModelCard";
 import ProjectionsClient from "./ProjectionsClient";
 
 export const revalidate = 3600;
@@ -47,7 +48,7 @@ export default async function ProjectionsPage({ searchParams }: Props) {
       observed_ppg: p.observed_ppg,
       projected_ppg: p.ppg,
       ppg_delta: p.ppg - p.observed_ppg,
-      projection_method: p.projection_method ?? "weighted_average_ppg",
+      projection_method: p.projection_method ?? "",
     }))
     .sort((a, b) => b.projected_ppg - a.projected_ppg);
 
@@ -77,49 +78,27 @@ export default async function ProjectionsPage({ searchParams }: Props) {
           </p>
         </header>
 
-        {/* Methodology */}
-        <section className="bg-slate-50 dark:bg-slate-900 rounded-lg p-5 border border-slate-200 dark:border-slate-800 space-y-3 text-sm text-slate-700 dark:text-slate-300">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-            Methodology (v8 — age_regression)
-          </h2>
-          <p>
-            Three additive features combined into a single projected PPG:
-          </p>
-          <ul className="list-disc list-inside space-y-1">
-            <li>
-              <strong>Weighted PPG:</strong> Games-weighted, recency-weighted
-              average across {historicalSeasons.join(", ")} with weights{" "}
-              <strong>0.50 / 0.30 / 0.20</strong> (most recent to oldest).
-              Each season is scaled by{" "}
-              <code className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded text-xs">
-                games / 17
-              </code>{" "}
-              to discount injury-shortened years.
-            </li>
-            <li>
-              <strong>Age curve:</strong> Small adjustment (±2%) based on
-              positional age curves — players near their peak age get a boost;
-              older players get a slight discount.
-            </li>
-            <li>
-              <strong>Regression to mean:</strong> Pulls outlier projections
-              toward the positional average PPG, reducing overconfidence in
-              extreme single-season performances.
-            </li>
-            <li>
-              <strong>College Prospect (shown as{" "}
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300">
-                College
-              </span>):</strong>{" "}
-              Average PPG of first-year NFL players at the same position.
-            </li>
-          </ul>
-          <p className="text-xs text-slate-500 dark:text-slate-400 pt-1">
-            <strong>{SEASON} PPG</strong> — actual {SEASON} season stats &nbsp;·&nbsp;{" "}
-            <strong>Proj {projectionYear}</strong> — model output built from {historicalSeasons.join(", ")} history &nbsp;·&nbsp;{" "}
-            <strong>Δ</strong> — Proj minus {SEASON} PPG
-          </p>
-        </section>
+        {/* Methodology — driven by projection_models.is_active */}
+        <ActiveModelCard
+          footer={
+            <>
+              <p className="text-sm text-slate-700 dark:text-slate-300">
+                Built from {historicalSeasons.join(", ")} history. Players with
+                no NFL track record (drafted rookies and college prospects) use
+                a separate{" "}
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300">
+                  College
+                </span>{" "}
+                fallback set to the position-average rookie PPG.
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 pt-1">
+                <strong>{SEASON} PPG</strong> — actual {SEASON} season stats &nbsp;·&nbsp;{" "}
+                <strong>Proj {projectionYear}</strong> — model output for {projectionYear} &nbsp;·&nbsp;{" "}
+                <strong>Δ</strong> — Proj minus {SEASON} PPG
+              </p>
+            </>
+          }
+        />
 
         <ProjectionsClient initialData={rows} projectionYear={projectionYear} />
       </div>

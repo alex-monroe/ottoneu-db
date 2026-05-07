@@ -29,15 +29,8 @@ interface Props {
   projectionYear: number;
 }
 
-/** Rookie/College badge components for the player name cell. */
+/** College fallback badge for players with no NFL track record. */
 function ProjectionBadges({ method }: { method: string }) {
-  if (method === "rookie_trajectory") {
-    return (
-      <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-        Rookie
-      </span>
-    );
-  }
   if (method === "college_prospect") {
     return (
       <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300">

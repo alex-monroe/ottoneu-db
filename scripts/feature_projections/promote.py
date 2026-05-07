@@ -63,6 +63,26 @@ def promote_model(model_name: str) -> int:
 
     print(f"Promoting {len(records)} projections from model '{model_name}' to player_projections...")
 
+    # Idempotency: clear ghost rows from previously-active models before upserting.
+    # Without this, a player projected by the prior active model but NOT by the new
+    # one keeps the stale row forever (upsert is keyed on player_id+season, so it
+    # only overwrites rows the new model actually generates). College/rookie
+    # fallback rows are preserved — update_projections.py layers them on after
+    # promotion using projection_method='college_prospect'.
+    seasons_to_clear = sorted({rec["season"] for rec in records})
+    for season in seasons_to_clear:
+        deleted = (
+            supabase.table("player_projections")
+            .delete()
+            .eq("season", season)
+            .neq("projection_method", "college_prospect")
+            .execute()
+        )
+        print(
+            f"  Cleared {len(deleted.data or [])} prior-model rows "
+            f"for season {season} (kept college_prospect rows)"
+        )
+
     # Batch upsert to player_projections
     batch_size = 500
     for i in range(0, len(records), batch_size):
