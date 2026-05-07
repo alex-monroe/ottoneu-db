@@ -237,6 +237,44 @@ export type Database = {
           },
         ]
       }
+      draft_capital: {
+        Row: {
+          created_at: string
+          id: string
+          overall_pick: number
+          player_id: string
+          round: number
+          season_drafted: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          overall_pick: number
+          player_id: string
+          round: number
+          season_drafted: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          overall_pick?: number
+          player_id?: string
+          round?: number
+          season_drafted?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "draft_capital_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: true
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       league_prices: {
         Row: {
           created_at: string
@@ -322,6 +360,7 @@ export type Database = {
       }
       nfl_stats: {
         Row: {
+          air_yards_share: number | null
           completions: number | null
           created_at: string
           defense_snaps: number | null
@@ -338,6 +377,8 @@ export type Database = {
           pat_made: number | null
           player_id: string
           ppg: number | null
+          racr: number | null
+          receiving_air_yards: number | null
           receiving_tds: number | null
           receiving_yards: number | null
           recent_team: string | null
@@ -347,12 +388,15 @@ export type Database = {
           rushing_yards: number | null
           season: number
           st_snaps: number | null
+          target_share: number | null
           targets: number | null
           total_points: number | null
           total_snaps: number | null
           updated_at: string
+          wopr: number | null
         }
         Insert: {
+          air_yards_share?: number | null
           completions?: number | null
           created_at?: string
           defense_snaps?: number | null
@@ -369,6 +413,8 @@ export type Database = {
           pat_made?: number | null
           player_id: string
           ppg?: number | null
+          racr?: number | null
+          receiving_air_yards?: number | null
           receiving_tds?: number | null
           receiving_yards?: number | null
           recent_team?: string | null
@@ -378,12 +424,15 @@ export type Database = {
           rushing_yards?: number | null
           season: number
           st_snaps?: number | null
+          target_share?: number | null
           targets?: number | null
           total_points?: number | null
           total_snaps?: number | null
           updated_at?: string
+          wopr?: number | null
         }
         Update: {
+          air_yards_share?: number | null
           completions?: number | null
           created_at?: string
           defense_snaps?: number | null
@@ -400,6 +449,8 @@ export type Database = {
           pat_made?: number | null
           player_id?: string
           ppg?: number | null
+          racr?: number | null
+          receiving_air_yards?: number | null
           receiving_tds?: number | null
           receiving_yards?: number | null
           recent_team?: string | null
@@ -409,10 +460,12 @@ export type Database = {
           rushing_yards?: number | null
           season?: number
           st_snaps?: number | null
+          target_share?: number | null
           targets?: number | null
           total_points?: number | null
           total_snaps?: number | null
           updated_at?: string
+          wopr?: number | null
         }
         Relationships: [
           {
@@ -465,91 +518,49 @@ export type Database = {
       player_stats: {
         Row: {
           created_at: string
-          fg_made_0_39: number | null
-          fg_made_40_49: number | null
-          fg_made_50_plus: number | null
           games_played: number | null
           h1_games: number | null
           h1_snaps: number | null
           h2_games: number | null
           h2_snaps: number | null
           id: string
-          interceptions: number | null
-          passing_tds: number | null
-          passing_yards: number | null
-          pat_made: number | null
           player_id: string
           ppg: number | null
           pps: number | null
-          receiving_tds: number | null
-          receiving_yards: number | null
-          receptions: number | null
-          rushing_attempts: number | null
-          rushing_tds: number | null
-          rushing_yards: number | null
           season: number
           snaps: number | null
-          targets: number | null
           total_points: number | null
           updated_at: string
         }
         Insert: {
           created_at?: string
-          fg_made_0_39?: number | null
-          fg_made_40_49?: number | null
-          fg_made_50_plus?: number | null
           games_played?: number | null
           h1_games?: number | null
           h1_snaps?: number | null
           h2_games?: number | null
           h2_snaps?: number | null
           id?: string
-          interceptions?: number | null
-          passing_tds?: number | null
-          passing_yards?: number | null
-          pat_made?: number | null
           player_id: string
           ppg?: number | null
           pps?: number | null
-          receiving_tds?: number | null
-          receiving_yards?: number | null
-          receptions?: number | null
-          rushing_attempts?: number | null
-          rushing_tds?: number | null
-          rushing_yards?: number | null
           season: number
           snaps?: number | null
-          targets?: number | null
           total_points?: number | null
           updated_at?: string
         }
         Update: {
           created_at?: string
-          fg_made_0_39?: number | null
-          fg_made_40_49?: number | null
-          fg_made_50_plus?: number | null
           games_played?: number | null
           h1_games?: number | null
           h1_snaps?: number | null
           h2_games?: number | null
           h2_snaps?: number | null
           id?: string
-          interceptions?: number | null
-          passing_tds?: number | null
-          passing_yards?: number | null
-          pat_made?: number | null
           player_id?: string
           ppg?: number | null
           pps?: number | null
-          receiving_tds?: number | null
-          receiving_yards?: number | null
-          receptions?: number | null
-          rushing_attempts?: number | null
-          rushing_tds?: number | null
-          rushing_yards?: number | null
           season?: number
           snaps?: number | null
-          targets?: number | null
           total_points?: number | null
           updated_at?: string
         }
@@ -738,6 +749,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      team_vegas_lines: {
+        Row: {
+          created_at: string
+          id: string
+          implied_total: number
+          season: number
+          team: string
+          updated_at: string
+          win_total: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          implied_total: number
+          season: number
+          team: string
+          updated_at?: string
+          win_total?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          implied_total?: number
+          season?: number
+          team?: string
+          updated_at?: string
+          win_total?: number | null
+        }
+        Relationships: []
       }
       transactions: {
         Row: {

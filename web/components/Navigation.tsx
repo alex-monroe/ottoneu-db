@@ -30,6 +30,7 @@ const PRIVATE_GROUPS = [
       { href: "/projected-salary", label: "Projected Salary" },
       { href: "/projections", label: "Projections" },
       { href: "/projection-accuracy", label: "Proj. Accuracy" },
+      { href: "/vegas-lines", label: "Vegas Lines" },
     ],
   },
   {

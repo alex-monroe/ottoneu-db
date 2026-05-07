@@ -11,6 +11,7 @@ export const PROTECTED_ROUTES = [
   "/arbitration-planner",
   "/projections",
   "/projection-accuracy",
+  "/vegas-lines",
 ];
 
 export const ADMIN_ROUTES = ["/admin"];
