@@ -10,7 +10,7 @@ import { supabase } from "./supabase";
 export interface TeamVegasLine {
   team: string;
   season: number;
-  implied_total: number;
+  implied_total: number | null;
   win_total: number | null;
 }
 
