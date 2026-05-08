@@ -16,6 +16,7 @@ Next.js App Router. Most pages are server components that fetch live data from S
 | `/projected-salary` | Keep vs cut decisions for The Witchcraft |
 | `/projections` | Player projections table (reads `player_projections`) |
 | `/projection-accuracy` | Model backtest accuracy explorer |
+| `/vegas-lines` | Preseason Vegas implied team totals + win totals by season, grouped by NFL division |
 | `/vorp` | VORP analysis with bar chart and filterable table |
 | `/surplus-value` | Surplus value rankings, bargains, overpaid, team summaries |
 | `/surplus-adjustments` | Per-user manual value overrides (auth required) |
@@ -38,6 +39,10 @@ Next.js App Router. Most pages are server components that fetch live data from S
 | `PlayerName` | Player name renderer with link/hover-card/plain-text modes |
 | `StatValue` | Numeric stat formatter with currency/decimal/number/null handling |
 | `PlayerHoverCard` | Rich hover preview card for player context |
+| `ActiveModelCard` | Server component that renders the currently-active projection model's name, version, description, and feature list. Used on `/projections`, `/arbitration` (projected mode), and `/projection-accuracy` so methodology copy follows whichever model has `is_active=TRUE` in `projection_models` |
+| `ProjectionYearSelector` | Season picker for projection-driven views |
+| `PositionTierBreakdown` | Per-position tier summary (elite / starter / bench) used in projection accuracy and surplus views |
+| `GlobalPlayerSearch` | Repo-wide player search box rendered in the navigation bar |
 
 ### Column Factories (`components/columns.tsx`)
 
@@ -59,7 +64,7 @@ Shared type definitions in `web/lib/types.ts`:
 
 ## Analysis Logic
 
-Analysis math is ported to `web/lib/analysis.ts` (TS equivalent of `scripts/analysis_utils.py`). Arbitration simulation logic lives in `web/lib/arb-logic.ts`.
+Analysis math is ported to `web/lib/analysis.ts` (TS equivalent of `scripts/analysis_utils.py`). Arbitration simulation logic lives in `web/lib/arb-logic.ts`. Vegas lines fetch helpers live in `web/lib/vegas-lines.ts`, and division/team-code mapping for the `/vegas-lines` page is in `web/lib/nfl-divisions.ts`.
 
 ## Configuration
 
