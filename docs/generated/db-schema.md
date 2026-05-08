@@ -24,7 +24,7 @@ Nineteen tables, all with UUID primary keys.
 | `arbitration_progress_teams` | Per-team arbitration completion status | `(league_id, season, team_name)` |
 | `arbitration_allocation_details` | Per-team individual allocation breakdowns (which team allocated how much to which player) | `(league_id, season, ottoneu_id, allocating_team_name)` |
 | `draft_capital` | NFL draft pick metadata sourced from nflverse `draft_picks` (FK -> `players`) | `(player_id)` |
-| `team_vegas_lines` | Per-team-season Vegas implied total + Pythagorean win total, aggregated from nflverse `games.csv` | `(team, season)` |
+| `team_vegas_lines` | Per-team-season Vegas implied total + preseason win total, aggregated from nflverse `games.csv` (implied) and seeded sportsbook lines (win total) | `(team, season)` |
 
 ### Projection tables detail
 
@@ -64,6 +64,19 @@ Ottoneu fantasy data only: `games_played`, `snaps`, `ppg`, `pps`, `h1_snaps`, `h
 Core stat columns: `games_played`, `passing_yards`, `passing_tds`, `interceptions`, `passing_attempts`, `completions`, `rushing_yards`, `rushing_tds`, `rushing_attempts`, `receptions`, `targets`, `receiving_yards`, `receiving_tds`, `fg_made_0_39`, `fg_made_40_49`, `fg_made_50_plus`, `pat_made`, `total_points`, `ppg`, `offense_snaps`, `defense_snaps`, `st_snaps`, `total_snaps`, `recent_team`.
 
 Advanced receiving (added in migration 022, populated for 2018+ via nflverse `stats_player`): `target_share`, `air_yards_share`, `wopr` (Weighted Opportunity Rating), `racr` (Receiver Air Conversion Ratio), `receiving_air_yards`.
+
+### `draft_capital` columns (migration 023)
+
+`player_id` (FK -> `players`, unique), `season_drafted` int, `round` int, `overall_pick` int. Indexed on `player_id` and `season_drafted`. Populated by `scripts/backfill_draft_capital.py` from nflverse `draft_picks`. Consumed by the `draft_capital_raw` projection feature.
+
+### `team_vegas_lines` columns (migrations 024–025)
+
+`team` text, `season` int, `implied_total` numeric(6,2) **NULLABLE** (migration 025), `win_total` numeric(4,1) nullable. Unique on `(team, season)`; indexed on `team` and `season`. Populated by:
+
+- `scripts/backfill_vegas_lines.py` — derives `implied_total` (and `win_total` as a Pythagorean estimate) from nflverse `games.csv` once the NFL schedule is published.
+- `scripts/seed_preseason_win_totals.py` — hand-curated `win_total` rows seeded in March/April when sportsbooks publish season-long lines but the schedule has not yet been released. `implied_total` is left NULL on these rows and backfilled later. Migration 025 dropped the NOT NULL constraint to support this two-stage seed/backfill flow.
+
+Consumed by the `implied_team_total_raw` projection feature, which returns `None` when `implied_total` is missing — the learned ridge then substitutes `0.0` (~league mean after centering), so v27 gracefully degrades to roughly v23 behavior in the preseason gap.
 
 ## Schema Files
 
