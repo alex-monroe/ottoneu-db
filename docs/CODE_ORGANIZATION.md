@@ -19,6 +19,9 @@
 | Components | `web/components/` | Reusable React components |
 | Pages | `web/app/` | Next.js App Router pages |
 | Feature projections | `scripts/feature_projections/` | Feature-based projection system (features, combiner, runner, backtest, CLI) |
+| Backfill/seed scripts | `scripts/backfill_*.py`, `scripts/seed_*.py` | One-off data loaders (NFL stats, draft capital, Vegas lines, preseason win totals) |
+| Vegas / divisions helpers | `web/lib/vegas-lines.ts`, `web/lib/nfl-divisions.ts` | Server fetchers + division/team-code lookups for the `/vegas-lines` page |
+| Active model card | `web/components/ActiveModelCard.tsx` | Server component that renders the live `projection_models.is_active` metadata across projection pages |
 | Data files | `data/` | Manual config data (QB starters, etc.) |
 | CI/CD | `.github/workflows/` | GitHub Actions (tests, scraping, projections) |
 

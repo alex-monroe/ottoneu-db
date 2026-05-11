@@ -15,25 +15,37 @@ Iterative, ML-like framework for building PPG projections from composable featur
 ```
 scripts/feature_projections/
   features/
-    base.py              # ProjectionFeature ABC
-    weighted_ppg.py      # Port of existing WeightedAveragePPG + RookieTrajectoryPPG
-    age_curve.py         # Positional age curve from birth_date
-    stat_efficiency.py   # Per-stat projection from nfl_stats → PPG
-    games_played.py      # Availability/durability adjustment
-    team_context.py      # Team offense quality adjustment
-    usage_share.py       # Target/touch/attempt share projection
+    base.py                  # ProjectionFeature ABC
+    weighted_ppg.py          # Port of existing WeightedAveragePPG + RookieTrajectoryPPG; also WeightedPPGNoQBTrajectoryFeature
+    age_curve.py             # Positional age curve from birth_date
+    stat_efficiency.py       # Per-stat projection from nfl_stats → PPG
+    games_played.py          # Availability/durability adjustment
+    team_context.py          # Team offense quality adjustment
+    usage_share.py           # Target/touch/attempt share projection
+    qb_starter_usage.py      # Manual QB starter-vs-backup designation (v14+)
+    regression_to_mean.py    # Tiered mean-reversion (v8, v21 negative-factor variant)
+    snap_trend.py            # Snap-share trajectory adjustment
+    advanced_receiving.py    # target_share, air_yards_share, wopr, racr from nflverse (v22)
+    draft_capital.py         # NFL draft round/overall pick as a raw feature (v23/v25/v27)
+    vegas_team_total.py      # Preseason Vegas implied team total as a raw feature (v26/v27)
   external_sources/
-    fantasypros_fetcher.py  # Scrape FP consensus projections
-    scoring.py              # Stat-line → Ottoneu PPG
-    player_matcher.py       # Fuzzy name matching to players table
-    ingest_external.py      # Register + upsert external model
-  combiner.py            # Weighted addition of feature outputs → final PPG
-  model_config.py        # Model definitions (v1-v6 + external)
-  runner.py              # Generate projections, upsert to model_projections
-  backtest.py            # Compare to actuals, store in backtest_results
-  accuracy_report.py     # Markdown comparison table across all models/seasons
-  promote.py             # Copy model_projections → player_projections
-  cli.py                 # CLI: run, backtest, compare, promote, list
+    fantasypros_fetcher.py   # Scrape FP consensus projections
+    scoring.py               # Stat-line → Ottoneu PPG
+    player_matcher.py        # Fuzzy name matching to players table
+    ingest_external.py       # Register + upsert external model
+  trained_models/            # JSON artifacts for learned (Ridge) models (v20+, v22, v23, v25, v26, v27)
+  combiner.py                # Weighted addition of feature outputs → final PPG
+  learned_combiner.py        # Ridge combiner used by learned (v20+) models
+  model_config.py            # Model registry (v1–v27 internal + external)
+  runner.py                  # Generate projections, upsert to model_projections
+  backtest.py                # Compare to actuals, store in backtest_results
+  accuracy_report.py         # Markdown comparison table across all models/seasons
+  promote.py                 # Copy model_projections → player_projections (also deletes prior non-college rows per season to prevent ghost rows)
+  train_model.py             # Fit Ridge coefficients via LOSO CV → trained_models/*.json
+  diagnostics.py             # Per-player backtest diagnostics
+  segment_analysis.py        # Segmented accuracy analysis
+  hypothesis_test.py / feature_analysis.py / residual_analysis.py  # Model iteration tooling
+  cli.py                     # CLI: run, backtest, compare, promote, list, diagnostics, segment-analysis
 ```
 
 ---
@@ -223,5 +235,5 @@ See [projection-accuracy-improvement.md](projection-accuracy-improvement.md) for
 | Phase 1: Foundation (tables, base class, runner) | ✅ Complete | |
 | Phase 2: Features v1–v6 + CLI | ✅ Complete | |
 | Phase 3: Backtest + accuracy report + external benchmark | ✅ Complete | FantasyPros ingested 2022–2025 |
-| Phase 4: Model comparison UI | Deferred | Low ROI given backtest results; v2 dominates |
-| Phase 5: Production integration | In progress | v2 should be promoted; run `promote --model v2_age_adjusted` |
+| Phase 4: Model comparison UI | Deferred | Low ROI given backtest results |
+| Phase 5: Production integration | ✅ Live | `update_projections.py` reads `projection_models.is_active` dynamically; `<ActiveModelCard />` surfaces the live model name + feature list on `/projections`, `/arbitration`, `/projection-accuracy`. Subsequent model work (v7–v27, including learned/Ridge models, advanced receiving, draft capital, Vegas) is tracked in [projection-accuracy-improvement.md](projection-accuracy-improvement.md). |
