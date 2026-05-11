@@ -24,7 +24,7 @@ Nineteen tables, all with UUID primary keys.
 | `arbitration_progress_teams` | Per-team arbitration completion status | `(league_id, season, team_name)` |
 | `arbitration_allocation_details` | Per-team individual allocation breakdowns (which team allocated how much to which player) | `(league_id, season, ottoneu_id, allocating_team_name)` |
 | `draft_capital` | NFL draft pick metadata sourced from nflverse `draft_picks` (FK -> `players`) | `(player_id)` |
-| `team_vegas_lines` | Per-team-season Vegas implied total + Pythagorean win total, aggregated from nflverse `games.csv` | `(team, season)` |
+| `team_vegas_lines` | Per-team-season Vegas implied total + win total. `implied_total` (nullable) is aggregated from nflverse `games.csv` per-game lines; `win_total` is either Pythagorean (when backfilled from games) or hand-curated from preseason sportsbook reporting (when seeded via `scripts/seed_preseason_win_totals.py` before the NFL schedule is released) | `(team, season)` |
 
 ### Projection tables detail
 
