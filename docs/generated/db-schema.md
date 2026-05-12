@@ -24,7 +24,7 @@ Nineteen tables, all with UUID primary keys.
 | `arbitration_progress_teams` | Per-team arbitration completion status | `(league_id, season, team_name)` |
 | `arbitration_allocation_details` | Per-team individual allocation breakdowns (which team allocated how much to which player) | `(league_id, season, ottoneu_id, allocating_team_name)` |
 | `draft_capital` | NFL draft pick metadata sourced from nflverse `draft_picks` (FK -> `players`) | `(player_id)` |
-| `team_vegas_lines` | Per-team-season Vegas implied total + Pythagorean win total, aggregated from nflverse `games.csv` | `(team, season)` |
+| `team_vegas_lines` | Per-team-season Vegas implied total + Pythagorean win total, aggregated from nflverse `games.csv`. `implied_total` is nullable (mig 025) — preseason rows can be seeded with `win_total` only and have `implied_total` backfilled once the schedule is released | `(team, season)` |
 
 ### Projection tables detail
 
@@ -64,6 +64,14 @@ Ottoneu fantasy data only: `games_played`, `snaps`, `ppg`, `pps`, `h1_snaps`, `h
 Core stat columns: `games_played`, `passing_yards`, `passing_tds`, `interceptions`, `passing_attempts`, `completions`, `rushing_yards`, `rushing_tds`, `rushing_attempts`, `receptions`, `targets`, `receiving_yards`, `receiving_tds`, `fg_made_0_39`, `fg_made_40_49`, `fg_made_50_plus`, `pat_made`, `total_points`, `ppg`, `offense_snaps`, `defense_snaps`, `st_snaps`, `total_snaps`, `recent_team`.
 
 Advanced receiving (added in migration 022, populated for 2018+ via nflverse `stats_player`): `target_share`, `air_yards_share`, `wopr` (Weighted Opportunity Rating), `racr` (Receiver Air Conversion Ratio), `receiving_air_yards`.
+
+### `draft_capital` columns
+
+`player_id` (FK), `season_drafted`, `round`, `overall_pick`. One row per drafted player (UNIQUE on `player_id`). Populated by `scripts/backfill_draft_capital.py` from the nflverse `draft_picks` parquet.
+
+### `team_vegas_lines` columns
+
+`team`, `season`, `implied_total numeric(6,2)` (nullable since mig 025), `win_total numeric(4,1)` (nullable). One row per team-season (UNIQUE on `(team, season)`). Backfilled from nflverse `games.csv` via `scripts/backfill_vegas_lines.py`; preseason `win_total` is hand-seeded via `scripts/seed_preseason_win_totals.py`.
 
 ## Schema Files
 
