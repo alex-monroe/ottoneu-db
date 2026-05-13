@@ -104,7 +104,7 @@ When any task modifies the projection system — including `scripts/feature_proj
    - The task output / conversation summary
    - The PR description body under a `## Projection Accuracy` section
 3. **Highlight improvements** — call out which metrics improved vs the baseline (`v1_baseline_weighted_ppg`) in the PR description narrative above the table.
-4. **Update UI methodology text** when changing `ACTIVE_MODEL` in `update_projections.py`. The pages `web/app/projections/page.tsx` and `web/app/arbitration/page.tsx` contain hardcoded methodology descriptions that must reflect the active model's feature set.
+4. **Promote** the new model with `just promote <name>` (or `venv/bin/python scripts/feature_projections/promote.py <name>`) to flip `is_active=TRUE` in `projection_models`. The UI methodology is rendered by `<ActiveModelCard>` (`web/components/ActiveModelCard.tsx`) which reads the active model from the database via `fetchActiveProjectionModel()` — no page-level edits required when swapping models. Only update the per-page surrounding copy (e.g. the rookie/college fallback note in `web/app/projections/page.tsx`) if the new model changes that behavior.
 
 This ensures every projection change is empirically validated before merge.
 
