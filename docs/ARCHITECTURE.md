@@ -35,7 +35,12 @@ Jobs support dependencies, retries (up to 3 attempts), and batch grouping. `otto
 `nfl_stats` stores pure NFL statistical data from nflverse-data (2010–present), kept separate from the Ottoneu fantasy data in `player_stats`. Backfilled via `scripts/backfill_nfl_stats.py` or the `Backfill NFL Stats` GitHub Action.
 
 - **`player_stats`** = Ottoneu fantasy data (total_points, ppg, pps, snaps from scraping)
-- **`nfl_stats`** = Real NFL stats (passing_yards, rushing_tds, snap counts, etc. from nflverse)
+- **`nfl_stats`** = Real NFL stats (passing_yards, rushing_tds, snap counts, advanced receiving (`target_share`, `air_yards_share`, `wopr`, `racr`, `receiving_air_yards`) from nflverse)
+
+### Auxiliary signal tables (orthogonal to game-log stats)
+
+- **`draft_capital`** — NFL draft round + overall pick per player, backfilled from nflverse `draft_picks` via `scripts/backfill_draft_capital.py`. Consumed by the `draft_capital_raw` feature and by the rookie/college-prospect fallback path in `update_projections.py` (which fits a per-position OLS of historical year-1 PPG against log-scaled overall pick).
+- **`team_vegas_lines`** — Per-(team, season) regular-season implied points-for and Pythagorean win total, aggregated from nflverse `games.csv` via `scripts/backfill_vegas_lines.py`. `implied_total` is nullable so preseason win totals can be seeded via `scripts/seed_preseason_win_totals.py` before the NFL schedule drops. Consumed by the `implied_team_total_raw` feature.
 
 ### Worker Task Modules (`scripts/tasks/`)
 

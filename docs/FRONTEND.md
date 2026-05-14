@@ -10,12 +10,14 @@ Next.js App Router. Most pages are server components that fetch live data from S
 |-------|-------------|
 | `/` | Player Efficiency scatter chart (PPG/PPS vs salary) |
 | `/players` | Searchable player directory |
+| `/players/[id]` | Per-player card: bio, salary, projections, season-by-season stats |
 | `/rosters` | League-wide roster view |
 | `/arb-progress` | Public arbitration progress: team completion status and allocation details |
 | `/arb-planner-public` | Public (read-only) arbitration planner view |
 | `/projected-salary` | Keep vs cut decisions for The Witchcraft |
 | `/projections` | Player projections table (reads `player_projections`) |
 | `/projection-accuracy` | Model backtest accuracy explorer |
+| `/vegas-lines` | Preseason Vegas implied totals + win totals per team (reads `team_vegas_lines`) |
 | `/vorp` | VORP analysis with bar chart and filterable table |
 | `/surplus-value` | Surplus value rankings, bargains, overpaid, team summaries |
 | `/surplus-adjustments` | Per-user manual value overrides (auth required) |

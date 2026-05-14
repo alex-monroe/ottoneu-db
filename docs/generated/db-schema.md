@@ -17,14 +17,14 @@ Nineteen tables, all with UUID primary keys.
 | `arbitration_plans` | Named arbitration budget allocation plans per user (FK -> `users`) | `(league_id, name, user_id)` |
 | `arbitration_plan_allocations` | Per-player dollar allocations within a plan (FK -> `arbitration_plans`, `players`) | `(plan_id, player_id)` |
 | `scraper_jobs` | Persistent job queue with status tracking, dependencies, and retry logic | -- |
-| `projection_models` | Registry of versioned projection models (internal feature-based v1–v21+ and external sources) | `(name, version)` |
+| `projection_models` | Registry of versioned projection models (internal feature-based v1–v27+ and external sources) | `(name, version)` |
 | `model_projections` | Per-model projected PPG with raw feature values (FK -> `projection_models`, `players`) | `(model_id, player_id, season)` |
 | `backtest_results` | Cached accuracy metrics per model × season × position (FK -> `projection_models`) | `(model_id, season, position)` |
 | `arbitration_progress` | Scraped player allocation data from Ottoneu arbitration page | -- |
 | `arbitration_progress_teams` | Per-team arbitration completion status | `(league_id, season, team_name)` |
 | `arbitration_allocation_details` | Per-team individual allocation breakdowns (which team allocated how much to which player) | `(league_id, season, ottoneu_id, allocating_team_name)` |
 | `draft_capital` | NFL draft pick metadata sourced from nflverse `draft_picks` (FK -> `players`) | `(player_id)` |
-| `team_vegas_lines` | Per-team-season Vegas implied total + Pythagorean win total, aggregated from nflverse `games.csv` | `(team, season)` |
+| `team_vegas_lines` | Per-team-season Vegas implied total + Pythagorean win total, aggregated from nflverse `games.csv`. `implied_total` is nullable so preseason win totals can be seeded before the NFL schedule is released (see migration 025). | `(team, season)` |
 
 ### Projection tables detail
 
@@ -64,6 +64,24 @@ Ottoneu fantasy data only: `games_played`, `snaps`, `ppg`, `pps`, `h1_snaps`, `h
 Core stat columns: `games_played`, `passing_yards`, `passing_tds`, `interceptions`, `passing_attempts`, `completions`, `rushing_yards`, `rushing_tds`, `rushing_attempts`, `receptions`, `targets`, `receiving_yards`, `receiving_tds`, `fg_made_0_39`, `fg_made_40_49`, `fg_made_50_plus`, `pat_made`, `total_points`, `ppg`, `offense_snaps`, `defense_snaps`, `st_snaps`, `total_snaps`, `recent_team`.
 
 Advanced receiving (added in migration 022, populated for 2018+ via nflverse `stats_player`): `target_share`, `air_yards_share`, `wopr` (Weighted Opportunity Rating), `racr` (Receiver Air Conversion Ratio), `receiving_air_yards`.
+
+### `draft_capital` columns
+
+- `player_id` UUID FK -> `players` (unique)
+- `season_drafted` int — draft year
+- `round` int — draft round (1–7)
+- `overall_pick` int — overall pick number
+
+Backfilled from nflverse `draft_picks` parquet via `scripts/backfill_draft_capital.py` (default since 2010). Consumed by the `draft_capital_raw` feature (v23+, v25, v27) to inject pre-NFL signal into rookie and early-career projections. The `--update-rosters` flag also flips matched college players to NFL and inserts new player rows for fresh drafts.
+
+### `team_vegas_lines` columns
+
+- `team` text — NFL team abbreviation
+- `season` int
+- `implied_total` numeric(6,2), **nullable** — sum of per-game implied points-for across the regular season, derived from nflverse `games.csv` `spread_line` + `total_line`
+- `win_total` numeric(4,1) — Pythagorean expectation `PF^k / (PF^k + PA^k) * games` with k=2.37, OR preseason sportsbook win total when `implied_total` is null
+
+Backfilled via `scripts/backfill_vegas_lines.py` (nflverse games, 2016+) and seeded via `scripts/seed_preseason_win_totals.py` (hand-curated sportsbook win totals for upcoming seasons). Consumed by the `implied_team_total_raw` feature (v26, v27) to inject market expectations into season projections.
 
 ## Schema Files
 
