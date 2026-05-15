@@ -84,6 +84,12 @@ python scripts/feature_projections/feature_analysis.py --model v20_learned_usage
 python scripts/feature_projections/residual_analysis.py --model v20_learned_usage --seasons 2022,2023,2024,2025  # Residual distribution, heteroscedasticity, persistent errors
 python scripts/feature_projections/residual_analysis.py --model v20_learned_usage --seasons 2022,2023,2024,2025 --output docs/generated/residual-analysis.md  # Write markdown report
 
+# Backfills / Seeds
+python scripts/backfill_nfl_stats.py --seasons 2024                   # Backfill nfl_stats from nflverse (incl. advanced receiving cols for 2018+)
+python scripts/backfill_draft_capital.py --since 2010                 # Backfill draft_capital from nflverse draft_picks
+python scripts/backfill_vegas_lines.py --since 2016                   # Backfill team_vegas_lines from nflverse games.csv
+python scripts/seed_preseason_win_totals.py --season 2026             # Seed preseason win_total rows before schedule release
+
 # Utilities
 python scripts/check_db.py                           # Verify database contents
 streamlit run scripts/visualize_app.py               # Streamlit dashboard
@@ -122,6 +128,15 @@ just compare <models> [season]                      # Compare two or more models
 just diagnostics [--model <m>] [--season <s>] ...  # Per-player diagnostics
 just segment-analysis [--segments <s>] ...          # Segmented accuracy analysis
 just accuracy-report [--run-backtest] ...           # Generate accuracy report
+
+# Backfills / seeds (variadic — pass --dry-run, --since, --seasons, etc. through)
+just backfill-nfl-stats [--seasons 2024]            # Backfill nfl_stats from nflverse (per-season)
+just backfill-draft-capital [--since 2010]          # Backfill draft_capital from nflverse draft_picks
+just backfill-vegas [--since 2016]                  # Backfill team_vegas_lines from nflverse games.csv
+just seed-win-totals --season 2026                  # Seed preseason win_total rows (implied_total left NULL until schedule lands)
+
+# Ad-hoc DB inspection
+just py "<python snippet>"                          # Run a one-off Python snippet against the project venv
 ```
 
 ## Daily Scheduling (cron)
