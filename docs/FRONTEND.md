@@ -22,6 +22,7 @@ Next.js App Router. Most pages are server components that fetch live data from S
 | `/arbitration` | Arbitration targets with per-opponent breakdown |
 | `/arbitration-simulation` | Monte Carlo arbitration simulation |
 | `/arbitration-planner` | Plan and save arbitration budget allocations (auth required) |
+| `/vegas-lines` | Preseason Vegas lines review (per-team implied totals + win totals by season) |
 | `/login` | Email/password login |
 | `/admin` | User management (admin only) |
 
@@ -38,6 +39,7 @@ Next.js App Router. Most pages are server components that fetch live data from S
 | `PlayerName` | Player name renderer with link/hover-card/plain-text modes |
 | `StatValue` | Numeric stat formatter with currency/decimal/number/null handling |
 | `PlayerHoverCard` | Rich hover preview card for player context |
+| `ActiveModelCard` | Renders the live active projection model (name, version, description, features) from `fetchActiveProjectionModel()` — shown on `/projections`, `/arbitration` (projected mode), `/projection-accuracy`. Never hardcode model names in UI copy. |
 
 ### Column Factories (`components/columns.tsx`)
 
