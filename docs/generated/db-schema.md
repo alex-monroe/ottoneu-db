@@ -17,7 +17,7 @@ Nineteen tables, all with UUID primary keys.
 | `arbitration_plans` | Named arbitration budget allocation plans per user (FK -> `users`) | `(league_id, name, user_id)` |
 | `arbitration_plan_allocations` | Per-player dollar allocations within a plan (FK -> `arbitration_plans`, `players`) | `(plan_id, player_id)` |
 | `scraper_jobs` | Persistent job queue with status tracking, dependencies, and retry logic | -- |
-| `projection_models` | Registry of versioned projection models (internal feature-based v1–v21+ and external sources) | `(name, version)` |
+| `projection_models` | Registry of versioned projection models (internal feature-based v1–v27+ and external sources) | `(name, version)` |
 | `model_projections` | Per-model projected PPG with raw feature values (FK -> `projection_models`, `players`) | `(model_id, player_id, season)` |
 | `backtest_results` | Cached accuracy metrics per model × season × position (FK -> `projection_models`) | `(model_id, season, position)` |
 | `arbitration_progress` | Scraped player allocation data from Ottoneu arbitration page | -- |
@@ -54,6 +54,31 @@ Nineteen tables, all with UUID primary keys.
 - `r_squared` float — goodness of fit
 - `rmse` float — Root Mean Square Error
 - `player_count` int — sample size for this season × position
+
+**`player_projections`**
+- `player_id` UUID FK -> `players`
+- `season` int
+- `projected_ppg` numeric
+- `projection_method` text — set by `promote.py` to the active model's name (e.g. `v22_advanced_receiving`) for the main path. Rookie fallback rows written by `update_projections.py` use `rookie_draft_capital` (drafted rookies, projected via per-position OLS on log-overall-pick) or `college_prospect` (undrafted, position-mean rookie PPG). Promotion preserves rows tagged with the two rookie methods so they survive across model swaps.
+
+### `draft_capital` columns (migration 023)
+
+- `player_id` UUID FK -> `players` (unique — one row per player)
+- `season_drafted` int — NFL draft year
+- `round` int
+- `overall_pick` int
+
+Sourced from nflverse `draft_picks` via `scripts/backfill_draft_capital.py`. Powers the `draft_capital_raw` feature (log-scaled overall pick for first three NFL seasons, zero for veterans) consumed by v23/v25/v27 and the rookie fallback projection path.
+
+### `team_vegas_lines` columns (migrations 024/025)
+
+- `team` text — nflverse team abbreviation
+- `season` int
+- `implied_total` numeric(6,2), **nullable** — sum of per-game Vegas implied points across the regular season. Nullable so we can seed `win_total` in March/April before the NFL schedule (and therefore per-game lines) is released; backfill fills this in once nflverse picks up the schedule.
+- `win_total` numeric(4,1), nullable — sportsbook preseason win total.
+- Unique on `(team, season)`. Indexed on `season` and `team`.
+
+Populated by `scripts/backfill_vegas_lines.py` (full season aggregation from nflverse `games.csv`) and `scripts/seed_preseason_win_totals.py` (hand-curated preseason win totals for the upcoming season). Powers the `implied_team_total_raw` feature consumed by v26/v27. The feature returns `None` when `implied_total` is null, so those samples contribute zero through the learned ridge.
 
 ### `player_stats` columns
 
