@@ -17,14 +17,14 @@ Nineteen tables, all with UUID primary keys.
 | `arbitration_plans` | Named arbitration budget allocation plans per user (FK -> `users`) | `(league_id, name, user_id)` |
 | `arbitration_plan_allocations` | Per-player dollar allocations within a plan (FK -> `arbitration_plans`, `players`) | `(plan_id, player_id)` |
 | `scraper_jobs` | Persistent job queue with status tracking, dependencies, and retry logic | -- |
-| `projection_models` | Registry of versioned projection models (internal feature-based v1–v21+ and external sources) | `(name, version)` |
+| `projection_models` | Registry of versioned projection models (internal feature-based v1–v27+ and external sources) | `(name, version)` |
 | `model_projections` | Per-model projected PPG with raw feature values (FK -> `projection_models`, `players`) | `(model_id, player_id, season)` |
 | `backtest_results` | Cached accuracy metrics per model × season × position (FK -> `projection_models`) | `(model_id, season, position)` |
 | `arbitration_progress` | Scraped player allocation data from Ottoneu arbitration page | -- |
 | `arbitration_progress_teams` | Per-team arbitration completion status | `(league_id, season, team_name)` |
 | `arbitration_allocation_details` | Per-team individual allocation breakdowns (which team allocated how much to which player) | `(league_id, season, ottoneu_id, allocating_team_name)` |
 | `draft_capital` | NFL draft pick metadata sourced from nflverse `draft_picks` (FK -> `players`) | `(player_id)` |
-| `team_vegas_lines` | Per-team-season Vegas implied total + Pythagorean win total, aggregated from nflverse `games.csv` | `(team, season)` |
+| `team_vegas_lines` | Per-team-season Vegas implied total + Pythagorean win total, aggregated from nflverse `games.csv`. `implied_total` is nullable (migration 025) so preseason win totals can be seeded before the schedule is released. | `(team, season)` |
 
 ### Projection tables detail
 
