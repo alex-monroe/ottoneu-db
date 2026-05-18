@@ -7,17 +7,17 @@ Follow these steps to diagnose projection accuracy for a specific player segment
 
 1. **Parse the segment description from arguments.** Examples: "bench WR", "elite QB", "rookies", "age 30+", "high-usage RB". If no segment specified, ask the user.
 
-2. **Run segment analysis** to get accuracy broken down by segments:
+2. **Run segment analysis** to get accuracy broken down by segments. Compare the baseline against the current active model (and optionally a recent winner for trend context — as of 2026-05-18 the active model is `v27_vegas_full_refit`):
    ```bash
    source venv/bin/activate && python scripts/feature_projections/cli.py segment-analysis \
-     --models v1_baseline_weighted_ppg,v14_qb_starter,v20_learned_usage \
+     --models v1_baseline_weighted_ppg,v20_learned_usage,v27_vegas_full_refit \
      --seasons 2022,2023,2024,2025
    ```
 
-3. **Run per-player diagnostics** for detailed player-level view:
+3. **Run per-player diagnostics** for detailed player-level view (defaults to the active model when `--model` is omitted):
    ```bash
    source venv/bin/activate && python scripts/feature_projections/cli.py diagnostics \
-     --model v20_learned_usage --season 2025 --top 50 \
+     --season 2025 --top 50 \
      --output docs/generated/player-diagnostics.md
    ```
 

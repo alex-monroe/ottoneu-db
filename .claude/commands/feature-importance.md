@@ -5,7 +5,7 @@ Follow these steps to analyze feature importance for a learned model:
 
 // turbo
 
-1. **Identify the learned model** (default: v20_learned_usage). If the user specifies a model in the arguments, use that instead.
+1. **Identify the learned model** (default: the active learned model in `projection_models` — as of 2026-05-18 that is `v27_vegas_full_refit`; other shipped learned models include `v20_learned_usage`, `v22_advanced_receiving`, `v23_draft_capital`, `v25_draft_capital_residual`, `v26_vegas_residual`). If the user specifies a model in the arguments, use that instead.
 
 2. **Try running the feature analysis script:**
    ```bash

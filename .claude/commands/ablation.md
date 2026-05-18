@@ -5,7 +5,7 @@ Follow these steps to run a feature ablation study:
 
 // turbo
 
-1. **Identify the target model** (default: the current best model, v20_learned_usage). If the user specifies a model in the arguments, use that instead.
+1. **Identify the target model** (default: the model with `is_active=TRUE` in `projection_models` — query via `just py "from scripts.config import get_supabase_client; print(get_supabase_client().table('projection_models').select('name').eq('is_active', True).execute().data)"`). As of 2026-05-18 that is `v27_vegas_full_refit`. If the user specifies a model in the arguments, use that instead.
 
 2. **List the model's features** by reading `scripts/feature_projections/model_config.py`. Identify the base feature (cannot be removed) and all adjustment features.
 

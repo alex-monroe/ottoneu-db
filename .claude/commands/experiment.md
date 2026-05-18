@@ -22,18 +22,18 @@ Follow these steps to run a controlled experiment on a projection model:
    source venv/bin/activate && python scripts/feature_projections/accuracy_report.py --run-backtest --seasons 2022,2023,2024,2025 --output docs/generated/projection-accuracy.md
    ```
 
-5. **Extract metrics** from the generated report for the new model, v1_baseline_weighted_ppg (baseline), and v20_learned_usage (current best). Present a compact verdict table:
+5. **Extract metrics** from the generated report for the new model, v1_baseline_weighted_ppg (baseline), and the current best model. Query the live winner from `projection_models` (the row with `is_active=TRUE`) rather than hardcoding — it changes as new models are promoted. As of 2026-05-18 the active/best model is `v27_vegas_full_refit`. Present a compact verdict table:
    ```
    Model              | ALL MAE | ALL R² | QB MAE | RB MAE | WR MAE | TE MAE | Verdict
    v1_baseline        | X.XXX   | 0.XXX  | X.XXX  | X.XXX  | X.XXX  | X.XXX  | baseline
-   v20_learned_usage  | X.XXX   | 0.XXX  | X.XXX  | X.XXX  | X.XXX  | X.XXX  | current best
+   <current best>     | X.XXX   | 0.XXX  | X.XXX  | X.XXX  | X.XXX  | X.XXX  | current best
    NEW_MODEL          | X.XXX   | 0.XXX  | X.XXX  | X.XXX  | X.XXX  | X.XXX  | ???
    ```
 
-6. **State the verdict:**
-   - **IMPROVEMENT** if ALL MAE < v20's ALL MAE
-   - **REGRESSION** if ALL MAE > v20's ALL MAE
-   - **NEUTRAL** if ALL MAE within ±0.01 of v20
+6. **State the verdict** (against the current best, not v20 specifically):
+   - **IMPROVEMENT** if ALL MAE < current best's ALL MAE
+   - **REGRESSION** if ALL MAE > current best's ALL MAE
+   - **NEUTRAL** if ALL MAE within ±0.01 of current best
 
 7. **Append to experiment log** at `docs/generated/experiment-log.md` with date, model name, change description, ALL MAE, ALL R², ALL Bias, verdict, and PR number (if known).
 
