@@ -104,7 +104,7 @@ When any task modifies the projection system — including `scripts/feature_proj
    - The task output / conversation summary
    - The PR description body under a `## Projection Accuracy` section
 3. **Highlight improvements** — call out which metrics improved vs the baseline (`v1_baseline_weighted_ppg`) in the PR description narrative above the table.
-4. **Update UI methodology text** when changing `ACTIVE_MODEL` in `update_projections.py`. The pages `web/app/projections/page.tsx` and `web/app/arbitration/page.tsx` contain hardcoded methodology descriptions that must reflect the active model's feature set.
+4. **Promote the new model to flip `is_active`.** The active model is the single row in `projection_models` with `is_active=TRUE` — there is no longer an `ACTIVE_MODEL` constant in `update_projections.py`. `web/components/ActiveModelCard.tsx` renders the live model name, version, description, and feature list on `/projections`, `/arbitration` (projected mode), and `/projection-accuracy` via `fetchActiveProjectionModel()` (`web/lib/data.ts`). Do not hardcode model names or feature lists in UI copy — they drift the moment a new model is promoted. Promote via `just promote <model>` (or `scripts/feature_projections/promote.py <model>`).
 
 This ensures every projection change is empirically validated before merge.
 
