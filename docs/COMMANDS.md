@@ -84,6 +84,12 @@ python scripts/feature_projections/feature_analysis.py --model v20_learned_usage
 python scripts/feature_projections/residual_analysis.py --model v20_learned_usage --seasons 2022,2023,2024,2025  # Residual distribution, heteroscedasticity, persistent errors
 python scripts/feature_projections/residual_analysis.py --model v20_learned_usage --seasons 2022,2023,2024,2025 --output docs/generated/residual-analysis.md  # Write markdown report
 
+# Backfills / seeds
+python scripts/backfill_nfl_stats.py [--seasons 2018 2019]      # Backfill nflverse stats into nfl_stats (--dry-run supported)
+python scripts/backfill_draft_capital.py [--since 2010]         # Backfill nflverse draft picks into draft_capital (--update-rosters flips college→NFL for post-draft rookies)
+python scripts/backfill_vegas_lines.py [--since 2016]           # Aggregate nflverse games.csv into team_vegas_lines (implied_total + Pythagorean win_total)
+python scripts/seed_preseason_win_totals.py --season 2026       # Seed hand-curated preseason win totals (sportsbook consensus); used in spring before NFL schedule drops
+
 # Utilities
 python scripts/check_db.py                           # Verify database contents
 streamlit run scripts/visualize_app.py               # Streamlit dashboard
@@ -122,6 +128,15 @@ just compare <models> [season]                      # Compare two or more models
 just diagnostics [--model <m>] [--season <s>] ...  # Per-player diagnostics
 just segment-analysis [--segments <s>] ...          # Segmented accuracy analysis
 just accuracy-report [--run-backtest] ...           # Generate accuracy report
+
+# Backfills / seeds
+just backfill-nfl-stats [--seasons 2024]            # Backfill nflverse stats into nfl_stats
+just backfill-draft-capital [--since 2010]          # Backfill nflverse draft picks into draft_capital
+just backfill-vegas [--since 2016]                  # Backfill Vegas lines into team_vegas_lines
+just seed-win-totals --season 2026                  # Seed hand-curated preseason win totals (spring use)
+
+# Ad-hoc DB queries
+just py "<snippet>"                                 # Run a one-off Python snippet against the project venv (read-only diagnostics)
 ```
 
 ## Daily Scheduling (cron)

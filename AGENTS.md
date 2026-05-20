@@ -119,7 +119,7 @@ The `WeightedPPGFeature` applies an H2/H1 snap-per-game multiplier to first-year
 - **QB**: A starting QB already receives all offensive snaps. A high H2/H1 ratio simply means they took over mid-season, not that they'll be better next year.
 - **K**: Snap counts are irrelevant to kicker scoring.
 
-`v12_no_qb_trajectory` (current active model) disables the trajectory for QB and K via `WeightedPPGNoQBTrajectoryFeature`. Do not re-enable it for those positions.
+`v12_no_qb_trajectory` introduced `WeightedPPGNoQBTrajectoryFeature`, which disables the H2/H1 trajectory for QB and K. Subsequent models inherit this behavior (and learned models like v20+ replace `WeightedPPGFeature` with the no-QB-trajectory variant). Do not re-enable the trajectory for those positions in any new model. Check the live active model via `SELECT name, version FROM projection_models WHERE is_active = TRUE;` — never hardcode it in docs or UI copy.
 
 ### Database migration workflow
 
