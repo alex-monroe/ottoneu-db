@@ -84,6 +84,12 @@ python scripts/feature_projections/feature_analysis.py --model v20_learned_usage
 python scripts/feature_projections/residual_analysis.py --model v20_learned_usage --seasons 2022,2023,2024,2025  # Residual distribution, heteroscedasticity, persistent errors
 python scripts/feature_projections/residual_analysis.py --model v20_learned_usage --seasons 2022,2023,2024,2025 --output docs/generated/residual-analysis.md  # Write markdown report
 
+# Backfills / seeds (one-time data loads)
+python scripts/backfill_nfl_stats.py --seasons 2024              # Pull nfl_stats from nflverse-data (one or more seasons)
+python scripts/backfill_draft_capital.py --since 2010            # Populate draft_capital from nflverse draft_picks
+python scripts/backfill_vegas_lines.py --since 2016              # Populate team_vegas_lines (implied totals + win totals) from nflverse games
+python scripts/seed_preseason_win_totals.py --season 2026        # Seed hand-curated preseason win totals before NFL schedule release
+
 # Utilities
 python scripts/check_db.py                           # Verify database contents
 streamlit run scripts/visualize_app.py               # Streamlit dashboard
@@ -122,6 +128,15 @@ just compare <models> [season]                      # Compare two or more models
 just diagnostics [--model <m>] [--season <s>] ...  # Per-player diagnostics
 just segment-analysis [--segments <s>] ...          # Segmented accuracy analysis
 just accuracy-report [--run-backtest] ...           # Generate accuracy report
+
+# Backfills / seeds (variadic — pass through any script flags)
+just backfill-nfl-stats [--seasons ... | --dry-run]      # Backfill nfl_stats from nflverse-data
+just backfill-draft-capital [--since YYYY | --dry-run]   # Backfill draft_capital from nflverse draft_picks
+just backfill-vegas [--since YYYY | --dry-run]           # Backfill team_vegas_lines implied totals
+just seed-win-totals --season YYYY                       # Seed hand-curated preseason win totals
+
+# Ad-hoc DB inspection (read-only diagnostics)
+just py "<python-snippet>"                               # Run a one-off snippet against the project venv
 ```
 
 ## Daily Scheduling (cron)

@@ -24,7 +24,7 @@ Nineteen tables, all with UUID primary keys.
 | `arbitration_progress_teams` | Per-team arbitration completion status | `(league_id, season, team_name)` |
 | `arbitration_allocation_details` | Per-team individual allocation breakdowns (which team allocated how much to which player) | `(league_id, season, ottoneu_id, allocating_team_name)` |
 | `draft_capital` | NFL draft pick metadata sourced from nflverse `draft_picks` (FK -> `players`) | `(player_id)` |
-| `team_vegas_lines` | Per-team-season Vegas implied total + Pythagorean win total, aggregated from nflverse `games.csv` | `(team, season)` |
+| `team_vegas_lines` | Per-team-season Vegas implied total (nullable) + preseason win total, sourced from nflverse `games.csv` + hand-curated win totals | `(team, season)` |
 
 ### Projection tables detail
 
@@ -64,6 +64,14 @@ Ottoneu fantasy data only: `games_played`, `snaps`, `ppg`, `pps`, `h1_snaps`, `h
 Core stat columns: `games_played`, `passing_yards`, `passing_tds`, `interceptions`, `passing_attempts`, `completions`, `rushing_yards`, `rushing_tds`, `rushing_attempts`, `receptions`, `targets`, `receiving_yards`, `receiving_tds`, `fg_made_0_39`, `fg_made_40_49`, `fg_made_50_plus`, `pat_made`, `total_points`, `ppg`, `offense_snaps`, `defense_snaps`, `st_snaps`, `total_snaps`, `recent_team`.
 
 Advanced receiving (added in migration 022, populated for 2018+ via nflverse `stats_player`): `target_share`, `air_yards_share`, `wopr` (Weighted Opportunity Rating), `racr` (Receiver Air Conversion Ratio), `receiving_air_yards`.
+
+### `team_vegas_lines` columns
+
+`team` (PFR code), `season`, `implied_total` numeric — season points implied from per-game lines (nullable since migration 025 so win totals can be seeded before the NFL schedule releases per-game lines), `win_total` numeric — preseason sportsbook win total (Pythagorean post-schedule, hand-curated before schedule release via `seed_preseason_win_totals.py`). Backfilled via `backfill_vegas_lines.py`.
+
+### `draft_capital` columns
+
+`player_id` (unique), `season_drafted`, `round`, `overall_pick`. Sourced from nflverse `draft_picks` parquet via `backfill_draft_capital.py`. Feeds the `draft_capital_raw` projection feature (vets) and the per-position log-pick OLS used by `update_projections.py` to project drafted rookies (`projection_method = 'rookie_draft_capital'`).
 
 ## Schema Files
 
