@@ -104,7 +104,7 @@ When any task modifies the projection system — including `scripts/feature_proj
    - The task output / conversation summary
    - The PR description body under a `## Projection Accuracy` section
 3. **Highlight improvements** — call out which metrics improved vs the baseline (`v1_baseline_weighted_ppg`) in the PR description narrative above the table.
-4. **Update UI methodology text** when changing `ACTIVE_MODEL` in `update_projections.py`. The pages `web/app/projections/page.tsx` and `web/app/arbitration/page.tsx` contain hardcoded methodology descriptions that must reflect the active model's feature set.
+4. **Keep `projection_models.description` and `features` current for any model you might promote.** The `<ActiveModelCard>` server component (`web/components/ActiveModelCard.tsx`) renders model name, version, description, and feature list on `/projections`, `/arbitration` (projected mode), and `/projection-accuracy` directly from `projection_models` via `fetchActiveProjectionModel()`. No hand-edited UI methodology copy exists anymore — if the DB row is wrong, the UI will be wrong. Edit the row's description in `model_config.py` (or via SQL) before promoting.
 
 This ensures every projection change is empirically validated before merge.
 
@@ -119,7 +119,7 @@ The `WeightedPPGFeature` applies an H2/H1 snap-per-game multiplier to first-year
 - **QB**: A starting QB already receives all offensive snaps. A high H2/H1 ratio simply means they took over mid-season, not that they'll be better next year.
 - **K**: Snap counts are irrelevant to kicker scoring.
 
-`v12_no_qb_trajectory` (current active model) disables the trajectory for QB and K via `WeightedPPGNoQBTrajectoryFeature`. Do not re-enable it for those positions.
+Models that use `WeightedPPGNoQBTrajectoryFeature` (e.g. `v12_no_qb_trajectory` and every subsequent model that inherits from it via residual stacking) disable the trajectory for QB and K. Do not re-enable it for those positions when adding or refactoring features. Run `just list-models` and inspect `model_config.py` to confirm which base feature a candidate model uses.
 
 ### Database migration workflow
 

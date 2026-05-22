@@ -17,14 +17,14 @@ Nineteen tables, all with UUID primary keys.
 | `arbitration_plans` | Named arbitration budget allocation plans per user (FK -> `users`) | `(league_id, name, user_id)` |
 | `arbitration_plan_allocations` | Per-player dollar allocations within a plan (FK -> `arbitration_plans`, `players`) | `(plan_id, player_id)` |
 | `scraper_jobs` | Persistent job queue with status tracking, dependencies, and retry logic | -- |
-| `projection_models` | Registry of versioned projection models (internal feature-based v1–v21+ and external sources) | `(name, version)` |
+| `projection_models` | Registry of versioned projection models (internal feature-based v1–v27+ and external sources). Exactly one row has `is_active=TRUE`; the web app reads it via `fetchActiveProjectionModel()`. | `(name, version)` |
 | `model_projections` | Per-model projected PPG with raw feature values (FK -> `projection_models`, `players`) | `(model_id, player_id, season)` |
 | `backtest_results` | Cached accuracy metrics per model × season × position (FK -> `projection_models`) | `(model_id, season, position)` |
 | `arbitration_progress` | Scraped player allocation data from Ottoneu arbitration page | -- |
 | `arbitration_progress_teams` | Per-team arbitration completion status | `(league_id, season, team_name)` |
 | `arbitration_allocation_details` | Per-team individual allocation breakdowns (which team allocated how much to which player) | `(league_id, season, ottoneu_id, allocating_team_name)` |
 | `draft_capital` | NFL draft pick metadata sourced from nflverse `draft_picks` (FK -> `players`) | `(player_id)` |
-| `team_vegas_lines` | Per-team-season Vegas implied total + Pythagorean win total, aggregated from nflverse `games.csv` | `(team, season)` |
+| `team_vegas_lines` | Per-team-season Vegas implied total + preseason win total. `implied_total` is **nullable** so preseason win-total seeds can land before the schedule is released. | `(team, season)` |
 
 ### Projection tables detail
 
@@ -54,6 +54,24 @@ Nineteen tables, all with UUID primary keys.
 - `r_squared` float — goodness of fit
 - `rmse` float — Root Mean Square Error
 - `player_count` int — sample size for this season × position
+
+### `draft_capital` columns (migration 023)
+
+- `player_id` UUID FK -> `players` (unique — one draft row per player)
+- `season_drafted` int
+- `round` int
+- `overall_pick` int
+
+Populated by `scripts/backfill_draft_capital.py` from the nflverse `draft_picks` parquet (which now includes the 2026 class). Consumed by the `draft_capital_raw` projection feature and by the `rookie_draft_capital` fallback in `update_projections.py`.
+
+### `team_vegas_lines` columns (migrations 024, 025)
+
+- `team` text (3-letter NFL code, e.g. `KC`)
+- `season` int
+- `implied_total` numeric(6,2) **nullable** — season sum of per-game implied points; null until the NFL schedule is released and `scripts/backfill_vegas_lines.py` can compute it from nflverse `games.csv`
+- `win_total` numeric(4,1) nullable — preseason Vegas win total; seeded by `scripts/seed_preseason_win_totals.py` as soon as books post numbers
+
+The `implied_team_total_raw` projection feature already returns `None` when `implied_total` is null, so partial rows are safe to land. The frontend surface for this table lives at `/vegas-lines`.
 
 ### `player_stats` columns
 
