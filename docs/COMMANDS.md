@@ -84,6 +84,13 @@ python scripts/feature_projections/feature_analysis.py --model v20_learned_usage
 python scripts/feature_projections/residual_analysis.py --model v20_learned_usage --seasons 2022,2023,2024,2025  # Residual distribution, heteroscedasticity, persistent errors
 python scripts/feature_projections/residual_analysis.py --model v20_learned_usage --seasons 2022,2023,2024,2025 --output docs/generated/residual-analysis.md  # Write markdown report
 
+# Backfills & seeds (idempotent loaders; all support --dry-run)
+python scripts/backfill_nfl_stats.py --seasons 2024                          # Backfill nfl_stats from nflverse for one or more seasons
+python scripts/backfill_draft_capital.py --since 2010                        # Backfill draft_capital table from nflverse draft_picks
+python scripts/backfill_draft_capital.py --since 2026 --update-rosters       # Post-draft: flip matched college players to NFL + insert unmatched picks
+python scripts/backfill_vegas_lines.py --since 2016                          # Backfill team_vegas_lines from nflverse games.csv
+python scripts/seed_preseason_win_totals.py --season 2026                    # Seed hand-curated preseason win_totals for a season
+
 # Utilities
 python scripts/check_db.py                           # Verify database contents
 streamlit run scripts/visualize_app.py               # Streamlit dashboard
@@ -122,6 +129,15 @@ just compare <models> [season]                      # Compare two or more models
 just diagnostics [--model <m>] [--season <s>] ...  # Per-player diagnostics
 just segment-analysis [--segments <s>] ...          # Segmented accuracy analysis
 just accuracy-report [--run-backtest] ...           # Generate accuracy report
+
+# Backfills & seeds (all variadic — flags pass through to the underlying script)
+just backfill-nfl-stats --seasons 2024              # Backfill nfl_stats from nflverse
+just backfill-draft-capital --since 2010            # Backfill draft_capital from nflverse draft_picks
+just backfill-vegas --since 2016                    # Backfill team_vegas_lines from nflverse games.csv
+just seed-win-totals --season 2026                  # Seed hand-curated preseason win_totals
+
+# Ad-hoc DB inspection (read-only one-liners against the project venv)
+just py "from scripts.config import get_supabase_client; print(get_supabase_client().table('players').select('id', count='exact').execute().count)"
 ```
 
 ## Daily Scheduling (cron)

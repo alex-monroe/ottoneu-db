@@ -65,6 +65,26 @@ Core stat columns: `games_played`, `passing_yards`, `passing_tds`, `interception
 
 Advanced receiving (added in migration 022, populated for 2018+ via nflverse `stats_player`): `target_share`, `air_yards_share`, `wopr` (Weighted Opportunity Rating), `racr` (Receiver Air Conversion Ratio), `receiving_air_yards`.
 
+### `draft_capital` columns
+
+Added in migration 023. One row per player who has been drafted into the NFL (loaded from nflverse `draft_picks`).
+
+- `player_id` UUID FK -> `players` (unique — exactly one row per drafted player)
+- `season_drafted` int — NFL draft year
+- `round` int
+- `overall_pick` int — used as the raw input to the `draft_capital_raw` feature (log-scaled)
+
+### `team_vegas_lines` columns
+
+Added in migration 024. One row per (team, season) holding preseason Vegas market data, sourced from nflverse `games.csv` per-game lines.
+
+- `team` text — Ottoneu team code (e.g. `KC`, `LV`, `LA`)
+- `season` int
+- `implied_total` numeric(6,2) — sum of per-game implied points; powers the `implied_team_total_raw` projection feature. **Nullable** (relaxed in migration 025): preseason win totals publish in March/April, but per-game lines need the NFL schedule (mid-May release), so this column is briefly null each spring until `backfill_vegas_lines.py` re-runs.
+- `win_total` numeric(4,1) — Pythagorean win total; can be seeded ahead of `implied_total` via `seed_preseason_win_totals.py`
+
+When `implied_total` is null, the `implied_team_total_raw` feature returns `None` and the learned ridge substitutes a near-zero contribution after standardization — the active model gracefully degrades to its no-vegas counterpart.
+
 ## Schema Files
 
 - **Canonical schema:** `schema.sql` (auto-generated via Supabase MCP)
