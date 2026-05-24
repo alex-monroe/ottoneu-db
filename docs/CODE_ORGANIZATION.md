@@ -14,6 +14,8 @@
 | Arb logic | `web/lib/arb-logic.ts` | Arbitration simulation logic |
 | API input schemas | `web/lib/schemas/` | Zod schemas for API route bodies (admin/users, arbitration-plans, surplus-adjustments) |
 | Request validation | `web/lib/validate.ts` | `parseJson(req, schema)` helper — returns typed data or a 400 response with Zod issues |
+| Vegas lines data | `web/lib/vegas-lines.ts` | Read helpers for `team_vegas_lines` used by `/vegas-lines` |
+| NFL divisions | `web/lib/nfl-divisions.ts` | Canonical AFC/NFC division + team-code map used to lay out `/vegas-lines` |
 | DB schema | `schema.sql` | Canonical schema definition |
 | Migrations | `migrations/` | Numbered SQL migration files |
 | Components | `web/components/` | Reusable React components |

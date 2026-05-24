@@ -24,7 +24,7 @@ Nineteen tables, all with UUID primary keys.
 | `arbitration_progress_teams` | Per-team arbitration completion status | `(league_id, season, team_name)` |
 | `arbitration_allocation_details` | Per-team individual allocation breakdowns (which team allocated how much to which player) | `(league_id, season, ottoneu_id, allocating_team_name)` |
 | `draft_capital` | NFL draft pick metadata sourced from nflverse `draft_picks` (FK -> `players`) | `(player_id)` |
-| `team_vegas_lines` | Per-team-season Vegas implied total + Pythagorean win total, aggregated from nflverse `games.csv` | `(team, season)` |
+| `team_vegas_lines` | Per-team-season Vegas implied total + win total. `implied_total` is summed from nflverse per-game spread/total lines (nullable until the NFL schedule is released each spring); `win_total` is either sportsbook preseason consensus or Pythagorean back-calculation from the implied totals | `(team, season)` |
 
 ### Projection tables detail
 

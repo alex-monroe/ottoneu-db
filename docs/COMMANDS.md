@@ -104,7 +104,8 @@ just typecheck          # TypeScript type check
 just test               # Run all tests (Python + web)
 just test-python        # Python tests with coverage
 just test-web           # Jest tests with coverage
-just test-web-file <path>  # Run a single web test file (e.g. just test-web-file __tests__/lib/session.test.ts)
+just test-web-file <path>  # Run a single web test file, no coverage (e.g. just test-web-file __tests__/lib/session.test.ts)
+just py "<snippet>"     # Run a one-off Python snippet against the project venv (e.g. ad-hoc DB inspection)
 just scrape             # Full scrape pipeline
 just analyze            # Run all analysis scripts
 just check-db           # Verify database contents
@@ -122,6 +123,12 @@ just compare <models> [season]                      # Compare two or more models
 just diagnostics [--model <m>] [--season <s>] ...  # Per-player diagnostics
 just segment-analysis [--segments <s>] ...          # Segmented accuracy analysis
 just accuracy-report [--run-backtest] ...           # Generate accuracy report
+
+# Backfills / seeds (all support --dry-run)
+just backfill-nfl-stats [--seasons 2024 ...]        # Backfill nfl_stats from nflverse for the given seasons
+just backfill-draft-capital [--since 2010]          # Backfill draft_capital from nflverse draft_picks; pass --update-rosters post-draft
+just backfill-vegas [--since 2016]                  # Backfill team_vegas_lines (implied + Pythagorean) from nflverse games.csv
+just seed-win-totals --season 2026                  # Seed preseason win_total rows for an upcoming season (hand-curated)
 ```
 
 ## Daily Scheduling (cron)
