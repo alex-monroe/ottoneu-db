@@ -122,6 +122,15 @@ just compare <models> [season]                      # Compare two or more models
 just diagnostics [--model <m>] [--season <s>] ...  # Per-player diagnostics
 just segment-analysis [--segments <s>] ...          # Segmented accuracy analysis
 just accuracy-report [--run-backtest] ...           # Generate accuracy report
+
+# Backfills / seeds
+just backfill-nfl-stats [--seasons ...] [--dry-run]     # Backfill nfl_stats from nflverse
+just backfill-draft-capital [--since YYYY] [--dry-run]  # Backfill draft_capital from nflverse draft_picks
+just backfill-vegas [--since YYYY] [--dry-run]          # Backfill team_vegas_lines from nflverse games.csv
+just seed-win-totals [--season YYYY]                    # Seed hand-curated preseason win totals (spring window)
+
+# Ad-hoc DB queries
+just py "<snippet>"                                  # One-off read-only Python snippet against the project venv
 ```
 
 ## Daily Scheduling (cron)

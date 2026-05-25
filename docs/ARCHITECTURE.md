@@ -37,6 +37,14 @@ Jobs support dependencies, retries (up to 3 attempts), and batch grouping. `otto
 - **`player_stats`** = Ottoneu fantasy data (total_points, ppg, pps, snaps from scraping)
 - **`nfl_stats`** = Real NFL stats (passing_yards, rushing_tds, snap counts, etc. from nflverse)
 
+### External Supporting Data (one-shot backfills)
+
+Outside the worker queue, three nflverse-sourced tables feed projection features. Each has a dedicated script and `just` recipe — they are not part of the daily scrape and are run manually when new seasons publish:
+
+- **`draft_capital`** ← `scripts/backfill_draft_capital.py` (`just backfill-draft-capital`). Pulls round + overall pick from nflverse `draft_picks`. Drives the `draft_capital_raw` feature and the `rookie_draft_capital` fallback for drafted rookies with no NFL history.
+- **`team_vegas_lines`** ← `scripts/backfill_vegas_lines.py` (`just backfill-vegas`). Aggregates per-game `spread_line` + `total_line` from nflverse `games.csv` into season-level implied team totals, plus a Pythagorean-derived `win_total`. Drives the `implied_team_total_raw` feature.
+- **`team_vegas_lines.win_total`** seeds ← `scripts/seed_preseason_win_totals.py` (`just seed-win-totals`). For the spring window between sportsbook win-total release (Mar/Apr) and NFL schedule release (mid-May), hand-curated win totals are seeded with `implied_total = NULL`. The projection feature returns `None` for NULL-implied rows and the learned combiner substitutes 0 — see migration 025 and the `/vegas-lines` review page for the operator UI.
+
 ### Worker Task Modules (`scripts/tasks/`)
 
 Each task type lives in its own module. `__init__.py` defines task type constants and `TaskResult` dataclass. The worker caches NFL stats in memory so roster scrapes can match snap counts by player name.

@@ -104,7 +104,7 @@ When any task modifies the projection system — including `scripts/feature_proj
    - The task output / conversation summary
    - The PR description body under a `## Projection Accuracy` section
 3. **Highlight improvements** — call out which metrics improved vs the baseline (`v1_baseline_weighted_ppg`) in the PR description narrative above the table.
-4. **Update UI methodology text** when changing `ACTIVE_MODEL` in `update_projections.py`. The pages `web/app/projections/page.tsx` and `web/app/arbitration/page.tsx` contain hardcoded methodology descriptions that must reflect the active model's feature set.
+4. **The active model is the single source of truth.** `update_projections.py` reads `projection_models.is_active` dynamically via `get_active_model_name()` — there is no `ACTIVE_MODEL` constant. The UI pages `web/app/projections/page.tsx`, `web/app/arbitration/page.tsx`, and `web/app/projection-accuracy/page.tsx` render the live model name, version, description, and feature list through `<ActiveModelCard />` (fed by `fetchActiveProjectionModel()` in `web/lib/data.ts`). Do not hardcode model names in UI copy — promote the new model and the UI updates itself.
 
 This ensures every projection change is empirically validated before merge.
 
@@ -119,7 +119,7 @@ The `WeightedPPGFeature` applies an H2/H1 snap-per-game multiplier to first-year
 - **QB**: A starting QB already receives all offensive snaps. A high H2/H1 ratio simply means they took over mid-season, not that they'll be better next year.
 - **K**: Snap counts are irrelevant to kicker scoring.
 
-`v12_no_qb_trajectory` (current active model) disables the trajectory for QB and K via `WeightedPPGNoQBTrajectoryFeature`. Do not re-enable it for those positions.
+`WeightedPPGNoQBTrajectoryFeature` disables the trajectory for QB and K and is the base feature for all `v12+` internal models. Do not re-enable the trajectory for those positions in any new variant.
 
 ### Database migration workflow
 
