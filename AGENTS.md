@@ -21,7 +21,8 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 - **Git workflow:** See [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) for branch and PR requirements
 - **Domain rules:** See [docs/references/ottoneu-rules.md](docs/references/ottoneu-rules.md) for scoring, roster, salary cap, and arbitration
 - **Environment:** See [docs/references/environment-variables.md](docs/references/environment-variables.md) for `.env` setup
-- **Market Projections:** See [docs/exec-plans/market-projections.md](docs/exec-plans/market-projections.md) for the market-based projection system implementation plan
+- **Projection Accuracy Plan:** See [docs/exec-plans/projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md) for the 4-phase accuracy improvement roadmap (Issues #271-#285)
+- **Market Projections:** See [docs/exec-plans/market-projections.md](docs/exec-plans/market-projections.md) for the market-based projection system implementation plan (DEFERRED)
 
 ## Documentation Map
 
@@ -37,7 +38,7 @@ docs/
 ├── TESTING.md                         # Python + web test setup and CI
 ├── exec-plans/
 │   ├── [feature-projections.md](docs/exec-plans/feature-projections.md)         # Feature-based player projection system
-│   ├── [market-projections.md](docs/exec-plans/market-projections.md)          # Market-based projection system implementation plan
+│   ├── [market-projections.md](docs/exec-plans/market-projections.md)          # Market-based projection system (DEFERRED)
 │   ├── [projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md)  # 4-phase accuracy improvement roadmap
 │   └── [qb-usage-share.md](docs/exec-plans/qb-usage-share.md)              # QB Usage Share findings and next steps
 ├── generated/
@@ -104,7 +105,7 @@ When any task modifies the projection system — including `scripts/feature_proj
    - The task output / conversation summary
    - The PR description body under a `## Projection Accuracy` section
 3. **Highlight improvements** — call out which metrics improved vs the baseline (`v1_baseline_weighted_ppg`) in the PR description narrative above the table.
-4. **Update UI methodology text** when changing `ACTIVE_MODEL` in `update_projections.py`. The pages `web/app/projections/page.tsx` and `web/app/arbitration/page.tsx` contain hardcoded methodology descriptions that must reflect the active model's feature set.
+4. **Promote the new model to flip the live methodology copy.** The active model is the row in `projection_models` with `is_active=TRUE`, set by `scripts/feature_projections/promote.py <model_name>`. `update_projections.py` reads it dynamically via `get_active_model_name()`, and the web UI surfaces it through `fetchActiveProjectionModel()` + the `<ActiveModelCard>` component on `/projections`, `/arbitration` (projected mode), and `/projection-accuracy`. Don't hardcode model names in UI copy — the card pulls name/version/description/features straight from the DB row.
 
 This ensures every projection change is empirically validated before merge.
 
@@ -119,7 +120,7 @@ The `WeightedPPGFeature` applies an H2/H1 snap-per-game multiplier to first-year
 - **QB**: A starting QB already receives all offensive snaps. A high H2/H1 ratio simply means they took over mid-season, not that they'll be better next year.
 - **K**: Snap counts are irrelevant to kicker scoring.
 
-`v12_no_qb_trajectory` (current active model) disables the trajectory for QB and K via `WeightedPPGNoQBTrajectoryFeature`. Do not re-enable it for those positions.
+`v12_no_qb_trajectory` introduced `WeightedPPGNoQBTrajectoryFeature` to disable the H2/H1 trajectory for QB and K, and every successor model (v14 through v27) still uses that base feature. Do not re-enable the trajectory for those positions.
 
 ### Database migration workflow
 
