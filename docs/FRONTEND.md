@@ -22,6 +22,7 @@ Next.js App Router. Most pages are server components that fetch live data from S
 | `/arbitration` | Arbitration targets with per-opponent breakdown |
 | `/arbitration-simulation` | Monte Carlo arbitration simulation |
 | `/arbitration-planner` | Plan and save arbitration budget allocations (auth required) |
+| `/vegas-lines` | Per-team Vegas implied totals and win totals review page (auth required) |
 | `/login` | Email/password login |
 | `/admin` | User management (admin only) |
 
