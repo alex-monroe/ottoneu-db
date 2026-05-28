@@ -16,6 +16,7 @@ Next.js App Router. Most pages are server components that fetch live data from S
 | `/projected-salary` | Keep vs cut decisions for The Witchcraft |
 | `/projections` | Player projections table (reads `player_projections`) |
 | `/projection-accuracy` | Model backtest accuracy explorer |
+| `/vegas-lines` | Preseason Vegas implied team totals + Pythagorean win totals, season selector + AFC/NFC division cards |
 | `/vorp` | VORP analysis with bar chart and filterable table |
 | `/surplus-value` | Surplus value rankings, bargains, overpaid, team summaries |
 | `/surplus-adjustments` | Per-user manual value overrides (auth required) |
@@ -38,6 +39,7 @@ Next.js App Router. Most pages are server components that fetch live data from S
 | `PlayerName` | Player name renderer with link/hover-card/plain-text modes |
 | `StatValue` | Numeric stat formatter with currency/decimal/number/null handling |
 | `PlayerHoverCard` | Rich hover preview card for player context |
+| `ActiveModelCard` | Reads the live `is_active` row from `projection_models` via `fetchActiveProjectionModel()` and renders the active model's name/version/description/feature list. Used on `/projections`, `/arbitration` (projected mode), and `/projection-accuracy` so methodology copy never drifts from the promoted model. |
 
 ### Column Factories (`components/columns.tsx`)
 

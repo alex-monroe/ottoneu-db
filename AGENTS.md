@@ -104,7 +104,7 @@ When any task modifies the projection system — including `scripts/feature_proj
    - The task output / conversation summary
    - The PR description body under a `## Projection Accuracy` section
 3. **Highlight improvements** — call out which metrics improved vs the baseline (`v1_baseline_weighted_ppg`) in the PR description narrative above the table.
-4. **Update UI methodology text** when changing `ACTIVE_MODEL` in `update_projections.py`. The pages `web/app/projections/page.tsx` and `web/app/arbitration/page.tsx` contain hardcoded methodology descriptions that must reflect the active model's feature set.
+4. **Promote the new active model via `promote.py`, not by editing code.** `update_projections.py` reads the active model dynamically from `projection_models.is_active` — there is no `ACTIVE_MODEL` constant to change. Web UI pages (`/projections`, `/arbitration` projected mode, `/projection-accuracy`) render methodology copy from the active model's row via the `<ActiveModelCard>` component (`web/components/ActiveModelCard.tsx`), so no hardcoded copy needs editing either. Make sure the new model row has an accurate `description` and `features` list before promoting.
 
 This ensures every projection change is empirically validated before merge.
 
@@ -119,7 +119,7 @@ The `WeightedPPGFeature` applies an H2/H1 snap-per-game multiplier to first-year
 - **QB**: A starting QB already receives all offensive snaps. A high H2/H1 ratio simply means they took over mid-season, not that they'll be better next year.
 - **K**: Snap counts are irrelevant to kicker scoring.
 
-`v12_no_qb_trajectory` (current active model) disables the trajectory for QB and K via `WeightedPPGNoQBTrajectoryFeature`. Do not re-enable it for those positions.
+`WeightedPPGNoQBTrajectoryFeature` disables the trajectory for QB and K. All `weighted_ppg`-based models from `v12_no_qb_trajectory` onward use it. Do not re-enable the trajectory for those positions in any new variant. (The currently-promoted model is whichever row has `is_active=TRUE` in `projection_models`; don't hardcode that name in docs.)
 
 ### Database migration workflow
 

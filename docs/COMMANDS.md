@@ -64,6 +64,12 @@ python scripts/feature_projections/cli.py segment-analysis --segments experience
 python scripts/feature_projections/cli.py segment-analysis --models v8_age_regression --seasons 2024,2025  # Custom models/seasons
 python scripts/feature_projections/promote.py <model_name>                                             # Promote a model to production (clears stale rows + upserts new + flips is_active)
 
+# Backfills / seeds
+python scripts/backfill_nfl_stats.py --seasons 2024                                                      # Backfill nflverse NFL stats (one or more seasons; --dry-run supported)
+python scripts/backfill_draft_capital.py --since 2010                                                    # Backfill draft pick metadata from nflverse (--update-rosters flips matched college players, inserts new picks)
+python scripts/backfill_vegas_lines.py --since 2016                                                      # Backfill team_vegas_lines from nflverse games.csv
+python scripts/seed_preseason_win_totals.py --season 2026                                                # Upsert hand-curated preseason win_total values (used before the schedule releases implied_total inputs)
+
 # Projection Development Workflow (two-step process)
 # Step 1: Generate projections for the model (required after any feature code change)
 python scripts/feature_projections/cli.py run --model <name> --seasons 2022,2023,2024,2025
@@ -96,7 +102,7 @@ Install `just` once with `brew install just`, then run any recipe from the repo 
 
 ```bash
 just                    # List all recipes
-just install            # Install all dependencies (Python + Node)
+just install            # Install all dependencies (Python + Node + Playwright chromium)
 just dev                # Start Next.js dev server on localhost:3000
 just build              # Production build
 just lint               # ESLint
@@ -122,6 +128,15 @@ just compare <models> [season]                      # Compare two or more models
 just diagnostics [--model <m>] [--season <s>] ...  # Per-player diagnostics
 just segment-analysis [--segments <s>] ...          # Segmented accuracy analysis
 just accuracy-report [--run-backtest] ...           # Generate accuracy report
+
+# Backfills / seeds
+just backfill-nfl-stats [--seasons ...]             # Backfill nflverse NFL stats
+just backfill-draft-capital [--since YYYY]          # Backfill draft pick metadata from nflverse
+just backfill-vegas [--since YYYY]                  # Backfill team_vegas_lines from nflverse games.csv
+just seed-win-totals [--season YYYY]                # Upsert hand-curated preseason win_total values
+
+# Ad-hoc DB queries
+just py "<python snippet>"                          # Run a one-off Python snippet against the project venv (read-only diagnostics)
 ```
 
 ## Daily Scheduling (cron)
