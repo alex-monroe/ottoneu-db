@@ -43,18 +43,18 @@ Each task type lives in its own module. `__init__.py` defines task type constant
 
 ## Analysis Pipeline
 
-`scripts/run_all_analyses.py` orchestrates analysis in dependency order:
+The only backend analysis step is regenerating player projections via `scripts/update_projections.py`:
 
 ```
 feature projection system
         │ promote.py → player_projections table
         ▼
-update projections → projected salary → VORP → surplus value → arbitration → arbitration simulation → projected arbitration
+update projections (run active model → promote → rookie/college fallback)
 ```
 
-The feature projection system (see below) generates per-player PPG projections and stores them in `model_projections`. `promote.py` copies the active model's projections into `player_projections`, which is what the analysis pipeline reads.
+The feature projection system (see below) generates per-player PPG projections and stores them in `model_projections`. `promote.py` copies the active model's projections into `player_projections`, which is what the web UI reads.
 
-Shared config and DB helpers in `scripts/analysis_utils.py`. The Python analysis scripts (`analyze_*.py`) are **deprecated** — they generate markdown reports but duplicate calculations that now live canonically in the TypeScript web UI (`web/lib/vorp.ts`, `web/lib/surplus.ts`, `web/lib/arbitration.ts`, `web/lib/simulation.ts`). The Python scraper and projection pipelines remain active.
+VORP, surplus value, arbitration, projected salary, and the Monte Carlo arbitration simulation are computed **only** in the TypeScript web UI — `web/lib/vorp.ts`, `web/lib/surplus.ts`, `web/lib/arbitration.ts`, `web/lib/simulation.ts` — which is the single source of truth for those calculations. The former `analyze_*.py` report scripts (which duplicated this math to emit markdown) have been removed. `scripts/analysis_utils.py` now retains only `fetch_multi_season_stats`, the data-fetch helper used by the projection pipeline. The Python scraper and projection pipelines remain active.
 
 ### Web Data Access Layer
 
