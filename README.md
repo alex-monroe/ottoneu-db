@@ -156,18 +156,13 @@ python scripts/worker.py --poll
 
 #### Analytics
 
+VORP, surplus value, arbitration, projected salary, and efficiency metrics are
+computed in the TypeScript web UI (`web/lib/`) and surfaced through the Next.js
+app. The only backend analysis step is regenerating player projections.
+
 ```bash
-# Run full analysis suite (generates all reports)
-python scripts/run_all_analyses.py
-
-# Individual analyses
-python scripts/analyze_projected_salary.py   # Keep vs cut for The Witchcraft
-python scripts/analyze_vorp.py               # VORP analysis by position
-python scripts/analyze_surplus_value.py      # Surplus value rankings
-python scripts/analyze_arbitration.py        # Arbitration targets
-
-# Calculate efficiency metrics
-python scripts/analyze_efficiency.py
+# Update player projections (active model -> promote -> rookie/college fallback)
+python scripts/update_projections.py
 
 # Verify database contents
 python scripts/check_db.py
@@ -334,9 +329,8 @@ ottoneu_db/
 │   ├── enqueue.py        # Job queue management
 │   ├── worker.py         # Job processor
 │   ├── ottoneu_scraper.py # Backward-compatible wrapper
-│   ├── analysis_utils.py # Shared analysis logic
-│   ├── analyze_*.py      # Analysis scripts
-│   └── run_all_analyses.py # Orchestrate analyses
+│   ├── analysis_utils.py # Shared projection-pipeline data helpers
+│   └── update_projections.py # Regenerate player projections
 ├── web/                  # Next.js frontend
 │   ├── app/             # App Router pages
 │   ├── components/      # Shared components
