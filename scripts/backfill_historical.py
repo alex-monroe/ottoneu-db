@@ -19,9 +19,6 @@ import argparse
 import os
 import sys
 
-# Setup paths so we can import from sibling packages
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from scripts.backfill_nfl_stats import backfill_seasons
 from scripts.config import get_supabase_client
 from scripts.feature_projections.model_config import MODELS

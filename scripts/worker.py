@@ -5,17 +5,12 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
-import os
-import sys
 import time
 import uuid
 
 import pandas as pd
 from playwright.async_api import async_playwright
 from supabase import Client
-
-# Add project root to path so scripts.tasks imports work
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from scripts.tasks import (
     BROWSER_TASKS,

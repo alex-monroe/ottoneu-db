@@ -18,14 +18,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import math
-import os
-import sys
 from typing import Any
 
 import pandas as pd
-
-# Setup paths
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from scripts.config import get_supabase_client
 from scripts.name_utils import normalize_player_name

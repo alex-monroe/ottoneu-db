@@ -21,15 +21,7 @@ from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 
-# Setup paths so imports work when run directly
-script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-repo_root = os.path.dirname(script_dir)
-if script_dir not in sys.path:
-    sys.path.insert(0, script_dir)
-if repo_root not in sys.path:
-    sys.path.insert(0, repo_root)
-
-from config import get_supabase_client, fetch_all_rows, POSITIONS, MIN_GAMES
+from scripts.config import get_supabase_client, fetch_all_rows, POSITIONS, MIN_GAMES
 
 
 def _compute_distribution_stats(residuals: List[float]) -> dict:

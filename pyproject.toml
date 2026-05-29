@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "ottoneu-db"
 version = "0.1.0"
@@ -20,7 +24,24 @@ dev = [
     "pytest-cov==7.0.0",
 ]
 
+# Expose ``scripts`` (and its subpackages) as an importable package so modules
+# resolve via the canonical ``scripts.<module>`` path. Combined with an editable
+# install (``pip install -e .``), the repo root lands on ``sys.path`` from any
+# working directory — including direct execution like ``python scripts/foo.py``
+# — which removes the need for per-file ``sys.path`` manipulation.
+[tool.setuptools]
+packages = [
+    "scripts",
+    "scripts.tasks",
+    "scripts.feature_projections",
+    "scripts.feature_projections.features",
+    "scripts.feature_projections.external_sources",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["scripts/tests"]
 python_files = ["test_*.py"]
+# Put the repo root on sys.path so ``import scripts.*`` resolves during test
+# collection without any per-file or conftest path manipulation.
+pythonpath = ["."]
 addopts = "--cov=scripts --cov-report=term-missing"

@@ -17,20 +17,11 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from copy import deepcopy
 from typing import Dict, List, Optional, Tuple
 
-# Setup paths so imports work when run directly
-script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-repo_root = os.path.dirname(script_dir)
-if script_dir not in sys.path:
-    sys.path.insert(0, script_dir)
-if repo_root not in sys.path:
-    sys.path.insert(0, repo_root)
-
-from config import get_supabase_client, POSITIONS
+from scripts.config import get_supabase_client, POSITIONS
 from scripts.feature_projections.model_config import (
     MODELS,
     ModelDefinition,

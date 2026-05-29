@@ -50,6 +50,8 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install --only-binary pandas,numpy playwright supabase python-dotenv pandas numpy
+          # Install this repo as a package so `import scripts.*` resolves
+          pip install -e . --no-deps
 
       - name: Install Playwright browsers
         if: steps.season_gate.outputs.in_season == 'true'

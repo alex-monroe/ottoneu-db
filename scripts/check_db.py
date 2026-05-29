@@ -1,4 +1,4 @@
-from config import get_supabase_client, LEAGUE_ID
+from scripts.config import get_supabase_client, LEAGUE_ID
 
 def check_database() -> None:
     """Verify database content and display top players."""

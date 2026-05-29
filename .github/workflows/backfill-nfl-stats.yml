@@ -36,6 +36,8 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install supabase python-dotenv pandas numpy pyarrow
+          # Install this repo as a package so `import scripts.*` resolves
+          pip install -e . --no-deps
 
       - name: Create .env
         run: |

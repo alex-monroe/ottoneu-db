@@ -3,19 +3,12 @@
 from __future__ import annotations
 
 import json
-import os
-import sys
 from typing import Any
 
 import pandas as pd
 
-# Setup paths
-script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if script_dir not in sys.path:
-    sys.path.insert(0, script_dir)
-
-from config import get_supabase_client, MIN_GAMES, fetch_all_rows
-from analysis_utils import fetch_multi_season_stats
+from scripts.config import get_supabase_client, MIN_GAMES, fetch_all_rows
+from scripts.analysis_utils import fetch_multi_season_stats
 from scripts.feature_projections.features import FEATURE_REGISTRY
 from scripts.feature_projections.model_config import ModelDefinition, PositionOverride, get_model
 from scripts.feature_projections.combiner import combine_features

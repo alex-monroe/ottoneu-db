@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -25,16 +24,8 @@ import pandas as pd
 from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
 
-# Setup paths so imports work when run directly
-script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-repo_root = os.path.dirname(script_dir)
-if script_dir not in sys.path:
-    sys.path.insert(0, script_dir)
-if repo_root not in sys.path:
-    sys.path.insert(0, repo_root)
-
-from config import get_supabase_client, MIN_GAMES, fetch_all_rows
-from analysis_utils import fetch_multi_season_stats
+from scripts.config import get_supabase_client, MIN_GAMES, fetch_all_rows
+from scripts.analysis_utils import fetch_multi_season_stats
 from scripts.feature_projections.features import FEATURE_REGISTRY
 from scripts.feature_projections.model_config import get_model
 from scripts.feature_projections.runner import (

@@ -1,6 +1,7 @@
-import pytest
-import sys
-import os
+"""Pytest configuration for the scripts test suite.
 
-# Add scripts directory to path so we can import modules
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+Import resolution (``import scripts.*``) is handled by ``pythonpath = ["."]``
+in ``[tool.pytest.ini_options]`` (pyproject.toml), which places the repo root
+on ``sys.path`` during collection. No manual ``sys.path`` manipulation is
+needed here. This module intentionally contains no path hacks.
+"""

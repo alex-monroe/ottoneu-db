@@ -10,13 +10,9 @@ For more control, use:
 
 import asyncio
 import json
-import os
-import sys
 import uuid
 
 from dotenv import load_dotenv
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from scripts.tasks import PULL_NFL_STATS, SCRAPE_ROSTER
 from scripts.worker import ScraperWorker

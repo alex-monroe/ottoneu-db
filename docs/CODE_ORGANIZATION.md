@@ -46,24 +46,33 @@ Drift is caught mechanically by architecture tests:
 - `scripts/tests/test_architecture.py::TestConfigSync` — asserts every `config.json` key is consumed in both `config.py` and `config.ts`, and that neither references a nonexistent key.
 - `web/__tests__/lib/architecture.test.ts::Config JSON Sync` — asserts the TypeScript module's *exported values* match `config.json` (not just key presence).
 
-## Path Setup for New Python Scripts
+## Imports in Python Scripts
 
-Scripts under `scripts/feature_projections/` need two paths on sys.path to resolve all imports:
+`scripts/` is a proper Python package (`scripts/__init__.py`, declared in
+`pyproject.toml` under `[tool.setuptools]`). **No per-file `sys.path`
+manipulation is needed.** Import everything via the canonical `scripts.`
+namespace:
 
 ```python
-import os
-import sys
-
-# Setup paths so imports work when run directly
-script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # → scripts/
-repo_root = os.path.dirname(script_dir)                                    # → project root
-if script_dir not in sys.path:
-    sys.path.insert(0, script_dir)
-if repo_root not in sys.path:
-    sys.path.insert(0, repo_root)
+from scripts.config import get_supabase_client, SEASON
+from scripts.analysis_utils import fetch_multi_season_stats
+from scripts.feature_projections.runner import run_model
 ```
 
-- **`script_dir`** (`scripts/`) — resolves `from config import ...` and `from analysis_utils import ...`
-- **`repo_root`** (project root) — resolves `from scripts.feature_projections.features import ...`
+Import resolution is provided by two mechanisms, so it works both under pytest
+and when running a script directly (`python scripts/foo.py`) from any cwd:
 
-Both are required. Only adding `script_dir` causes `ModuleNotFoundError: No module named 'scripts'`. See scripts/feature_projections/cli.py for the canonical example.
+- **`pythonpath = ["."]`** in `[tool.pytest.ini_options]` — puts the repo root on
+  `sys.path` during test collection.
+- **Editable install** (`pip install -e .`, included via `-e .` in
+  `requirements.txt`) — puts the repo root on `sys.path` for all execution. `just
+  install` runs `pip install -r requirements.txt`, so a normal setup gets it
+  automatically.
+
+**CI note:** workflows that install an ad-hoc package subset instead of
+`requirements.txt` (e.g. the backfill/scrape jobs) must add
+`pip install -e . --no-deps` so `import scripts.*` resolves when they run
+scripts directly.
+
+If you see `ModuleNotFoundError: No module named 'scripts'`, the editable
+install is missing — run `venv/bin/pip install -e .`.

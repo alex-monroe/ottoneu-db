@@ -13,16 +13,10 @@ Commands:
 from __future__ import annotations
 
 import argparse
-import sys
 import os
 
-# Setup paths so imports work when run directly
-script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-repo_root = os.path.dirname(script_dir)
-if script_dir not in sys.path:
-    sys.path.insert(0, script_dir)
-if repo_root not in sys.path:
-    sys.path.insert(0, repo_root)
+# Repo root — used to compute default report output paths below.
+repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 def cmd_run(args: argparse.Namespace) -> None:
@@ -63,7 +57,7 @@ def cmd_diagnostics(args: argparse.Namespace) -> None:
 
     if season is None:
         # Auto-detect latest season with data
-        from config import get_supabase_client
+        from scripts.config import get_supabase_client
 
         supabase = get_supabase_client()
         model_res = (
