@@ -93,7 +93,8 @@
       "mcp__github__get_pull_request_status",
       "Read(//private/tmp/**)",
       "Read(//Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/bin/**)",
-      "Skill(update-config)"
+      "Skill(update-config)",
+      "mcp__supabase__list_tables"
     ]
   },
   "enabledMcpjsonServers": [

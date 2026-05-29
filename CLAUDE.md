@@ -68,6 +68,7 @@ Note: The local directory is `ottoneu_db` (underscore) but the GitHub repo name 
 ## Critical Rules
 
 - **Prefer `just <recipe>` over raw commands.** Run `just --list` to see available recipes. Common ones: `just typecheck`, `just lint`, `just test-web`, `just test-python`, `just train MODEL`, `just project MODEL`, `just backtest MODEL`, `just promote MODEL`, `just accuracy-report`, `just diagnostics`, `just segment-analysis`, `just backfill-nfl-stats`, `just backfill-draft-capital`, `just backfill-vegas`, `just seed-win-totals`. For ad-hoc DB inspection use `just py "<snippet>"`.
+- **Do not touch `fp_*` tables.** The Supabase project is shared with the `fantasy-pulse` app. Tables whose names start with `fp_` (currently `fp_notes`, `fp_user_integrations`, `fp_leagues`, `fp_teams`, but the prefix is the rule, not the list) are owned by that other codebase. Do not read from, write to, alter, drop, or migrate them from this repo. They will appear in `list_tables` output and in regenerated Supabase TS types — ignore them. See [docs/generated/db-schema.md](docs/generated/db-schema.md#shared-database--hands-off-fp_).
 - **Update documentation:** Always try to update the agent documentation after completing a task. Update existing documents or add new documents and sections as needed to reflect architectural or contextual changes.
 - **Never commit directly to `main`.** All changes go through pull requests.
 - **Always create a PR.** Every task must end with `gh pr create --fill`.

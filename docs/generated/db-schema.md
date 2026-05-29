@@ -1,6 +1,18 @@
 # Database Schema
 
-Nineteen tables, all with UUID primary keys.
+Nineteen tables owned by this project, all with UUID primary keys.
+
+## Shared Database — Hands Off `fp_*`
+
+The Supabase project (`OttoneuDB`, ref `rbinbcwinchphipvcfqk`) is **shared with a separate app, `fantasy-pulse`**, as of 2026-05. Any table whose name starts with `fp_` belongs to fantasy-pulse and is owned by that codebase, not this one.
+
+**Rules:**
+- **Do not read, write, alter, drop, or migrate any `fp_*` table** from this project's scripts, web app, or migrations.
+- Do not include `fp_*` tables in TypeScript type generation outputs intended for this repo unless you explicitly strip them — they will appear in `mcp__supabase__list_tables` output and in regenerated `web/types/supabase.ts`. Leave them alone, but be aware they show up.
+- New migrations in `migrations/` must only touch ottoneu tables. Never write a migration that modifies an `fp_*` table.
+- When listing tables for any purpose (analysis, debugging, schema docs), filter `fp_*` out.
+
+**Current fantasy-pulse tables (informational, do not modify):** `fp_notes`, `fp_user_integrations`, `fp_leagues`, `fp_teams`. This list may grow — anything matching `fp_*` belongs to fantasy-pulse.
 
 ## Tables
 
