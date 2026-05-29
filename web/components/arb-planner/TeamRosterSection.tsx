@@ -1,30 +1,49 @@
 "use client";
 
 import { useState } from "react";
-import { ArbitrationTarget, PlayerHoverData } from "@/lib/types";
+import { PlayerHoverData } from "@/lib/types";
 import PlayerName from "@/components/PlayerName";
 import PositionBadge from "@/components/PositionBadge";
 import StatValue from "@/components/StatValue";
+import type { ArbPlannerPlayer } from "./types";
 
-interface TeamRosterSectionProps {
+interface TeamRosterSectionProps<T extends ArbPlannerPlayer> {
   teamName: string;
-  players: ArbitrationTarget[];
+  players: T[];
   allocations: Record<string, number>;
   teamAllocated: number;
   onAllocationChange: (playerId: string, amount: number) => void;
+  /**
+   * When true, render the Value/Surplus columns (authed planner). Players are
+   * expected to carry `dollar_value`/`surplus` in that case. Defaults to false
+   * (public, read-only view) so the columns stay hidden.
+   */
+  showSurplus?: boolean;
+  /**
+   * Optional adjusted-surplus map (player_id -> adjusted surplus). When present,
+   * an "Adj. Surplus" column is rendered. Authed planner only.
+   */
   adjustedSurplus?: Map<string, number>;
+  /**
+   * Optional per-player hover data. When present, player names render as rich
+   * hover cards; otherwise they fall back to `nameMode`.
+   */
   hoverDataMap?: Record<string, PlayerHoverData> | null;
+  /** Player-name render mode when no hover data is supplied. Defaults to "plain". */
+  nameMode?: "link" | "plain";
 }
 
-export default function TeamRosterSection({
+export default function TeamRosterSection<T extends ArbPlannerPlayer>({
   teamName,
   players,
   allocations,
   teamAllocated,
   onAllocationChange,
+  showSurplus = false,
   adjustedSurplus,
   hoverDataMap,
-}: TeamRosterSectionProps) {
+  nameMode = "plain",
+}: TeamRosterSectionProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
 
   const allocatedCount = players.filter(
@@ -75,12 +94,16 @@ export default function TeamRosterSection({
                 <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
                   Salary
                 </th>
-                <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
-                  Value
-                </th>
-                <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
-                  Surplus
-                </th>
+                {showSurplus && (
+                  <>
+                    <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
+                      Value
+                    </th>
+                    <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
+                      Surplus
+                    </th>
+                  </>
+                )}
                 <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
                   PPG
                 </th>
@@ -100,9 +123,10 @@ export default function TeamRosterSection({
             <tbody>
               {players.map((p) => {
                 const alloc = allocations[p.player_id] ?? 0;
+                const surplus = p.surplus ?? 0;
                 const adjSurp = adjustedSurplus?.get(p.player_id);
                 const hasAlloc = alloc > 0;
-                const isNegSurplus = p.surplus < 0;
+                const isNegSurplus = showSurplus && surplus < 0;
 
                 let rowClass = "";
                 if (hasAlloc) {
@@ -120,7 +144,7 @@ export default function TeamRosterSection({
                       <PlayerName
                         name={p.name}
                         ottoneuId={p.ottoneu_id}
-                        mode={hoverDataMap ? "hover" : "link"}
+                        mode={hoverDataMap ? "hover" : nameMode}
                         hoverData={hoverDataMap?.[p.player_id]}
                       />
                     </td>
@@ -133,17 +157,21 @@ export default function TeamRosterSection({
                     <td className="px-3 py-2 text-right text-slate-900 dark:text-white">
                       <StatValue value={p.price} format="currency" />
                     </td>
-                    <td className="px-3 py-2 text-right text-slate-900 dark:text-white">
-                      <StatValue value={p.dollar_value} format="currency" />
-                    </td>
-                    <td
-                      className={`px-3 py-2 text-right font-medium ${p.surplus >= 0
-                          ? "text-green-600 dark:text-green-400"
-                          : "text-red-600 dark:text-red-400"
-                        }`}
-                    >
-                      <StatValue value={p.surplus} format="currency" />
-                    </td>
+                    {showSurplus && (
+                      <>
+                        <td className="px-3 py-2 text-right text-slate-900 dark:text-white">
+                          <StatValue value={p.dollar_value ?? null} format="currency" />
+                        </td>
+                        <td
+                          className={`px-3 py-2 text-right font-medium ${surplus >= 0
+                              ? "text-green-600 dark:text-green-400"
+                              : "text-red-600 dark:text-red-400"
+                            }`}
+                        >
+                          <StatValue value={p.surplus ?? null} format="currency" />
+                        </td>
+                      </>
+                    )}
                     <td className="px-3 py-2 text-right text-slate-900 dark:text-white">
                       <StatValue value={p.ppg} format="decimal" />
                     </td>
@@ -152,7 +180,7 @@ export default function TeamRosterSection({
                     </td>
                     {adjustedSurplus && (
                       <td
-                        className={`px-3 py-2 text-right font-medium ${(adjSurp ?? p.surplus) >= 0
+                        className={`px-3 py-2 text-right font-medium ${(adjSurp ?? surplus) >= 0
                             ? "text-green-600 dark:text-green-400"
                             : "text-red-600 dark:text-red-400"
                           }`}

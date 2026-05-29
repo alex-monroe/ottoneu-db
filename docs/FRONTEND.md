@@ -39,6 +39,19 @@ Next.js App Router. Most pages are server components that fetch live data from S
 | `StatValue` | Numeric stat formatter with currency/decimal/number/null handling |
 | `PlayerHoverCard` | Rich hover preview card for player context |
 
+### Arbitration Planner (`components/arb-planner/`)
+
+The authed `/arbitration-planner` and public `/arb-planner-public` routes share a single, generic component tree under `web/components/arb-planner/` instead of duplicating it per route:
+
+| Component | Purpose |
+|-----------|---------|
+| `ArbPlannerCore` | Shared client: tabs, plan CRUD, validation, budget tracking, roster + comparison rendering. Generic over `T extends ArbPlannerPlayer`. |
+| `TeamRosterSection` | Collapsible per-team roster table. Prop-driven extras: `showSurplus` (Value/Surplus cols), `adjustedSurplus` (Adj. Surplus col), `hoverDataMap` + `nameMode` (player-name rendering). |
+| `PlanComparison` | Side-by-side plan comparison. The middle metric column is configured via a `metricColumn` prop (authed = colored Surplus, public = season PPG). |
+| `types.ts` | `ArbPlannerPlayer` base type that both `ArbitrationTarget` (authed) and `PublicArbPlayer` (public) satisfy. |
+
+The two route directories keep only thin client wrappers (`ArbPlannerClient`, `PublicArbPlannerClient`) that pass the appropriate props. `PlanManager` and `BudgetTracker` continue to live in `app/arbitration-planner/` and are imported by the shared core. Defaults are read-only/public-safe — the authed view opts into surplus/hover/suggested-allocation features via props.
+
 ### Column Factories (`components/columns.tsx`)
 
 Column definitions for `DataTable` are built via **composable factory functions** to prevent drift across pages. Individual factories (`playerNameCol`, `positionCol`, `salaryCol`, etc.) inject atomic components (`PositionBadge`, `PlayerName`) via `renderCell`. Pages compose columns from these factories:
