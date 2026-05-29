@@ -22,6 +22,7 @@ Next.js App Router. Most pages are server components that fetch live data from S
 | `/arbitration` | Arbitration targets with per-opponent breakdown |
 | `/arbitration-simulation` | Monte Carlo arbitration simulation |
 | `/arbitration-planner` | Plan and save arbitration budget allocations (auth required) |
+| `/vegas-lines` | Preseason Vegas implied team totals review (AFC/NFC division cards, season selector) — spot-check the data feeding the `implied_team_total_raw` projection feature |
 | `/login` | Email/password login |
 | `/admin` | User management (admin only) |
 
