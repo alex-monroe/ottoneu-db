@@ -222,25 +222,6 @@ class TestDependencyDirection:
     of importing task internals.
     """
 
-    def test_analysis_does_not_import_tasks(self):
-        violations = []
-        pattern = re.compile(r"(?:from|import)\s+scripts\.tasks")
-        for pyfile in _python_files(SCRIPTS_DIR):
-            if not pyfile.name.startswith("analyze_"):
-                continue
-            source = pyfile.read_text()
-            for lineno, line in enumerate(source.splitlines(), 1):
-                if pattern.search(line):
-                    rel = pyfile.relative_to(PROJECT_ROOT)
-                    violations.append(f"  {rel}:{lineno}: {line.strip()}")
-
-        assert not violations, (
-            "Analysis scripts must not import from the tasks layer.\n"
-            "FIX: Query the database directly (via analysis_utils) instead of importing task modules.\n"
-            "The dependency flow is: config -> tasks -> worker -> analysis -> reports.\n"
-            "Violations:\n" + "\n".join(violations)
-        )
-
     def test_config_does_not_import_other_scripts(self):
         """config.py must be a leaf dependency — no imports from other modules."""
         violations = []
@@ -376,40 +357,5 @@ class TestFrontendLayerBoundaries:
             "FIX: Library modules should be pure logic (no React dependencies).\n"
             "The dependency flow is: types -> config -> lib -> components -> pages.\n"
             "Move shared logic to lib/ and have components import from there.\n"
-            "Violations:\n" + "\n".join(violations)
-        )
-
-
-# ===========================================================================
-# Rule 8: Analysis scripts must use analysis_utils helpers
-# ===========================================================================
-
-class TestAnalysisPatterns:
-    """Analysis scripts must follow the established data-fetching patterns.
-
-    WHY: analysis_utils.py provides shared helpers for fetching and merging
-    data from Supabase. Bypassing these helpers leads to inconsistent data
-    handling (e.g., missing column coercion, incorrect joins).
-
-    FIX: Use `from scripts.analysis_utils import fetch_all_data, merge_data`
-    instead of writing custom Supabase queries in analysis scripts.
-    """
-
-    def test_analysis_scripts_do_not_create_supabase_client_directly(self):
-        violations = []
-        pattern = re.compile(r"create_client\s*\(")
-        for pyfile in _python_files(SCRIPTS_DIR):
-            if not pyfile.name.startswith("analyze_"):
-                continue
-            source = pyfile.read_text()
-            for lineno, line in enumerate(source.splitlines(), 1):
-                if pattern.search(line):
-                    rel = pyfile.relative_to(PROJECT_ROOT)
-                    violations.append(f"  {rel}:{lineno}: {line.strip()}")
-
-        assert not violations, (
-            "Analysis scripts must not call `create_client()` directly.\n"
-            "FIX: Use `from scripts.config import get_supabase_client` or\n"
-            "     use `from scripts.analysis_utils import fetch_all_data`.\n"
             "Violations:\n" + "\n".join(violations)
         )

@@ -1,8 +1,10 @@
 ---
-description: Run the full analysis suite
+description: Update player projections
 ---
-Follow these steps to run the full analysis suite:
+The VORP / surplus / arbitration / projected-salary calculations now live
+canonically in the TypeScript web UI (`web/lib/`). The only remaining backend
+analysis step is regenerating player projections.
 
 // turbo
-1. Run all analysis scripts
-`source venv/bin/activate && python scripts/run_all_analyses.py`
+1. Update player projections
+`venv/bin/python scripts/update_projections.py`

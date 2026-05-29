@@ -1,21 +1,50 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { ArbitrationPlan, ArbitrationPlanWithAllocations, ArbitrationTarget } from "@/lib/types";
+import { ArbitrationPlan, ArbitrationPlanWithAllocations } from "@/lib/types";
+import type { ArbPlannerPlayer } from "./types";
 
-interface PlanComparisonProps {
-  plans: ArbitrationPlan[];
-  playerMap: Map<string, ArbitrationTarget>;
-  playerTeamMap: Record<string, string>;
+/**
+ * Describes the single configurable metric column rendered between "Salary" and
+ * the per-plan allocation columns. The authed planner shows colored surplus;
+ * the public planner shows season PPG.
+ */
+export interface ComparisonMetricColumn<T extends ArbPlannerPlayer> {
+  /** Column header label. */
+  label: string;
+  /** Extracts the displayed value from the player row. */
+  getValue: (player: T) => number;
+  /** Renders the cell content (e.g. `$${v}` vs `v.toFixed(2)`). */
+  render: (value: number) => React.ReactNode;
+  /**
+   * Full className for the value cell. Receives the value so callers can apply
+   * conditional coloring (e.g. green/red surplus). Should include any base
+   * text-color classes since it is the complete className for the `<td>`.
+   */
+  cellClassName: (value: number) => string;
 }
 
-export default function PlanComparison({
+interface PlanComparisonProps<T extends ArbPlannerPlayer> {
+  plans: ArbitrationPlan[];
+  playerMap: Map<string, T>;
+  metricColumn: ComparisonMetricColumn<T>;
+  /**
+   * Optional className applied to each body row. The public view adds a bottom
+   * border; the authed view leaves rows borderless. Defaults to none.
+   */
+  bodyRowClassName?: string;
+}
+
+export default function PlanComparison<T extends ArbPlannerPlayer>({
   plans,
   playerMap,
-// playerTeamMap
-}: PlanComparisonProps) {
+  metricColumn,
+  bodyRowClassName = "",
+}: PlanComparisonProps<T>) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [loadedPlans, setLoadedPlans] = useState<Map<string, ArbitrationPlanWithAllocations>>(new Map());
+  const [loadedPlans, setLoadedPlans] = useState<
+    Map<string, ArbitrationPlanWithAllocations>
+  >(new Map());
 
   const togglePlan = (id: string) => {
     setSelectedIds((prev) => {
@@ -65,7 +94,7 @@ export default function PlanComparison({
           position: player.position,
           team_name: player.team_name ?? "",
           salary: player.price,
-          surplus: player.surplus,
+          metric: metricColumn.getValue(player),
           allocations: selectedPlans.map((plan) => plan.allocations[pid] ?? 0),
         };
       })
@@ -77,7 +106,7 @@ export default function PlanComparison({
         const totalB = b.allocations.reduce((s, v) => s + v, 0);
         return totalB - totalA;
       });
-  }, [selectedPlans, playerMap]);
+  }, [selectedPlans, playerMap, metricColumn]);
 
   // Per-team summary
   const teamSummaries = useMemo(() => {
@@ -145,7 +174,7 @@ export default function PlanComparison({
                   Salary
                 </th>
                 <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
-                  Surplus
+                  {metricColumn.label}
                 </th>
                 {selectedPlans.map((plan) => (
                   <th
@@ -165,7 +194,7 @@ export default function PlanComparison({
                 const teamTotals = teamSummaries.get(row.team_name);
 
                 return (
-                  <tr key={row.player_id}>
+                  <tr key={row.player_id} className={bodyRowClassName}>
                     {showTeamHeader ? (
                       <td
                         className="px-3 py-2 font-medium text-slate-900 dark:text-white align-top"
@@ -192,14 +221,8 @@ export default function PlanComparison({
                     <td className="px-3 py-2 text-right text-slate-900 dark:text-white">
                       ${row.salary}
                     </td>
-                    <td
-                      className={`px-3 py-2 text-right font-medium ${
-                        row.surplus >= 0
-                          ? "text-green-600 dark:text-green-400"
-                          : "text-red-600 dark:text-red-400"
-                      }`}
-                    >
-                      ${row.surplus}
+                    <td className={metricColumn.cellClassName(row.metric)}>
+                      {metricColumn.render(row.metric)}
                     </td>
                     {row.allocations.map((alloc, i) => {
                       const differs = row.allocations.some((a, j) => j !== i && a !== alloc);

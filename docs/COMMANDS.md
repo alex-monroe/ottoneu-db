@@ -34,15 +34,10 @@ python scripts/worker.py                             # Process pending scraper j
 python scripts/worker.py --poll                      # Process jobs continuously (for scheduling)
 
 # Analysis
-python scripts/analyze_efficiency.py                 # Calculate efficiency metrics
-python scripts/run_all_analyses.py                   # Run full analysis suite
-python scripts/update_projections.py                 # Update player projections
-python scripts/analyze_projected_salary.py           # Keep vs cut decisions for The Witchcraft
-python scripts/analyze_vorp.py                       # Positional scarcity / Value Over Replacement
-python scripts/analyze_surplus_value.py              # Dollar value vs salary for all players
-python scripts/analyze_arbitration.py                # Identify opponents' vulnerable players
-python scripts/analyze_arbitration_simulation.py     # Monte Carlo arbitration simulation (100 runs)
-python scripts/analyze_projected_arbitration.py      # Projected arbitration targets based on historical stats
+# Note: VORP, surplus value, arbitration, and projected-salary calculations now live
+# canonically in the TypeScript web UI (web/lib/). The former analyze_*.py report
+# scripts have been removed; only the projection update step remains on the backend.
+python scripts/update_projections.py                 # Update player projections (runs active model + promote + rookie fallback)
 python scripts/scrape_arbitration_progress.py        # Scrape Ottoneu arbitration progress (allocations + team status)
 
 # Feature-based Projections
@@ -122,6 +117,15 @@ just compare <models> [season]                      # Compare two or more models
 just diagnostics [--model <m>] [--season <s>] ...  # Per-player diagnostics
 just segment-analysis [--segments <s>] ...          # Segmented accuracy analysis
 just accuracy-report [--run-backtest] ...           # Generate accuracy report
+
+# Backfills / seeds
+just backfill-nfl-stats [--seasons ...] [--dry-run]    # Backfill nfl_stats from nflverse
+just backfill-draft-capital [--since YYYY] [--dry-run] # Backfill draft_capital from nflverse draft_picks
+just backfill-vegas [--since YYYY] [--dry-run]         # Backfill team_vegas_lines from nflverse games.csv
+just seed-win-totals --season YYYY                     # Upsert preseason sportsbook win totals (implied_total left NULL until schedule drops)
+
+# Ad-hoc DB queries
+just py "<python-snippet>"                          # Run a one-off Python snippet against the project venv (read-only diagnostics)
 ```
 
 ## Daily Scheduling (cron)

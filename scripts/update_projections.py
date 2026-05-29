@@ -12,17 +12,14 @@ To switch which model the website serves, promote a different model:
 
 from __future__ import annotations
 
-import os
-import subprocess
-import sys
 import pandas as pd
 
 from scripts.config import get_supabase_client, MIN_GAMES
 from scripts.analysis_utils import fetch_multi_season_stats
 from scripts.projection_methods import CollegeProspectPPG, RookieDraftCapitalPPG
+from scripts.feature_projections.runner import run_model
+from scripts.feature_projections.promote import promote_model
 
-script_dir = os.path.dirname(os.path.abspath(__file__))
-cli_path = os.path.join(script_dir, "feature_projections", "cli.py")
 TARGET_SEASONS = [2024, 2025, 2026]
 
 
@@ -233,25 +230,20 @@ def update_projections() -> None:
     """Calculate projections and upsert them into the database."""
     active_model = get_active_model_name()
     print(f"Generating projections across seasons {TARGET_SEASONS} using model '{active_model}'...")
-    try:
-        # 1. Run the active model for the target seasons.
-        subprocess.run(
-            [sys.executable, cli_path, "run", "--model", active_model, "--seasons", ",".join(map(str, TARGET_SEASONS))],
-            check=True
-        )
-        # 2. Promote into player_projections.
-        subprocess.run(
-            [sys.executable, cli_path, "promote", "--model", active_model],
-            check=True
-        )
-        # 3. Rookie/college fallback — feature_projections only emits rows for
-        # players with NFL stats history, so 0-history players are layered on top.
-        upsert_college_projections()
 
-        print("Successfully updated player projections.")
-    except subprocess.CalledProcessError as e:
-        print(f"ERROR: Failed to update projections: {e}")
-        sys.exit(1)
+    # 1. Run the active model for the target seasons.
+    run_count = run_model(active_model, TARGET_SEASONS)
+    print(f"Generated {run_count} model projections.")
+
+    # 2. Promote into player_projections.
+    promoted = promote_model(active_model)
+    print(f"Promoted {promoted} projections into player_projections.")
+
+    # 3. Rookie/college fallback — feature_projections only emits rows for
+    # players with NFL stats history, so 0-history players are layered on top.
+    upsert_college_projections()
+
+    print("Successfully updated player projections.")
 
 
 if __name__ == '__main__':

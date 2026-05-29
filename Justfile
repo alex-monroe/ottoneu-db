@@ -66,9 +66,9 @@ test-web-file file:
 scrape:
     {{python}} scripts/ottoneu_scraper.py
 
-# Run all analysis scripts
+# Update player projections (VORP/surplus/arbitration now computed in the web UI)
 analyze:
-    {{python}} scripts/run_all_analyses.py
+    {{python}} scripts/update_projections.py
 
 # Verify database contents
 check-db:
