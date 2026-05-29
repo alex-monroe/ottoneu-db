@@ -14,17 +14,12 @@ import argparse
 import json
 import math
 import os
-import sys
 from datetime import date, datetime
 
-script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-repo_root = os.path.dirname(script_dir)
-if script_dir not in sys.path:
-    sys.path.insert(0, script_dir)
-if repo_root not in sys.path:
-    sys.path.insert(0, repo_root)
+# Repo root — used to compute the default report output path below.
+repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import get_supabase_client, fetch_all_rows, POSITIONS, MIN_GAMES
+from scripts.config import get_supabase_client, fetch_all_rows, POSITIONS, MIN_GAMES
 from scripts.feature_projections.backtest import _compute_metrics
 
 # Default models and seasons

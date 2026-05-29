@@ -26,9 +26,6 @@ import os
 
 from playwright.async_api import async_playwright
 
-# Add project root to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from scripts.config import LEAGUE_ID, SEASON, get_supabase_client
 
 DEBUG_SCREENSHOT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "debug")

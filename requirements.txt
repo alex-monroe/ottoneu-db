@@ -12,3 +12,8 @@ pytest-cov
 requests
 beautifulsoup4
 lxml
+
+# Editable install of this repo so `scripts` resolves as a package from any
+# working directory (e.g. `python scripts/foo.py`) without per-file sys.path
+# manipulation. See docs/CODE_ORGANIZATION.md "Path Setup for New Python Scripts".
+-e .

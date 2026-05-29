@@ -2,14 +2,9 @@
 
 from __future__ import annotations
 
-import os
 import sys
 
-script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if script_dir not in sys.path:
-    sys.path.insert(0, script_dir)
-
-from config import get_supabase_client
+from scripts.config import get_supabase_client
 
 
 def promote_model(model_name: str) -> int:

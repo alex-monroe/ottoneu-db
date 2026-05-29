@@ -11,14 +11,10 @@ URL pattern: https://github.com/nflverse/nflverse-data/releases/download/stats_p
 
 from __future__ import annotations
 
-import sys
-import os
 import math
 
 import pandas as pd
 from supabase import Client
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from scripts.config import SCORING_SETTINGS
 from scripts.tasks import TaskResult

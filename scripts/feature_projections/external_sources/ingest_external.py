@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 
 try:
@@ -28,17 +27,7 @@ except ImportError:
 
 import pandas as pd
 
-# Setup paths so imports work when run directly from repo root or this dir
-_this_dir = os.path.dirname(os.path.abspath(__file__))
-_fp_dir = os.path.dirname(_this_dir)           # feature_projections/
-_scripts_dir = os.path.dirname(_fp_dir)        # scripts/
-_repo_root = os.path.dirname(_scripts_dir)     # repo root
-
-for _p in [_scripts_dir, _repo_root]:
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
-
-from config import get_supabase_client, fetch_all_rows  # noqa: E402
+from scripts.config import get_supabase_client, fetch_all_rows  # noqa: E402
 
 from scripts.feature_projections.external_sources.fantasypros_fetcher import (  # noqa: E402
     fetch_all_positions,

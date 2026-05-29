@@ -41,3 +41,6 @@ build/
 .mcp.json
 # Allow specific example files if needed
 !**/.env.example
+
+# Python editable-install build metadata
+*.egg-info/

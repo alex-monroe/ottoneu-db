@@ -30,6 +30,8 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install supabase python-dotenv nfl_data_py pandas numpy
+          # Install this repo as a package so `import scripts.*` resolves
+          pip install -e . --no-deps
 
       - name: Create .env
         run: |

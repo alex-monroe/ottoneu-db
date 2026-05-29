@@ -8,7 +8,7 @@ helper still consumed by the projection pipeline.
 
 import pandas as pd
 
-from config import get_supabase_client
+from scripts.config import get_supabase_client
 
 
 def fetch_multi_season_stats(seasons: list[int]) -> pd.DataFrame:

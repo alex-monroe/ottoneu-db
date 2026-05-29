@@ -21,12 +21,8 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import os
-import sys
 
 import pandas as pd
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from scripts.config import get_supabase_client, fetch_all_rows
 from scripts.name_utils import normalize_player_name

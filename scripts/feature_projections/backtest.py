@@ -4,16 +4,10 @@ from __future__ import annotations
 
 import json
 import math
-import os
-import sys
 
 import pandas as pd
 
-script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if script_dir not in sys.path:
-    sys.path.insert(0, script_dir)
-
-from config import get_supabase_client, fetch_all_rows, POSITIONS, MIN_GAMES
+from scripts.config import get_supabase_client, fetch_all_rows, POSITIONS, MIN_GAMES
 
 
 def _compute_metrics(projected: list[float], actual: list[float]) -> dict:

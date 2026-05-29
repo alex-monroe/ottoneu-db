@@ -12,22 +12,11 @@ To switch which model the website serves, promote a different model:
 
 from __future__ import annotations
 
-import os
-import sys
 import pandas as pd
 
-# Setup paths: scripts/ resolves `config`/`analysis_utils`/`projection_methods`;
-# repo_root resolves the `scripts.feature_projections.*` namespace those modules
-# import internally.
-script_dir = os.path.dirname(os.path.abspath(__file__))
-repo_root = os.path.dirname(script_dir)
-if script_dir not in sys.path:
-    sys.path.append(script_dir)
-if repo_root not in sys.path:
-    sys.path.insert(0, repo_root)
-from config import get_supabase_client, MIN_GAMES
-from analysis_utils import fetch_multi_season_stats
-from projection_methods import CollegeProspectPPG, RookieDraftCapitalPPG
+from scripts.config import get_supabase_client, MIN_GAMES
+from scripts.analysis_utils import fetch_multi_season_stats
+from scripts.projection_methods import CollegeProspectPPG, RookieDraftCapitalPPG
 from scripts.feature_projections.runner import run_model
 from scripts.feature_projections.promote import promote_model
 
@@ -161,7 +150,7 @@ def upsert_college_projections():
     supabase = get_supabase_client()
     # Paginated fetch — the players table exceeds the 1000-row default page size
     # and a plain .execute() silently truncates, dropping newly-inserted rookies.
-    from config import fetch_all_rows
+    from scripts.config import fetch_all_rows
     players_data = fetch_all_rows(supabase, 'players', 'id, position, is_college')
     players_df = pd.DataFrame(players_data)
     players_df = players_df.rename(columns={'id': 'player_id_ref'})

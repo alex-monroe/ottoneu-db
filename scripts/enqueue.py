@@ -2,13 +2,9 @@
 
 import argparse
 import json
-import os
-import sys
 import uuid
 
 from dotenv import load_dotenv
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from scripts.tasks import PULL_NFL_STATS, PULL_PLAYER_STATS, SCRAPE_ROSTER, SCRAPE_PLAYER_CARD
 from scripts.config import POSITIONS, COLLEGE_POSITIONS, SEASON as DEFAULT_SEASON, LEAGUE_ID as DEFAULT_LEAGUE_ID, HISTORICAL_SEASONS, get_supabase_client as get_supabase
