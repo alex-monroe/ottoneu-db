@@ -71,6 +71,16 @@ Advanced receiving (added in migration 022, populated for 2018+ via nflverse `st
 - **Migrations:** `migrations/` (numbered SQL migration files)
 - **Job queue:** `migrations/002_add_scraper_jobs.sql` defines the `scraper_jobs` table for the persistent job queue
 
+## Row-Level Security
+
+All public tables have RLS enabled. Server-side code uses the Supabase **service key** (Python via `scripts.config.get_supabase_client()`, Next.js writes via `web/lib/supabase.supabaseAdmin`) which bypasses RLS. The anon key is restricted to read-only access on a curated set of public reference data.
+
+**Tables with an anon SELECT policy** (web reads via the anon client): `players`, `player_stats`, `nfl_stats`, `league_prices`, `transactions`, `surplus_adjustments`, `player_projections`, `projection_models`, `model_projections`, `backtest_results`, `arbitration_progress`, `arbitration_progress_teams`, `arbitration_allocation_details`, `team_vegas_lines`.
+
+**Tables with no anon policy** (server-only, anon fully blocked): `users`, `arbitration_plans`, `arbitration_plan_allocations`, `scraper_jobs`, `draft_capital`.
+
+When adding a new table, decide upfront: does the web frontend read from it via the anon `supabase` client (see `web/lib/supabase.ts`)? If yes, the migration must `ENABLE ROW LEVEL SECURITY` *and* add a `FOR SELECT TO anon USING (true)` policy. If no, just enable RLS — server writes via the service key still work, and anon is locked out. The Supabase advisor (`mcp__supabase__get_advisors --type security`) will flag `rls_disabled_in_public` as a critical ERROR if either step is skipped. See migrations 015 and 026 for the canonical pattern.
+
 ## Key Relationships
 
 - `player_stats.player_id` -> `players.id`
