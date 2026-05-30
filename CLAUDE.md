@@ -56,7 +56,8 @@ docs/
 └── references/
     ├── environment-variables.md       # .env and .env.local variable reference
     ├── ottoneu-rules.md               # Scoring, roster, salary cap, arbitration rules
-    └── ottoneu-strategy.md            # Format economics + AI reasoning checklist for roster construction
+    ├── ottoneu-strategy.md            # Format economics + AI reasoning checklist for roster construction
+    └── ottoneu-strategy-examples.md   # Worked few-shot exemplars applying the checklist to real rosters
 ```
 
 ## GitHub Repository
