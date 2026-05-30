@@ -9,9 +9,10 @@ The user's question is in the arguments. If empty, ask what they want analyzed.
 Follow these steps:
 
 1. **Load the format model.** Read `docs/references/ottoneu-strategy.md` (economics + reasoning
-   checklist) and `docs/references/ottoneu-rules.md` (exact mechanics). These override any default
-   dynasty/redraft assumptions. Superflex QB premium, the +$4 raise treadmill, arbitration tax, and
-   surplus-as-unit-of-account are all in play.
+   checklist), `docs/references/ottoneu-strategy-examples.md` (worked few-shot exemplars — imitate
+   their reasoning structure), and `docs/references/ottoneu-rules.md` (exact mechanics). These
+   override any default dynasty/redraft assumptions. Superflex QB premium, the +$4 raise treadmill,
+   arbitration tax, and surplus-as-unit-of-account are all in play.
 
 2. **Pull the live market.** Generate the current roster-economics snapshot so the answer is
    grounded in real salaries and projections, not vibes:

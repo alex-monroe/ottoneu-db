@@ -209,6 +209,7 @@ These are the mistakes that come from standard-dynasty training data. Explicitly
 
 ## See also
 
+- [ottoneu-strategy-examples.md](ottoneu-strategy-examples.md) — worked few-shot exemplars applying §9 to real rosters.
 - [ottoneu-rules.md](ottoneu-rules.md) — exact mechanics, scoring, dates, constants.
 - `web/lib/vorp.ts`, `web/lib/surplus.ts`, `web/lib/arb-logic.ts` — the live formulas.
 - `docs/generated/db-schema.md` — where salaries, projections, and arbitration data live.
