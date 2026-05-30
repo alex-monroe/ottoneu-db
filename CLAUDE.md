@@ -20,6 +20,7 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 - **Testing:** See [docs/TESTING.md](docs/TESTING.md) for running Python and web tests
 - **Git workflow:** See [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) for branch and PR requirements
 - **Ottoneu rules:** See [docs/references/ottoneu-rules.md](docs/references/ottoneu-rules.md) for scoring, roster, salary cap, and arbitration rules
+- **Ottoneu strategy:** See [docs/references/ottoneu-strategy.md](docs/references/ottoneu-strategy.md) for the format's economics (surplus value, dollar-per-point inflation, Superflex QB premium, raise treadmill, arbitration game theory) and a reasoning checklist for roster-construction questions. Use the `/ottoneu-roster-question` skill (which loads this + live data via `just roster-context`) to answer advanced keeper/trade/auction/arbitration questions.
 - **Environment:** See [docs/references/environment-variables.md](docs/references/environment-variables.md) for `.env` setup
 - **Projection Accuracy Plan:** See [docs/exec-plans/projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md) for the 4-phase accuracy improvement roadmap (Issues #271-#285)
 - **Projection Accuracy:** Use `/projection-accuracy` skill (or run `python scripts/feature_projections/accuracy_report.py`) to generate a model comparison table. **Required when updating any projection code** — see Projection Model Update Requirements in [AGENTS.md](AGENTS.md).
@@ -29,7 +30,7 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 
 ## Documentation Map
 
-Skills (`.claude/commands/`): `ablation`, `compare-models`, `create-pr`, `diagnose-segment`, `experiment`, `feature-importance`, `projection-accuracy`, `retro`, `review-permission-gates`, `run-analyses`, `run-scraper`, `run-tests`, `start-dev`
+Skills (`.claude/commands/`): `ablation`, `compare-models`, `create-pr`, `diagnose-segment`, `experiment`, `feature-importance`, `ottoneu-roster-question`, `projection-accuracy`, `retro`, `review-permission-gates`, `run-analyses`, `run-scraper`, `run-tests`, `start-dev`
 
 ```
 CLAUDE.md                              ← you are here
@@ -54,7 +55,8 @@ docs/
 │   └── [segment-analysis.md](docs/generated/segment-analysis.md)            # Segmented projection accuracy analysis
 └── references/
     ├── environment-variables.md       # .env and .env.local variable reference
-    └── ottoneu-rules.md               # Scoring, roster, salary cap, arbitration rules
+    ├── ottoneu-rules.md               # Scoring, roster, salary cap, arbitration rules
+    └── ottoneu-strategy.md            # Format economics + AI reasoning checklist for roster construction
 ```
 
 ## GitHub Repository
