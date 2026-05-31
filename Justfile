@@ -155,6 +155,15 @@ seed-win-totals *args:
     {{python}} scripts/seed_preseason_win_totals.py {{args}}
 
 # ──────────────────────────────────────────────
+# AI context packs
+# ──────────────────────────────────────────────
+
+# Emit a compact league roster-economics snapshot for AI context
+# (loaded by the /ottoneu-roster-question skill)
+roster-context *args:
+    {{python}} scripts/roster_context_pack.py {{args}}
+
+# ──────────────────────────────────────────────
 # Ad-hoc DB queries
 # ──────────────────────────────────────────────
 

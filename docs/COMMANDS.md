@@ -101,7 +101,7 @@ just test-python        # Python tests with coverage
 just test-web           # Jest tests with coverage
 just test-web-file <path>  # Run a single web test file (e.g. just test-web-file __tests__/lib/session.test.ts)
 just scrape             # Full scrape pipeline
-just analyze            # Run all analysis scripts
+just analyze            # Update player projections (VORP/surplus/arbitration now computed in the web UI)
 just check-db           # Verify database contents
 just check-arch         # Architectural/structural tests only
 just check-docs         # Documentation freshness check
@@ -123,6 +123,9 @@ just backfill-nfl-stats [--seasons ...] [--dry-run]    # Backfill nfl_stats from
 just backfill-draft-capital [--since YYYY] [--dry-run] # Backfill draft_capital from nflverse draft_picks
 just backfill-vegas [--since YYYY] [--dry-run]         # Backfill team_vegas_lines from nflverse games.csv
 just seed-win-totals --season YYYY                     # Upsert preseason sportsbook win totals (implied_total left NULL until schedule drops)
+
+# AI context packs
+just roster-context [--season YYYY]                 # Emit a compact league roster-economics snapshot for AI context (used by /ottoneu-roster-question)
 
 # Ad-hoc DB queries
 just py "<python-snippet>"                          # Run a one-off Python snippet against the project venv (read-only diagnostics)

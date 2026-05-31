@@ -20,6 +20,7 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 - **Testing:** See [docs/TESTING.md](docs/TESTING.md) for running Python and web tests
 - **Git workflow:** See [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) for branch and PR requirements
 - **Domain rules:** See [docs/references/ottoneu-rules.md](docs/references/ottoneu-rules.md) for scoring, roster, salary cap, and arbitration
+- **Domain strategy:** See [docs/references/ottoneu-strategy.md](docs/references/ottoneu-strategy.md) for format economics (surplus value, raise treadmill, Superflex QB premium, arbitration game theory) and the AI reasoning checklist for roster-construction questions
 - **Environment:** See [docs/references/environment-variables.md](docs/references/environment-variables.md) for `.env` setup
 - **Market Projections:** See [docs/exec-plans/market-projections.md](docs/exec-plans/market-projections.md) for the market-based projection system implementation plan
 
@@ -48,7 +49,8 @@ docs/
 │   └── [segment-analysis.md](docs/generated/segment-analysis.md)            # Segmented projection accuracy analysis
 └── references/
     ├── environment-variables.md       # .env and .env.local variable reference
-    └── ottoneu-rules.md               # Scoring, roster, salary cap, arbitration rules
+    ├── ottoneu-rules.md               # Scoring, roster, salary cap, arbitration rules
+    └── ottoneu-strategy.md            # Format economics + AI reasoning checklist for roster construction
 ```
 
 ## Worktree Notes
