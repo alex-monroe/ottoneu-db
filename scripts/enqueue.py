@@ -7,7 +7,8 @@ import uuid
 from dotenv import load_dotenv
 
 from scripts.tasks import PULL_NFL_STATS, PULL_PLAYER_STATS, SCRAPE_ROSTER, SCRAPE_PLAYER_CARD
-from scripts.config import POSITIONS, COLLEGE_POSITIONS, SEASON as DEFAULT_SEASON, LEAGUE_ID as DEFAULT_LEAGUE_ID, HISTORICAL_SEASONS, get_supabase_client as get_supabase
+from scripts.config import POSITIONS, COLLEGE_POSITIONS, LEAGUE_ID as DEFAULT_LEAGUE_ID, HISTORICAL_SEASONS, get_supabase_client as get_supabase
+from scripts.season import league_season
 
 load_dotenv()
 
@@ -201,7 +202,10 @@ def show_status(args):
 
 def main():
     parser = argparse.ArgumentParser(description="Enqueue scraper jobs")
-    parser.add_argument("--season", type=int, default=DEFAULT_SEASON)
+    parser.add_argument(
+        "--season", type=int, default=None,
+        help="Season to tag enqueued jobs with (default: resolved league season)",
+    )
     parser.add_argument("--league-id", type=int, default=DEFAULT_LEAGUE_ID)
 
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -238,6 +242,8 @@ def main():
     status_parser.add_argument("--limit", type=int, default=20)
 
     args = parser.parse_args()
+    if args.season is None:
+        args.season = league_season()
 
     commands = {
         "batch": enqueue_batch,

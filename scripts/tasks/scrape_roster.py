@@ -6,7 +6,8 @@ import re
 
 import pandas as pd
 
-from scripts.config import LEAGUE_ID, SEASON, NFL_TEAM_CODES
+from scripts.config import LEAGUE_ID, NFL_TEAM_CODES
+from scripts.season import league_season
 from scripts.name_utils import normalize_player_name
 from scripts.tasks import SCRAPE_PLAYER_CARD, TaskResult
 
@@ -92,7 +93,9 @@ async def run(params: dict, context, supabase, nfl_stats: pd.DataFrame) -> TaskR
     Returns TaskResult with child_jobs for FA player card scrapes.
     """
     position = params["position"]
-    season = params.get("season", SEASON)
+    # Enqueue stamps the resolved league season into params; fall back to the
+    # resolver only if a job was created without one.
+    season = params.get("season") or league_season()
     league_id = params.get("league_id", LEAGUE_ID)
     level = params.get("level", "pro")  # "pro" or "college"
 
