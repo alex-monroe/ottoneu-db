@@ -129,10 +129,14 @@ def run(params: dict, supabase: Client) -> TaskResult:
             .agg(agg_cols)
         )
 
-        # Match to DB players and build upsert rows
-        matched = 0
+        # Match to DB players, accumulating by (player_id, season). Distinct
+        # nflverse display names can normalize to the same Ottoneu player (name
+        # variants), so we merge their games and points here — otherwise the
+        # upsert would carry duplicate (player_id, season) rows and Postgres
+        # rejects the whole batch with "ON CONFLICT DO UPDATE command cannot
+        # affect row a second time".
         unmatched_names: set[str] = set()
-        upsert_rows: list[dict] = []
+        accum: dict[tuple[str, int], dict] = {}
 
         for _, row in combined.iterrows():
             raw_name = str(row.get("player_display_name", ""))
@@ -163,20 +167,29 @@ def run(params: dict, supabase: Client) -> TaskResult:
                 "fg_made_50_plus": _safe_int(row.get("fg_made_50_plus")),
                 "pat_made": _safe_int(row.get("pat_made")),
             }
-            total_points = round(_calc_points(raw_stats), 2)
+            total_points = _calc_points(raw_stats)
             games = _safe_int(row.get("games_played")) or 0
 
-            stat_row: dict = {
-                "player_id": player_uuid,
-                "season": season,
+            entry = accum.setdefault(
+                (player_uuid, season),
+                {"player_id": player_uuid, "season": season, "games": 0, "points": 0.0},
+            )
+            entry["games"] += games
+            entry["points"] += total_points
+
+        upsert_rows: list[dict] = []
+        for entry in accum.values():
+            games = entry["games"]
+            total_points = round(entry["points"], 2)
+            upsert_rows.append({
+                "player_id": entry["player_id"],
+                "season": entry["season"],
                 "games_played": games if games > 0 else None,
                 "total_points": total_points,
                 "ppg": round(total_points / games, 2) if games > 0 else 0.0,
-            }
+            })
 
-            upsert_rows.append(stat_row)
-            matched += 1
-
+        matched = len(upsert_rows)
         print(f"Matched {matched} player/season rows. Unmatched: {len(unmatched_names)}")
         if unmatched_names:
             sample = sorted(unmatched_names)[:20]
