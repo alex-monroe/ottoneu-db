@@ -58,7 +58,7 @@ jobs:
         if: steps.season_gate.outputs.in_season == 'true'
         run: |
           echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
-          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> .env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_SECRET_KEY }}" >> .env
 
       - name: Run scraper
         if: steps.season_gate.outputs.in_season == 'true'
