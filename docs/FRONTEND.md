@@ -78,3 +78,35 @@ Analysis math is ported to `web/lib/analysis.ts` (TS equivalent of `scripts/anal
 ## Configuration
 
 Frontend constants in `web/lib/config.ts` — **must stay in sync with `scripts/config.py`**.
+
+`web/lib/config.ts` imports the shared `config.json` from the **repo root**
+(`../../config.json`), which is outside the `web/` app dir. Next 16 uses
+Turbopack by default, and Turbopack infers the workspace root from the nearest
+lockfile (`web/`) and refuses to resolve files outside it — which 500s every
+SSR page in dev. `web/next.config.ts` sets `turbopack.root` to the repo root to
+fix this; **don't remove it**, and keep `config.json` at the repo root (it's
+shared with the Python side).
+
+## Local dev & verification
+
+- **Run:** `just dev` (foreground) starts the server on `localhost:3000`.
+- **Stop:** `just dev-stop` kills the dev server plus stray Turbopack/postcss
+  workers (a plain Ctrl-C sometimes leaves `.next/dev/build/postcss.js`
+  processes behind).
+- **Headless verify loop** (for confirming a change actually renders): start the
+  server in the background, poll its log for `Ready in`, then hit pages with
+  `curl -s -o /dev/null -w '%{http_code}'` or drive them with the puppeteer MCP
+  tools (navigate → click → screenshot), then `just dev-stop`. Auth-gated routes
+  redirect (307) for anonymous requests — that's expected, not a failure.
+- **Verifying responsive / auth-conditional UI** (e.g. the nav): check it at
+  multiple viewport widths *and* both auth states — logged-out and authenticated
+  render different item sets and collapse at different breakpoints.
+
+### Lint gotcha: `react-hooks/set-state-in-effect`
+
+ESLint errors on calling `setState` synchronously in a `useEffect` body (e.g.
+closing a menu on route change via `useEffect(() => setOpen(false), [pathname])`).
+Close UI state from event handlers instead — an `onClick` on each link, or a
+document `mousedown` / `Escape` listener registered inside the effect (calling
+`setState` from the listener callback is fine; calling it directly in the effect
+body is not).
