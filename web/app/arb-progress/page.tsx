@@ -1,6 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { LEAGUE_ID, SEASON, NUM_TEAMS } from "@/lib/config";
-import { fetchAndMergeData, fetchProjectionMap, buildHoverDataMap, DEFAULT_PROJECTION_YEAR } from "@/lib/analysis";
+import { fetchAndMergeData, fetchHoverExtras, buildHoverDataMap } from "@/lib/analysis";
 import { getAuthenticatedUser } from "@/lib/auth";
 import {
   AllocationDetailRow,
@@ -61,8 +61,8 @@ export default async function ArbProgressPage() {
     getAuthenticatedUser(),
   ]);
 
-  const projMap = user?.hasProjectionsAccess ? await fetchProjectionMap(DEFAULT_PROJECTION_YEAR) : null;
-  const hoverDataMap = buildHoverDataMap(allPlayers, projMap);
+  const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
+  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap);
 
   const teams: TeamStatus[] = teamsRes.data ?? [];
   const allocationRows = (allocationsRes.data ?? []) as AllocationRow[];

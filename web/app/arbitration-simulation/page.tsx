@@ -1,6 +1,6 @@
 import {
   fetchAndMergeProjectedData,
-  fetchProjectionMap,
+  fetchHoverExtras,
   buildHoverDataMap,
   fetchPlayersPreArb,
   SEASON,
@@ -53,6 +53,9 @@ export default async function ArbitrationSimulationPage({ searchParams }: Props)
 
   const label = isProjected ? DEFAULT_PROJECTION_YEAR : SEASON;
 
+  const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
+  const hoverDataMap = buildHoverDataMap(rawPlayers, projMap, dsMap);
+
   return (
     <main className="min-h-screen bg-white dark:bg-black p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -88,12 +91,7 @@ export default async function ArbitrationSimulationPage({ searchParams }: Props)
         <SimulationControls
           initialPlayers={rawPlayers}
           initialAdjustments={initialAdjustments}
-          hoverDataMap={buildHoverDataMap(
-            rawPlayers,
-            user?.hasProjectionsAccess
-              ? await fetchProjectionMap(DEFAULT_PROJECTION_YEAR)
-              : null
-          )}
+          hoverDataMap={hoverDataMap}
         />
       </div>
     </main>

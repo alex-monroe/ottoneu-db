@@ -1,12 +1,11 @@
 import {
   fetchAndMergeData,
-  fetchProjectionMap,
+  fetchHoverExtras,
   buildHoverDataMap,
   analyzeProjectedSalary,
   CAP_PER_TEAM,
   POSITIONS,
   MY_TEAM,
-  DEFAULT_PROJECTION_YEAR,
 } from "@/lib/analysis";
 import { getAuthenticatedUser } from "@/lib/auth";
 import ProjectedSalaryClient from "./ProjectedSalaryClient";
@@ -18,10 +17,8 @@ export default async function ProjectedSalaryPage() {
     getAuthenticatedUser(),
   ]);
   const roster = analyzeProjectedSalary(allPlayers);
-  const projMap = user?.hasProjectionsAccess
-    ? await fetchProjectionMap(DEFAULT_PROJECTION_YEAR)
-    : null;
-  const hoverDataMap = buildHoverDataMap(allPlayers, projMap);
+  const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
+  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap);
 
   if (roster.length === 0) {
     return (

@@ -1,5 +1,5 @@
 import {
-  fetchProjectionMap,
+  fetchHoverExtras,
   buildHoverDataMap,
   calculateVorp,
   POSITIONS,
@@ -7,7 +7,6 @@ import {
   MIN_GAMES,
   NUM_TEAMS,
   CAP_PER_TEAM,
-  DEFAULT_PROJECTION_YEAR,
 } from "@/lib/analysis";
 import { fetchPlayersEndOfSeason } from "@/lib/data";
 import { getAuthenticatedUser } from "@/lib/auth";
@@ -19,10 +18,8 @@ export default async function VorpPage() {
     getAuthenticatedUser(),
   ]);
   const { players, replacementPpg, replacementN } = calculateVorp(allPlayers);
-  const projMap = user?.hasProjectionsAccess
-    ? await fetchProjectionMap(DEFAULT_PROJECTION_YEAR)
-    : null;
-  const hoverDataMap = buildHoverDataMap(allPlayers, projMap);
+  const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
+  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap);
 
   if (players.length === 0) {
     return (

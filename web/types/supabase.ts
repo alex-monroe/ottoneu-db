@@ -275,6 +275,41 @@ export type Database = {
           },
         ]
       }
+      draft_sharks_values: {
+        Row: {
+          ds_auction_value: number | null
+          id: string
+          market_auction_value: number | null
+          player_id: string
+          scraped_at: string
+          season: number
+        }
+        Insert: {
+          ds_auction_value?: number | null
+          id?: string
+          market_auction_value?: number | null
+          player_id: string
+          scraped_at?: string
+          season: number
+        }
+        Update: {
+          ds_auction_value?: number | null
+          id?: string
+          market_auction_value?: number | null
+          player_id?: string
+          scraped_at?: string
+          season?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "draft_sharks_values_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       league_prices: {
         Row: {
           created_at: string

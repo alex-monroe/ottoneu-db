@@ -299,6 +299,8 @@ export interface PlayerHoverData {
   games_played: number;
   projected_ppg?: number;
   projection_method?: string;
+  ds_auction_value?: number | null;
+  market_auction_value?: number | null;
 }
 
 // === Position Constants ===

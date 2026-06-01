@@ -123,6 +123,7 @@ just backfill-nfl-stats [--seasons ...] [--dry-run]    # Backfill nfl_stats from
 just backfill-draft-capital [--since YYYY] [--dry-run] # Backfill draft_capital from nflverse draft_picks
 just backfill-vegas [--since YYYY] [--dry-run]         # Backfill team_vegas_lines from nflverse games.csv
 just seed-win-totals --season YYYY                     # Upsert preseason sportsbook win totals (implied_total left NULL until schedule drops)
+just scrape-draft-sharks [--season YYYY] [--positions qb rb wr te] [--dry-run]  # Scrape Draft Sharks Half-PPR Superflex auction values (stored ×2 for the $400 cap)
 
 # Ad-hoc DB queries
 just py "<python-snippet>"                          # Run a one-off Python snippet against the project venv (read-only diagnostics)
@@ -137,3 +138,10 @@ just py "<python-snippet>"                          # Run a one-off Python snipp
 # Every 6 hours (Jan-Mar): scrape arbitration progress
 0 */6 * 1-3 * cd /path/to/ottoneu_db && source venv/bin/activate && python scripts/scrape_arbitration_progress.py
 ```
+
+### GitHub Actions
+
+- `.github/workflows/scrape-draft-sharks.yml` — scrapes Draft Sharks auction values weekly
+  (Mondays 08:00 UTC) and on manual `workflow_dispatch`. Runs `scripts/scrape_draft_sharks.py`
+  via Playwright; no in-season gate (auction values matter year-round). Requires the
+  `SUPABASE_URL` / `SUPABASE_KEY` repo secrets.
