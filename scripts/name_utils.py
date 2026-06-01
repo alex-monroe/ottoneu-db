@@ -12,6 +12,7 @@ WHITESPACE_REGEX = re.compile(r'\s+')
 # Add entries when a player's common/NFL name differs from their Ottoneu name.
 NAME_ALIASES: dict[str, str] = {
     "Cam Ward": "Cameron Ward",
+    "Cameron Skattebo": "Cam Skattebo",
 }
 
 
