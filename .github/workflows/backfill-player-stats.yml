@@ -21,17 +21,21 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Python
+        # Pinned to 3.9 to match the project's dependency stack (pandas==1.5.3 /
+        # numpy==1.26.4 ship no wheels for 3.12) and the local venv + run-tests.yml.
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.9"
           cache: pip
 
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install supabase python-dotenv nfl_data_py pandas numpy
-          # Install this repo as a package so `import scripts.*` resolves
-          pip install -e . --no-deps
+          # The backfill runs scripts/worker.py, which imports the full app stack
+          # (playwright, nfl_data_py, pandas, ...). Install the package WITH its
+          # pyproject-pinned dependencies so the versions stay a single source of
+          # truth rather than a hand-maintained list that drifts.
+          pip install -e .
 
       - name: Create .env
         run: |
