@@ -1,14 +1,17 @@
-import { fetchRosterData } from "@/lib/roster-reconstruction";
+import { fetchRosterData, buildRosterSnapshots } from "@/lib/roster-reconstruction";
 import { fetchHoverExtras } from "@/lib/analysis";
+import { getSeasonContextNow } from "@/lib/season";
 import { getAuthenticatedUser } from "@/lib/auth";
 import type { PlayerHoverData } from "@/lib/types";
 import RostersClient from "./RostersClient";
 
 export default async function RostersPage() {
-  const [data, user] = await Promise.all([
+  const [data, user, ctx] = await Promise.all([
     fetchRosterData(),
     getAuthenticatedUser(),
+    getSeasonContextNow(),
   ]);
+  const snapshots = buildRosterSnapshots(ctx);
   const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
 
   // Build hoverDataMap from raw player + stats data
@@ -45,5 +48,13 @@ export default async function RostersPage() {
     };
   }
 
-  return <RostersClient {...data} hoverDataMap={hoverDataMap} />;
+  return (
+    <RostersClient
+      {...data}
+      hoverDataMap={hoverDataMap}
+      quickDates={snapshots.quickDates}
+      dateRange={snapshots.dateRange}
+      defaultDate={snapshots.defaultDate}
+    />
+  );
 }

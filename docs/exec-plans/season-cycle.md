@@ -1,6 +1,6 @@
 # Season Cycle — cross-season data & UI scheme
 
-**Status:** In progress (PR #2 — web read-path migration)
+**Status:** In progress (PR #3 — phase-driven UI + roster snapshots)
 
 ## Problem
 
@@ -92,10 +92,21 @@ automatic.
    hardcoded `2026` projection year. The projections page now derives its
    selectable years from the resolver. Behavior-preserving today (statsSeason
    2025, projectionSeason 2026), but now rolls forward automatically.
-3. **Phase-driven UI** — featured nav/landing per phase, roster snapshot default
-   & bounds (`roster-reconstruction.ts`: `eq("season", SEASON)` and the
-   hardcoded `2025-09-01`/`today` window), phase banner with next-boundary
-   countdown.
+3. **Phase-driven UI + roster snapshots (this PR):**
+   - `web/lib/season-ui.ts` — pure, client-safe `PHASE_UI` map (label, blurb,
+     featured nav group/links per phase) + `describeNextBoundary` for countdowns.
+   - `PhaseBanner` (server component, in the root layout) shows the current
+     phase, blurb, and a countdown to the next league deadline.
+   - `Navigation` accents the phase-featured nav group/links with an amber dot
+     (resolved in `NavigationWrapper` and passed down).
+   - `roster-reconstruction.ts` — transactions now follow `getLeagueSeason()`,
+     stats follow `getStatsSeason()` (was static `SEASON`). `getDateRange` is
+     replaced by the pure `buildRosterSnapshots(ctx)`, which anchors the
+     quick-jump weeks to the league season's kickoff, derives the date-range
+     bounds from the calendar, and **defaults the snapshot to "Pre-Draft" once
+     the keeper deadline has passed** (the `pre_draft` phase) — otherwise
+     "Today". The rosters page resolves the context server-side and passes the
+     config to `RostersClient`.
 4. **Python ingestion + arbitration-season alignment** — migrate the scrapers /
    projection scripts off static `SEASON`, and fix arbitration-season tagging.
    **Known issue surfaced during PR #2:** `arbitration_progress` rows are tagged

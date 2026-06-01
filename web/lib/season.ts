@@ -199,3 +199,8 @@ export async function getProjectionSeason(): Promise<number> {
 export async function getArbitrationSeason(): Promise<number> {
   return (await getSeasonContextNow()).arbitrationSeason;
 }
+
+/** The league season whose roster we are currently managing (the advancing pointer). */
+export async function getLeagueSeason(): Promise<number> {
+  return (await getSeasonContextNow()).leagueSeason;
+}

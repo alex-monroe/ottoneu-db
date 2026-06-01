@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
-import { LEAGUE_ID, SEASON, CAP_PER_TEAM } from "./config";
+import { LEAGUE_ID, CAP_PER_TEAM } from "./config";
+import { getLeagueSeason, getStatsSeason, type SeasonContext } from "./season";
 
 // === Types ===
 
@@ -68,18 +69,24 @@ export interface RosterData {
 // === Data Fetching ===
 
 export async function fetchRosterData(): Promise<RosterData> {
+  // Transactions follow the league season we're managing (the roster timeline);
+  // player stats follow the most recent completed NFL season (PPG context).
+  const [leagueSeason, statsSeason] = await Promise.all([
+    getLeagueSeason(),
+    getStatsSeason(),
+  ]);
   const [txnRes, playersRes, statsRes, pricesRes] = await Promise.all([
     supabase
       .from("transactions")
       .select("player_id, transaction_type, team_name, salary, transaction_date")
       .eq("league_id", LEAGUE_ID)
-      .eq("season", SEASON)
+      .eq("season", leagueSeason)
       .order("transaction_date", { ascending: true }),
     supabase.from("players").select("id, ottoneu_id, name, position, nfl_team").gt("ottoneu_id", 0),
     supabase
       .from("player_stats")
       .select("player_id, ppg, pps, games_played, snaps")
-      .eq("season", SEASON),
+      .eq("season", statsSeason),
     supabase
       .from("league_prices")
       .select("player_id, price, team_name")
@@ -272,7 +279,51 @@ export function getRosterForTeam(rosters: TeamRoster[], teamName: string): TeamR
   return rosters.find((r) => r.team_name === teamName);
 }
 
-export function getDateRange(): { min: string; max: string } {
-  const today = new Date().toISOString().slice(0, 10);
-  return { min: "2025-09-01", max: today };
+export interface RosterSnapshot {
+  label: string;
+  date: string;
+}
+
+export interface RosterSnapshotConfig {
+  dateRange: { min: string; max: string };
+  quickDates: RosterSnapshot[];
+  defaultDate: string;
+}
+
+/** Add `days` to a YYYY-MM-DD date, returning a YYYY-MM-DD string. */
+function addDays(iso: string, days: number): string {
+  return new Date(Date.parse(iso) + days * 86_400_000).toISOString().slice(0, 10);
+}
+
+/**
+ * Build the season-aware roster-snapshot scaffolding (date range, quick-jump
+ * buttons, and the phase-appropriate default) from the resolved season context.
+ *
+ * Pure (no DB access) so it stays client-bundle-safe; the rosters page resolves
+ * the context server-side and passes the result down. Weeks are anchored to the
+ * league season's kickoff; the default snapshot flips to "Pre-Draft" once the
+ * keeper deadline has passed (the pre_draft phase), per the season-cycle spec.
+ */
+export function buildRosterSnapshots(
+  ctx: Pick<SeasonContext, "phase" | "leagueSeason" | "deadlines">,
+  today: string = new Date().toISOString().slice(0, 10),
+): RosterSnapshotConfig {
+  const kickoff = ctx.deadlines.regular_season_start ?? null;
+  const seasonStart = ctx.deadlines.season_start ?? null;
+  const preDraftDate = kickoff ? addDays(kickoff, -1) : null;
+
+  const quickDates: RosterSnapshot[] = [];
+  if (preDraftDate) quickDates.push({ label: "Pre-Draft", date: preDraftDate });
+  if (kickoff) {
+    quickDates.push({ label: "Wk 1", date: kickoff });
+    quickDates.push({ label: "Wk 8", date: addDays(kickoff, 49) });
+    quickDates.push({ label: "Wk 16", date: addDays(kickoff, 105) });
+  }
+  quickDates.push({ label: "Today", date: today });
+
+  const min = seasonStart ?? preDraftDate ?? `${ctx.leagueSeason}-01-01`;
+  const defaultDate =
+    ctx.phase === "pre_draft" && preDraftDate ? preDraftDate : today;
+
+  return { dateRange: { min, max: today }, quickDates, defaultDate };
 }

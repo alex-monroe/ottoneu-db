@@ -3,20 +3,12 @@
 import { useMemo, useState } from "react";
 import {
   reconstructRostersAtDate,
-  getDateRange,
   type RosterData,
+  type RosterSnapshot,
 } from "@/lib/roster-reconstruction";
 import { CAP_PER_TEAM, NUM_TEAMS } from "@/lib/arb-logic";
 import type { PlayerHoverData } from "@/lib/types";
 import TeamRosterSection from "./TeamRosterSection";
-
-const QUICK_DATES = [
-  { label: "Pre-Draft", date: "2025-08-31" },
-  { label: "Wk 1", date: "2025-09-07" },
-  { label: "Wk 8", date: "2025-10-26" },
-  { label: "Wk 16", date: "2025-12-10" },
-  { label: "Today", date: new Date().toISOString().slice(0, 10) },
-];
 
 export default function RostersClient({
   transactions,
@@ -24,9 +16,17 @@ export default function RostersClient({
   stats,
   leaguePrices,
   hoverDataMap,
-}: RosterData & { hoverDataMap?: Record<string, PlayerHoverData> | null }) {
-  const { min, max } = getDateRange();
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
+  quickDates,
+  dateRange,
+  defaultDate,
+}: RosterData & {
+  hoverDataMap?: Record<string, PlayerHoverData> | null;
+  quickDates: RosterSnapshot[];
+  dateRange: { min: string; max: string };
+  defaultDate: string;
+}) {
+  const { min, max } = dateRange;
+  const [selectedDate, setSelectedDate] = useState(defaultDate);
 
   const rosters = useMemo(
     () => reconstructRostersAtDate(transactions, players, stats, selectedDate, leaguePrices),
@@ -75,7 +75,7 @@ export default function RostersClient({
               <span className="text-sm text-slate-500 dark:text-slate-400">
                 Quick:
               </span>
-              {QUICK_DATES.map(({ label, date }) => (
+              {quickDates.map(({ label, date }) => (
                 <button
                   key={label}
                   onClick={() => setSelectedDate(date)}
