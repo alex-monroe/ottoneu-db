@@ -39,6 +39,7 @@ const SOFA_LEAGUE_LINK = {
 
 const AUTHENTICATED_LINKS = [
   { href: "/arb-planner-public", label: "Arb Planner" },
+  { href: "/lineup", label: "Lineup" },
 ];
 
 const PRIVATE_GROUPS = [

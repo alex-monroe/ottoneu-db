@@ -11,6 +11,7 @@ Next.js App Router. Most pages are server components that fetch live data from S
 | `/` | Player Efficiency scatter chart (PPG/PPS vs salary) |
 | `/players` | Searchable player directory |
 | `/rosters` | League-wide roster view |
+| `/lineup` | Lineup planner: build a starting lineup from any team's current roster and see the projected total (by projected PPG or last-season PPG) |
 | `/arb-progress` | Public arbitration progress: team completion status and allocation details |
 | `/arb-planner-public` | Public (read-only) arbitration planner view |
 | `/projected-salary` | Keep vs cut decisions for The Witchcraft |
