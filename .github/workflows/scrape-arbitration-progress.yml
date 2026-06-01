@@ -61,7 +61,7 @@ jobs:
         if: steps.season_gate.outputs.in_season == 'true'
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           FANGRAPHS_USERNAME: ${{ secrets.FANGRAPHS_USERNAME }}
           FANGRAPHS_PASSWORD: ${{ secrets.FANGRAPHS_PASSWORD }}
         run: |

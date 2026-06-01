@@ -31,5 +31,5 @@ jobs:
     - name: Run projections update script
       env:
         SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
       run: python scripts/update_projections.py
