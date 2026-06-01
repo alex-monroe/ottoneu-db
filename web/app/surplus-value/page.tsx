@@ -3,8 +3,8 @@ import {
   buildHoverDataMap,
   calculateSurplus,
   MY_TEAM,
-  SEASON,
 } from "@/lib/analysis";
+import { getStatsSeason } from "@/lib/season";
 import { fetchPlayersEndOfSeason } from "@/lib/data";
 import { getAuthenticatedUser } from "@/lib/auth";
 import DataTable from "@/components/DataTable";
@@ -87,9 +87,10 @@ const TEAM_SUMMARY_RULES: HighlightRule<TeamSummaryRow>[] = [
 ];
 
 export default async function SurplusValuePage() {
-  const [allPlayers, user] = await Promise.all([
+  const [allPlayers, user, statsSeason] = await Promise.all([
     fetchPlayersEndOfSeason(),
     getAuthenticatedUser(),
+    getStatsSeason(),
   ]);
   const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
   const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap);
@@ -174,7 +175,7 @@ export default async function SurplusValuePage() {
       <div className="max-w-7xl mx-auto space-y-8">
         <header>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Surplus Value Rankings ({SEASON})
+            Surplus Value Rankings ({statsSeason})
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2">
             Dollar value (from VORP) minus current salary. Positive surplus =
