@@ -27,8 +27,10 @@ except json.JSONDecodeError as e:
     raise ValueError(f"Invalid JSON in config file at {CONFIG_PATH}: {e}")
 
 # === League Configuration ===
+# The current season is no longer static config — it is resolved from the
+# league_calendar table. See scripts/season.py (league_season / projection_season
+# / stats_season / arbitration_season).
 LEAGUE_ID = _config["LEAGUE_ID"]
-SEASON = _config["SEASON"]
 MY_TEAM = _config["MY_TEAM"]
 HISTORICAL_SEASONS = _config["HISTORICAL_SEASONS"]
 

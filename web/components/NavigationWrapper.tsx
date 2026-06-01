@@ -15,6 +15,7 @@ export default async function NavigationWrapper() {
       isAdmin={user?.isAdmin ?? false}
       featuredLinks={ui.featuredLinks}
       featuredGroup={ui.featuredGroup ?? null}
+      activeSinceSeason={ctx.statsSeason - 1}
     />
   );
 }

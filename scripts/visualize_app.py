@@ -2,7 +2,8 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-from scripts.config import get_supabase_client, LEAGUE_ID, SEASON
+from scripts.config import get_supabase_client, LEAGUE_ID
+from scripts.season import stats_season
 
 
 @st.cache_resource
@@ -11,8 +12,12 @@ def init_supabase():
 
 supabase = init_supabase()
 
+# Default to the most recently completed season (resolved from league_calendar).
+DEFAULT_SEASON = stats_season()
+
+
 @st.cache_data(ttl=600)
-def load_data(league_id=LEAGUE_ID, season=SEASON):
+def load_data(league_id=LEAGUE_ID, season=DEFAULT_SEASON):
     # Fetch Players
     players_resp = supabase.table('players').select('*').execute()
     players_df = pd.DataFrame(players_resp.data)
@@ -56,7 +61,7 @@ st.title("Ottoneu Player Efficiency Visualization")
 
 # Sidebar Filters
 st.sidebar.header("Filters")
-selected_season = st.sidebar.number_input("Season", min_value=2020, max_value=2030, value=SEASON)
+selected_season = st.sidebar.number_input("Season", min_value=2020, max_value=2030, value=DEFAULT_SEASON)
 min_games = st.sidebar.slider("Minimum Games Played", 0, 17, 1)
 
 # Load Data

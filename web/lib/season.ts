@@ -204,3 +204,24 @@ export async function getArbitrationSeason(): Promise<number> {
 export async function getLeagueSeason(): Promise<number> {
   return (await getSeasonContextNow()).leagueSeason;
 }
+
+/**
+ * Salary-snapshot dates for transaction-replay analysis, derived from the
+ * calendar. Ottoneu auto-applies the +$4/$1 raise at the season rollover
+ * ("Start of Season"), so for a completed stats season the bump landed at the
+ * current league season's `season_start`:
+ *   - `seasonEnd` — last pre-bump day (VORP / surplus salaries)
+ *   - `preArb`    — the bump date itself (arbitration starting salaries)
+ * During the in-season phase salaries haven't been bumped yet, so both fall
+ * back to today (current salaries).
+ */
+export async function getSalarySnapshotDates(): Promise<{ seasonEnd: string; preArb: string }> {
+  const ctx = await getSeasonContextNow();
+  const today = new Date().toISOString().slice(0, 10);
+  const rollover = ctx.deadlines.season_start;
+  if (ctx.statsSeason < ctx.leagueSeason && rollover) {
+    const dayBefore = new Date(Date.parse(rollover) - 86_400_000).toISOString().slice(0, 10);
+    return { seasonEnd: dayBefore, preArb: rollover };
+  }
+  return { seasonEnd: today, preArb: today };
+}
