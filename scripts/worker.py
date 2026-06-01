@@ -34,6 +34,9 @@ class ScraperWorker:
         self.browser = None
         self.browser_context = None
         self.nfl_stats_cache: dict[int, pd.DataFrame] = {}
+        # Count of jobs that exhausted their retries and were marked 'failed'.
+        # Used to give the process a non-zero exit so CI surfaces silent failures.
+        self.failed_jobs = 0
 
     async def start(self, poll: bool = False, interval: int = 30):
         """Run the worker loop.
@@ -194,6 +197,7 @@ class ScraperWorker:
                 "last_error": error,
                 "completed_at": "now()",
             }).eq("id", job["id"]).execute()
+            self.failed_jobs += 1
             print(f"  Max attempts reached. Marked as failed.")
 
     def _enqueue_child_jobs(self, child_jobs: list[dict], parent_job: dict):
@@ -256,6 +260,13 @@ async def main():
 
     worker = ScraperWorker()
     await worker.start(poll=args.poll, interval=args.interval)
+
+    # Exit non-zero if any job exhausted its retries, so CI (which runs the
+    # worker as the final step) fails loudly instead of going green on a job
+    # that never actually wrote its data.
+    if worker.failed_jobs:
+        print(f"{worker.failed_jobs} job(s) failed after exhausting retries.")
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
