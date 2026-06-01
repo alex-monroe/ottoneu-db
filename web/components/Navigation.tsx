@@ -3,8 +3,26 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
-import { Lock, ExternalLink, ChevronDown, Shield } from "lucide-react";
+import { Lock, ExternalLink, ChevronDown, Shield, Menu, X } from "lucide-react";
 import GlobalPlayerSearch from "./GlobalPlayerSearch";
+
+// Shared styling for a top-level nav item (inline desktop bar).
+function navItemClass(isActive: boolean): string {
+  return `inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${
+    isActive
+      ? "bg-blue-600 text-white"
+      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
+  }`;
+}
+
+// Styling for a link in the collapsed mobile panel (full-width rows).
+function mobileItemClass(isActive: boolean): string {
+  return `flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+    isActive
+      ? "bg-blue-600 text-white"
+      : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+  }`;
+}
 
 const PUBLIC_LINKS = [
   { href: "/", label: "Player Efficiency" },
@@ -138,6 +156,7 @@ export default function Navigation({ isAuthenticated, isAdmin }: NavigationProps
   const pathname = usePathname();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -154,81 +173,69 @@ export default function Navigation({ isAuthenticated, isAdmin }: NavigationProps
 
   return (
     <nav className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-black">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14">
-          <div className="flex items-center gap-1">
-            {/* Public links */}
-            {PUBLIC_LINKS.map((link) => {
-              const isActive = pathname === link.href;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${isActive
-                    ? "bg-blue-600 text-white"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
-                    }`}
-                >
+      <div className="px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-14 gap-2">
+          <div className="flex items-center gap-1 min-w-0">
+            {/* Hamburger toggle — shown when the inline bar is hidden (< 2xl) */}
+            <button
+              onClick={() => setMobileOpen((o) => !o)}
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-nav"
+              aria-label="Toggle navigation menu"
+              className="2xl:hidden inline-flex items-center justify-center p-2 rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
+            >
+              {mobileOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
+            </button>
+
+            {/* Inline navigation — only on very wide screens (>= 2xl) */}
+            <div className="hidden 2xl:flex items-center gap-1">
+              {/* Public links */}
+              {PUBLIC_LINKS.map((link) => (
+                <Link key={link.href} href={link.href} className={navItemClass(pathname === link.href)}>
                   {link.label}
                 </Link>
-              );
-            })}
-
-            {/* SOFA League external link */}
-            <a
-              href={SOFA_LEAGUE_LINK.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
-            >
-              {SOFA_LEAGUE_LINK.label}
-              <ExternalLink size={14} />
-            </a>
-
-            {/* Authenticated-only plain links (e.g. public Arb Planner) */}
-            {isAuthenticated &&
-              AUTHENTICATED_LINKS.map((link) => {
-                const isActive = pathname === link.href;
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${isActive
-                        ? "bg-blue-600 text-white"
-                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
-                      }`}
-                  >
-                    {link.label}
-                  </Link>
-                );
-              })}
-
-            {/* Protected dropdown groups (only if authenticated) */}
-            {isAuthenticated &&
-              PRIVATE_GROUPS.map((group) => (
-                <NavDropdown
-                  key={group.label}
-                  label={group.label}
-                  links={group.links}
-                  pathname={pathname}
-                />
               ))}
 
-            {/* Admin link */}
-            {isAdmin && (
-              <Link
-                href="/admin"
-                className={`inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${pathname === "/admin"
-                  ? "bg-blue-600 text-white"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
-                  }`}
+              {/* SOFA League external link */}
+              <a
+                href={SOFA_LEAGUE_LINK.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={navItemClass(false)}
               >
-                <Shield size={12} className={pathname === "/admin" ? "opacity-80" : "opacity-60"} aria-hidden="true" />
-                Admin
-              </Link>
-            )}
+                {SOFA_LEAGUE_LINK.label}
+                <ExternalLink size={14} />
+              </a>
+
+              {/* Authenticated-only plain links (e.g. public Arb Planner) */}
+              {isAuthenticated &&
+                AUTHENTICATED_LINKS.map((link) => (
+                  <Link key={link.href} href={link.href} className={navItemClass(pathname === link.href)}>
+                    {link.label}
+                  </Link>
+                ))}
+
+              {/* Protected dropdown groups (only if authenticated) */}
+              {isAuthenticated &&
+                PRIVATE_GROUPS.map((group) => (
+                  <NavDropdown
+                    key={group.label}
+                    label={group.label}
+                    links={group.links}
+                    pathname={pathname}
+                  />
+                ))}
+
+              {/* Admin link */}
+              {isAdmin && (
+                <Link href="/admin" className={navItemClass(pathname === "/admin")}>
+                  <Shield size={12} className={pathname === "/admin" ? "opacity-80" : "opacity-60"} aria-hidden="true" />
+                  Admin
+                </Link>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <GlobalPlayerSearch />
             {isAuthenticated ? (
               <button
@@ -260,6 +267,84 @@ export default function Navigation({ isAuthenticated, isAdmin }: NavigationProps
           </div>
         </div>
       </div>
+
+      {/* Collapsed menu — shown below 2xl when the hamburger is toggled */}
+      {mobileOpen && (
+        <div
+          id="mobile-nav"
+          className="2xl:hidden border-t border-slate-200 dark:border-slate-800 px-4 sm:px-6 lg:px-8 py-3 space-y-1 max-h-[calc(100vh-3.5rem)] overflow-y-auto"
+        >
+          {/* Public links */}
+          {PUBLIC_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={() => setMobileOpen(false)}
+              className={mobileItemClass(pathname === link.href)}
+            >
+              {link.label}
+            </Link>
+          ))}
+
+          {/* SOFA League external link */}
+          <a
+            href={SOFA_LEAGUE_LINK.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setMobileOpen(false)}
+            className={mobileItemClass(false)}
+          >
+            {SOFA_LEAGUE_LINK.label}
+            <ExternalLink size={14} aria-hidden="true" />
+          </a>
+
+          {/* Authenticated-only plain links */}
+          {isAuthenticated &&
+            AUTHENTICATED_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileOpen(false)}
+                className={mobileItemClass(pathname === link.href)}
+              >
+                {link.label}
+              </Link>
+            ))}
+
+          {/* Protected groups, expanded as labeled sections */}
+          {isAuthenticated &&
+            PRIVATE_GROUPS.map((group) => (
+              <div key={group.label} className="pt-2">
+                <div className="flex items-center gap-1.5 px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                  <Lock size={11} aria-hidden="true" />
+                  {group.label}
+                </div>
+                {group.links.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={mobileItemClass(pathname === link.href)}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            ))}
+
+          {/* Admin link */}
+          {isAdmin && (
+            <Link
+              href="/admin"
+              onClick={() => setMobileOpen(false)}
+              className={`mt-2 ${mobileItemClass(pathname === "/admin")}`}
+            >
+              <Shield size={14} aria-hidden="true" />
+              Admin
+            </Link>
+          )}
+        </div>
+      )}
     </nav>
   );
 }
