@@ -103,6 +103,12 @@ interface PlayerState {
   acquisition_type: string;
 }
 
+// "FA" (and empty/null) in league_prices/transactions denotes free agents,
+// not a real fantasy team — those players are not on anyone's roster.
+function isRealTeam(team: string | null | undefined): team is string {
+  return team != null && team !== "" && team !== "FA";
+}
+
 export function reconstructRostersAtDate(
   transactions: RawTransaction[],
   players: RawPlayer[],
@@ -135,7 +141,7 @@ export function reconstructRostersAtDate(
 
     const teamMap = new Map<string, RosterEntry[]>();
     for (const lp of leaguePrices) {
-      if (!lp.team_name || lp.price == null) continue;
+      if (!isRealTeam(lp.team_name) || lp.price == null) continue;
       const player = playerMap.get(lp.player_id);
       if (!player) continue;
       const pStats = statsMap.get(lp.player_id);
@@ -198,7 +204,7 @@ export function reconstructRostersAtDate(
       type.includes("signed") ||
       type.includes("rostered")
     ) {
-      if (txn.team_name) {
+      if (isRealTeam(txn.team_name)) {
         playerStateMap.set(txn.player_id, {
           team: txn.team_name,
           salary: txn.salary ?? 0,
@@ -217,7 +223,7 @@ export function reconstructRostersAtDate(
   const teamMap = new Map<string, RosterEntry[]>();
 
   for (const [player_id, state] of playerStateMap.entries()) {
-    if (!state.team) continue;
+    if (!isRealTeam(state.team)) continue;
 
     const player = playerMap.get(player_id);
     if (!player) continue;
