@@ -180,6 +180,30 @@ def _fetch_calendar(league_id: int) -> list[dict]:
     )
 
 
+# === Convenience accessors (mirror web/lib/season.ts) ===
+# Each resolves the live context from the league_calendar table. Pass an
+# explicit season on the command line to skip resolution.
+
+def league_season() -> int:
+    """The league season whose roster we're managing (advancing pointer)."""
+    return get_season_context()["league_season"]
+
+
+def projection_season() -> int:
+    """Season that projections / Draft Sharks values target."""
+    return get_season_context()["projection_season"]
+
+
+def stats_season() -> int:
+    """Season whose actual NFL stats drive VORP / surplus / observed PPG."""
+    return get_season_context()["stats_season"]
+
+
+def arbitration_season() -> int:
+    """Season arbitration is being conducted for."""
+    return get_season_context()["arbitration_season"]
+
+
 if __name__ == "__main__":
     import json
     print(json.dumps(get_season_context(), indent=2, default=str))

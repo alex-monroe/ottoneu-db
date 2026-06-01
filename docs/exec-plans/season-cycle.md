@@ -1,6 +1,6 @@
 # Season Cycle — cross-season data & UI scheme
 
-**Status:** In progress (PR #3 — phase-driven UI + roster snapshots)
+**Status:** In progress (PR #4 — Python ingestion + arbitration-season alignment)
 
 ## Problem
 
@@ -92,7 +92,7 @@ automatic.
    hardcoded `2026` projection year. The projections page now derives its
    selectable years from the resolver. Behavior-preserving today (statsSeason
    2025, projectionSeason 2026), but now rolls forward automatically.
-3. **Phase-driven UI + roster snapshots (this PR):**
+3. **Phase-driven UI + roster snapshots (done — PR #3):**
    - `web/lib/season-ui.ts` — pure, client-safe `PHASE_UI` map (label, blurb,
      featured nav group/links per phase) + `describeNextBoundary` for countdowns.
    - `PhaseBanner` (server component, in the root layout) shows the current
@@ -107,15 +107,24 @@ automatic.
      the keeper deadline has passed** (the `pre_draft` phase) — otherwise
      "Today". The rosters page resolves the context server-side and passes the
      config to `RostersClient`.
-4. **Python ingestion + arbitration-season alignment** — migrate the scrapers /
-   projection scripts off static `SEASON`, and fix arbitration-season tagging.
-   **Known issue surfaced during PR #2:** `arbitration_progress` rows are tagged
-   `season = 2025` (the scraper inherited the stale `SEASON`), even though the
-   2026-season arbitration ran Feb–Mar 2026. Because of this, `arb-progress`
-   page and the arbitration-progress read paths were intentionally **left on the
-   static `SEASON`** in PR #2 — switching them to `arbitrationSeason` (2026)
-   would read empty until the scraper tags by `arbitrationSeason` and existing
-   rows are re-tagged.
+4. **Python ingestion + arbitration-season alignment (done):**
+   - Python convenience accessors in `scripts/season.py` (`league_season`,
+     `projection_season`, `stats_season`, `arbitration_season`) mirroring the TS
+     ones, backed by `league_calendar`.
+   - Scrapers / enqueue resolve their season instead of inheriting static
+     `SEASON`: `scrape_arbitration_progress.py` → `arbitration_season`,
+     `scrape_draft_sharks.py` → `projection_season` (was `SEASON + 1`),
+     `enqueue.py` + the `scrape_roster` / `scrape_player_card` task fallbacks →
+     `league_season`. Each still accepts an explicit `--season`.
+   - `arb-progress` page now reads `arbitrationSeason`.
+   - **Data fix:** the 2026-season arbitration (run Feb–Mar 2026, scraped
+     2026-04-02) had been tagged `season = 2025` because the scraper inherited
+     the stale `SEASON`. Migration `retag_2026_arbitration_season` re-tagged
+     those rows (`arbitration_progress`, `_teams`, `_allocation_details`) to
+     2026 so they align with `arbitrationSeason`. Applied directly to the shared
+     Supabase project (no local migrations dir).
+   - Out of scope: `scripts/visualize_app.py` (a local Streamlit dev tool) still
+     references `SEASON`; left as-is.
 5. **Cleanup** — remove static `SEASON` / `SEASON_END_DATE` / `PRE_ARB_DATE`
    from `config.json` once nothing reads them.
 

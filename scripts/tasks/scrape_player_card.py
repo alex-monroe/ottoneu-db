@@ -3,7 +3,8 @@
 import re
 from datetime import datetime
 
-from scripts.config import LEAGUE_ID, SEASON
+from scripts.config import LEAGUE_ID
+from scripts.season import league_season
 
 # Regex for cleaning salary strings (e.g., "$1,234" -> "1234")
 SALARY_REGEX = re.compile(r"[^\d]")
@@ -31,7 +32,7 @@ async def run(params: dict, context, supabase) -> TaskResult:
     player_name = params.get("player_name", "Unknown")
     player_uuid = params["player_uuid"]
     href = params["href"]
-    default_season = params.get("season", SEASON)
+    default_season = params.get("season") or league_season()
     league_id = params.get("league_id", LEAGUE_ID)
     fantasy_team = params.get("fantasy_team", "FA")
 

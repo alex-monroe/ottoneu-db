@@ -26,7 +26,8 @@ import os
 
 from playwright.async_api import async_playwright
 
-from scripts.config import LEAGUE_ID, SEASON, get_supabase_client
+from scripts.config import LEAGUE_ID, get_supabase_client
+from scripts.season import arbitration_season
 
 DEBUG_SCREENSHOT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "debug")
 FANGRAPHS_LOGIN_URL = "https://blogs.fangraphs.com/wp-login.php"
@@ -655,10 +656,14 @@ def _parse_dollar(text: str) -> int | None:
 def main():
     parser = argparse.ArgumentParser(description="Scrape Ottoneu arbitration progress")
     parser.add_argument("--league-id", type=int, default=LEAGUE_ID)
-    parser.add_argument("--season", type=int, default=SEASON)
+    parser.add_argument(
+        "--season", type=int, default=None,
+        help="Season to tag arbitration data with (default: resolved arbitration season)",
+    )
     args = parser.parse_args()
 
-    asyncio.run(scrape_arbitration_progress(args.league_id, args.season))
+    season = args.season if args.season is not None else arbitration_season()
+    asyncio.run(scrape_arbitration_progress(args.league_id, season))
 
 
 if __name__ == "__main__":

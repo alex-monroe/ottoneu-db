@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { LEAGUE_ID, SEASON, NUM_TEAMS } from "@/lib/config";
+import { LEAGUE_ID, NUM_TEAMS } from "@/lib/config";
+import { getArbitrationSeason } from "@/lib/season";
 import { fetchAndMergeData, fetchHoverExtras, buildHoverDataMap } from "@/lib/analysis";
 import { getAuthenticatedUser } from "@/lib/auth";
 import {
@@ -38,25 +39,26 @@ function formatScrapedAt(iso: string | null): string | null {
 
 export default async function ArbProgressPage() {
   const supabase = getSupabaseAdmin();
+  const arbitrationSeason = await getArbitrationSeason();
 
   const [teamsRes, allocationsRes, detailsRes, allPlayers, user] = await Promise.all([
     supabase
       .from("arbitration_progress_teams")
       .select("team_name, is_complete, scraped_at")
       .eq("league_id", LEAGUE_ID)
-      .eq("season", SEASON)
+      .eq("season", arbitrationSeason)
       .order("team_name"),
     supabase
       .from("arbitration_progress")
       .select("player_name, ottoneu_id, team_name, current_salary, raise_amount, new_salary")
       .eq("league_id", LEAGUE_ID)
-      .eq("season", SEASON)
+      .eq("season", arbitrationSeason)
       .order("raise_amount", { ascending: false }),
     supabase
       .from("arbitration_allocation_details")
       .select("ottoneu_id, player_name, owner_team_name, allocating_team_name, amount")
       .eq("league_id", LEAGUE_ID)
-      .eq("season", SEASON),
+      .eq("season", arbitrationSeason),
     fetchAndMergeData(),
     getAuthenticatedUser(),
   ]);
@@ -86,7 +88,7 @@ export default async function ArbProgressPage() {
       <div className="max-w-7xl mx-auto space-y-8">
         <header>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Arbitration Progress ({SEASON})
+            Arbitration Progress ({arbitrationSeason})
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2">
             Live arbitration allocation status for League {LEAGUE_ID}.{" "}

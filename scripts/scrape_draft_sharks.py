@@ -30,7 +30,8 @@ import asyncio
 
 from playwright.async_api import async_playwright
 
-from scripts.config import SEASON, fetch_all_rows, get_supabase_client
+from scripts.config import fetch_all_rows, get_supabase_client
+from scripts.season import projection_season
 from scripts.name_utils import normalize_player_name
 
 POSITIONS = ["qb", "rb", "wr", "te"]
@@ -186,12 +187,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Scrape Draft Sharks Half-PPR Superflex auction values."
     )
-    # Draft Sharks publishes auction values for the *upcoming* season, so the
-    # default tags them as SEASON + 1 (the projection year the web app reads).
-    default_season = SEASON + 1
+    # Draft Sharks publishes auction values for the *upcoming* season, which the
+    # season-cycle resolver reports as the projection season (the year the web
+    # app reads). Resolved lazily after parsing so an explicit --season skips it.
     parser.add_argument(
-        "--season", type=int, default=default_season,
-        help=f"Season to tag the values with (default: {default_season})",
+        "--season", type=int, default=None,
+        help="Season to tag the values with (default: resolved projection season)",
     )
     parser.add_argument(
         "--positions", nargs="+", default=POSITIONS,
@@ -203,9 +204,10 @@ def main() -> None:
         help="Scrape and match without writing to the database",
     )
     args = parser.parse_args()
+    season = args.season if args.season is not None else projection_season()
 
     print(
-        f"Draft Sharks scrape (season={args.season}, "
+        f"Draft Sharks scrape (season={season}, "
         f"positions={args.positions}, dry_run={args.dry_run})"
     )
 
@@ -218,7 +220,7 @@ def main() -> None:
     lookup = build_player_lookup(supabase)
     print(f"  {len(lookup)} (name, position) keys")
 
-    matched, unmatched = match_rows(scraped, lookup, args.season)
+    matched, unmatched = match_rows(scraped, lookup, season)
     print(f"\nMatched: {len(matched)}")
     print(f"Unmatched: {len(unmatched)}")
     for u in unmatched[:25]:
