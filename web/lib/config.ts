@@ -7,19 +7,15 @@
 import config from "../../config.json";
 
 export const LEAGUE_ID = config.LEAGUE_ID;
-export const SEASON = config.SEASON;
+// The current season, phase, and salary-snapshot dates are no longer static
+// config — they are resolved from the league_calendar table. See web/lib/season.ts
+// (getStatsSeason / getProjectionSeason / getLeagueSeason / getSalarySnapshotDates).
 export const HISTORICAL_SEASONS = config.HISTORICAL_SEASONS;
 export const MY_TEAM = config.MY_TEAM;
 export const NUM_TEAMS = config.NUM_TEAMS;
 export const CAP_PER_TEAM = config.CAP_PER_TEAM;
 export const SCORING_SETTINGS = config.SCORING_SETTINGS;
 export const MIN_GAMES = config.MIN_GAMES;
-
-// Salary snapshot dates for historical analysis
-// SEASON_END_DATE: last day of in-season salary (before automatic +$4/+$1 bump)
-// PRE_ARB_DATE: date of the auto bump (includes +$4/+$1 but before arb results)
-export const SEASON_END_DATE: string = config.SEASON_END_DATE;
-export const PRE_ARB_DATE: string = config.PRE_ARB_DATE;
 
 // Replacement level: approximate number of fantasy-relevant players per position
 // in a 12-team superflex league (accounts for 2 QBs starting per team).

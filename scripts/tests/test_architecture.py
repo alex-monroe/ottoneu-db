@@ -164,8 +164,10 @@ class TestConfigSync:
     def test_python_consumes_all_json_keys(self):
         json_keys = self._get_json_keys()
         py_keys = self._get_python_config_keys()
-        # Keys used only by the TypeScript frontend (not needed in Python)
-        frontend_only = {"SEASON_END_DATE", "PRE_ARB_DATE"}
+        # Keys used only by the TypeScript frontend (not needed in Python).
+        # Season + salary-snapshot dates are no longer static config — they are
+        # resolved from league_calendar (scripts/season.py, web/lib/season.ts).
+        frontend_only: set[str] = set()
         missing = json_keys - py_keys - frontend_only
         assert not missing, (
             f"config.json keys not consumed in scripts/config.py: {missing}\n"
@@ -273,7 +275,7 @@ class TestNoWildcardImports:
         assert not violations, (
             "Wildcard imports (`from module import *`) found.\n"
             "FIX: Replace with explicit named imports so dependencies are traceable.\n"
-            "Example: `from scripts.config import LEAGUE_ID, SEASON`\n"
+            "Example: `from scripts.config import LEAGUE_ID, MY_TEAM`\n"
             "Violations:\n" + "\n".join(violations)
         )
 

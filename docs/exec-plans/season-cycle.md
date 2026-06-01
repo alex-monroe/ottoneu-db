@@ -1,6 +1,7 @@
 # Season Cycle — cross-season data & UI scheme
 
-**Status:** In progress (PR #4 — Python ingestion + arbitration-season alignment)
+**Status:** Complete (PRs #1–5 merged). The site rolls across Ottoneu seasons
+automatically from the `league_calendar` table; no static season constants remain.
 
 ## Problem
 
@@ -123,10 +124,19 @@ automatic.
      those rows (`arbitration_progress`, `_teams`, `_allocation_details`) to
      2026 so they align with `arbitrationSeason`. Applied directly to the shared
      Supabase project (no local migrations dir).
-   - Out of scope: `scripts/visualize_app.py` (a local Streamlit dev tool) still
-     references `SEASON`; left as-is.
-5. **Cleanup** — remove static `SEASON` / `SEASON_END_DATE` / `PRE_ARB_DATE`
-   from `config.json` once nothing reads them.
+   - `scripts/visualize_app.py` (local Streamlit dev tool) migrated off `SEASON`
+     in PR #5.
+5. **Cleanup (done):** removed static `SEASON` / `SEASON_END_DATE` /
+   `PRE_ARB_DATE` from `config.json`, `config.py`, and `config.ts`.
+   - The two salary-snapshot dates are now derived from the calendar by
+     `getSalarySnapshotDates()` (`web/lib/season.ts`): Ottoneu auto-applies the
+     +$4/$1 raise at the season rollover, so for a completed stats season
+     `seasonEnd = season_start − 1` (pre-bump) and `preArb = season_start`
+     (post-bump); during the in-season phase both fall back to today.
+   - Last client consumer (`GlobalPlayerSearch`'s "active since" cutoff) now
+     receives `statsSeason − 1` as a prop from `NavigationWrapper`.
+   - `config.json` retains only genuinely static league settings (cap, scoring,
+     positions, replacement levels, arb limits, `HISTORICAL_SEASONS`, …).
 
 ## Wiring
 

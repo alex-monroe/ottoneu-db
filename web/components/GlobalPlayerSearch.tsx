@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { LEAGUE_ID, SEASON } from "@/lib/config";
+import { LEAGUE_ID } from "@/lib/config";
 import PositionBadge from "@/components/PositionBadge";
 
 interface SearchResult {
@@ -23,13 +23,14 @@ interface RawSearchRow extends SearchResult {
 
 // A player counts as "active" if they have fantasy stats in the current or
 // previous season; older-but-present means "historic".
-const ACTIVE_SINCE_SEASON = SEASON - 1;
-
 /**
  * Relevance tier for search ranking (lower = surfaced first):
  *   0 rostered in our league · 1 active · 2 historic · 3 no fantasy stats
+ *
+ * A player counts as "active" if they have fantasy stats in or after
+ * `activeSinceSeason` (the season before the current stats season).
  */
-function relevanceTier(row: RawSearchRow): number {
+function relevanceTier(row: RawSearchRow, activeSinceSeason: number): number {
     const rostered = row.league_prices?.some(
         (lp) =>
             lp.league_id === LEAGUE_ID &&
@@ -43,7 +44,7 @@ function relevanceTier(row: RawSearchRow): number {
         ? Math.max(...row.player_stats.map((s) => s.season))
         : null;
     if (lastSeason == null) return 3;
-    return lastSeason >= ACTIVE_SINCE_SEASON ? 1 : 2;
+    return lastSeason >= activeSinceSeason ? 1 : 2;
 }
 
 function lastSeasonOf(row: RawSearchRow): number {
@@ -52,7 +53,7 @@ function lastSeasonOf(row: RawSearchRow): number {
         : 0;
 }
 
-export default function GlobalPlayerSearch() {
+export default function GlobalPlayerSearch({ activeSinceSeason }: { activeSinceSeason: number }) {
     const [query, setQuery] = useState("");
     const [results, setResults] = useState<SearchResult[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -111,7 +112,7 @@ export default function GlobalPlayerSearch() {
             if (!isCancelled) {
                 if (!error && data) {
                     const ranked = (data as unknown as RawSearchRow[])
-                        .map((row) => ({ row, tier: relevanceTier(row) }))
+                        .map((row) => ({ row, tier: relevanceTier(row, activeSinceSeason) }))
                         .sort(
                             (a, b) =>
                                 a.tier - b.tier ||
@@ -141,7 +142,7 @@ export default function GlobalPlayerSearch() {
             isCancelled = true;
             clearTimeout(timeoutId);
         };
-    }, [query]);
+    }, [query, activeSinceSeason]);
 
     const handleSelect = (playerId: number) => {
         router.push(`/players/${playerId}`);

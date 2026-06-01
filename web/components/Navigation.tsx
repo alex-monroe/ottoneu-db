@@ -172,6 +172,8 @@ interface NavigationProps {
   featuredLinks?: string[];
   /** Nav dropdown group label to accent for the current season phase. */
   featuredGroup?: string | null;
+  /** Earliest season a player counts as "active" in global search ranking. */
+  activeSinceSeason: number;
 }
 
 export default function Navigation({
@@ -179,6 +181,7 @@ export default function Navigation({
   isAdmin,
   featuredLinks = [],
   featuredGroup = null,
+  activeSinceSeason,
 }: NavigationProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -297,7 +300,7 @@ export default function Navigation({
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
-            <GlobalPlayerSearch />
+            <GlobalPlayerSearch activeSinceSeason={activeSinceSeason} />
             {isAuthenticated ? (
               <button
                 onClick={handleLogout}

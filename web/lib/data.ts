@@ -10,8 +10,8 @@
  */
 
 import { supabase } from "./supabase";
-import { LEAGUE_ID, SEASON_END_DATE, PRE_ARB_DATE } from "./config";
-import { getStatsSeason, getProjectionSeason } from "./season";
+import { LEAGUE_ID } from "./config";
+import { getStatsSeason, getProjectionSeason, getSalarySnapshotDates } from "./season";
 import type {
   Player,
   PlayerListItem,
@@ -88,8 +88,9 @@ async function buildSalaryMapAtDate(
  * Fetch players with stats, using salary from a specific historical date
  * via transaction replay.
  *
- * Use `SEASON_END_DATE` for end-of-season analysis (VORP, surplus).
- * Use `PRE_ARB_DATE` for pre-arbitration analysis (arb targets, simulation).
+ * See `getSalarySnapshotDates()`: the `seasonEnd` date for end-of-season
+ * analysis (VORP, surplus), the `preArb` date for pre-arbitration analysis
+ * (arb targets, simulation).
  */
 export async function fetchPlayersAtDate(salaryDate: string): Promise<Player[]> {
   const statsSeason = await getStatsSeason();
@@ -141,13 +142,13 @@ export async function fetchPlayersAtDate(salaryDate: string): Promise<Player[]> 
 }
 
 /** Fetch players with end-of-season salaries (before +$4/+$1 bump). */
-export function fetchPlayersEndOfSeason(): Promise<Player[]> {
-  return fetchPlayersAtDate(SEASON_END_DATE);
+export async function fetchPlayersEndOfSeason(): Promise<Player[]> {
+  return fetchPlayersAtDate((await getSalarySnapshotDates()).seasonEnd);
 }
 
 /** Fetch players with pre-arbitration salaries (after auto bump, before arb results). */
-export function fetchPlayersPreArb(): Promise<Player[]> {
-  return fetchPlayersAtDate(PRE_ARB_DATE);
+export async function fetchPlayersPreArb(): Promise<Player[]> {
+  return fetchPlayersAtDate((await getSalarySnapshotDates()).preArb);
 }
 
 // ─── Core Fetchers ───────────────────────────────────────────────────────────
