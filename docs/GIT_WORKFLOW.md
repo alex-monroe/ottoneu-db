@@ -34,3 +34,32 @@ Before beginning ANY new task or change, always follow this workflow:
    ```
 
 **Always start from an updated `main` branch to avoid merge conflicts and ensure you're working with the latest code.**
+
+## Stacked / dependent PRs
+
+**Prefer basing every PR on `main`, even when the work is part of a multi-PR
+series.** PRs in this repo are **squash-merged**, and a squash merge does NOT
+propagate to a PR stacked on the base PR's branch.
+
+The trap (this has bitten real work twice): if PR B's base is PR A's feature
+branch and A is squash-merged to `main`, clicking "merge" on B merges it into
+A's now-orphaned branch — **B's changes silently never reach `main`.**
+
+What to do instead:
+
+- **Default:** base each PR directly on `main`. If a PR genuinely needs unmerged
+  work from another, say so in the description and plan to re-land once it merges.
+- **Re-land a stranded/stacked PR onto `main`:**
+  ```bash
+  git checkout -b new-branch main
+  git cherry-pick <commit>        # base content already in main is skipped cleanly
+  gh pr create --base main --fill
+  ```
+- **Retarget an existing stacked PR after its base merges:**
+  ```bash
+  gh pr edit <n> --base main
+  git rebase origin/main          # the duplicated base commit drops as "previously applied"
+  git push --force-with-lease
+  ```
+- Before merging any PR in a series, **confirm its base is `main`** (`gh pr view
+  <n> --json baseRefName`).
