@@ -86,7 +86,7 @@ export default function PlayerHoverCard({
                 {hoverData.ds_auction_value != null && (
                   <div className="flex justify-between">
                     <span className="text-violet-600 dark:text-violet-400 font-medium">
-                      DS Value
+                      DS Projected Value
                     </span>
                     <span className="font-mono font-medium text-violet-600 dark:text-violet-400">
                       ${hoverData.ds_auction_value}
@@ -96,7 +96,7 @@ export default function PlayerHoverCard({
                 {hoverData.market_auction_value != null && (
                   <div className="flex justify-between">
                     <span className="text-violet-600 dark:text-violet-400 font-medium">
-                      Mkt Value
+                      Benchmark Value
                     </span>
                     <span className="font-mono font-medium text-violet-600 dark:text-violet-400">
                       ${hoverData.market_auction_value}

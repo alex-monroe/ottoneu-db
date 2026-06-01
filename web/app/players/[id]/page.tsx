@@ -106,7 +106,7 @@ export default async function PlayerCardPage({
                                             ${draftSharks.ds_auction_value}
                                         </p>
                                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                            DS Value
+                                            DS Projected Value
                                         </p>
                                     </div>
                                 )}
@@ -116,7 +116,7 @@ export default async function PlayerCardPage({
                                             ${draftSharks.market_auction_value}
                                         </p>
                                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                            Mkt Value
+                                            Benchmark Value
                                         </p>
                                     </div>
                                 )}
