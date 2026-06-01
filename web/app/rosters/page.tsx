@@ -1,5 +1,5 @@
 import { fetchRosterData } from "@/lib/roster-reconstruction";
-import { fetchProjectionMap, DEFAULT_PROJECTION_YEAR } from "@/lib/analysis";
+import { fetchHoverExtras } from "@/lib/analysis";
 import { getAuthenticatedUser } from "@/lib/auth";
 import type { PlayerHoverData } from "@/lib/types";
 import RostersClient from "./RostersClient";
@@ -9,9 +9,7 @@ export default async function RostersPage() {
     fetchRosterData(),
     getAuthenticatedUser(),
   ]);
-  const projMap = user?.hasProjectionsAccess
-    ? await fetchProjectionMap(DEFAULT_PROJECTION_YEAR)
-    : null;
+  const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
 
   // Build hoverDataMap from raw player + stats data
   const statsMap = new Map(data.stats.map((s) => [s.player_id, s]));
@@ -31,6 +29,12 @@ export default async function RostersPage() {
         ? {
             projected_ppg: projMap[player.id].ppg,
             projection_method: projMap[player.id].method,
+          }
+        : {}),
+      ...(dsMap?.[player.id]
+        ? {
+            ds_auction_value: dsMap[player.id].ds_auction_value,
+            market_auction_value: dsMap[player.id].market_auction_value,
           }
         : {}),
     };

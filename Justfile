@@ -154,6 +154,10 @@ backfill-vegas *args:
 seed-win-totals *args:
     {{python}} scripts/seed_preseason_win_totals.py {{args}}
 
+# Scrape Draft Sharks auction values (x2 for the $400 cap)  (e.g. just scrape-draft-sharks --season 2026 --dry-run)
+scrape-draft-sharks *args:
+    {{python}} scripts/scrape_draft_sharks.py {{args}}
+
 # ──────────────────────────────────────────────
 # Ad-hoc DB queries
 # ──────────────────────────────────────────────

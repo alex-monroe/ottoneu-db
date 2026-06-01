@@ -10,7 +10,7 @@
 
 import { supabase } from "./supabase";
 import { LEAGUE_ID, SEASON } from "./config";
-import { fetchPlayers } from "./data";
+import { fetchPlayers, fetchDraftSharksMap, type DraftSharksValue } from "./data";
 import type { Player, PlayerHoverData, BacktestPlayer, ProjectionModel, BacktestMetrics } from "./types";
 
 // Re-export from config/arb-logic for backward compatibility
@@ -219,7 +219,8 @@ export async function fetchProjectionMap(
  */
 export function buildHoverDataMap(
   players: Player[],
-  projMap: Record<string, { ppg: number; method: string }> | null = null
+  projMap: Record<string, { ppg: number; method: string }> | null = null,
+  dsMap: Record<string, DraftSharksValue> | null = null
 ): Record<string, PlayerHoverData> {
   return Object.fromEntries(
     players
@@ -240,9 +241,37 @@ export function buildHoverDataMap(
                 projection_method: projMap[p.player_id].method,
               }
             : {}),
+          ...(dsMap?.[p.player_id]
+            ? {
+                ds_auction_value: dsMap[p.player_id].ds_auction_value,
+                market_auction_value: dsMap[p.player_id].market_auction_value,
+              }
+            : {}),
         },
       ])
   );
+}
+
+/**
+ * Fetch the projection-access-gated extras (projection map + Draft Sharks map)
+ * used to enrich hover cards. Returns nulls when the user lacks access so
+ * callers can pass the result straight into buildHoverDataMap.
+ */
+export async function fetchHoverExtras(
+  hasProjectionsAccess: boolean,
+  season: number = DEFAULT_PROJECTION_YEAR
+): Promise<{
+  projMap: Record<string, { ppg: number; method: string }> | null;
+  dsMap: Record<string, DraftSharksValue> | null;
+}> {
+  if (!hasProjectionsAccess) {
+    return { projMap: null, dsMap: null };
+  }
+  const [projMap, dsMap] = await Promise.all([
+    fetchProjectionMap(season),
+    fetchDraftSharksMap(season),
+  ]);
+  return { projMap, dsMap };
 }
 
 export interface ProjectedPlayer extends Player {

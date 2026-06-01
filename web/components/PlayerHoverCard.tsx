@@ -83,6 +83,26 @@ export default function PlayerHoverCard({
                     </span>
                   </div>
                 )}
+                {hoverData.ds_auction_value != null && (
+                  <div className="flex justify-between">
+                    <span className="text-violet-600 dark:text-violet-400 font-medium">
+                      DS Projected Value
+                    </span>
+                    <span className="font-mono font-medium text-violet-600 dark:text-violet-400">
+                      ${hoverData.ds_auction_value}
+                    </span>
+                  </div>
+                )}
+                {hoverData.market_auction_value != null && (
+                  <div className="flex justify-between">
+                    <span className="text-violet-600 dark:text-violet-400 font-medium">
+                      Benchmark Value
+                    </span>
+                    <span className="font-mono font-medium text-violet-600 dark:text-violet-400">
+                      ${hoverData.market_auction_value}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           ) : (

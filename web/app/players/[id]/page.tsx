@@ -1,4 +1,4 @@
-import { fetchPlayerDetail, fetchPlayerProjection } from "@/lib/data";
+import { fetchPlayerDetail, fetchPlayerProjection, fetchDraftSharksValue } from "@/lib/data";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -32,9 +32,12 @@ export default async function PlayerCardPage({
 
     // Fetch auth + projection in parallel (auth returns null for unauthenticated)
     const user = await getAuthenticatedUser();
-    const projection = user?.hasProjectionsAccess
-        ? await fetchPlayerProjection(player.id)
-        : null;
+    const [projection, draftSharks] = user?.hasProjectionsAccess
+        ? await Promise.all([
+              fetchPlayerProjection(player.id),
+              fetchDraftSharksValue(player.id),
+          ])
+        : [null, null];
 
     const posColor = POSITION_COLORS[player.position as Position] ?? "#6B7280";
 
@@ -94,6 +97,26 @@ export default async function PlayerCardPage({
                                         </p>
                                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                                             Salary
+                                        </p>
+                                    </div>
+                                )}
+                                {draftSharks?.ds_auction_value != null && (
+                                    <div className="text-center">
+                                        <p className="text-3xl font-bold text-violet-600 dark:text-violet-400 font-mono">
+                                            ${draftSharks.ds_auction_value}
+                                        </p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                            DS Projected Value
+                                        </p>
+                                    </div>
+                                )}
+                                {draftSharks?.market_auction_value != null && (
+                                    <div className="text-center">
+                                        <p className="text-3xl font-bold text-violet-600 dark:text-violet-400 font-mono">
+                                            ${draftSharks.market_auction_value}
+                                        </p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                            Benchmark Value
                                         </p>
                                     </div>
                                 )}

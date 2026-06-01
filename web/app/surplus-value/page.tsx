@@ -1,10 +1,9 @@
 import {
-  fetchProjectionMap,
+  fetchHoverExtras,
   buildHoverDataMap,
   calculateSurplus,
   MY_TEAM,
   SEASON,
-  DEFAULT_PROJECTION_YEAR,
 } from "@/lib/analysis";
 import { fetchPlayersEndOfSeason } from "@/lib/data";
 import { getAuthenticatedUser } from "@/lib/auth";
@@ -92,10 +91,8 @@ export default async function SurplusValuePage() {
     fetchPlayersEndOfSeason(),
     getAuthenticatedUser(),
   ]);
-  const projMap = user?.hasProjectionsAccess
-    ? await fetchProjectionMap(DEFAULT_PROJECTION_YEAR)
-    : null;
-  const hoverDataMap = buildHoverDataMap(allPlayers, projMap);
+  const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
+  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap);
   const surplusPlayers = calculateSurplus(allPlayers);
 
   if (surplusPlayers.length === 0) {

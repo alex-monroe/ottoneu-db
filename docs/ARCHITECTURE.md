@@ -37,6 +37,18 @@ Jobs support dependencies, retries (up to 3 attempts), and batch grouping. `otto
 - **`player_stats`** = Ottoneu fantasy data (total_points, ppg, pps, snaps from scraping)
 - **`nfl_stats`** = Real NFL stats (passing_yards, rushing_tds, snap counts, etc. from nflverse)
 
+### Draft Sharks Auction Values (separate weekly scrape)
+
+`draft_sharks_values` stores Draft Sharks' Half-PPR Superflex auction values (both their
+own `ds_auction_value` and the consensus `market_auction_value`) per player per season.
+The Draft Sharks rankings table is client-rendered and lazy-loads on scroll, so
+`scripts/scrape_draft_sharks.py` drives it with Playwright, reads each row's position from
+its rank label, multiplies the site's $200-cap values by 2 (this league is $400), and
+matches players by `(normalized name, position)`. This is **not** part of the main
+`just scrape` pipeline — it runs standalone via `just scrape-draft-sharks` or the weekly
+`Scrape Draft Sharks Auction Values` GitHub Action. The web app surfaces these values on
+player cards and hover cards for users with projections access.
+
 ### Worker Task Modules (`scripts/tasks/`)
 
 Each task type lives in its own module. `__init__.py` defines task type constants and `TaskResult` dataclass. The worker caches NFL stats in memory so roster scrapes can match snap counts by player name.

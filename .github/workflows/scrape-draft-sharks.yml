@@ -1,0 +1,45 @@
+name: Scrape Draft Sharks Auction Values
+
+on:
+  # Manual trigger
+  workflow_dispatch:
+
+  # Weekly, Mondays at 8:00 AM UTC. Auction values move slowly and are relevant
+  # year-round (offseason draft prep), so there is no in-season gate.
+  schedule:
+    - cron: "0 8 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install playwright supabase python-dotenv beautifulsoup4
+          # Install this repo as a package so `import scripts.*` resolves
+          pip install -e . --no-deps
+
+      - name: Install Playwright browsers
+        run: playwright install --with-deps chromium
+
+      - name: Create .env
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> .env
+
+      - name: Scrape Draft Sharks auction values
+        run: python scripts/scrape_draft_sharks.py

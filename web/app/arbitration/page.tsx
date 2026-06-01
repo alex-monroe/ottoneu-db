@@ -1,7 +1,7 @@
 import {
   fetchPlayersWithProjectedPpg,
   fetchAndMergeProjectedData,
-  fetchProjectionMap,
+  fetchHoverExtras,
   buildHoverDataMap,
   analyzeArbitration,
   allocateArbitrationBudget,
@@ -114,10 +114,8 @@ export default async function ArbitrationPage({ searchParams }: Props) {
     allPlayers = await fetchPlayersWithProjectedPpg(fetchPlayersPreArb);
   }
 
-  const projMap = user?.hasProjectionsAccess
-    ? await fetchProjectionMap(DEFAULT_PROJECTION_YEAR)
-    : null;
-  const hoverDataMap = buildHoverDataMap(allPlayers, projMap);
+  const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
+  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap);
 
   const targets = analyzeArbitration(allPlayers, adjustments) as ProjectedTarget[];
 

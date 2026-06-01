@@ -370,6 +370,69 @@ export async function fetchPlayerProjection(
   };
 }
 
+// ─── Draft Sharks Auction Values ──────────────────────────────────────────────
+//
+// Half-PPR Superflex auction values scraped from Draft Sharks, already scaled to
+// this league's $400 cap (the site publishes $200-cap values; the scraper x2's).
+// Gated behind projections access in the UI, same as projected PPG.
+
+export interface DraftSharksValue {
+  ds_auction_value: number | null;
+  market_auction_value: number | null;
+}
+
+/**
+ * Fetch a single player's Draft Sharks auction values for a given season.
+ */
+export async function fetchDraftSharksValue(
+  playerId: string,
+  season = 2026
+): Promise<DraftSharksValue | null> {
+  const { data, error } = await supabase
+    .from("draft_sharks_values")
+    .select("ds_auction_value, market_auction_value")
+    .eq("player_id", playerId)
+    .eq("season", season)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  return {
+    ds_auction_value:
+      data.ds_auction_value != null ? Number(data.ds_auction_value) : null,
+    market_auction_value:
+      data.market_auction_value != null ? Number(data.market_auction_value) : null,
+  };
+}
+
+/**
+ * Build a player_id → Draft Sharks values map for bulk (hover-card) use.
+ */
+export async function fetchDraftSharksMap(
+  season = 2026
+): Promise<Record<string, DraftSharksValue>> {
+  const { data, error } = await supabase
+    .from("draft_sharks_values")
+    .select("player_id, ds_auction_value, market_auction_value")
+    .eq("season", season);
+
+  if (error || !data) return {};
+
+  return Object.fromEntries(
+    data.map((row) => [
+      row.player_id,
+      {
+        ds_auction_value:
+          row.ds_auction_value != null ? Number(row.ds_auction_value) : null,
+        market_auction_value:
+          row.market_auction_value != null
+            ? Number(row.market_auction_value)
+            : null,
+      },
+    ])
+  );
+}
+
 // ─── Active Projection Model ──────────────────────────────────────────────────
 
 export interface ActiveProjectionModel {
