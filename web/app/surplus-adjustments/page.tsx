@@ -1,4 +1,5 @@
-import { fetchAndMergeProjectedData, fetchHoverExtras, buildHoverDataMap, calculateSurplus, fetchPlayersPreArb, SEASON, LEAGUE_ID, DEFAULT_PROJECTION_YEAR } from "@/lib/analysis";
+import { fetchAndMergeProjectedData, fetchHoverExtras, buildHoverDataMap, calculateSurplus, fetchPlayersPreArb, LEAGUE_ID } from "@/lib/analysis";
+import { getStatsSeason, getProjectionSeason } from "@/lib/season";
 import { computeDollarPerVorp } from "@/lib/surplus";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
@@ -9,9 +10,13 @@ export const revalidate = 0;
 
 export default async function SurplusAdjustmentsPage() {
   const user = await getAuthenticatedUser();
+  const [statsSeason, projectionSeason] = await Promise.all([
+    getStatsSeason(),
+    getProjectionSeason(),
+  ]);
   const [allPlayers, projectedPlayers, adjRes] = await Promise.all([
     fetchPlayersPreArb(),
-    fetchAndMergeProjectedData(DEFAULT_PROJECTION_YEAR, fetchPlayersPreArb),
+    fetchAndMergeProjectedData(projectionSeason, fetchPlayersPreArb),
     user
       ? getSupabaseAdmin()
           .from("surplus_adjustments")
@@ -58,7 +63,7 @@ export default async function SurplusAdjustmentsPage() {
       <div className="max-w-7xl mx-auto space-y-6">
         <header>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Surplus Value Adjustments ({SEASON})
+            Surplus Value Adjustments ({statsSeason})
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2">
             Adjust player values by entering a target PPG or target surplus — the system
@@ -74,7 +79,7 @@ export default async function SurplusAdjustmentsPage() {
             pages by toggling to &ldquo;Adjusted&rdquo; mode.
           </p>
           <p className="text-slate-400 dark:text-slate-500 mt-1 text-sm">
-            <strong>Proj. Value</strong> and <strong>Proj. Surplus</strong> show {DEFAULT_PROJECTION_YEAR} projected
+            <strong>Proj. Value</strong> and <strong>Proj. Surplus</strong> show {projectionSeason} projected
             dollar values based on recency-weighted PPG projections. <strong>Δ</strong> = projected minus observed value.
           </p>
         </header>
@@ -91,6 +96,7 @@ export default async function SurplusAdjustmentsPage() {
           projectedValues={projectedValues}
           dollarPerVorp={dollarPerVorp}
           hoverDataMap={hoverDataMap}
+          projectionSeason={projectionSeason}
         />
       </div>
     </main>

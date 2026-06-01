@@ -1,10 +1,8 @@
 import {
   fetchAndMergeProjectedData,
-  PROJECTION_YEARS,
-  DEFAULT_PROJECTION_YEAR,
   getHistoricalSeasonsForYear,
-  SEASON,
 } from "@/lib/analysis";
+import { getStatsSeason, getProjectionSeason } from "@/lib/season";
 import ActiveModelCard from "@/components/ActiveModelCard";
 import ProjectionsClient from "./ProjectionsClient";
 
@@ -16,10 +14,21 @@ interface Props {
 
 export default async function ProjectionsPage({ searchParams }: Props) {
   const params = await searchParams;
+  const [statsSeason, projectionSeason] = await Promise.all([
+    getStatsSeason(),
+    getProjectionSeason(),
+  ]);
+  // Selectable projection years: the just-completed season (backtest view) and
+  // the upcoming projection season (forward-looking). Deduped when they coincide
+  // (during the in-season phase, statsSeason === projectionSeason).
+  const projectionYears = Array.from(
+    new Set([statsSeason, projectionSeason])
+  ).sort((a, b) => a - b);
+
   const rawYear = Number(params.year);
-  const projectionYear = (PROJECTION_YEARS as readonly number[]).includes(rawYear)
+  const projectionYear = projectionYears.includes(rawYear)
     ? rawYear
-    : DEFAULT_PROJECTION_YEAR;
+    : projectionSeason;
 
   const players = await fetchAndMergeProjectedData(projectionYear);
   const historicalSeasons = getHistoricalSeasonsForYear(projectionYear);
@@ -60,9 +69,9 @@ export default async function ProjectionsPage({ searchParams }: Props) {
             Player Projections — {projectionYear}
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2">
-            {projectionYear > SEASON ? (
+            {projectionYear > statsSeason ? (
               <>
-                <strong>Forward-looking:</strong> {SEASON} actual PPG vs.
+                <strong>Forward-looking:</strong> {statsSeason} actual PPG vs.
                 projected {projectionYear} performance, built from{" "}
                 {historicalSeasons.join(", ")} history. Use this for arbitration
                 and keeper decisions.
@@ -71,7 +80,7 @@ export default async function ProjectionsPage({ searchParams }: Props) {
               <>
                 <strong>Backtest:</strong> What the model would have projected
                 for {projectionYear} using {historicalSeasons.join(", ")} history,
-                compared to actual {SEASON} results. Green = outperformed
+                compared to actual {projectionYear} results. Green = outperformed
                 projection; red = underperformed.
               </>
             )}
@@ -92,15 +101,20 @@ export default async function ProjectionsPage({ searchParams }: Props) {
                 fallback set to the position-average rookie PPG.
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400 pt-1">
-                <strong>{SEASON} PPG</strong> — actual {SEASON} season stats &nbsp;·&nbsp;{" "}
+                <strong>{statsSeason} PPG</strong> — actual {statsSeason} season stats &nbsp;·&nbsp;{" "}
                 <strong>Proj {projectionYear}</strong> — model output for {projectionYear} &nbsp;·&nbsp;{" "}
-                <strong>Δ</strong> — Proj minus {SEASON} PPG
+                <strong>Δ</strong> — Proj minus {statsSeason} PPG
               </p>
             </>
           }
         />
 
-        <ProjectionsClient initialData={rows} projectionYear={projectionYear} />
+        <ProjectionsClient
+          initialData={rows}
+          projectionYear={projectionYear}
+          statsSeason={statsSeason}
+          projectionYears={projectionYears}
+        />
       </div>
     </main>
   );

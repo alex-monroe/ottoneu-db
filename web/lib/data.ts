@@ -10,7 +10,8 @@
  */
 
 import { supabase } from "./supabase";
-import { LEAGUE_ID, SEASON, SEASON_END_DATE, PRE_ARB_DATE } from "./config";
+import { LEAGUE_ID, SEASON_END_DATE, PRE_ARB_DATE } from "./config";
+import { getStatsSeason, getProjectionSeason } from "./season";
 import type {
   Player,
   PlayerListItem,
@@ -91,9 +92,10 @@ async function buildSalaryMapAtDate(
  * Use `PRE_ARB_DATE` for pre-arbitration analysis (arb targets, simulation).
  */
 export async function fetchPlayersAtDate(salaryDate: string): Promise<Player[]> {
+  const statsSeason = await getStatsSeason();
   const [playersRes, statsRes, salaryMap] = await Promise.all([
     supabase.from("players").select("*").gt("ottoneu_id", 0),
-    supabase.from("player_stats").select("*").eq("season", SEASON),
+    supabase.from("player_stats").select("*").eq("season", statsSeason),
     buildSalaryMapAtDate(salaryDate),
   ]);
 
@@ -158,9 +160,10 @@ export function fetchPlayersPreArb(): Promise<Player[]> {
  * Salary comes exclusively from `league_prices`.
  */
 export async function fetchPlayers(): Promise<Player[]> {
+  const statsSeason = await getStatsSeason();
   const [playersRes, statsRes, pricesRes] = await Promise.all([
     supabase.from("players").select("*").gt("ottoneu_id", 0),
-    supabase.from("player_stats").select("*").eq("season", SEASON),
+    supabase.from("player_stats").select("*").eq("season", statsSeason),
     supabase.from("league_prices").select("*").eq("league_id", LEAGUE_ID),
   ]);
 
@@ -215,6 +218,7 @@ export async function fetchPlayers(): Promise<Player[]> {
  * Salary comes exclusively from `league_prices` — no transaction override.
  */
 export async function fetchPlayerList(): Promise<PlayerListItem[]> {
+  const statsSeason = await getStatsSeason();
   const [playersRes, statsRes, pricesRes] = await Promise.all([
     supabase
       .from("players")
@@ -224,7 +228,7 @@ export async function fetchPlayerList(): Promise<PlayerListItem[]> {
     supabase
       .from("player_stats")
       .select("player_id, total_points, games_played, ppg")
-      .eq("season", SEASON),
+      .eq("season", statsSeason),
     supabase
       .from("league_prices")
       .select("player_id, price, team_name")
@@ -353,13 +357,13 @@ export async function fetchPublicArbPlayers(): Promise<PublicArbPlayer[]> {
  */
 export async function fetchPlayerProjection(
   playerId: string,
-  season = 2026
+  season?: number
 ): Promise<{ projected_ppg: number; projection_method: string } | null> {
   const { data, error } = await supabase
     .from("player_projections")
     .select("projected_ppg, projection_method")
     .eq("player_id", playerId)
-    .eq("season", season)
+    .eq("season", season ?? (await getProjectionSeason()))
     .maybeSingle();
 
   if (error || !data) return null;
@@ -386,13 +390,13 @@ export interface DraftSharksValue {
  */
 export async function fetchDraftSharksValue(
   playerId: string,
-  season = 2026
+  season?: number
 ): Promise<DraftSharksValue | null> {
   const { data, error } = await supabase
     .from("draft_sharks_values")
     .select("ds_auction_value, market_auction_value")
     .eq("player_id", playerId)
-    .eq("season", season)
+    .eq("season", season ?? (await getProjectionSeason()))
     .maybeSingle();
 
   if (error || !data) return null;
@@ -409,12 +413,12 @@ export async function fetchDraftSharksValue(
  * Build a player_id → Draft Sharks values map for bulk (hover-card) use.
  */
 export async function fetchDraftSharksMap(
-  season = 2026
+  season?: number
 ): Promise<Record<string, DraftSharksValue>> {
   const { data, error } = await supabase
     .from("draft_sharks_values")
     .select("player_id, ds_auction_value, market_auction_value")
-    .eq("season", season);
+    .eq("season", season ?? (await getProjectionSeason()));
 
   if (error || !data) return {};
 

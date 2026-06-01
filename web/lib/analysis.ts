@@ -9,7 +9,8 @@
  */
 
 import { supabase } from "./supabase";
-import { LEAGUE_ID, SEASON } from "./config";
+import { LEAGUE_ID } from "./config";
+import { getStatsSeason, getProjectionSeason } from "./season";
 import { fetchPlayers, fetchDraftSharksMap, type DraftSharksValue } from "./data";
 import type { Player, PlayerHoverData, BacktestPlayer, ProjectionModel, BacktestMetrics } from "./types";
 
@@ -32,9 +33,10 @@ export {
 export const fetchAndMergeData = fetchPlayers;
 
 // === Projection Year Config ===
-export const PROJECTION_YEARS = [2025, 2026] as const;
-export type ProjectionYear = typeof PROJECTION_YEARS[number];
-export const DEFAULT_PROJECTION_YEAR: ProjectionYear = 2026;
+// The active projection season is resolved dynamically via the season-cycle
+// resolver (see web/lib/season.ts: getProjectionSeason). Pages derive their
+// selectable projection years from { statsSeason, projectionSeason } rather
+// than a hardcoded list.
 
 export function getHistoricalSeasonsForYear(year: number): number[] {
   return [year - 3, year - 2, year - 1]; // e.g. 2026 → [2023, 2024, 2025]
@@ -259,7 +261,7 @@ export function buildHoverDataMap(
  */
 export async function fetchHoverExtras(
   hasProjectionsAccess: boolean,
-  season: number = DEFAULT_PROJECTION_YEAR
+  season?: number
 ): Promise<{
   projMap: Record<string, { ppg: number; method: string }> | null;
   dsMap: Record<string, DraftSharksValue> | null;
@@ -267,9 +269,10 @@ export async function fetchHoverExtras(
   if (!hasProjectionsAccess) {
     return { projMap: null, dsMap: null };
   }
+  const resolvedSeason = season ?? (await getProjectionSeason());
   const [projMap, dsMap] = await Promise.all([
-    fetchProjectionMap(season),
-    fetchDraftSharksMap(season),
+    fetchProjectionMap(resolvedSeason),
+    fetchDraftSharksMap(resolvedSeason),
   ]);
   return { projMap, dsMap };
 }
@@ -297,7 +300,7 @@ export async function fetchPlayersWithProjectedPpg(
     throw new Error("Failed to fetch current players data for projection mapping");
   }
 
-  const projectionMap = await buildProjectionMap(SEASON);
+  const projectionMap = await buildProjectionMap(await getStatsSeason());
 
   return currentPlayers.map((player) => {
     const projEntry = projectionMap.get(player.player_id);
@@ -387,7 +390,7 @@ export async function fetchBacktestData(
  *   Use `fetchPlayersPreArb` for pre-arbitration salary context.
  */
 export async function fetchAndMergeProjectedData(
-  projectionYear: number = DEFAULT_PROJECTION_YEAR,
+  projectionYear?: number,
   baseFetcher: () => Promise<Player[]> = fetchPlayers
 ): Promise<ProjectedPlayer[]> {
   const currentPlayers = await baseFetcher();
@@ -396,7 +399,9 @@ export async function fetchAndMergeProjectedData(
     throw new Error("Failed to fetch current players data for projection mapping");
   }
 
-  const projectionMap = await buildProjectionMap(projectionYear);
+  const projectionMap = await buildProjectionMap(
+    projectionYear ?? (await getProjectionSeason())
+  );
 
   const projected: ProjectedPlayer[] = [];
   for (const player of currentPlayers) {
