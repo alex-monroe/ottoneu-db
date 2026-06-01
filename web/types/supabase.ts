@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      league_calendar: {
+        Row: {
+          arb_end: string | null
+          arb_start: string | null
+          auction_date: string | null
+          keeper_deadline: string | null
+          last_auction_date: string | null
+          league_id: number
+          raw: Json | null
+          regular_season_start: string | null
+          scraped_at: string
+          season: number
+          season_start: string | null
+          trade_deadline: string | null
+        }
+        Insert: {
+          arb_end?: string | null
+          arb_start?: string | null
+          auction_date?: string | null
+          keeper_deadline?: string | null
+          last_auction_date?: string | null
+          league_id: number
+          raw?: Json | null
+          regular_season_start?: string | null
+          scraped_at?: string
+          season: number
+          season_start?: string | null
+          trade_deadline?: string | null
+        }
+        Update: {
+          arb_end?: string | null
+          arb_start?: string | null
+          auction_date?: string | null
+          keeper_deadline?: string | null
+          last_auction_date?: string | null
+          league_id?: number
+          raw?: Json | null
+          regular_season_start?: string | null
+          scraped_at?: string
+          season?: number
+          season_start?: string | null
+          trade_deadline?: string | null
+        }
+        Relationships: []
+      }
       arbitration_allocation_details: {
         Row: {
           allocating_team_name: string

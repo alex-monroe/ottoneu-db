@@ -124,6 +124,7 @@ just backfill-draft-capital [--since YYYY] [--dry-run] # Backfill draft_capital 
 just backfill-vegas [--since YYYY] [--dry-run]         # Backfill team_vegas_lines from nflverse games.csv
 just seed-win-totals --season YYYY                     # Upsert preseason sportsbook win totals (implied_total left NULL until schedule drops)
 just scrape-draft-sharks [--season YYYY] [--positions qb rb wr te] [--dry-run]  # Scrape Draft Sharks Half-PPR Superflex auction values (stored ×2 for the $400 cap)
+just scrape-calendar [--dry-run]                      # Scrape the Ottoneu finances Calendar into league_calendar (drives the season-cycle resolver)
 
 # Ad-hoc DB queries
 just py "<python-snippet>"                          # Run a one-off Python snippet against the project venv (read-only diagnostics)
@@ -145,3 +146,8 @@ just py "<python-snippet>"                          # Run a one-off Python snipp
   (Mondays 08:00 UTC) and on manual `workflow_dispatch`. Runs `scripts/scrape_draft_sharks.py`
   via Playwright; no in-season gate (auction values matter year-round). Requires the
   `SUPABASE_URL` / `SUPABASE_KEY` repo secrets.
+- `.github/workflows/scrape-league-calendar.yml` — scrapes the Ottoneu finances Calendar
+  weekly (Mondays 12:00 UTC) and on manual `workflow_dispatch`. Runs
+  `scripts/scrape_league_calendar.py` via Playwright (FanGraphs login required) to refresh
+  `league_calendar`, the source of truth for the season-cycle resolver. Requires the
+  `SUPABASE_URL` / `SUPABASE_KEY` / `FANGRAPHS_USERNAME` / `FANGRAPHS_PASSWORD` repo secrets.

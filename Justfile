@@ -162,6 +162,10 @@ seed-win-totals *args:
 scrape-draft-sharks *args:
     {{python}} scripts/scrape_draft_sharks.py {{args}}
 
+# Scrape the Ottoneu finances Calendar into league_calendar (drives the season-cycle resolver)
+scrape-calendar *args:
+    {{python}} scripts/scrape_league_calendar.py {{args}}
+
 # ──────────────────────────────────────────────
 # Ad-hoc DB queries
 # ──────────────────────────────────────────────
