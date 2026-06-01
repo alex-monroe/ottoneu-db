@@ -1,6 +1,6 @@
 # Season Cycle — cross-season data & UI scheme
 
-**Status:** In progress (PR #1 of 4 — foundation)
+**Status:** In progress (PR #2 — web read-path migration)
 
 ## Problem
 
@@ -80,17 +80,33 @@ automatic.
 
 ## Sequencing (one PR each)
 
-1. **Foundation (this PR):** `league_calendar` table + scraper
+1. **Foundation (done — PR #1):** `league_calendar` table + scraper
    (`scripts/scrape_league_calendar.py`, `just scrape-calendar`) + resolvers
    (`scripts/season.py`, `web/lib/season.ts`) with override + tests.
    Behavior-preserving — nothing consumes the resolver yet.
-2. **Migrate call sites** off static `SEASON` → `statsSeason` /
-   `projectionSeason` / `arbitrationSeason`. Removes the three-way "now" split.
+2. **Web read-path migration (this PR):** server accessors in `season.ts`
+   (`getSeasonContextNow`, `getStatsSeason`, `getProjectionSeason`,
+   `getArbitrationSeason`, React-cached per request). Migrate the data/analysis
+   layer (`data.ts`, `analysis.ts`) and the VORP / surplus / projections /
+   arbitration / surplus-adjustments pages off the static `SEASON` and the
+   hardcoded `2026` projection year. The projections page now derives its
+   selectable years from the resolver. Behavior-preserving today (statsSeason
+   2025, projectionSeason 2026), but now rolls forward automatically.
 3. **Phase-driven UI** — featured nav/landing per phase, roster snapshot default
-   & bounds (`roster-reconstruction.ts` hardcoded `2025-09-01`/`today`), phase
-   banner with next-boundary countdown.
-4. **Cleanup** — remove static `SEASON` / `SEASON_END_DATE` / `PRE_ARB_DATE`
-   from `config.json`.
+   & bounds (`roster-reconstruction.ts`: `eq("season", SEASON)` and the
+   hardcoded `2025-09-01`/`today` window), phase banner with next-boundary
+   countdown.
+4. **Python ingestion + arbitration-season alignment** — migrate the scrapers /
+   projection scripts off static `SEASON`, and fix arbitration-season tagging.
+   **Known issue surfaced during PR #2:** `arbitration_progress` rows are tagged
+   `season = 2025` (the scraper inherited the stale `SEASON`), even though the
+   2026-season arbitration ran Feb–Mar 2026. Because of this, `arb-progress`
+   page and the arbitration-progress read paths were intentionally **left on the
+   static `SEASON`** in PR #2 — switching them to `arbitrationSeason` (2026)
+   would read empty until the scraper tags by `arbitrationSeason` and existing
+   rows are re-tagged.
+5. **Cleanup** — remove static `SEASON` / `SEASON_END_DATE` / `PRE_ARB_DATE`
+   from `config.json` once nothing reads them.
 
 ## Wiring
 

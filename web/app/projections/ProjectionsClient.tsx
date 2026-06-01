@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { POSITIONS, PROJECTION_YEARS, SEASON } from "@/lib/analysis";
+import { POSITIONS } from "@/lib/analysis";
 import PositionFilter from "@/components/PositionFilter";
 import ProjectionYearSelector from "@/components/ProjectionYearSelector";
 import DataTable from "@/components/DataTable";
@@ -27,6 +27,8 @@ export interface ProjectionRow {
 interface Props {
   initialData: ProjectionRow[];
   projectionYear: number;
+  statsSeason: number;
+  projectionYears: readonly number[];
 }
 
 /** College fallback badge for players with no NFL track record. */
@@ -41,7 +43,10 @@ function ProjectionBadges({ method }: { method: string }) {
   return null;
 }
 
-function getProjectionColumns(projectionYear: number): Column<ProjectionRow>[] {
+function getProjectionColumns(
+  projectionYear: number,
+  statsSeason: number
+): Column<ProjectionRow>[] {
   return [
     {
       key: "name",
@@ -65,13 +70,13 @@ function getProjectionColumns(projectionYear: number): Column<ProjectionRow>[] {
     { key: "nfl_team", label: "Team" },
     { key: "team_name", label: "Owner" },
     { key: "price", label: "Salary", format: "currency" },
-    { key: "observed_ppg", label: `${SEASON} PPG`, format: "decimal" },
+    { key: "observed_ppg", label: `${statsSeason} PPG`, format: "decimal" },
     { key: "projected_ppg", label: `Proj ${projectionYear}`, format: "decimal" },
-    { key: "ppg_delta", label: `Δ ${projectionYear} vs ${SEASON}`, format: "decimal" },
+    { key: "ppg_delta", label: `Δ ${projectionYear} vs ${statsSeason}`, format: "decimal" },
   ];
 }
 
-export default function ProjectionsClient({ initialData, projectionYear }: Props) {
+export default function ProjectionsClient({ initialData, projectionYear, statsSeason, projectionYears }: Props) {
   const [selectedPositions, setSelectedPositions] = useState<Position[]>([
     ...POSITIONS,
   ]);
@@ -93,7 +98,7 @@ export default function ProjectionsClient({ initialData, projectionYear }: Props
   const filteredData = initialData
     .filter((p) => selectedPositions.includes(p.position as Position));
 
-  const columns = getProjectionColumns(projectionYear);
+  const columns = getProjectionColumns(projectionYear, statsSeason);
 
   return (
     <section>
@@ -101,7 +106,7 @@ export default function ProjectionsClient({ initialData, projectionYear }: Props
         <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
           All Players
         </h2>
-        <ProjectionYearSelector currentYear={projectionYear} years={PROJECTION_YEARS} />
+        <ProjectionYearSelector currentYear={projectionYear} years={projectionYears} />
         <PositionFilter
           positions={POSITIONS}
           selectedPositions={selectedPositions}

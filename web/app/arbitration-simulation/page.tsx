@@ -3,10 +3,9 @@ import {
   fetchHoverExtras,
   buildHoverDataMap,
   fetchPlayersPreArb,
-  SEASON,
   LEAGUE_ID,
-  DEFAULT_PROJECTION_YEAR,
 } from "@/lib/analysis";
+import { getStatsSeason, getProjectionSeason } from "@/lib/season";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
 import SimulationControls from "./SimulationControls";
@@ -27,10 +26,14 @@ export default async function ArbitrationSimulationPage({ searchParams }: Props)
   const isAdjusted = mode === "adjusted";
   const isProjected = mode === "projected";
 
-  const user = await getAuthenticatedUser();
+  const [user, statsSeason, projectionSeason] = await Promise.all([
+    getAuthenticatedUser(),
+    getStatsSeason(),
+    getProjectionSeason(),
+  ]);
   const [rawPlayers, adjRes] = await Promise.all([
     isProjected
-      ? fetchAndMergeProjectedData(DEFAULT_PROJECTION_YEAR, fetchPlayersPreArb)
+      ? fetchAndMergeProjectedData(projectionSeason, fetchPlayersPreArb)
       : fetchPlayersPreArb(),
     user
       ? getSupabaseAdmin()
@@ -51,7 +54,7 @@ export default async function ArbitrationSimulationPage({ searchParams }: Props)
     );
   }
 
-  const label = isProjected ? DEFAULT_PROJECTION_YEAR : SEASON;
+  const label = isProjected ? projectionSeason : statsSeason;
 
   const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
   const hoverDataMap = buildHoverDataMap(rawPlayers, projMap, dsMap);

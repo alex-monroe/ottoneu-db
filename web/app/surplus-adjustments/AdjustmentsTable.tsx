@@ -21,6 +21,7 @@ interface AdjustmentsTableProps {
   projectedValues: Record<string, ProjectedValueEntry>;
   dollarPerVorp: number;
   hoverDataMap?: Record<string, PlayerHoverData> | null;
+  projectionSeason: number;
 }
 
 const POSITIONS = ["ALL", "QB", "RB", "WR", "TE"];
@@ -59,6 +60,7 @@ export default function AdjustmentsTable({
   projectedValues,
   dollarPerVorp,
   hoverDataMap,
+  projectionSeason,
 }: AdjustmentsTableProps) {
   const [adjustments, setAdjustments] = useState<Record<string, AdjustmentEntry>>(() => {
     const init: Record<string, AdjustmentEntry> = {};
@@ -555,7 +557,7 @@ export default function AdjustmentsTable({
         <span className="inline-block w-2 h-2 rounded-sm bg-blue-100 dark:bg-blue-950 border border-blue-300 mr-0.5" />
         {" "}saved non-zero adjustment.{" "}
         ★ = your team.{" "}
-        <span className="text-purple-600 dark:text-purple-400">Purple columns</span> = 2026 projected values.
+        <span className="text-purple-600 dark:text-purple-400">Purple columns</span> = {projectionSeason} projected values.
       </p>
     </div>
   );
