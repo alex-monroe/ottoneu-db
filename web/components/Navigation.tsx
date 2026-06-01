@@ -157,6 +157,26 @@ export default function Navigation({ isAuthenticated, isAdmin }: NavigationProps
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
+
+  // Dismiss the collapsed menu on outside click or Escape.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    function onOutside(e: MouseEvent) {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) {
+        setMobileOpen(false);
+      }
+    }
+    function onEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") setMobileOpen(false);
+    }
+    document.addEventListener("mousedown", onOutside);
+    document.addEventListener("keydown", onEscape);
+    return () => {
+      document.removeEventListener("mousedown", onOutside);
+      document.removeEventListener("keydown", onEscape);
+    };
+  }, [mobileOpen]);
 
   // Authenticated users have many more nav items (3 dropdown groups + extra
   // links), so the inline bar only fits on very wide screens. Logged-out users
@@ -182,7 +202,7 @@ export default function Navigation({ isAuthenticated, isAdmin }: NavigationProps
   };
 
   return (
-    <nav className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-black">
+    <nav ref={navRef} className="relative border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-black">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 gap-2">
           <div className="flex items-center gap-1 min-w-0">
@@ -278,11 +298,13 @@ export default function Navigation({ isAuthenticated, isAdmin }: NavigationProps
         </div>
       </div>
 
-      {/* Collapsed menu — shown when the hamburger is toggled */}
+      {/* Collapsed menu — a compact floating panel anchored under the hamburger,
+          rather than a full-width section. Width tracks the viewport on phones
+          but caps at a tidy menu size on larger collapsed screens. */}
       {mobileOpen && (
         <div
           id="mobile-nav"
-          className={`${collapsedHiddenClass} border-t border-slate-200 dark:border-slate-800 px-4 sm:px-6 lg:px-8 py-3 space-y-1 max-h-[calc(100vh-3.5rem)] overflow-y-auto`}
+          className={`${collapsedHiddenClass} absolute left-2 sm:left-4 top-full mt-1 z-50 w-72 max-w-[calc(100vw-1rem)] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl py-1.5 px-1.5 space-y-0.5 max-h-[calc(100vh-4rem)] overflow-y-auto`}
         >
           {/* Public links */}
           {PUBLIC_LINKS.map((link) => (
