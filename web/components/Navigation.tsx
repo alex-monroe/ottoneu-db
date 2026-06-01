@@ -158,6 +158,16 @@ export default function Navigation({ isAuthenticated, isAdmin }: NavigationProps
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Authenticated users have many more nav items (3 dropdown groups + extra
+  // links), so the inline bar only fits on very wide screens. Logged-out users
+  // have just the public links and fit comfortably much sooner — collapse to a
+  // hamburger only when the items genuinely won't fit. Class names are written
+  // as full literals so Tailwind keeps them.
+  const inlineWrapperClass = isAuthenticated
+    ? "hidden 2xl:flex items-center gap-1"
+    : "hidden lg:flex items-center gap-1";
+  const collapsedHiddenClass = isAuthenticated ? "2xl:hidden" : "lg:hidden";
+
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
@@ -182,13 +192,13 @@ export default function Navigation({ isAuthenticated, isAdmin }: NavigationProps
               aria-expanded={mobileOpen}
               aria-controls="mobile-nav"
               aria-label="Toggle navigation menu"
-              className="2xl:hidden inline-flex items-center justify-center p-2 rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
+              className={`${collapsedHiddenClass} inline-flex items-center justify-center p-2 rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors`}
             >
               {mobileOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
             </button>
 
-            {/* Inline navigation — only on very wide screens (>= 2xl) */}
-            <div className="hidden 2xl:flex items-center gap-1">
+            {/* Inline navigation — shown once the items fit (breakpoint depends on auth) */}
+            <div className={inlineWrapperClass}>
               {/* Public links */}
               {PUBLIC_LINKS.map((link) => (
                 <Link key={link.href} href={link.href} className={navItemClass(pathname === link.href)}>
@@ -268,11 +278,11 @@ export default function Navigation({ isAuthenticated, isAdmin }: NavigationProps
         </div>
       </div>
 
-      {/* Collapsed menu — shown below 2xl when the hamburger is toggled */}
+      {/* Collapsed menu — shown when the hamburger is toggled */}
       {mobileOpen && (
         <div
           id="mobile-nav"
-          className="2xl:hidden border-t border-slate-200 dark:border-slate-800 px-4 sm:px-6 lg:px-8 py-3 space-y-1 max-h-[calc(100vh-3.5rem)] overflow-y-auto"
+          className={`${collapsedHiddenClass} border-t border-slate-200 dark:border-slate-800 px-4 sm:px-6 lg:px-8 py-3 space-y-1 max-h-[calc(100vh-3.5rem)] overflow-y-auto`}
         >
           {/* Public links */}
           {PUBLIC_LINKS.map((link) => (
