@@ -162,6 +162,11 @@ seed-win-totals *args:
 scrape-draft-sharks *args:
     {{python}} scripts/scrape_draft_sharks.py {{args}}
 
+# Emit a compact league roster-economics snapshot for AI roster-construction reasoning
+# (used by the /ottoneu-roster-question skill alongside docs/references/ottoneu-strategy.md)
+roster-context *args:
+    {{python}} scripts/roster_context_pack.py {{args}}
+
 # ──────────────────────────────────────────────
 # Ad-hoc DB queries
 # ──────────────────────────────────────────────

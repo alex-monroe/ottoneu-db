@@ -93,6 +93,7 @@ Install `just` once with `brew install just`, then run any recipe from the repo 
 just                    # List all recipes
 just install            # Install all dependencies (Python + Node)
 just dev                # Start Next.js dev server on localhost:3000
+just dev-stop           # Kill the dev server + stray Turbopack/postcss workers
 just build              # Production build
 just lint               # ESLint
 just typecheck          # TypeScript type check
@@ -124,6 +125,7 @@ just backfill-draft-capital [--since YYYY] [--dry-run] # Backfill draft_capital 
 just backfill-vegas [--since YYYY] [--dry-run]         # Backfill team_vegas_lines from nflverse games.csv
 just seed-win-totals --season YYYY                     # Upsert preseason sportsbook win totals (implied_total left NULL until schedule drops)
 just scrape-draft-sharks [--season YYYY] [--positions qb rb wr te] [--dry-run]  # Scrape Draft Sharks Half-PPR Superflex auction values (stored ×2 for the $400 cap)
+just roster-context [--season YYYY]                    # Emit league roster-economics snapshot for AI roster-construction reasoning (used by /ottoneu-roster-question)
 
 # Ad-hoc DB queries
 just py "<python-snippet>"                          # Run a one-off Python snippet against the project venv (read-only diagnostics)
