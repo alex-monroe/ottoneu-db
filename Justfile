@@ -27,6 +27,10 @@ install:
 dev:
     cd web && npm run dev
 
+# Stop any running Next dev server and stray Turbopack/postcss workers
+dev-stop:
+    -pkill -f "next-server" 2>/dev/null; pkill -f "next dev" 2>/dev/null; pkill -f ".next/dev/build" 2>/dev/null; true
+
 # Production build (validates correctness)
 build:
     cd web && npm run build

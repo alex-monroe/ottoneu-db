@@ -86,6 +86,7 @@ Run `just check-arch` to validate these rules locally.
 - **Never commit directly to `main`.** All changes go through pull requests.
 - **Always create a PR.** Every task must end with `gh pr create --fill`.
 - **Start from updated main:** `git checkout main && git pull origin main` before branching.
+- **Bash cwd persists between calls.** A `cd web && …` leaves the shell in `web/`, so a later repo-root-relative path (e.g. `git add web/next.config.ts`) silently fails. Prefer absolute paths, `git -C <repo-root>`, or re-`cd` explicitly rather than assuming the working directory.
 - See [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) for full details.
 
 ## Projection Model Update Requirements
