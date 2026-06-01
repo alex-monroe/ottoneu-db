@@ -1,0 +1,64 @@
+name: Scrape League Calendar
+
+on:
+  # Manual trigger
+  workflow_dispatch:
+
+  # Weekly — boundary dates change rarely, but the auction date gets set
+  # mid-cycle and the season label rolls over each January.
+  schedule:
+    - cron: "0 12 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install --only-binary pandas,numpy playwright supabase python-dotenv pandas numpy
+          # Install this repo as a package so `import scripts.*` resolves
+          pip install -e . --no-deps
+
+      - name: Install Playwright browsers
+        run: playwright install --with-deps chromium
+
+      - name: Create .env
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          FANGRAPHS_USERNAME: ${{ secrets.FANGRAPHS_USERNAME }}
+          FANGRAPHS_PASSWORD: ${{ secrets.FANGRAPHS_PASSWORD }}
+        run: |
+          python -c "
+          import os
+          keys = ['SUPABASE_URL', 'SUPABASE_KEY', 'FANGRAPHS_USERNAME', 'FANGRAPHS_PASSWORD']
+          with open('.env', 'w') as f:
+              for k in keys:
+                  f.write(f'{k}={os.environ[k]}\n')
+          "
+
+      - name: Scrape league calendar
+        run: python scripts/scrape_league_calendar.py
+
+      - name: Upload debug artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-screenshots
+          path: debug/
+          retention-days: 7
+          if-no-files-found: ignore
