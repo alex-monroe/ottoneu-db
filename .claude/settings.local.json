@@ -52,6 +52,7 @@
       "Bash(venv/bin/python scripts/seed_:*)",
       "Bash(venv/bin/python scripts/run_all_analyses.py:*)",
       "Bash(venv/bin/pytest:*)",
+      "Bash(venv/bin/pip install -e .)",
       "Bash(npx tsc:*)",
       "Bash(npx jest:*)",
       "Bash(npx next:*)",
@@ -94,7 +95,10 @@
       "Read(//private/tmp/**)",
       "Read(//Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/bin/**)",
       "Skill(update-config)",
-      "mcp__supabase__list_tables"
+      "mcp__supabase__list_tables",
+      "mcp__puppeteer__puppeteer_click",
+      "mcp__puppeteer__puppeteer_evaluate",
+      "mcp__puppeteer__puppeteer_screenshot"
     ]
   },
   "enabledMcpjsonServers": [
