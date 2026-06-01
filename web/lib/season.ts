@@ -18,6 +18,7 @@
  * Override: SEASON_OVERRIDE / PHASE_OVERRIDE env vars short-circuit the result.
  */
 
+import { cache } from "react";
 import { supabase } from "./supabase";
 import { LEAGUE_ID } from "./config";
 
@@ -174,4 +175,27 @@ export async function resolveSeasonContext(
     .select("*")
     .eq("league_id", leagueId);
   return getSeasonContext((data as LeagueCalendarRow[]) ?? [], now, leagueId);
+}
+
+/**
+ * Resolve the current season context once per server request (React-cached).
+ * This is the entry point server components and the data layer should use.
+ */
+export const getSeasonContextNow = cache(
+  (): Promise<SeasonContext> => resolveSeasonContext(),
+);
+
+/** Season whose actual NFL stats drive VORP / surplus / observed PPG. */
+export async function getStatsSeason(): Promise<number> {
+  return (await getSeasonContextNow()).statsSeason;
+}
+
+/** Season that projections / Draft Sharks values target. */
+export async function getProjectionSeason(): Promise<number> {
+  return (await getSeasonContextNow()).projectionSeason;
+}
+
+/** Season arbitration is being conducted for. */
+export async function getArbitrationSeason(): Promise<number> {
+  return (await getSeasonContextNow()).arbitrationSeason;
 }

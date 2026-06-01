@@ -11,11 +11,10 @@ import {
   ARB_MAX_PER_TEAM,
   ARB_MAX_PER_PLAYER_PER_TEAM,
   NUM_TEAMS,
-  SEASON,
   LEAGUE_ID,
-  DEFAULT_PROJECTION_YEAR,
   getHistoricalSeasonsForYear,
 } from "@/lib/analysis";
+import { getStatsSeason, getProjectionSeason } from "@/lib/season";
 import type { ArbitrationTarget, Column, HighlightRule } from "@/lib/types";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
@@ -86,7 +85,11 @@ export default async function ArbitrationPage({ searchParams }: Props) {
   const isAdjusted = mode === "adjusted";
 
   // Fetch adjustments in all modes (needed for indicator dot)
-  const user = await getAuthenticatedUser();
+  const [user, statsSeason, projectionSeason] = await Promise.all([
+    getAuthenticatedUser(),
+    getStatsSeason(),
+    getProjectionSeason(),
+  ]);
   const adjRes = user
     ? await getSupabaseAdmin()
         .from("surplus_adjustments")
@@ -108,7 +111,7 @@ export default async function ArbitrationPage({ searchParams }: Props) {
   // Fetch players with pre-arbitration salaries (after auto bump, before arb results)
   let allPlayers;
   if (isProjected) {
-    allPlayers = await fetchAndMergeProjectedData(DEFAULT_PROJECTION_YEAR, fetchPlayersPreArb);
+    allPlayers = await fetchAndMergeProjectedData(projectionSeason, fetchPlayersPreArb);
   } else {
     // Raw mode uses projected PPG as the base
     allPlayers = await fetchPlayersWithProjectedPpg(fetchPlayersPreArb);
@@ -154,7 +157,7 @@ export default async function ArbitrationPage({ searchParams }: Props) {
     })()
     : sortedTeams;
 
-  const projectionYear = DEFAULT_PROJECTION_YEAR;
+  const projectionYear = projectionSeason;
   const historicalSeasons = getHistoricalSeasonsForYear(projectionYear);
   const mostRecentSeason = Math.max(...historicalSeasons);
   const columns = isProjected ? buildProjectedColumns(hoverDataMap) : buildBaseColumns(hoverDataMap);
@@ -166,7 +169,7 @@ export default async function ArbitrationPage({ searchParams }: Props) {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-                Arbitration Targets ({isProjected ? projectionYear : SEASON})
+                Arbitration Targets ({isProjected ? projectionYear : statsSeason})
               </h1>
               <p className="text-slate-500 dark:text-slate-400 mt-2">
                 {isProjected ? (
