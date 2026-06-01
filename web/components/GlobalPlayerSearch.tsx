@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { LEAGUE_ID, SEASON } from "@/lib/config";
 import PositionBadge from "@/components/PositionBadge";
 
 interface SearchResult {
@@ -12,6 +13,43 @@ interface SearchResult {
     name: string;
     nfl_team: string;
     position: string;
+}
+
+// Raw shape returned when we embed roster + stats data for ranking.
+interface RawSearchRow extends SearchResult {
+    league_prices: { team_name: string | null; league_id: number }[] | null;
+    player_stats: { season: number }[] | null;
+}
+
+// A player counts as "active" if they have fantasy stats in the current or
+// previous season; older-but-present means "historic".
+const ACTIVE_SINCE_SEASON = SEASON - 1;
+
+/**
+ * Relevance tier for search ranking (lower = surfaced first):
+ *   0 rostered in our league · 1 active · 2 historic · 3 no fantasy stats
+ */
+function relevanceTier(row: RawSearchRow): number {
+    const rostered = row.league_prices?.some(
+        (lp) =>
+            lp.league_id === LEAGUE_ID &&
+            lp.team_name != null &&
+            lp.team_name !== "" &&
+            lp.team_name !== "FA"
+    );
+    if (rostered) return 0;
+
+    const lastSeason = row.player_stats?.length
+        ? Math.max(...row.player_stats.map((s) => s.season))
+        : null;
+    if (lastSeason == null) return 3;
+    return lastSeason >= ACTIVE_SINCE_SEASON ? 1 : 2;
+}
+
+function lastSeasonOf(row: RawSearchRow): number {
+    return row.player_stats?.length
+        ? Math.max(...row.player_stats.map((s) => s.season))
+        : 0;
 }
 
 export default function GlobalPlayerSearch() {
@@ -57,16 +95,38 @@ export default function GlobalPlayerSearch() {
             }
 
             setIsLoading(true);
+            // Fetch a generous candidate pool with the roster + recency signals
+            // needed to rank, then sort by relevance tier and show the top 8.
+            // Ranking client-side (rather than alphabetically in SQL) keeps
+            // rostered/active players from being buried by historic ones.
             const { data, error } = await supabase
                 .from("players")
-                .select("id, ottoneu_id, name, nfl_team, position")
+                .select(
+                    "id, ottoneu_id, name, nfl_team, position, league_prices(team_name, league_id), player_stats(season)"
+                )
                 .or(`name.ilike.%${query}%,nfl_team.ilike.%${query}%`)
                 .order("name")
-                .limit(8);
+                .limit(50);
 
             if (!isCancelled) {
                 if (!error && data) {
-                    setResults(data as SearchResult[]);
+                    const ranked = (data as unknown as RawSearchRow[])
+                        .map((row) => ({ row, tier: relevanceTier(row) }))
+                        .sort(
+                            (a, b) =>
+                                a.tier - b.tier ||
+                                lastSeasonOf(b.row) - lastSeasonOf(a.row) ||
+                                a.row.name.localeCompare(b.row.name)
+                        )
+                        .slice(0, 8)
+                        .map(({ row }) => ({
+                            id: row.id,
+                            ottoneu_id: row.ottoneu_id,
+                            name: row.name,
+                            nfl_team: row.nfl_team,
+                            position: row.position,
+                        }));
+                    setResults(ranked);
                     setIsOpen(true);
                     setSelectedIndex(-1);
                 } else {
