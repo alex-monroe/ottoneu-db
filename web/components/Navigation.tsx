@@ -32,7 +32,7 @@ const PUBLIC_LINKS = [
 
 const SOFA_LEAGUE_LINK = {
   href: "https://ottoneu.fangraphs.com/football/309/",
-  label: "SOFA League",
+  label: "The SOFA",
   isExternal: true,
 };
 

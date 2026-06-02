@@ -144,7 +144,7 @@ export default async function Home() {
         <header className="rounded-xl border border-slate-200 dark:border-slate-800 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-black p-8">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-              SOFA League {LEAGUE_ID}
+              The SOFA
             </h1>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 dark:bg-amber-950/50 px-3 py-1 text-xs font-semibold text-amber-800 dark:text-amber-300">
               <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true" />
