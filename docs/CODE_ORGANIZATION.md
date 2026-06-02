@@ -25,7 +25,7 @@
 ## Python Configuration (`scripts/config.py`)
 
 All configuration constants live here:
-- League settings (`LEAGUE_ID`, `SEASON`, `MY_TEAM`)
+- League settings (`LEAGUE_ID`, `MY_TEAM`, `HISTORICAL_SEASONS`). The current/active season is **not** a static config value — it is resolved at runtime from `league_calendar` via `scripts/season.py` (`league_season`, `projection_season`, `stats_season`, `arbitration_season`) and `web/lib/season.ts`.
 - Fantasy rules (`NUM_TEAMS`, `CAP_PER_TEAM`, `POSITIONS`)
 - Analysis thresholds (`MIN_GAMES`, `REPLACEMENT_LEVEL`)
 - Arbitration constants

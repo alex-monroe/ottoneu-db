@@ -20,7 +20,9 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 - **Testing:** See [docs/TESTING.md](docs/TESTING.md) for running Python and web tests
 - **Git workflow:** See [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) for branch and PR requirements
 - **Domain rules:** See [docs/references/ottoneu-rules.md](docs/references/ottoneu-rules.md) for scoring, roster, salary cap, and arbitration
+- **Domain strategy:** See [docs/references/ottoneu-strategy.md](docs/references/ottoneu-strategy.md) for format economics (surplus value, raise treadmill, Superflex QB premium, arbitration tax) and the reasoning checklist used by the `/ottoneu-roster-question` skill
 - **Environment:** See [docs/references/environment-variables.md](docs/references/environment-variables.md) for `.env` setup
+- **Season cycle:** See [docs/exec-plans/season-cycle.md](docs/exec-plans/season-cycle.md) — the site rolls between Ottoneu seasons from the `league_calendar` table; the current season is resolved at runtime via `scripts/season.py` and `web/lib/season.ts`, not from static config
 - **Market Projections:** See [docs/exec-plans/market-projections.md](docs/exec-plans/market-projections.md) for the market-based projection system implementation plan
 
 ## Documentation Map
@@ -37,9 +39,10 @@ docs/
 ├── TESTING.md                         # Python + web test setup and CI
 ├── exec-plans/
 │   ├── [feature-projections.md](docs/exec-plans/feature-projections.md)         # Feature-based player projection system
-│   ├── [market-projections.md](docs/exec-plans/market-projections.md)          # Market-based projection system implementation plan
+│   ├── [market-projections.md](docs/exec-plans/market-projections.md)          # Market-based projection system implementation plan (DEFERRED)
 │   ├── [projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md)  # 4-phase accuracy improvement roadmap
-│   └── [qb-usage-share.md](docs/exec-plans/qb-usage-share.md)              # QB Usage Share findings and next steps
+│   ├── [qb-usage-share.md](docs/exec-plans/qb-usage-share.md)              # QB Usage Share findings and next steps
+│   └── [season-cycle.md](docs/exec-plans/season-cycle.md)                # Cross-season data & UI scheme (date-driven season-cycle resolver)
 ├── generated/
 │   ├── [db-schema.md](docs/generated/db-schema.md)                   # Database tables, keys, relationships
 │   ├── [experiment-log.md](docs/generated/experiment-log.md)              # History of all model iteration attempts
@@ -48,7 +51,8 @@ docs/
 │   └── [segment-analysis.md](docs/generated/segment-analysis.md)            # Segmented projection accuracy analysis
 └── references/
     ├── environment-variables.md       # .env and .env.local variable reference
-    └── ottoneu-rules.md               # Scoring, roster, salary cap, arbitration rules
+    ├── ottoneu-rules.md               # Scoring, roster, salary cap, arbitration rules
+    └── ottoneu-strategy.md            # Format economics + AI reasoning checklist for roster construction
 ```
 
 ## Worktree Notes
