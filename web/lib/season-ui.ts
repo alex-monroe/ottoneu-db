@@ -23,20 +23,20 @@ export interface PhaseUi {
 export const PHASE_UI: Record<Phase, PhaseUi> = {
   in_season: {
     label: "In-Season",
-    blurb: "NFL games are being played — track live VORP, lineups, and standings.",
-    featuredLinks: ["/", "/lineup"],
+    blurb: "NFL games are being played — track live value, lineups, and standings.",
+    featuredLinks: ["/players", "/lineup"],
   },
   pre_arb: {
     label: "Pre-Arbitration",
     blurb: "Arbitration is upcoming — plan allocations and watch the league's progress.",
-    featuredGroup: "Arbitration",
-    featuredLinks: ["/arbitration", "/arbitration-planner", "/arb-progress"],
+    featuredGroup: "Offseason",
+    featuredLinks: ["/arbitration", "/arb-progress"],
   },
   pre_keeper: {
     label: "Pre-Keeper",
     blurb: "Keep-or-cut decisions ahead — review surplus value and projected salaries.",
     featuredGroup: "Value",
-    featuredLinks: ["/surplus-value", "/projected-salary"],
+    featuredLinks: ["/value", "/projected-salary"],
   },
   pre_draft: {
     label: "Pre-Draft",

@@ -4,11 +4,8 @@ import { verifySession } from "./lib/session";
 
 export const PROTECTED_ROUTES = [
   "/projected-salary",
-  "/vorp",
-  "/surplus-value",
+  "/value",
   "/arbitration",
-  "/arbitration-simulation",
-  "/arbitration-planner",
   "/projections",
   "/projection-accuracy",
   "/vegas-lines",

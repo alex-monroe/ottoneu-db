@@ -1,0 +1,207 @@
+import {
+  fetchHoverExtras,
+  buildHoverDataMap,
+  calculateVorp,
+  POSITIONS,
+  MIN_GAMES,
+  NUM_TEAMS,
+  CAP_PER_TEAM,
+} from "@/lib/analysis";
+import { getStatsSeason } from "@/lib/season";
+import { fetchPlayersEndOfSeason } from "@/lib/data";
+import { getAuthenticatedUser } from "@/lib/auth";
+import VorpClient from "@/app/vorp/VorpClient";
+
+/**
+ * VORP analysis panel. Rendered inside the tabbed /value page; provides its own
+ * data fetching but no page chrome (the parent supplies <main> + heading).
+ */
+export default async function VorpSection() {
+  const [allPlayers, user, statsSeason] = await Promise.all([
+    fetchPlayersEndOfSeason(),
+    getAuthenticatedUser(),
+    getStatsSeason(),
+  ]);
+  const { players, replacementPpg, replacementN } = calculateVorp(allPlayers);
+  const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
+  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap);
+
+  if (players.length === 0) {
+    return (
+      <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+        No VORP data available.
+      </h2>
+    );
+  }
+
+  // Replacement benchmarks (exclude kickers)
+  const positionsNoKickers = POSITIONS.filter(pos => pos !== 'K');
+  const benchmarks = positionsNoKickers.map((pos) => ({
+    position: pos,
+    n: replacementN[pos] ?? 0,
+    ppg: Math.round((replacementPpg[pos] ?? 0) * 100) / 100,
+  }));
+
+  // Top 15 overall for bar chart
+  const top15 = [...players]
+    .sort((a, b) => b.full_season_vorp - a.full_season_vorp)
+    .slice(0, 15)
+    .map((p) => ({
+      name: p.name,
+      position: p.position,
+      full_season_vorp: p.full_season_vorp,
+    }));
+
+  // All players for table
+  const tableData = players.map((p) => ({
+    player_id: p.player_id,
+    ottoneu_id: p.ottoneu_id,
+    name: p.name,
+    position: p.position,
+    nfl_team: p.nfl_team,
+    ppg: p.ppg,
+    total_points: p.total_points,
+    games_played: p.games_played,
+    vorp_per_game: p.vorp_per_game,
+    full_season_vorp: p.full_season_vorp,
+    price: p.price,
+    team_name: p.team_name ?? "FA",
+  }));
+
+  return (
+    <div className="space-y-8">
+      <header>
+        <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+          VORP Analysis ({statsSeason})
+        </h2>
+        <p className="text-slate-500 dark:text-slate-400 mt-2">
+          Value Over Replacement Player — measures positional scarcity.
+          Higher VORP = more valuable above replacement level.
+        </p>
+      </header>
+
+      {/* Methodology */}
+      <section className="bg-slate-50 dark:bg-slate-900 rounded-lg p-5 border border-slate-200 dark:border-slate-800 space-y-4 text-sm text-slate-700 dark:text-slate-300">
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+          How VORP Is Calculated
+        </h3>
+
+        <div>
+          <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">
+            1. Define the replacement level
+          </h4>
+          <p>
+            In a keeper league with {NUM_TEAMS} teams × 20 roster spots, the waiver wire is
+            nearly empty of useful players — managers hoard backups and handcuffs. Instead of
+            using a fixed rank (which would assume the Nth-best player is freely available),
+            This analysis uses a dynamically calculated replacement level based on the number of non-Kicker players rostered on teams. Because there are empty roster spots on teams, there is effectively a &quot;free&quot; or &quot;salary implied&quot; player available.t minimum salary.
+            Kickers are excluded from VORP analysis.
+          </p>
+        </div>
+
+        <div>
+          <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">
+            2. Find replacement PPG
+          </h4>
+          <p>
+            Only players with at least {MIN_GAMES} games played qualify. For each position,
+            we identify all <em>rostered</em> qualified players in the bottom 25th percentile
+            of salaries — these are the players managers collectively decided weren&apos;t
+            worth more than the minimum. The <em>replacement PPG</em> is the median PPG of
+            that group. See the benchmarks table below for how many players were used and
+            each position&apos;s current replacement PPG.
+          </p>
+        </div>
+
+        <div>
+          <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">
+            3. Calculate VORP per game
+          </h4>
+          <p>
+            For each player: <code className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded text-xs">VORP/G = Player PPG - Replacement PPG</code>.
+            A positive VORP/G means the player produces more per game than a freely
+            available replacement. A negative VORP/G means a waiver pickup would
+            outscore them.
+          </p>
+        </div>
+
+        <div>
+          <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">
+            4. Project to a full season
+          </h4>
+          <p>
+            <code className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded text-xs">Full-Season VORP = VORP/G &times; 17</code>.
+            This extrapolates the per-game advantage over a full 17-game NFL season,
+            making it easy to compare players who missed time to those who played
+            every week.
+          </p>
+        </div>
+
+        <div>
+          <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">
+            5. Convert to dollar value (used in Surplus Value)
+          </h4>
+          <p>
+            The total league salary cap is {NUM_TEAMS} teams &times; ${CAP_PER_TEAM} = $
+            {NUM_TEAMS * CAP_PER_TEAM}. We assume ~87.5% of that (${Math.round(NUM_TEAMS * CAP_PER_TEAM * 0.875)}) goes to above-replacement
+            players. Each point of full-season VORP is worth{" "}
+            <code className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded text-xs">
+              ${Math.round(NUM_TEAMS * CAP_PER_TEAM * 0.875)} &divide; total league VORP
+            </code>
+            , giving each player a dollar value. <em>Surplus</em> = dollar value - salary.
+          </p>
+        </div>
+
+        <div className="border-t border-slate-200 dark:border-slate-800 pt-3">
+          <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">
+            Why this matters in superflex
+          </h4>
+          <p>
+            Because each team needs ~2 starting QBs, managers pay significantly more for
+            QBs than in standard formats — which means QBs priced at the salary floor are
+            rarer and worse. This produces a higher QB replacement baseline relative to
+            other positions, but elite QBs still tower above it. The top VORP chart
+            is typically dominated by quarterbacks because it correctly captures the
+            scarcity premium that makes QBs so expensive in superflex auctions.
+          </p>
+        </div>
+      </section>
+
+      {/* Replacement Benchmarks */}
+      <section className="bg-slate-50 dark:bg-slate-900 rounded-lg p-5 border border-slate-200 dark:border-slate-800">
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">
+          Replacement Level Benchmarks
+        </h3>
+        <div className="overflow-x-auto">
+          <table className="text-sm">
+            <thead>
+              <tr className="text-slate-500 dark:text-slate-400">
+                <th className="pr-6 py-1 text-left font-medium">Position</th>
+                <th className="pr-6 py-1 text-left font-medium">
+                  # Players Used
+                </th>
+                <th className="pr-6 py-1 text-left font-medium">
+                  Replacement PPG
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {benchmarks.map((b) => (
+                <tr
+                  key={b.position}
+                  className="text-slate-800 dark:text-slate-200"
+                >
+                  <td className="pr-6 py-1 font-medium">{b.position}</td>
+                  <td className="pr-6 py-1">{b.n}</td>
+                  <td className="pr-6 py-1">{b.ppg.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <VorpClient top15={top15} tableData={tableData} hoverDataMap={hoverDataMap} />
+    </div>
+  );
+}
