@@ -22,6 +22,35 @@ from scripts.feature_projections.promote import promote_model
 
 TARGET_SEASONS = [2024, 2025, 2026]
 
+# How many seasons before the target a player can have been drafted and still
+# get a rookie projection when they have no NFL stats. player_stats only goes
+# back to 2019, so without this guard retired pre-2019 high picks (Andrew Luck,
+# Trent Richardson, ...) get treated as projectable rookies. A window of 2
+# covers current-year rookies plus drafted-last-year holdovers who haven't yet
+# taken an NFL snap. See GH #488.
+ROOKIE_SEASON_WINDOW = 2
+
+
+def recent_drafted_no_stats(
+    drafted_no_stats: set[str],
+    season_drafted_by_player: dict[str, int],
+    target_season: int,
+    window: int = ROOKIE_SEASON_WINDOW,
+) -> set[str]:
+    """Filter drafted-no-stats players to those drafted recently enough.
+
+    Only players with a known draft season within ``window`` seasons of
+    ``target_season`` qualify for a rookie projection. Older draftees without
+    NFL stats are retired players we can't project (GH #488). Players with no
+    recorded draft season are dropped — without it we can't gauge recency.
+    """
+    return {
+        pid
+        for pid in drafted_no_stats
+        if pid in season_drafted_by_player
+        and target_season - season_drafted_by_player[pid] <= window
+    }
+
 
 def get_active_model_name() -> str:
     """Return the name of the model currently flagged is_active=True.
@@ -158,9 +187,11 @@ def upsert_college_projections():
     if players_df.empty:
         return
 
-    drafted_no_stats: set[str] = set()
     pick_by_player: dict[str, int] = {}
-    if 'is_college' in players_df.columns:
+    season_drafted_by_player: dict[str, int] = {}
+    drafted_no_stats_all: set[str] = set()
+    has_is_college = 'is_college' in players_df.columns
+    if has_is_college:
         # Players with real NFL history go through the full feature_projections
         # pipeline. Rows with games_played == 0 don't count — the roster scraper
         # writes a placeholder stats row (0 games) when it first sees a player,
@@ -170,29 +201,60 @@ def upsert_college_projections():
         with_stats = {
             r['player_id'] for r in all_stats if (r.get('games_played') or 0) > 0
         }
-        all_draft = fetch_all_rows(supabase, 'draft_capital', 'player_id, overall_pick')
+        all_draft = fetch_all_rows(
+            supabase, 'draft_capital', 'player_id, overall_pick, season_drafted'
+        )
         drafted = {r['player_id'] for r in all_draft}
         pick_by_player = {
             r['player_id']: int(r['overall_pick'])
             for r in all_draft
             if r.get('overall_pick') is not None
         }
+        season_drafted_by_player = {
+            r['player_id']: int(r['season_drafted'])
+            for r in all_draft
+            if r.get('season_drafted') is not None
+        }
         non_college_ids = set(
             players_df[players_df['is_college'] == False]['player_id_ref'].tolist()  # noqa: E712
         )
-        drafted_no_stats = (drafted & non_college_ids) - with_stats
+        # Drafted-but-no-stats candidates. player_stats only goes back to 2019,
+        # so this set still includes retired pre-2019 draftees; the per-season
+        # recency guard below filters them out (see GH #488).
+        drafted_no_stats_all = (drafted & non_college_ids) - with_stats
 
-    college_players = []
-    if 'is_college' in players_df.columns:
-        rookie_mask = (players_df['is_college'] == True) | (
-            players_df['player_id_ref'].isin(drafted_no_stats)
+    college_ids = set()
+    position_by_player: dict[str, str] = {}
+    if has_is_college:
+        college_ids = set(
+            players_df[players_df['is_college'] == True]['player_id_ref'].tolist()  # noqa: E712
         )
-        rookie_df = players_df[rookie_mask]
-        for _, row in rookie_df.iterrows():
-            college_players.append({'id': row['player_id_ref'], 'position': row['position']})
+        position_by_player = dict(
+            zip(players_df['player_id_ref'], players_df['position'])
+        )
+
+    def college_players_for_season(target_season: int) -> list[dict]:
+        """Rookie/college set for a target season.
+
+        is_college players are always eligible. Drafted-no-stats players are
+        only eligible if drafted within ROOKIE_SEASON_WINDOW seasons of the
+        target — older draftees without stats are retired players we can't
+        project and shouldn't surface in player_projections (GH #488).
+        """
+        if not has_is_college:
+            return []
+        recent_draftees = recent_drafted_no_stats(
+            drafted_no_stats_all, season_drafted_by_player, target_season
+        )
+        eligible = college_ids | recent_draftees
+        return [
+            {'id': pid, 'position': position_by_player.get(pid)}
+            for pid in eligible
+        ]
 
     all_records = []
     for season in TARGET_SEASONS:
+        college_players = college_players_for_season(season)
         historical_seasons = list(range(season - 3, season))
         multi_season_df = fetch_multi_season_stats(historical_seasons)
         avg_rookie_ppg = compute_avg_rookie_ppg(multi_season_df, players_df)
