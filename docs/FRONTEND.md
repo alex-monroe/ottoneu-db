@@ -2,14 +2,16 @@
 
 ## Structure
 
-Next.js App Router. Most pages are server components that fetch live data from Supabase (revalidate every hour) with client wrappers for interactivity. Shared nav structure (see `web/components/Navigation.tsx`) groups routes into top-level pages, Projections, Value, and Arbitration menus.
+Next.js App Router. Most pages are server components that fetch live data from Supabase (revalidate every hour) with client wrappers for interactivity. Shared nav structure (see `web/components/Navigation.tsx`) groups routes into top-level public pages (Home, Players, Rosters), an authed Lineup link, and three projections-gated dropdowns: **Projections**, **Value**, and **Offseason** (arbitration). The current season phase (resolved via `web/lib/season.ts`) drives an amber "featured now" accent on the most relevant nav group/links and the landing-hub featured section.
+
+Several formerly-standalone pages were consolidated into **tabbed routes** using the shared `Tabs` component (URL-synced via `?tab=`). Old URLs redirect to the new tabs (see `web/next.config.ts` `redirects()`): `/vorp`,`/surplus-value`,`/surplus-adjustments` → `/value`; `/arbitration-simulation`,`/arbitration-planner` → `/arbitration`. The old `/vorp`, `/surplus-adjustments`, `/arbitration-simulation`, and `/arbitration-planner` directories retain only their client components (imported by the merged pages' section components); their `page.tsx` files were removed.
 
 ## Routes
 
 | Route | Description |
 |-------|-------------|
-| `/` | Player Efficiency scatter chart (PPG/PPS vs salary) |
-| `/players` | Searchable player directory |
+| `/` | **Landing hub** — phase-aware overview with a "Right now" banner + countdown, a featured-for-this-phase section, and grouped quick-access cards (gated groups show a sign-in card to anonymous visitors) |
+| `/players` | Tabbed: **Directory** (searchable player list) + **Efficiency** (PPG/PPS-vs-salary scatter, formerly `/`) |
 | `/rosters` | League-wide roster view |
 | `/lineup` | Lineup planner: build a starting lineup from any team's current roster and see the projected total (by projected PPG or last-season PPG) |
 | `/arb-progress` | Public arbitration progress: team completion status and allocation details |
@@ -17,12 +19,8 @@ Next.js App Router. Most pages are server components that fetch live data from S
 | `/projected-salary` | Keep vs cut decisions for The Witchcraft |
 | `/projections` | Player projections table (reads `player_projections`) |
 | `/projection-accuracy` | Model backtest accuracy explorer |
-| `/vorp` | VORP analysis with bar chart and filterable table |
-| `/surplus-value` | Surplus value rankings, bargains, overpaid, team summaries |
-| `/surplus-adjustments` | Per-user manual value overrides (auth required) |
-| `/arbitration` | Arbitration targets with per-opponent breakdown |
-| `/arbitration-simulation` | Monte Carlo arbitration simulation |
-| `/arbitration-planner` | Plan and save arbitration budget allocations (auth required) |
+| `/value` | Tabbed: **VORP** (bar chart + table) · **Surplus** (rankings, bargains, overpaid, team summaries) · **Adjustments** (per-user manual value overrides) |
+| `/arbitration` | Tabbed: **Targets** (per-opponent breakdown) · **Simulation** (Monte Carlo) · **Planner** (save budget allocations). The Targets/Simulation value-mode toggle uses `?mode=` and preserves `?tab=` via `ModeToggle`'s `extraParams`. |
 | `/vegas-lines` | Preseason Vegas implied team totals review (AFC/NFC division cards, season selector) — spot-check the data feeding the `implied_team_total_raw` projection feature |
 | `/login` | Email/password login |
 | `/admin` | User management (admin only) |
@@ -32,6 +30,7 @@ Next.js App Router. Most pages are server components that fetch live data from S
 | Component | Purpose |
 |-----------|---------|
 | `Navigation.tsx` | Shared nav bar across all pages |
+| `Tabs` | URL-synced (`?tab=`) tab bar. Accepts `tabs: { id, label, content }[]`; renders all panels and hides inactive ones (so client state in a panel survives switches). Panels can be server-rendered sections passed as `content`. Used by `/players`, `/value`, `/arbitration`. |
 | `DataTable` | Generic sortable table with type safety and highlight rules |
 | `SummaryCard` | Metric display cards with variant styles (default, positive, negative) |
 | `PositionFilter` | Position selection buttons with multi-select support |

@@ -14,9 +14,13 @@ import {
 } from "@/lib/analysis";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
-import ArbPlannerClient from "./ArbPlannerClient";
+import ArbPlannerClient from "@/app/arbitration-planner/ArbPlannerClient";
 
-export default async function ArbitrationPlannerPage() {
+/**
+ * Arbitration budget planner panel. Rendered inside the tabbed /arbitration
+ * page; no page chrome of its own.
+ */
+export default async function PlannerSection() {
   const user = await getAuthenticatedUser();
 
   // Fetch players with pre-arbitration salaries (after auto bump, before arb results)
@@ -72,27 +76,25 @@ export default async function ArbitrationPlannerPage() {
   }));
 
   return (
-    <main className="min-h-screen bg-white dark:bg-black p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <header>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Arbitration Planner
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">
-            Plan your ${ARB_BUDGET_PER_TEAM} arbitration budget across {NUM_TEAMS - 1} opponent
-            teams (${ARB_MIN_PER_TEAM}-${ARB_MAX_PER_TEAM} per team, max ${ARB_MAX_PER_PLAYER_PER_TEAM} per player).
-          </p>
-        </header>
+    <div className="space-y-6">
+      <header>
+        <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+          Arbitration Planner
+        </h2>
+        <p className="text-slate-500 dark:text-slate-400 mt-2">
+          Plan your ${ARB_BUDGET_PER_TEAM} arbitration budget across {NUM_TEAMS - 1} opponent
+          teams (${ARB_MIN_PER_TEAM}-${ARB_MAX_PER_TEAM} per team, max ${ARB_MAX_PER_PLAYER_PER_TEAM} per player).
+        </p>
+      </header>
 
-        <ArbPlannerClient
-          targets={targets}
-          suggestedAllocations={suggestedAllocations}
-          initialPlans={plans ?? []}
-          opponentTeams={opponentTeams}
-          adjustedSurplusEntries={adjustedSurplusEntries}
-          hoverDataMap={hoverDataMap}
-        />
-      </div>
-    </main>
+      <ArbPlannerClient
+        targets={targets}
+        suggestedAllocations={suggestedAllocations}
+        initialPlans={plans ?? []}
+        opponentTeams={opponentTeams}
+        adjustedSurplusEntries={adjustedSurplusEntries}
+        hoverDataMap={hoverDataMap}
+      />
+    </div>
   );
 }

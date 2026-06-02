@@ -25,10 +25,9 @@ function mobileItemClass(isActive: boolean): string {
 }
 
 const PUBLIC_LINKS = [
-  { href: "/", label: "Player Efficiency" },
+  { href: "/", label: "Home" },
   { href: "/players", label: "Players" },
   { href: "/rosters", label: "Rosters" },
-  { href: "/arb-progress", label: "Arb Progress" },
 ];
 
 const SOFA_LEAGUE_LINK = {
@@ -38,7 +37,6 @@ const SOFA_LEAGUE_LINK = {
 };
 
 const AUTHENTICATED_LINKS = [
-  { href: "/arb-planner-public", label: "Arb Planner" },
   { href: "/lineup", label: "Lineup" },
 ];
 
@@ -55,17 +53,18 @@ const PRIVATE_GROUPS = [
   {
     label: "Value",
     links: [
-      { href: "/vorp", label: "VORP" },
-      { href: "/surplus-value", label: "Surplus Value" },
-      { href: "/surplus-adjustments", label: "Adjustments" },
+      { href: "/value", label: "Player Value" },
+      { href: "/value?tab=vorp", label: "VORP" },
+      { href: "/value?tab=surplus", label: "Surplus Value" },
+      { href: "/value?tab=adjustments", label: "Adjustments" },
     ],
   },
   {
-    label: "Arbitration",
+    label: "Offseason",
     links: [
       { href: "/arbitration", label: "Arbitration" },
-      { href: "/arbitration-simulation", label: "Arb Simulation" },
-      { href: "/arbitration-planner", label: "Arb Planner" },
+      { href: "/arb-progress", label: "Arb Progress" },
+      { href: "/arb-planner-public", label: "Arb Planner" },
     ],
   },
 ];

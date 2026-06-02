@@ -10,6 +10,17 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(__dirname, ".."),
   },
+  // Pages were consolidated into tabbed routes; redirect the old URLs so
+  // existing bookmarks and in-app deep links keep working.
+  async redirects() {
+    return [
+      { source: "/vorp", destination: "/value?tab=vorp", permanent: false },
+      { source: "/surplus-value", destination: "/value?tab=surplus", permanent: false },
+      { source: "/surplus-adjustments", destination: "/value?tab=adjustments", permanent: false },
+      { source: "/arbitration-simulation", destination: "/arbitration?tab=simulation", permanent: false },
+      { source: "/arbitration-planner", destination: "/arbitration?tab=planner", permanent: false },
+    ];
+  },
 };
 
 export default nextConfig;
