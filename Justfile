@@ -78,6 +78,10 @@ analyze:
 check-db:
     {{python}} scripts/check_db.py
 
+# Build the roster-question context pack (live league data)  (e.g. just roster-context 2026)
+roster-context season="2026":
+    {{python}} scripts/roster_context_pack.py --season {{season}}
+
 # ──────────────────────────────────────────────
 # Harness checks
 # ──────────────────────────────────────────────
