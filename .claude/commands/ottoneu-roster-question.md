@@ -16,7 +16,7 @@ Follow these steps:
 2. **Pull the live market.** Generate the current roster-economics snapshot so the answer is
    grounded in real salaries and projections, not vibes:
    ```bash
-   just roster-context        # or: venv/bin/python scripts/roster_context_pack.py --season 2026
+   venv/bin/python scripts/roster_context_pack.py        # add --season YYYY to override the resolver
    ```
    For surplus/VORP/dollar-value or keep-cut specifics, the source-of-truth formulas live in
    `web/lib/vorp.ts` and `web/lib/surplus.ts` (`dollar_per_VORP = $4,200 / total_positive_VORP`;

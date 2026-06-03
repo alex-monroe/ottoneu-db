@@ -85,6 +85,23 @@ All web data fetching goes through `web/lib/data.ts` — the single source of tr
 - **Surplus Value** = dollar_value (from VORP) - salary
 - Chart shows salary (Y-axis) vs. selected metric (X-axis), bubble size = total points
 
+## Season Cycle (date-driven resolver)
+
+There is no static "current season" constant. Both sides resolve the active
+Ottoneu season label, projection year, stats year, arbitration year, and current
+phase (`pre_arb` / `pre_keeper` / `pre_draft` / `in_season`) at runtime from the
+`league_calendar` table, which `scripts/scrape_league_calendar.py` refreshes
+weekly from the Ottoneu finances page. Python consumers go through
+`scripts/season.py` (`league_season`, `projection_season`, `stats_season`,
+`arbitration_season`); the web app goes through `web/lib/season.ts`
+(`getSeasonContextNow`, `getStatsSeason`, `getProjectionSeason`,
+`getArbitrationSeason`) and exposes phase-driven UI affordances via
+`web/lib/season-ui.ts` (`PHASE_UI`, `describeNextBoundary`, the `<PhaseBanner>`
+in the root layout, and the amber phase accent on `Navigation`). The
+`SEASON_OVERRIDE` / `PHASE_OVERRIDE` env vars short-circuit the date math for
+testing or off-schedule events. Full design rationale and migration history:
+[docs/exec-plans/season-cycle.md](exec-plans/season-cycle.md).
+
 ## Authentication & Authorization
 
 User accounts with email/password login stored in the `users` table. Passwords are hashed with bcrypt (`bcryptjs`). Sessions use HMAC-SHA256 signed tokens stored in HTTP-only cookies (7-day expiry). The session payload encodes `userId`, `isAdmin`, and `hasProjectionsAccess` — no DB lookup needed for authorization.
