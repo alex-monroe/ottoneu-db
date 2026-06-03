@@ -87,9 +87,13 @@ roster-context season="2026":
 # ──────────────────────────────────────────────
 
 # Run architectural/structural tests only
-check-arch:
+check-arch: check-migrations
     {{pytest}} scripts/tests/test_architecture.py -v
     cd web && npx jest __tests__/lib/architecture.test.ts --no-coverage
+
+# Lint the migrations/ directory naming + sequence (offline; see migrations/README.md)
+check-migrations:
+    {{pytest}} scripts/tests/test_migrations.py -v
 
 # Check documentation freshness
 check-docs:

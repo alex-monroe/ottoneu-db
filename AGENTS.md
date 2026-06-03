@@ -151,7 +151,9 @@ The `WeightedPPGFeature` applies an H2/H1 snap-per-game multiplier to first-year
 
 ### Database migration workflow
 
-After creating a new migration file in `migrations/` and applying it (via `mcp__supabase__apply_migration` or the Supabase dashboard):
+Migration files live in `migrations/` and follow the `NNN_snake_case.sql` convention (zero-padded, contiguous sequence) documented in [migrations/README.md](migrations/README.md). The naming and sequence are linted offline by `just check-migrations` (also run under `just check-arch` and `just test-python`). The remote `supabase_migrations.schema_migrations` table — auditable via the `list_migrations` MCP tool — is the system of record for what has actually been applied.
+
+After creating a new migration file in `migrations/` (numbered as the current highest + 1) and applying it (via `mcp__supabase__apply_migration` or the Supabase dashboard):
 
 1. **Regenerate TypeScript types** using `mcp__supabase__generate_typescript_types` (or `npx supabase gen types typescript`).
 2. **Update `web/types/supabase.ts`** with the regenerated output so the Supabase client recognizes the new table.
