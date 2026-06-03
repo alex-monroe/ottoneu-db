@@ -4,11 +4,13 @@ Universal instructions for AI coding agents working on this repository.
 
 ## Project Overview
 
-Comprehensive database and analytics platform for Ottoneu Fantasy Football League 309 (12-team Superflex Half PPR). Python scripts scrape player data and NFL stats into a Supabase PostgreSQL database. A Next.js frontend provides interactive analytics and visualizations.
+Comprehensive database and analytics platform for Ottoneu Fantasy Football League 309 (12-team Superflex Half PPR). Python scripts scrape player data and NFL stats into a Supabase PostgreSQL database. A Next.js frontend provides interactive analytics and visualizations for player efficiency (PPG/PPS), VORP, surplus value, projected salaries, and arbitration targets.
 
 **Tech stack:** Python 3.9+ · Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Supabase (PostgreSQL) · Playwright · pandas · Recharts
 
 **Package Manager:** Always use `npm` for frontend dependencies and scripts. Do not use `pnpm`, `yarn`, or `bun`.
+
+**Python:** Always use `venv/bin/python` (not `python` or `python3`). The virtualenv is at `venv/`, not `.venv/`.
 
 ## Quick Reference
 
@@ -19,11 +21,16 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 - **Database:** See [docs/generated/db-schema.md](docs/generated/db-schema.md) for table schemas and relationships
 - **Testing:** See [docs/TESTING.md](docs/TESTING.md) for running Python and web tests
 - **Git workflow:** See [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) for branch and PR requirements
-- **Domain rules:** See [docs/references/ottoneu-rules.md](docs/references/ottoneu-rules.md) for scoring, roster, salary cap, and arbitration
-- **Domain strategy:** See [docs/references/ottoneu-strategy.md](docs/references/ottoneu-strategy.md) for format economics (surplus value, raise treadmill, Superflex QB premium, arbitration tax) and the reasoning checklist used by the `/ottoneu-roster-question` skill
+- **Ottoneu rules:** See [docs/references/ottoneu-rules.md](docs/references/ottoneu-rules.md) for scoring, roster, salary cap, and arbitration rules
+- **Ottoneu strategy:** See [docs/references/ottoneu-strategy.md](docs/references/ottoneu-strategy.md) for format economics (surplus value, raise treadmill, Superflex QB premium, arbitration tax) and the reasoning checklist used by the `/ottoneu-roster-question` skill
 - **Environment:** See [docs/references/environment-variables.md](docs/references/environment-variables.md) for `.env` setup
 - **Season cycle:** See [docs/exec-plans/season-cycle.md](docs/exec-plans/season-cycle.md) — the site rolls between Ottoneu seasons from the `league_calendar` table; the current season is resolved at runtime via `scripts/season.py` and `web/lib/season.ts`, not from static config
-- **Market Projections:** See [docs/exec-plans/market-projections.md](docs/exec-plans/market-projections.md) for the market-based projection system implementation plan
+- **Projection Accuracy Plan:** See [docs/exec-plans/projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md) for the 4-phase accuracy improvement roadmap (Issues #271-#285)
+- **Projection Accuracy:** Run `just accuracy-report` (or `python scripts/feature_projections/accuracy_report.py`) to generate a model comparison table. **Required when updating any projection code** — see Projection Model Update Requirements below.
+- **Market Projections:** See [docs/exec-plans/market-projections.md](docs/exec-plans/market-projections.md) for the market-based projection system (DEFERRED)
+- **Experiment Log:** See [docs/generated/experiment-log.md](docs/generated/experiment-log.md) for history of all model iteration attempts.
+- **Build System Spec:** See [docs/superpowers/specs/2026-04-19-build-system-design.md](docs/superpowers/specs/2026-04-19-build-system-design.md) for the transition specification to `just` build runner
+- **Build System Plan:** See [docs/superpowers/plans/2026-04-19-build-system-just.md](docs/superpowers/plans/2026-04-19-build-system-just.md) for the build system migration step-by-step plan
 
 ## Documentation Map
 
@@ -39,7 +46,7 @@ docs/
 ├── TESTING.md                         # Python + web test setup and CI
 ├── exec-plans/
 │   ├── [feature-projections.md](docs/exec-plans/feature-projections.md)         # Feature-based player projection system
-│   ├── [market-projections.md](docs/exec-plans/market-projections.md)          # Market-based projection system implementation plan (DEFERRED)
+│   ├── [market-projections.md](docs/exec-plans/market-projections.md)          # Market-based projection system (DEFERRED)
 │   ├── [projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md)  # 4-phase accuracy improvement roadmap
 │   ├── [qb-usage-share.md](docs/exec-plans/qb-usage-share.md)              # QB Usage Share findings and next steps
 │   └── [season-cycle.md](docs/exec-plans/season-cycle.md)                # Cross-season data & UI scheme (date-driven season-cycle resolver)
@@ -49,11 +56,24 @@ docs/
 │   ├── [player-diagnostics.md](docs/generated/player-diagnostics.md)          # Per-player backtest diagnostics
 │   ├── [projection-accuracy.md](docs/generated/projection-accuracy.md)         # Projection model accuracy report
 │   └── [segment-analysis.md](docs/generated/segment-analysis.md)            # Segmented projection accuracy analysis
-└── references/
-    ├── environment-variables.md       # .env and .env.local variable reference
-    ├── ottoneu-rules.md               # Scoring, roster, salary cap, arbitration rules
-    └── ottoneu-strategy.md            # Format economics + AI reasoning checklist for roster construction
+├── references/
+│   ├── environment-variables.md       # .env and .env.local variable reference
+│   ├── ottoneu-rules.md               # Scoring, roster, salary cap, arbitration rules
+│   └── ottoneu-strategy.md            # Format economics + AI reasoning checklist for roster construction
+└── superpowers/
+    ├── plans/
+    │   └── [2026-04-19-build-system-just.md](docs/superpowers/plans/2026-04-19-build-system-just.md) # Transition from Make to Just plan
+    └── specs/
+        └── [2026-04-19-build-system-design.md](docs/superpowers/specs/2026-04-19-build-system-design.md) # Just build system specification
 ```
+
+## GitHub Repository
+
+When using GitHub MCP tools or `gh` CLI, the repository coordinates are:
+- **Owner:** `alex-monroe`
+- **Repo:** `ottoneu-db` (hyphen, not underscore)
+
+Note: The local directory is `ottoneu_db` (underscore) but the GitHub repo name uses a hyphen.
 
 ## Worktree Notes
 
@@ -84,7 +104,9 @@ Run `just check-arch` to validate these rules locally.
 
 ## Critical Rules
 
-- **Always use `just <recipe>`** instead of invoking Python, pytest, or npm scripts directly. This ensures the correct venv and flags are used, and keeps the agent allowlist minimal. Run `just --list` to see all available recipes.
+- **Always use `just <recipe>`** instead of invoking Python, pytest, or npm scripts directly. This ensures the correct venv and flags are used, and keeps the agent allowlist minimal. Run `just --list` to see available recipes. Common ones: `just typecheck`, `just lint`, `just test-web`, `just test-python`, `just train MODEL`, `just project MODEL`, `just backtest MODEL`, `just promote MODEL`, `just accuracy-report`, `just diagnostics`, `just segment-analysis`, `just backfill-nfl-stats`, `just backfill-draft-capital`, `just backfill-vegas`, `just seed-win-totals`, `just scrape-draft-sharks`. For ad-hoc DB inspection use `just py "<snippet>"`.
+- **Editable install can run stale `scripts/` code.** If a `scripts/*.py` edit doesn't take effect via `venv/bin/python scripts/foo.py` (but works via `python -c`), the editable install is likely pinned to a stale `.claude/worktrees/` path — run `venv/bin/pip install -e .` from the project root. See [docs/TESTING.md](docs/TESTING.md#gotcha-editable-install-can-pin-scripts-to-a-stale-worktree).
+- **New DB tables need a TS type + the config contract is enforced.** After adding a table (e.g. via `mcp__supabase__apply_migration` or Supabase dashboard), hand-add its `Row`/`Insert`/`Update` block to `web/types/supabase.ts` or `npx tsc` fails — hand-add rather than fully regenerating to avoid churning the `fp_*` tables. Separately, every key in `config.json` must be consumed by **both** `scripts/config.py` and `web/lib/config.ts` (and vice versa); this bidirectional contract is enforced by `scripts/tests/test_architecture.py`, so add/remove keys in all three places.
 - **Do not touch `fp_*` tables.** The Supabase project is shared with the `fantasy-pulse` app. Tables whose names start with `fp_` (currently `fp_notes`, `fp_user_integrations`, `fp_leagues`, `fp_teams`, but the prefix is the rule, not the list) are owned by that other codebase. Do not read from, write to, alter, drop, or migrate them from this repo. They will appear in `list_tables` output and in regenerated Supabase TS types — ignore them. See [docs/generated/db-schema.md](docs/generated/db-schema.md#shared-database--hands-off-fp_).
 - **Update documentation:** Always try to update the agent documentation after completing a task. Update existing documents or add new documents and sections as needed to reflect architectural or contextual changes.
 - **Never commit directly to `main`.** All changes go through pull requests.

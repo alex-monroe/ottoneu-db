@@ -48,7 +48,9 @@ def check_agents_md_links() -> list[str]:
         # Skip anchor links
         if target.startswith("#"):
             continue
-        target_path = PROJECT_ROOT / target
+        # Strip anchor from target path
+        target_clean = target.split("#")[0]
+        target_path = PROJECT_ROOT / target_clean
         if not target_path.exists():
             issues.append(
                 f"AGENTS.md references '{target}' but the file does not exist.\n"
@@ -70,7 +72,9 @@ def check_claude_md_links() -> list[str]:
         target = match.group(1)
         if target.startswith("http") or target.startswith("#"):
             continue
-        target_path = PROJECT_ROOT / target
+        # Strip anchor from target path
+        target_clean = target.split("#")[0]
+        target_path = PROJECT_ROOT / target_clean
         if not target_path.exists():
             issues.append(
                 f"CLAUDE.md references '{target}' but the file does not exist.\n"
@@ -91,8 +95,8 @@ def check_code_organization_paths() -> list[str]:
     path_pattern = re.compile(r"`([a-zA-Z_./][a-zA-Z0-9_./-]+\.\w+)`")
     for match in path_pattern.finditer(content):
         file_path = match.group(1)
-        # Skip patterns with wildcards
-        if "*" in file_path:
+        # Skip patterns with wildcards or names without directory separators (like sys.path or bare filenames)
+        if "*" in file_path or "/" not in file_path:
             continue
         full_path = PROJECT_ROOT / file_path
         if not full_path.exists():
