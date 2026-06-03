@@ -9,6 +9,10 @@
 | Shared config | `config.json` | **Single source of truth** for every constant shared across Python and TypeScript |
 | TS types | `web/lib/types.ts` | All shared TypeScript interfaces (`CorePlayer → RosteredPlayer → StatsPlayer → Player`) |
 | Data layer | `web/lib/data.ts` | **Unified data access** — all Supabase fetching goes through here |
+| Season resolver (Python) | `scripts/season.py` | `league_season`, `projection_season`, `stats_season`, `arbitration_season` — reads `league_calendar`, replaces the removed `SEASON` constant |
+| Season resolver (TS) | `web/lib/season.ts` | `getSeasonContextNow`, `getStatsSeason`, `getProjectionSeason`, `getArbitrationSeason`, `getSalarySnapshotDates` — server-side, React-cached per request |
+| Phase UI helpers | `web/lib/season-ui.ts` | Pure client-safe `PHASE_UI` map + `describeNextBoundary` (countdown). Powers `<PhaseBanner>` + the amber phase accent on `Navigation` |
+| Lineup logic | `web/lib/lineup.ts` | Superflex starting-lineup planner: slot definitions and greedy fill from a roster |
 | Scoring | `web/lib/scoring.ts` | Ottoneu Half PPR scoring formula (`calculateFantasyPoints`) |
 | Analysis math | `web/lib/analysis.ts` | Projection-enriched data + backtest fetching (builds on `data.ts`) |
 | Arb logic | `web/lib/arb-logic.ts` | Arbitration simulation logic |
@@ -54,7 +58,8 @@ manipulation is needed.** Import everything via the canonical `scripts.`
 namespace:
 
 ```python
-from scripts.config import get_supabase_client, SEASON
+from scripts.config import get_supabase_client, LEAGUE_ID
+from scripts.season import league_season  # resolver — replaces the removed SEASON constant
 from scripts.analysis_utils import fetch_multi_season_stats
 from scripts.feature_projections.runner import run_model
 ```

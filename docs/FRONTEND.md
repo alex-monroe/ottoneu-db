@@ -30,7 +30,7 @@ Several formerly-standalone pages were consolidated into **tabbed routes** using
 | Component | Purpose |
 |-----------|---------|
 | `Navigation.tsx` | Shared nav bar across all pages |
-| `Tabs` | URL-synced (`?tab=`) tab bar. Accepts `tabs: { id, label, content }[]`; renders all panels and hides inactive ones (so client state in a panel survives switches). Panels can be server-rendered sections passed as `content`. Used by `/players`, `/value`, `/arbitration`. |
+| `Tabs` | URL-synced (`?tab=`) tab bar. Accepts `tabs: { id, label, content }[]`; **only the active panel is rendered** — switching tabs unmounts the previous panel, so panels that need state to survive a switch must lift it into the URL (e.g. `ModeToggle` writes `?mode=`). The active tab is resolved server-side from `searchParams.tab` and passed in as `activeId`, so panels can be server components that fetch their own data. The lightweight client `TabBar` only receives serializable `{ id, label }` and updates the URL on click. Used by `/players`, `/value`, `/arbitration`. |
 | `DataTable` | Generic sortable table with type safety and highlight rules |
 | `SummaryCard` | Metric display cards with variant styles (default, positive, negative) |
 | `PositionFilter` | Position selection buttons with multi-select support |

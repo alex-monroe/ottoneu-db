@@ -103,7 +103,8 @@ just test-web-file <path>  # Run a single web test file (e.g. just test-web-file
 just scrape             # Full scrape pipeline
 just analyze            # Run all analysis scripts
 just check-db           # Verify database contents
-just check-arch         # Architectural/structural tests only
+just check-arch         # Architectural/structural tests only (includes check-migrations)
+just check-migrations   # Lint migrations/ file names + sequence (offline; see migrations/README.md)
 just check-docs         # Documentation freshness check
 just ci                 # Full CI suite (lint + typecheck + tests + doc checks)
 
@@ -125,6 +126,9 @@ just backfill-vegas [--since YYYY] [--dry-run]         # Backfill team_vegas_lin
 just seed-win-totals --season YYYY                     # Upsert preseason sportsbook win totals (implied_total left NULL until schedule drops)
 just scrape-draft-sharks [--season YYYY] [--positions qb rb wr te] [--dry-run]  # Scrape Draft Sharks Half-PPR Superflex auction values (stored ×2 for the $400 cap)
 just scrape-calendar [--dry-run]                      # Scrape the Ottoneu finances Calendar into league_calendar (drives the season-cycle resolver)
+
+# Roster-question context pack (used by the /ottoneu-roster-question skill)
+just roster-context [season]                        # Build a live roster-economics snapshot (defaults to the resolver's season; e.g. just roster-context 2026)
 
 # Ad-hoc DB queries
 just py "<python-snippet>"                          # Run a one-off Python snippet against the project venv (read-only diagnostics)
