@@ -43,6 +43,7 @@ cd web && ./node_modules/.bin/tsc --noEmit
 - **`scripts/tests/test_learned_model_validation.py`** — Validates trained model JSON artifacts: structure, dimensions, coefficient reasonableness, overfitting detection
 - **`scripts/tests/test_cross_model_consistency.py`** — Cross-model checks: feature registry coverage, baseline existence, learned model files, no duplicates, known equivalences
 - **`scripts/tests/test_architecture.py`** — Structural/architectural enforcement tests
+- **`scripts/tests/test_migrations.py`** — Enforces `migrations/` naming (`NNN_snake_case.sql`) and contiguous, duplicate-free sequence (see [migrations/README.md](../migrations/README.md))
 - **`scripts/tests/test_projection_methods.py`** — Legacy projection method tests
 
 ## Coupled Test Data
@@ -60,7 +61,8 @@ Harness engineering tests that enforce architectural rules mechanically. Each te
 - **TypeScript:** `web/__tests__/lib/architecture.test.ts` — layer boundaries, type locations, config sync
 
 ```bash
-just check-arch    # Run architectural tests only
+just check-arch         # Run architectural tests only (includes check-migrations)
+just check-migrations   # Lint migrations/ naming + sequence only (offline)
 ```
 
 ## Documentation Freshness Check
