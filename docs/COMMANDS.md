@@ -93,6 +93,7 @@ Install `just` once with `brew install just`, then run any recipe from the repo 
 just                    # List all recipes
 just install            # Install all dependencies (Python + Node)
 just dev                # Start Next.js dev server on localhost:3000
+just dev-stop           # Kill the dev server + stray Turbopack/postcss workers
 just build              # Production build
 just lint               # ESLint
 just typecheck          # TypeScript type check
@@ -101,11 +102,13 @@ just test-python        # Python tests with coverage
 just test-web           # Jest tests with coverage
 just test-web-file <path>  # Run a single web test file (e.g. just test-web-file __tests__/lib/session.test.ts)
 just scrape             # Full scrape pipeline
-just analyze            # Run all analysis scripts
+just analyze            # Update player projections (active model + promote + rookie fallback)
 just check-db           # Verify database contents
-just check-arch         # Architectural/structural tests only
+just check-arch         # Architectural/structural tests (includes check-migrations)
+just check-migrations   # Lint migrations/ naming + sequence (offline; see migrations/README.md)
 just check-docs         # Documentation freshness check
 just ci                 # Full CI suite (lint + typecheck + tests + doc checks)
+just roster-context [season]  # Build the roster-question context pack (live league data); season defaults to 2026
 
 # Projection CLI
 just list-models                                    # List available models

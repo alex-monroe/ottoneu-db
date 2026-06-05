@@ -14,8 +14,8 @@
 | Arb logic | `web/lib/arb-logic.ts` | Arbitration simulation logic |
 | API input schemas | `web/lib/schemas/` | Zod schemas for API route bodies (admin/users, arbitration-plans, surplus-adjustments) |
 | Request validation | `web/lib/validate.ts` | `parseJson(req, schema)` helper — returns typed data or a 400 response with Zod issues |
-| DB schema | `schema.sql` | Canonical schema definition |
-| Migrations | `migrations/` | Numbered SQL migration files |
+| DB schema | `schema.sql` | Periodic Supabase MCP dump — may lag the migrations directory; see [db-schema.md](generated/db-schema.md#schema-files) |
+| Migrations | `migrations/` | Numbered `NNN_snake_case.sql` files (source of intent); linted by `just check-migrations`. See [migrations/README.md](../migrations/README.md) |
 | Components | `web/components/` | Reusable React components |
 | Pages | `web/app/` | Next.js App Router pages |
 | Feature projections | `scripts/feature_projections/` | Feature-based projection system (features, combiner, runner, backtest, CLI) |
