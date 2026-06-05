@@ -81,9 +81,10 @@ Advanced receiving (added in migration 022, populated for 2018+ via nflverse `st
 
 ## Schema Files
 
-- **Canonical schema:** `schema.sql` (auto-generated via Supabase MCP)
-- **Migrations:** `migrations/` (numbered SQL migration files)
-- **Job queue:** `migrations/002_add_scraper_jobs.sql` defines the `scraper_jobs` table for the persistent job queue
+- **Migrations (source of intent):** `migrations/` — numbered `NNN_snake_case.sql` files. See [migrations/README.md](../../migrations/README.md) for naming and the apply-via-MCP workflow. Linted offline by `just check-migrations`.
+- **Remote system of record:** the `supabase_migrations.schema_migrations` table — audit via the `list_migrations` MCP tool.
+- **`schema.sql`:** a periodic Supabase MCP dump. It can lag the migrations directory (e.g. tables added via `apply_migration` or the dashboard without a numbered file, or migrations added after the last dump). Treat it as a convenience reference, not the source of truth.
+- **Job queue:** `migrations/002_add_scraper_jobs.sql` defines the `scraper_jobs` table for the persistent job queue.
 
 ## Row-Level Security
 
