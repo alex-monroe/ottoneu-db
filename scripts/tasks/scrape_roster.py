@@ -14,6 +14,28 @@ from scripts.tasks import SCRAPE_PLAYER_CARD, TaskResult
 
 OTTONEU_SEARCH_URL_TEMPLATE = "https://ottoneu.fangraphs.com/football/{league_id}/search"
 
+
+def choose_prospect_to_adopt(candidates: list[dict]) -> "str | None":
+    """Pick a prospect/backfill player row to adopt a real roster identity into.
+
+    When a college prospect is drafted and rostered, Ottoneu assigns a new real
+    ``ottoneu_id``. Rather than insert a duplicate ``players`` row, the scraper
+    adopts the existing prospect record (updating its id). ``candidates`` are
+    the same ``(name, position)`` rows that do *not* already own the incoming
+    real id; each is a dict with ``id``, ``ottoneu_id``, and ``has_draft_capital``.
+
+    A prospect is a synthetic backfill row (``ottoneu_id < 0``) **or** one
+    carrying draft capital (the positive placeholder id the draft backfill /
+    draft-sharks scraper minted). Matching on position guards against unrelated
+    same-name players. Returns the row id to adopt, or None to insert fresh.
+    Generalizes the old negative-id-only check that missed drafted prospects
+    with positive placeholder ids (GH #483 stranded-projection bug).
+    """
+    for c in candidates:
+        if (c.get("ottoneu_id") or 0) < 0 or c.get("has_draft_capital"):
+            return c["id"]
+    return None
+
 # Bolt Optimization: Pre-compile regexes used in hot loops
 ID_END_REGEX = re.compile(r"(\d+)$")
 ID_PARAM_REGEX = re.compile(r"id=(\d+)")
@@ -252,24 +274,40 @@ async def _process_row(row, page, context, supabase, nfl_stats,
         except (ValueError, AttributeError):
             total_points = 0.0
 
-    # Upsert player — first check for a backfill record (negative synthetic
-    # ottoneu_id) with the same name that should be merged rather than duplicated
+    # Upsert player — but first reconcile the college-prospect → drafted-NFL
+    # transition. A prospect is backfilled with a placeholder ottoneu_id (and
+    # often draft capital); once drafted Ottoneu assigns a new real id. Adopt
+    # the prospect row instead of inserting a duplicate. Skip this when a row
+    # already owns the real id — the normal ottoneu_id upsert handles that.
     is_college = level == "college" or (nfl_team not in NFL_TEAM_CODES and nfl_team != "Unknown")
 
-    existing = supabase.table("players").select("id, ottoneu_id").eq(
-        "name", name
-    ).lt("ottoneu_id", 0).maybe_single().execute()
-    existing_backfill = existing.data if hasattr(existing, "data") else None
+    adopt_id = None
+    real_owner = (
+        supabase.table("players").select("id").eq("ottoneu_id", ottoneu_id)
+        .limit(1).execute().data
+    )
+    if not real_owner:
+        candidates = (
+            supabase.table("players").select("id, ottoneu_id")
+            .eq("name", name).eq("position", position)
+            .neq("ottoneu_id", ottoneu_id).execute().data or []
+        )
+        for c in candidates:
+            c["has_draft_capital"] = bool(
+                supabase.table("draft_capital").select("id")
+                .eq("player_id", c["id"]).limit(1).execute().data
+            )
+        adopt_id = choose_prospect_to_adopt(candidates)
 
-    if existing_backfill:
-        # Update the backfill record's ottoneu_id to the real one
+    if adopt_id:
+        # Adopt the prospect record: point it at the real ottoneu_id.
         supabase.table("players").update({
             "ottoneu_id": ottoneu_id,
             "position": position,
             "nfl_team": nfl_team,
             "is_college": is_college,
-        }).eq("id", existing_backfill["id"]).execute()
-        player_uuid = existing_backfill["id"]
+        }).eq("id", adopt_id).execute()
+        player_uuid = adopt_id
     else:
         player_data = {
             "ottoneu_id": ottoneu_id,
