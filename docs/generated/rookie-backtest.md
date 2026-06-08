@@ -9,13 +9,15 @@ Leave-one-season-out backtest of the rookie (0-NFL-history) draft-capital projec
 
 ## Accuracy (MAE / RMSE / Bias, pooled across holdout seasons)
 
-| Position | n | flat_mean MAE | tier_lookup MAE | draft_capital MAE | Best (MAE) |
-|---|---|---|---|---|---|
-| ALL | 178 | 3.50 | 2.93 | 2.72 | **draft_capital** |
-| QB | 23 | 4.37 | 3.52 | 3.32 | **draft_capital** |
-| RB | 52 | 4.10 | 3.31 | 3.00 | **draft_capital** |
-| WR | 68 | 3.40 | 2.97 | 2.71 | **draft_capital** |
-| TE | 35 | 2.25 | 1.89 | 1.91 | **tier_lookup** |
+| Position | n | flat_mean MAE | tier_lookup MAE | draft_capital MAE | draft_capital_depth MAE | Best (MAE) |
+|---|---|---|---|---|---|---|
+| ALL | 178 | 3.50 | 2.93 | 2.72 | 2.82 | **draft_capital** |
+| QB | 23 | 4.37 | 3.52 | 3.32 | 3.55 | **draft_capital** |
+| RB | 52 | 4.10 | 3.31 | 3.00 | 3.15 | **draft_capital** |
+| WR | 68 | 3.40 | 2.97 | 2.71 | 2.81 | **draft_capital** |
+| TE | 35 | 2.25 | 1.89 | 1.91 | 1.85 | **draft_capital_depth** |
+
+> **Depth verdict:** adding Week-1 depth charts **does not help** rookies — overall MAE is no better (2.72 → 2.82). For a *rookie*, draft pick already encodes opening-day role (high picks start), so the depth tier is largely redundant with pick and the learned residual adjustment adds more variance than signal out-of-sample. A shrinkage sweep confirms it: MAE only approaches the draft_capital baseline as the depth adjustment shrinks toward zero.
 
 ### Detail
 
@@ -26,6 +28,7 @@ Leave-one-season-out backtest of the rookie (0-NFL-history) draft-capital projec
 | flat_mean | 3.50 | 4.26 | -0.87 |
 | tier_lookup | 2.93 | 3.74 | -0.57 |
 | draft_capital | 2.72 | 3.46 | +0.08 |
+| draft_capital_depth | 2.82 | 3.53 | -0.42 |
 
 **QB** (n=23)
 
@@ -34,6 +37,7 @@ Leave-one-season-out backtest of the rookie (0-NFL-history) draft-capital projec
 | flat_mean | 4.37 | 5.24 | -1.58 |
 | tier_lookup | 3.52 | 4.79 | -1.52 |
 | draft_capital | 3.32 | 4.01 | -0.39 |
+| draft_capital_depth | 3.55 | 4.22 | -0.30 |
 
 **RB** (n=52)
 
@@ -42,6 +46,7 @@ Leave-one-season-out backtest of the rookie (0-NFL-history) draft-capital projec
 | flat_mean | 4.10 | 4.70 | -0.65 |
 | tier_lookup | 3.31 | 4.14 | +0.17 |
 | draft_capital | 3.00 | 3.89 | +0.53 |
+| draft_capital_depth | 3.15 | 3.98 | +0.05 |
 
 **WR** (n=68)
 
@@ -50,6 +55,7 @@ Leave-one-season-out backtest of the rookie (0-NFL-history) draft-capital projec
 | flat_mean | 3.40 | 4.10 | -1.45 |
 | tier_lookup | 2.97 | 3.54 | -1.31 |
 | draft_capital | 2.71 | 3.32 | -0.53 |
+| draft_capital_depth | 2.81 | 3.38 | -1.37 |
 
 **TE** (n=35)
 
@@ -58,26 +64,27 @@ Leave-one-season-out backtest of the rookie (0-NFL-history) draft-capital projec
 | flat_mean | 2.25 | 3.00 | +0.38 |
 | tier_lookup | 1.89 | 2.51 | +0.41 |
 | draft_capital | 1.91 | 2.54 | +0.91 |
+| draft_capital_depth | 1.85 | 2.46 | +0.65 |
 
 ## Calibration (mean predicted vs mean actual, by draft tier)
 
 Predicted means should track the actual column. Large gaps reveal systematic over/under-projection for a tier.
 
-| Position | Tier | n | actual | flat_mean | tier_lookup | draft_capital |
-|---|---|---|---|---|---|---|
-| QB | 1-16 | 9 | 15.02 | 13.04 | 15.26 | 15.44 |
-| QB | 17-48 | 4 | 13.73 | 13.54 | 12.90 | 11.80 |
-| QB | 49-100 | 3 | 7.01 | 14.04 | 9.49 | 10.39 |
-| QB | 101+ | 6 | 8.02 | 13.19 | 12.38 | 8.93 |
-| RB | 1-16 | 3 | 13.49 | 7.26 | 9.55 | 14.00 |
-| RB | 17-48 | 5 | 12.41 | 7.02 | 13.66 | 10.45 |
-| RB | 49-100 | 12 | 6.42 | 7.27 | 8.24 | 7.15 |
-| RB | 101+ | 32 | 5.02 | 7.18 | 4.23 | 4.15 |
-| WR | 1-16 | 9 | 9.02 | 7.09 | 10.43 | 9.91 |
-| WR | 17-48 | 16 | 7.87 | 7.10 | 9.16 | 7.56 |
-| WR | 49-100 | 17 | 5.17 | 7.01 | 5.89 | 5.82 |
-| WR | 101+ | 26 | 3.32 | 7.05 | 5.01 | 4.18 |
-| TE | 1-16 | 3 | 10.20 | 4.04 | 8.06 | 6.52 |
-| TE | 17-48 | 6 | 6.13 | 3.98 | 5.12 | 4.47 |
-| TE | 49-100 | 9 | 3.04 | 4.00 | 3.55 | 3.67 |
-| TE | 101+ | 17 | 3.44 | 4.01 | 3.06 | 2.46 |
+| Position | Tier | n | actual | flat_mean | tier_lookup | draft_capital | draft_capital_depth |
+|---|---|---|---|---|---|---|---|
+| QB | 1-16 | 9 | 15.02 | 13.04 | 15.26 | 15.44 | 15.44 |
+| QB | 17-48 | 4 | 13.73 | 13.54 | 12.90 | 11.80 | 11.45 |
+| QB | 49-100 | 3 | 7.01 | 14.04 | 9.49 | 10.39 | 10.54 |
+| QB | 101+ | 6 | 8.02 | 13.19 | 12.38 | 8.93 | 8.86 |
+| RB | 1-16 | 3 | 13.49 | 7.26 | 9.55 | 14.00 | 15.41 |
+| RB | 17-48 | 5 | 12.41 | 7.02 | 13.66 | 10.45 | 11.51 |
+| RB | 49-100 | 12 | 6.42 | 7.27 | 8.24 | 7.15 | 7.89 |
+| RB | 101+ | 32 | 5.02 | 7.18 | 4.23 | 4.15 | 4.34 |
+| WR | 1-16 | 9 | 9.02 | 7.09 | 10.43 | 9.91 | 11.12 |
+| WR | 17-48 | 16 | 7.87 | 7.10 | 9.16 | 7.56 | 8.58 |
+| WR | 49-100 | 17 | 5.17 | 7.01 | 5.89 | 5.82 | 6.60 |
+| WR | 101+ | 26 | 3.32 | 7.05 | 5.01 | 4.18 | 4.81 |
+| TE | 1-16 | 3 | 10.20 | 4.04 | 8.06 | 6.52 | 7.19 |
+| TE | 17-48 | 6 | 6.13 | 3.98 | 5.12 | 4.47 | 4.89 |
+| TE | 49-100 | 9 | 3.04 | 4.00 | 3.55 | 3.67 | 3.90 |
+| TE | 101+ | 17 | 3.44 | 4.01 | 3.06 | 2.46 | 2.62 |

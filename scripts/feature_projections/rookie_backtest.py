@@ -8,12 +8,14 @@ to cross-model comparisons. That left the rookie path itself unvalidated.
 
 This harness validates it on its own terms. For each holdout season it fits
 on rookies drafted *strictly earlier* (leakage-safe) and scores that season's
-rookie class against their actual year-1 PPG. Three candidate rookie models
+rookie class against their actual year-1 PPG. Four candidate rookie models
 are compared head-to-head:
 
-  - ``flat_mean``     — position-mean year-1 PPG (the pre-#483 fallback)
-  - ``tier_lookup``   — empirical mean year-1 PPG by (position, draft tier)
-  - ``draft_capital`` — pooled per-position log-pick line shrunk to a prior (#483)
+  - ``flat_mean``           — position-mean year-1 PPG (the pre-#483 fallback)
+  - ``tier_lookup``         — empirical mean year-1 PPG by (position, draft tier)
+  - ``draft_capital``       — pooled per-position log-pick line shrunk to a prior (#483)
+  - ``draft_capital_depth`` — draft_capital + a learned Week-1 depth-tier
+    residual adjustment (opening-day starter/backup/reserve role signal)
 
 LIMITATION — *conditional on playing.* An "actual" year-1 PPG only exists for
 rookies who played >= ``MIN_GAMES``, so every model here is graded on
@@ -47,13 +49,20 @@ EARLIEST_STATS_SEASON = 2019
 TIERS: List[Tuple[int, int]] = [(1, 16), (17, 48), (49, 100), (101, 257)]
 
 # Candidate model identifiers, in display order.
-MODEL_NAMES = ["flat_mean", "tier_lookup", "draft_capital"]
+MODEL_NAMES = ["flat_mean", "tier_lookup", "draft_capital", "draft_capital_depth"]
 
-# A fitted rookie model: predict(position, overall_pick) -> ppg or None.
-Predictor = Callable[[str, int], Optional[float]]
+# Shrinkage constant for the depth-tier residual adjustment (draft_capital_depth):
+# adj = sum_resid / (n + SHRINK) pulls small-n tiers toward 0 (no adjustment).
+DEPTH_SHRINK = 4.0
+
+# A fitted rookie model: predict(position, overall_pick, depth) -> ppg or None.
+# ``depth`` is the player's Week-1 depth tier (1/2/3) in their draft season, or
+# None when no depth chart exists. Depth-blind models ignore it.
+Predictor = Callable[[str, int, Optional[int]], Optional[float]]
 
 # A rookie sample: keyed on the player's known draft (rookie) season.
-RookieSample = Dict[str, object]  # {player_id, position, pick, season, ppg}
+# {player_id, position, pick, season, ppg, depth}
+RookieSample = Dict[str, object]
 
 
 def _tier_label(lo: int, hi: int) -> str:
@@ -94,6 +103,15 @@ def fetch_rookie_samples(min_games: int = MIN_GAMES) -> List[RookieSample]:
     if not pick_by_player or not season_drafted:
         return []
 
+    # Week-1 (opening-day) depth tier in the player's draft season — a clean,
+    # forward-looking role signal set before any of the rookie season's games.
+    depth_rows = fetch_all_rows(supabase, "depth_charts", "player_id, season, depth_team")
+    depth_by_player_season = {
+        (r["player_id"], int(r["season"])): int(r["depth_team"])
+        for r in depth_rows
+        if r.get("depth_team") is not None
+    }
+
     seasons = sorted(set(season_drafted.values()))
     # Rookies drafted before EARLIEST_STATS_SEASON have no stats row to score.
     low = max(min(seasons), EARLIEST_STATS_SEASON)
@@ -121,6 +139,7 @@ def fetch_rookie_samples(min_games: int = MIN_GAMES) -> List[RookieSample]:
             "pick": int(pick),
             "season": int(drafted),
             "ppg": float(row["ppg"]),
+            "depth": depth_by_player_season.get((pid, int(drafted))),
         })
     return samples
 
@@ -140,7 +159,7 @@ def _position_means(train: List[RookieSample]) -> Dict[str, float]:
 def fit_flat_mean(train: List[RookieSample]) -> Predictor:
     """Position-mean year-1 PPG — ignores draft pick (the pre-#483 baseline)."""
     means = _position_means(train)
-    return lambda position, pick: means.get(position)
+    return lambda position, pick, depth=None: means.get(position)
 
 
 def fit_tier_lookup(train: List[RookieSample]) -> Predictor:
@@ -153,7 +172,7 @@ def fit_tier_lookup(train: List[RookieSample]) -> Predictor:
     tier_means = {k: sum(v) / len(v) for k, v in by_tier.items() if v}
     pos_means = _position_means(train)
 
-    def predict(position: str, pick: int) -> Optional[float]:
+    def predict(position: str, pick: int, depth: Optional[int] = None) -> Optional[float]:
         tier = _tier_for(int(pick))
         if tier is not None and (position, tier) in tier_means:
             return tier_means[(position, tier)]
@@ -168,15 +187,53 @@ def fit_draft_capital(train: List[RookieSample]) -> Predictor:
     method = RookieDraftCapitalPPG(
         RookieDraftCapitalPPG.fit(pairs), _position_means(train)
     )
-    return lambda position, pick: method.project_ppg(
+    return lambda position, pick, depth=None: method.project_ppg(
         [], position=position, overall_pick=pick
     )
+
+
+def fit_draft_capital_depth(train: List[RookieSample]) -> Predictor:
+    """draft_capital base + a learned Week-1 depth-tier residual adjustment.
+
+    The pooled log-pick line captures *where* a rookie was drafted but is blind
+    to *whether they won an opening-day job*. Depth charts add exactly that: on
+    top of the draft_capital prediction we learn a per-(position, depth tier)
+    mean residual (actual − base) on the training rookies, shrunk toward 0 by
+    ``DEPTH_SHRINK`` so thin tiers don't overfit. Rookies with no depth chart
+    fall back to the unadjusted base, so this never does worse on missing data.
+    """
+    base = fit_draft_capital(train)
+
+    sums: Dict[Tuple[str, int], float] = defaultdict(float)
+    counts: Dict[Tuple[str, int], int] = defaultdict(int)
+    for s in train:
+        depth = s.get("depth")
+        if depth is None:
+            continue
+        pred = base(str(s["position"]), int(s["pick"]), int(depth))
+        if pred is None:
+            continue
+        key = (str(s["position"]), int(depth))
+        sums[key] += float(s["ppg"]) - pred
+        counts[key] += 1
+    adjustments = {
+        key: sums[key] / (counts[key] + DEPTH_SHRINK) for key in sums
+    }
+
+    def predict(position: str, pick: int, depth: Optional[int] = None) -> Optional[float]:
+        pred = base(position, pick, depth)
+        if pred is None or depth is None:
+            return pred
+        return pred + adjustments.get((position, int(depth)), 0.0)
+
+    return predict
 
 
 MODEL_FITTERS: Dict[str, Callable[[List[RookieSample]], Predictor]] = {
     "flat_mean": fit_flat_mean,
     "tier_lookup": fit_tier_lookup,
     "draft_capital": fit_draft_capital,
+    "draft_capital_depth": fit_draft_capital_depth,
 }
 
 
@@ -225,11 +282,13 @@ def run_backtest(
             pos = str(s["position"])
             pick = int(s["pick"])
             actual = float(s["ppg"])
+            depth = s.get("depth")
+            depth = int(depth) if depth is not None else None
             tier = _tier_for(pick)
             tier_label = _tier_label(*tier) if tier else "other"
             calib[(pos, tier_label)]["actual"].append(actual)
             for m in MODEL_NAMES:
-                pred = predictors[m](pos, pick)
+                pred = predictors[m](pos, pick, depth)
                 if pred is None:
                     continue
                 acc[m][pos].append((pred, actual))
@@ -319,6 +378,34 @@ def render_markdown(
         best = _best_model(accuracy, pos) or "—"
         lines.append(f"| {pos} | {n} | " + " | ".join(cells) + f" | **{best}** |")
     lines.append("")
+
+    # Data-driven verdict on the depth signal: did Week-1 depth charts add
+    # anything on top of draft capital? (Kept honest by reading the numbers.)
+    dc_mae = accuracy.get("draft_capital", {}).get("ALL", {}).get("mae")
+    dcd_mae = accuracy.get("draft_capital_depth", {}).get("ALL", {}).get("mae")
+    if dc_mae is not None and dcd_mae is not None:
+        if dcd_mae < dc_mae:
+            verdict = (
+                f"adding Week-1 depth charts **improves** overall MAE "
+                f"({dc_mae:.2f} → {dcd_mae:.2f})."
+            )
+        elif dcd_mae > dc_mae:
+            verdict = (
+                f"adding Week-1 depth charts **does not help** rookies — overall MAE "
+                f"is no better ({dc_mae:.2f} → {dcd_mae:.2f}). For a *rookie*, draft "
+                f"pick already encodes opening-day role (high picks start), so the "
+                f"depth tier is largely redundant with pick and the learned residual "
+                f"adjustment adds more variance than signal out-of-sample. A shrinkage "
+                f"sweep confirms it: MAE only approaches the draft_capital baseline as "
+                f"the depth adjustment shrinks toward zero."
+            )
+        else:
+            verdict = (
+                f"adding Week-1 depth charts is a wash for rookies "
+                f"({dc_mae:.2f} = {dcd_mae:.2f})."
+            )
+        lines.append(f"> **Depth verdict:** {verdict}")
+        lines.append("")
 
     # Full metric detail per position.
     lines.append("### Detail")

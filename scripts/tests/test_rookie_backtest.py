@@ -14,13 +14,14 @@ from scripts.feature_projections.rookie_backtest import (
     fit_flat_mean,
     fit_tier_lookup,
     fit_draft_capital,
+    fit_draft_capital_depth,
     run_backtest,
 )
 
 
-def _sample(position, pick, season, ppg):
+def _sample(position, pick, season, ppg, depth=None):
     return {"player_id": f"{position}{pick}{season}", "position": position,
-            "pick": pick, "season": season, "ppg": ppg}
+            "pick": pick, "season": season, "ppg": ppg, "depth": depth}
 
 
 class TestTiers:
@@ -84,6 +85,27 @@ class TestModelFitters:
         # earlier pick than a later one within a position.
         predict = fit_draft_capital([])
         assert predict("RB", 1) > predict("RB", 200)
+
+    def test_draft_capital_depth_falls_back_to_base_without_depth(self):
+        # With no depth chart on the query, draft_capital_depth must reproduce
+        # the plain draft_capital prediction exactly (zero adjustment).
+        train = [_sample("RB", 5, 2020, 13.0, depth=1),
+                 _sample("RB", 200, 2020, 3.0, depth=3)]
+        base = fit_draft_capital(train)
+        depth_aware = fit_draft_capital_depth(train)
+        assert depth_aware("RB", 50, None) == pytest.approx(base("RB", 50, None))
+
+    def test_draft_capital_depth_boosts_starters(self):
+        # Tier-1 (starter) rookies that out-produce their pick should pull the
+        # depth-aware prediction above the depth-blind base for a tier-1 query.
+        train = [
+            _sample("RB", 100, 2020, 12.0, depth=1),  # late pick, started, big PPG
+            _sample("RB", 100, 2021, 11.0, depth=1),
+            _sample("RB", 100, 2022, 4.0, depth=3),   # late pick, buried, low PPG
+        ]
+        base = fit_draft_capital(train)
+        depth_aware = fit_draft_capital_depth(train)
+        assert depth_aware("RB", 100, 1) > base("RB", 100, 1)
 
 
 class TestRunBacktest:
