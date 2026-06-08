@@ -1,6 +1,6 @@
 # Projection Model Accuracy Report
 
-_Generated: 2026-06-08 09:43_
+_Generated: 2026-06-08 10:23_
 
 Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed error (positive = under-projection), **R²** = Goodness of fit (higher is better), **RMSE** = Root mean square error, **N** = player sample size.
 
@@ -39,6 +39,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v28_reliability_weighting` | **2.049** | +0.351 | **0.692** | **2.717** | 154 |
 | `v29_reliability_residual` | **2.013** | +0.234 | **0.703** | **2.670** | 154 |
 | `v30_reliability_full_refit` | **2.023** | +0.370 | **0.703** | **2.667** | 154 |
+| `v31_depth_chart` | **1.934** | +0.301 | **0.742** | **2.485** | 154 |
 | `external_fantasypros_v1` | 2.827 | +1.480 | 0.494 | 3.809 | 103 |
 
 ### QB
@@ -74,6 +75,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v28_reliability_weighting` | **3.332** | +0.815 | **0.342** | **4.171** | 36 |
 | `v29_reliability_residual` | **3.307** | +0.718 | **0.360** | **4.113** | 36 |
 | `v30_reliability_full_refit` | **3.259** | +0.817 | **0.389** | **4.017** | 36 |
+| `v31_depth_chart` | **3.122** | +0.323 | **0.505** | **3.615** | 36 |
 | `external_fantasypros_v1` | 4.617 | +2.881 | -0.147 | 5.861 | 29 |
 
 ### RB
@@ -109,6 +111,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v28_reliability_weighting` | **2.457** | -0.019 | **0.591** | **2.940** | 25 |
 | `v29_reliability_residual` | **2.555** | -0.240 | **0.581** | **2.979** | 25 |
 | `v30_reliability_full_refit` | **2.658** | -0.144 | **0.559** | **3.053** | 25 |
+| `v31_depth_chart` | **2.326** | -0.197 | **0.633** | **2.786** | 25 |
 | `external_fantasypros_v1` | **2.591** | +0.483 | **0.516** | **3.067** | 19 |
 
 ### WR
@@ -144,6 +147,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v28_reliability_weighting` | **1.864** | +0.944 | **0.636** | **2.173** | 33 |
 | `v29_reliability_residual` | **1.656** | +0.609 | **0.699** | **1.975** | 33 |
 | `v30_reliability_full_refit` | **1.738** | +0.789 | **0.658** | **2.105** | 33 |
+| `v31_depth_chart` | **1.669** | +0.562 | **0.664** | **2.085** | 33 |
 | `external_fantasypros_v1` | 1.917 | +1.272 | 0.499 | 2.405 | 27 |
 
 ### TE
@@ -179,6 +183,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v28_reliability_weighting` | **1.266** | +0.122 | **0.702** | **1.557** | 36 |
 | `v29_reliability_residual` | **1.252** | +0.185 | **0.704** | **1.552** | 36 |
 | `v30_reliability_full_refit` | **1.257** | +0.274 | **0.696** | **1.572** | 36 |
+| `v31_depth_chart` | **1.353** | +0.207 | **0.672** | **1.631** | 36 |
 | `external_fantasypros_v1` | 2.010 | +0.905 | 0.366 | 2.414 | 28 |
 
 ### K
@@ -214,6 +219,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v28_reliability_weighting` | **1.130** | -0.431 | **-0.878** | **1.463** | 24 |
 | `v29_reliability_residual` | **1.137** | -0.437 | **-0.894** | **1.469** | 24 |
 | `v30_reliability_full_refit` | **1.046** | -0.197 | **-0.704** | **1.393** | 24 |
+| `v31_depth_chart` | **0.983** | +0.569 | **-0.722** | **1.401** | 24 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## Season 2023
@@ -251,6 +257,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v28_reliability_weighting` | **2.562** | +0.153 | **0.508** | **3.504** | 188 |
 | `v29_reliability_residual` | **2.558** | +0.034 | **0.509** | **3.501** | 188 |
 | `v30_reliability_full_refit` | **2.525** | +0.147 | **0.522** | **3.456** | 188 |
+| `v31_depth_chart` | **2.356** | +0.162 | **0.586** | **3.215** | 188 |
 | `external_fantasypros_v1` | **2.175** | +1.548 | **0.655** | **3.059** | 136 |
 
 ### QB
@@ -286,6 +293,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v28_reliability_weighting` | 4.121 | +0.207 | **0.195** | **5.211** | 39 |
 | `v29_reliability_residual` | 4.101 | +0.131 | **0.197** | **5.205** | 39 |
 | `v30_reliability_full_refit` | 4.110 | +0.267 | **0.197** | **5.205** | 39 |
+| `v31_depth_chart` | **3.627** | +0.164 | **0.378** | **4.582** | 39 |
 | `external_fantasypros_v1` | **3.131** | +1.752 | **0.410** | **4.278** | 33 |
 
 ### RB
@@ -321,6 +329,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v28_reliability_weighting` | **3.069** | +1.074 | **0.047** | **4.149** | 37 |
 | `v29_reliability_residual` | **3.066** | +0.899 | **0.061** | **4.119** | 37 |
 | `v30_reliability_full_refit` | **3.070** | +0.948 | **0.092** | **4.049** | 37 |
+| `v31_depth_chart` | **2.928** | +0.677 | **0.124** | **3.978** | 37 |
 | `external_fantasypros_v1` | **2.647** | +2.475 | **0.308** | **3.561** | 30 |
 
 ### WR
@@ -356,6 +365,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v28_reliability_weighting` | **2.437** | +0.359 | **0.489** | **2.951** | 44 |
 | `v29_reliability_residual` | **2.463** | +0.025 | **0.477** | **2.986** | 44 |
 | `v30_reliability_full_refit` | **2.405** | +0.153 | **0.516** | **2.872** | 44 |
+| `v31_depth_chart` | **2.129** | +0.117 | **0.578** | **2.682** | 44 |
 | `external_fantasypros_v1` | **1.753** | +1.181 | **0.654** | **2.313** | 38 |
 
 ### TE
@@ -391,6 +401,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v28_reliability_weighting` | **1.710** | -0.491 | **0.481** | **2.081** | 44 |
 | `v29_reliability_residual` | **1.688** | -0.448 | **0.485** | **2.072** | 44 |
 | `v30_reliability_full_refit` | **1.627** | -0.381 | **0.494** | **2.054** | 44 |
+| `v31_depth_chart` | **1.722** | -0.394 | **0.487** | **2.068** | 44 |
 | `external_fantasypros_v1` | **1.327** | +0.959 | **0.713** | **1.563** | 35 |
 
 ### K
@@ -426,6 +437,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v28_reliability_weighting` | **1.033** | -0.551 | -0.521 | 1.269 | 24 |
 | `v29_reliability_residual` | **1.037** | -0.554 | -0.529 | 1.273 | 24 |
 | `v30_reliability_full_refit` | **0.977** | -0.322 | **-0.325** | **1.185** | 24 |
+| `v31_depth_chart` | **0.991** | +0.471 | **-0.360** | **1.200** | 24 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## Season 2024
@@ -463,6 +475,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v28_reliability_weighting` | **2.645** | -0.364 | **0.557** | **3.421** | 274 |
 | `v29_reliability_residual` | **2.640** | -0.458 | **0.561** | **3.405** | 274 |
 | `v30_reliability_full_refit` | **2.592** | -0.370 | **0.572** | **3.362** | 274 |
+| `v31_depth_chart` | **2.470** | -0.344 | **0.621** | **3.164** | 274 |
 | `external_fantasypros_v1` | **2.671** | +1.449 | **0.579** | **3.509** | 187 |
 
 ### QB
@@ -498,6 +511,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v28_reliability_weighting` | **3.739** | -0.577 | **0.479** | **4.709** | 49 |
 | `v29_reliability_residual` | **3.785** | -0.649 | **0.471** | **4.746** | 49 |
 | `v30_reliability_full_refit` | **3.774** | -0.488 | **0.468** | **4.758** | 49 |
+| `v31_depth_chart` | **3.565** | -0.707 | **0.549** | **4.378** | 49 |
 | `external_fantasypros_v1` | **3.821** | +2.322 | **0.385** | **5.050** | 41 |
 
 ### RB
@@ -533,6 +547,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v28_reliability_weighting` | 3.293 | -0.182 | **0.395** | **4.033** | 58 |
 | `v29_reliability_residual` | 3.291 | -0.340 | **0.406** | **3.996** | 58 |
 | `v30_reliability_full_refit` | 3.313 | -0.359 | **0.413** | **3.972** | 58 |
+| `v31_depth_chart` | **2.930** | +0.014 | **0.530** | **3.554** | 58 |
 | `external_fantasypros_v1` | 3.386 | +1.851 | 0.255 | **3.950** | 42 |
 
 ### WR
@@ -568,6 +583,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v28_reliability_weighting` | **2.614** | -0.234 | **0.378** | **3.210** | 71 |
 | `v29_reliability_residual` | **2.575** | -0.457 | **0.399** | **3.157** | 71 |
 | `v30_reliability_full_refit` | **2.462** | -0.363 | **0.447** | **3.029** | 71 |
+| `v31_depth_chart` | **2.285** | -0.619 | **0.501** | **2.874** | 71 |
 | `external_fantasypros_v1` | **2.166** | +1.256 | **0.531** | **2.696** | 54 |
 
 ### TE
@@ -603,6 +619,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v28_reliability_weighting` | 1.859 | -0.647 | 0.492 | 2.275 | 64 |
 | `v29_reliability_residual` | 1.846 | -0.599 | 0.499 | 2.260 | 64 |
 | `v30_reliability_full_refit` | 1.768 | -0.543 | **0.529** | **2.191** | 64 |
+| `v31_depth_chart` | 1.883 | -0.712 | 0.463 | 2.340 | 64 |
 | `external_fantasypros_v1` | **1.676** | +0.606 | 0.496 | **2.042** | 50 |
 
 ### K
@@ -638,6 +655,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v28_reliability_weighting` | **1.437** | -0.092 | **-0.199** | **1.879** | 32 |
 | `v29_reliability_residual` | **1.438** | -0.100 | **-0.195** | **1.875** | 32 |
 | `v30_reliability_full_refit` | **1.413** | +0.123 | **-0.205** | **1.884** | 32 |
+| `v31_depth_chart` | 1.541 | +0.909 | **-0.418** | **2.044** | 32 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## Season 2025
@@ -675,6 +693,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v28_reliability_weighting` | **2.658** | -1.059 | **0.599** | **3.396** | 310 |
 | `v29_reliability_residual` | **2.646** | -1.135 | **0.599** | **3.397** | 310 |
 | `v30_reliability_full_refit` | **2.660** | -1.069 | **0.590** | **3.434** | 310 |
+| `v31_depth_chart` | **2.713** | -1.006 | **0.580** | **3.475** | 310 |
 | `external_fantasypros_v1` | **2.373** | +0.644 | **0.656** | **3.332** | 225 |
 
 ### QB
@@ -710,6 +729,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v28_reliability_weighting` | **3.742** | -1.174 | **0.409** | **4.970** | 52 |
 | `v29_reliability_residual` | **3.715** | -1.230 | **0.411** | **4.961** | 52 |
 | `v30_reliability_full_refit` | **3.649** | -1.085 | **0.418** | **4.930** | 52 |
+| `v31_depth_chart` | **3.774** | -1.294 | **0.409** | **4.970** | 52 |
 | `external_fantasypros_v1` | **3.577** | +1.960 | **0.432** | **5.091** | 47 |
 
 ### RB
@@ -745,6 +765,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v28_reliability_weighting` | 2.995 | -1.100 | **0.577** | 3.651 | 75 |
 | `v29_reliability_residual` | 2.999 | -1.220 | **0.575** | 3.660 | 75 |
 | `v30_reliability_full_refit` | 3.086 | -1.251 | 0.545 | 3.786 | 75 |
+| `v31_depth_chart` | **2.809** | -0.736 | **0.602** | **3.543** | 75 |
 | `external_fantasypros_v1` | **2.235** | +0.481 | **0.761** | **2.826** | 58 |
 
 ### WR
@@ -780,6 +801,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v28_reliability_weighting` | **2.558** | -1.252 | **0.547** | **3.011** | 75 |
 | `v29_reliability_residual` | **2.529** | -1.448 | **0.546** | **3.013** | 75 |
 | `v30_reliability_full_refit` | **2.524** | -1.349 | **0.548** | **3.008** | 75 |
+| `v31_depth_chart` | **2.900** | -1.730 | **0.417** | **3.414** | 75 |
 | `external_fantasypros_v1` | **2.474** | -0.349 | **0.348** | **3.069** | 59 |
 
 ### TE
@@ -815,6 +837,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v28_reliability_weighting` | 2.049 | -0.867 | **0.526** | **2.428** | 76 |
 | `v29_reliability_residual` | 2.042 | -0.823 | **0.525** | **2.431** | 76 |
 | `v30_reliability_full_refit` | 2.111 | -0.810 | **0.484** | **2.532** | 76 |
+| `v31_depth_chart` | 2.198 | -0.911 | 0.462 | 2.586 | 76 |
 | `external_fantasypros_v1` | **1.480** | +0.746 | **0.678** | **2.070** | 61 |
 
 ### K
@@ -850,6 +873,7 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v28_reliability_weighting` | **1.786** | -0.777 | **-0.245** | **2.258** | 32 |
 | `v29_reliability_residual` | **1.793** | -0.786 | **-0.248** | **2.261** | 32 |
 | `v30_reliability_full_refit` | **1.681** | -0.570 | **-0.154** | **2.174** | 32 |
+| `v31_depth_chart` | **1.548** | +0.299 | **-0.032** | **2.056** | 32 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## All Seasons Combined
@@ -889,6 +913,7 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v28_reliability_weighting` | **2.533** | -0.373 | **0.584** | **3.323** | 926 |
 | `v29_reliability_residual` | **2.521** | -0.469 | **0.586** | **3.312** | 926 |
 | `v30_reliability_full_refit` | **2.507** | -0.376 | **0.590** | **3.302** | 926 |
+| `v31_depth_chart` | **2.439** | -0.356 | **0.620** | **3.183** | 926 |
 | `external_fantasypros_v1` | **2.489** | +1.196 | **0.608** | **3.409** | 651 |
 
 ### QB
@@ -924,6 +949,7 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v28_reliability_weighting` | **3.741** | -0.295 | **0.367** | **4.801** | 176 |
 | `v29_reliability_residual` | **3.736** | -0.368 | **0.370** | **4.797** | 176 |
 | `v30_reliability_full_refit` | **3.706** | -0.230 | **0.377** | **4.774** | 176 |
+| `v31_depth_chart` | **3.550** | -0.477 | **0.461** | **4.468** | 176 |
 | `external_fantasypros_v1` | **3.747** | +2.191 | **0.302** | **5.075** | 150 |
 
 ### RB
@@ -959,6 +985,7 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v28_reliability_weighting` | **3.029** | -0.276 | **0.424** | **3.787** | 195 |
 | `v29_reliability_residual` | **3.042** | -0.430 | **0.428** | **3.776** | 195 |
 | `v30_reliability_full_refit` | **3.096** | -0.426 | **0.422** | **3.809** | 195 |
+| `v31_depth_chart` | **2.806** | -0.176 | **0.494** | **3.547** | 195 |
 | `external_fantasypros_v1` | **2.688** | +1.269 | **0.496** | **3.356** | 149 |
 
 ### WR
@@ -994,6 +1021,7 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v28_reliability_weighting` | **2.449** | -0.285 | **0.495** | **2.958** | 223 |
 | `v29_reliability_residual` | **2.402** | -0.537 | **0.508** | **2.926** | 223 |
 | `v30_reliability_full_refit` | **2.365** | -0.422 | **0.526** | **2.872** | 223 |
+| `v31_depth_chart` | **2.370** | -0.673 | **0.512** | **2.935** | 223 |
 | `external_fantasypros_v1` | **2.142** | +0.710 | **0.492** | **2.710** | 178 |
 
 ### TE
@@ -1029,6 +1057,7 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v28_reliability_weighting` | **1.798** | -0.566 | **0.536** | **2.192** | 220 |
 | `v29_reliability_residual` | **1.785** | -0.518 | **0.539** | **2.186** | 220 |
 | `v30_reliability_full_refit` | **1.775** | -0.469 | **0.534** | **2.204** | 220 |
+| `v31_depth_chart` | 1.873 | -0.567 | **0.502** | 2.279 | 220 |
 | `external_fantasypros_v1` | **1.591** | +0.774 | **0.583** | **2.032** | 174 |
 
 ### K
@@ -1064,4 +1093,5 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v28_reliability_weighting` | **1.384** | -0.459 | **-0.427** | **1.808** | 112 |
 | `v29_reliability_residual` | **1.389** | -0.466 | **-0.431** | **1.810** | 112 |
 | `v30_reliability_full_refit` | **1.317** | -0.239 | **-0.323** | **1.755** | 112 |
+| `v31_depth_chart` | **1.306** | +0.568 | **-0.360** | **1.769** | 112 |
 | `external_fantasypros_v1` | — | — | — | — | — |

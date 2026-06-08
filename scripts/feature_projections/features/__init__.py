@@ -37,6 +37,10 @@ from scripts.feature_projections.features.draft_capital import DraftCapitalRawFe
 from scripts.feature_projections.features.vegas_team_total import (
     ImpliedTeamTotalRawFeature,
 )
+from scripts.feature_projections.features.depth_chart import (
+    DepthChartPositionFeature,
+    RoleChangeFeature,
+)
 
 FEATURE_REGISTRY: dict[str, type] = {
     "weighted_ppg": WeightedPPGFeature,
@@ -61,4 +65,6 @@ FEATURE_REGISTRY: dict[str, type] = {
     "racr_raw": RACRRawFeature,
     "draft_capital_raw": DraftCapitalRawFeature,
     "implied_team_total_raw": ImpliedTeamTotalRawFeature,
+    "depth_chart_position_raw": DepthChartPositionFeature,
+    "role_change_raw": RoleChangeFeature,
 }

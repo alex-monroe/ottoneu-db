@@ -232,6 +232,26 @@ def _build_vegas_lines_lookup(
     return lookup, league_means
 
 
+def _build_depth_charts_lookup(supabase) -> dict[tuple[str, int], int]:
+    """Fetch depth_charts and return (player_id, season) -> depth_team (1/2/3).
+
+    Powers the depth_chart_position_raw and role_change_raw features. Keyed by
+    the *target* season — the opening-day depth is a forward-looking role signal
+    set before the projected season's games, so reading the target season is
+    not leakage.
+    """
+    rows = fetch_all_rows(supabase, "depth_charts", "player_id, season, depth_team")
+    lookup: dict[tuple[str, int], int] = {}
+    for r in rows:
+        pid = r.get("player_id")
+        season = r.get("season")
+        depth = r.get("depth_team")
+        if not pid or season is None or depth is None:
+            continue
+        lookup[(str(pid), int(season))] = int(depth)
+    return lookup
+
+
 def _build_player_team_history(
     player_id: str,
     nfl_stats_all: pd.DataFrame,
@@ -270,6 +290,7 @@ def _build_context(
     draft_capital: dict[str, dict[str, int]] | None = None,
     vegas_lines: dict[tuple[str, int], dict[str, float]] | None = None,
     vegas_league_means: dict[int, float] | None = None,
+    depth_charts: dict[tuple[str, int], int] | None = None,
 ) -> dict[str, Any]:
     """Build the context dict for a player's feature computation."""
     context: dict[str, Any] = {"target_season": target_season}
@@ -322,6 +343,11 @@ def _build_context(
         context["vegas_lines"] = vegas_lines
     if vegas_league_means is not None:
         context["vegas_league_mean_implied"] = vegas_league_means
+
+    # Opening-day depth-chart tiers (player_id, season) -> 1/2/3 for the
+    # depth_chart_position_raw and role_change_raw features.
+    if depth_charts is not None:
+        context["depth_charts"] = depth_charts
 
     # QB starter designation
     if qb_starters and position == "QB":
@@ -465,6 +491,9 @@ def run_model(
     # Fetch Vegas implied team totals once (used across all target seasons)
     vegas_lookup, vegas_league_means = _build_vegas_lines_lookup(supabase)
 
+    # Fetch opening-day depth-chart tiers once (used across all target seasons)
+    depth_charts_lookup = _build_depth_charts_lookup(supabase)
+
     total_records = 0
 
     for target_season in seasons:
@@ -532,6 +561,7 @@ def run_model(
                 draft_capital=draft_capital_lookup,
                 vegas_lines=vegas_lookup,
                 vegas_league_means=vegas_league_means,
+                depth_charts=depth_charts_lookup,
             )
 
             # Resolve position-specific features. For residual models, the

@@ -162,6 +162,10 @@ backfill-draft-capital *args:
 backfill-vegas *args:
     {{python}} scripts/backfill_vegas_lines.py {{args}}
 
+# Backfill depth charts  (e.g. just backfill-depth-charts --since 2016 ; --dry-run supported)
+backfill-depth-charts *args:
+    {{python}} scripts/backfill_depth_charts.py {{args}}
+
 # Seed preseason win totals  (e.g. just seed-win-totals --season 2026)
 seed-win-totals *args:
     {{python}} scripts/seed_preseason_win_totals.py {{args}}

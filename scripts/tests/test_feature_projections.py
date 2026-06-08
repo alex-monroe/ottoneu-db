@@ -1762,3 +1762,87 @@ class TestPredictResidual:
         fv = {"a": 1.0, "b": 2.0, "unrelated": 999.0}
         result = predict(fv, "WR", params)
         assert result == pytest.approx(2.0 * 1.0 + 3.0 * 2.0 + 1.0)
+
+
+from scripts.feature_projections.features.depth_chart import (
+    DepthChartPositionFeature,
+    RoleChangeFeature,
+)
+
+
+class TestDepthChartPositionFeature:
+    """Tests for the depth_chart_position_raw feature (opening-day role)."""
+
+    def setup_method(self):
+        self.feature = DepthChartPositionFeature()
+
+    def test_name(self):
+        assert self.feature.name == "depth_chart_position_raw"
+        assert self.feature.is_base is False
+
+    def test_starter_returns_positive(self):
+        ctx = {"target_season": 2025, "depth_charts": {("p1", 2025): 1}}
+        assert self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), ctx) == 1.0
+
+    def test_backup_returns_zero(self):
+        ctx = {"target_season": 2025, "depth_charts": {("p1", 2025): 2}}
+        assert self.feature.compute("p1", "RB", pd.DataFrame(), pd.DataFrame(), ctx) == 0.0
+
+    def test_deep_reserve_returns_negative(self):
+        ctx = {"target_season": 2025, "depth_charts": {("p1", 2025): 3}}
+        assert self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) == -1.0
+
+    def test_missing_player_returns_none(self):
+        ctx = {"target_season": 2025, "depth_charts": {("other", 2025): 1}}
+        assert self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) is None
+
+    def test_reads_target_season_only(self):
+        """Only the target season's depth is used (no leakage / no stale rows)."""
+        ctx = {"target_season": 2025, "depth_charts": {("p1", 2024): 3, ("p1", 2025): 1}}
+        assert self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), ctx) == 1.0
+
+    def test_kicker_excluded(self):
+        ctx = {"target_season": 2025, "depth_charts": {("p1", 2025): 1}}
+        assert self.feature.compute("p1", "K", pd.DataFrame(), pd.DataFrame(), ctx) is None
+
+    def test_no_depth_charts_returns_none(self):
+        assert self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(), {"target_season": 2025}) is None
+
+
+class TestRoleChangeFeature:
+    """Tests for the role_change_raw feature (year-over-year depth-tier change)."""
+
+    def setup_method(self):
+        self.feature = RoleChangeFeature()
+
+    def test_name(self):
+        assert self.feature.name == "role_change_raw"
+
+    def test_promotion_returns_positive(self):
+        """Backup (2) -> starter (1) is a +1 role improvement."""
+        ctx = {"target_season": 2025, "depth_charts": {("p1", 2024): 2, ("p1", 2025): 1}}
+        assert self.feature.compute("p1", "RB", pd.DataFrame(), pd.DataFrame(), ctx) == 1.0
+
+    def test_demotion_returns_negative(self):
+        """Starter (1) -> backup (2) is a -1 role change."""
+        ctx = {"target_season": 2025, "depth_charts": {("p1", 2024): 1, ("p1", 2025): 2}}
+        assert self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), ctx) == -1.0
+
+    def test_uses_most_recent_prior_season(self):
+        """Gap years are tolerated; the latest prior depth season is used."""
+        ctx = {"target_season": 2025, "depth_charts": {("p1", 2022): 1, ("p1", 2024): 3, ("p1", 2025): 1}}
+        assert self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) == 2.0
+
+    def test_no_prior_returns_zero(self):
+        """First tracked season (rookie) has no prior depth -> neutral 0 change."""
+        ctx = {"target_season": 2025, "depth_charts": {("p1", 2025): 1}}
+        assert self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) == 0.0
+
+    def test_missing_target_returns_none(self):
+        """No target-season depth -> None (player not on an opening-day chart)."""
+        ctx = {"target_season": 2025, "depth_charts": {("p1", 2024): 1}}
+        assert self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) is None
+
+    def test_kicker_excluded(self):
+        ctx = {"target_season": 2025, "depth_charts": {("p1", 2024): 2, ("p1", 2025): 1}}
+        assert self.feature.compute("p1", "K", pd.DataFrame(), pd.DataFrame(), ctx) is None

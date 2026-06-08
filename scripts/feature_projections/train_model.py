@@ -30,6 +30,7 @@ from scripts.feature_projections.features import FEATURE_REGISTRY
 from scripts.feature_projections.model_config import get_model
 from scripts.feature_projections.runner import (
     _build_context,
+    _build_depth_charts_lookup,
     _build_draft_capital_lookup,
     _build_vegas_lines_lookup,
     _collect_feature_names_recursive,
@@ -75,6 +76,9 @@ def collect_training_data(
 
     # Fetch Vegas implied team totals once (used across all training seasons)
     vegas_lookup, vegas_league_means = _build_vegas_lines_lookup(supabase)
+
+    # Fetch opening-day depth-chart tiers once (used across all training seasons)
+    depth_charts_lookup = _build_depth_charts_lookup(supabase)
 
     # Instantiate features. Residual stacks pull in features from every
     # nested base so the trainer can compute the base prediction per sample.
@@ -158,6 +162,7 @@ def collect_training_data(
                 draft_capital=draft_capital_lookup,
                 vegas_lines=vegas_lookup,
                 vegas_league_means=vegas_league_means,
+                depth_charts=depth_charts_lookup,
             )
 
             effective_features, effective_weights = _resolve_features_for_position(model_def, position)
