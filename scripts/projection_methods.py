@@ -144,18 +144,44 @@ class CollegeProspectPPG:
 class RookieDraftCapitalPPG:
     """Projection for true rookies (no NFL stats yet) using draft capital.
 
-    Fits a per-position OLS of year-1 PPG on a log-scaled overall pick score,
+    Fits a per-position line of year-1 PPG on a log-scaled overall pick score,
     x = log(TOTAL_PICKS) − log(overall_pick), from historical rookies who
-    have a draft_capital row and a qualifying year-1 PPG. At projection
-    time, returns ``intercept + slope * x`` clamped to ≥ 0. Positions with
-    fewer than ``MIN_SAMPLES`` historical rookies (or rookies without a
-    ``draft_capital`` row, e.g. UDFAs and college players) fall back to a
-    supplied position-mean rookie PPG — same behavior as CollegeProspectPPG.
+    have a draft_capital row and a qualifying year-1 PPG, then shrinks that
+    fit toward a per-position draft-tier *prior* (see ``POSITION_PRIORS``).
+    The shrinkage weight is ``PRIOR_STRENGTH / (PRIOR_STRENGTH + n)``, so
+    well-sampled positions (WR/RB, n≈30) are governed by the data while
+    thin, survivorship-biased positions (QB, n≈10 — late-round QBs who never
+    play are absent, flattening the raw slope) are pulled toward the prior.
+    This keeps 1st-round QBs near their true ~16-20 PPG instead of the ~10
+    the raw fit produces. At projection time, returns ``intercept + slope * x``
+    clamped to ≥ 0. Rookies without a ``draft_capital`` row (UDFAs, true
+    college prospects) fall back to a supplied position-mean rookie PPG —
+    same behavior as CollegeProspectPPG.
     """
 
     name = "rookie_draft_capital"
     TOTAL_PICKS = 257
-    MIN_SAMPLES = 5
+    # Per-position draft-tier prior, expressed as (ppg_at_pick_1, ppg_at_last_pick).
+    # Encodes "early picks produce more, magnitude scales by position" — a
+    # rookie starting QB outscores a workhorse RB per game in Superflex Half-PPR.
+    # Converted to (intercept, slope) in x-space at fit time. These are
+    # deliberately hand-set priors, not learned, so they regularize the
+    # survivorship-biased raw samples rather than inheriting their bias.
+    # Anchors are also the projection ceiling/floor: a rookie's PPG is clamped
+    # to [ppg_at_last_pick is not a floor, only ≥0 ; ppg_at_pick_1 is the cap].
+    # The cap matters because the line is fit in log-pick space and would
+    # otherwise *extrapolate* above the observed top picks (the earliest real
+    # RB sample is pick 6, so picks 1-5 would overshoot without a ceiling). The
+    # pick-1 anchors track the empirical top-tier (picks 1-16) mean year-1 PPG.
+    POSITION_PRIORS = {
+        "QB": (18.0, 6.0),
+        "RB": (14.0, 1.5),
+        "WR": (10.0, 1.0),
+        "TE": (9.0, 1.0),
+    }
+    # Effective prior sample size. With n historical rookies for a position,
+    # the prior gets weight PRIOR_STRENGTH / (PRIOR_STRENGTH + n).
+    PRIOR_STRENGTH = 15
 
     def __init__(
         self,
@@ -166,11 +192,28 @@ class RookieDraftCapitalPPG:
         self._avg_ppg = avg_rookie_ppg_by_position or {}
 
     @classmethod
+    def _prior_coef(cls, position: str) -> Optional[tuple[float, float]]:
+        """Prior (intercept, slope) in x-space for a position, or None."""
+        anchors = cls.POSITION_PRIORS.get(position)
+        if anchors is None:
+            return None
+        ppg_pick1, ppg_last = anchors
+        # x = log(TOTAL_PICKS) - log(pick): 0 at the last pick, log(TOTAL_PICKS)
+        # at pick 1. So intercept == ppg_last, slope spans to ppg_pick1.
+        slope = (ppg_pick1 - ppg_last) / math.log(cls.TOTAL_PICKS)
+        return (ppg_last, slope)
+
+    @classmethod
     def fit(
         cls,
         rookie_samples: Iterable[tuple[str, int, float]],
     ) -> dict[str, tuple[float, float]]:
-        """Fit per-position OLS from (position, overall_pick, year1_ppg) tuples."""
+        """Fit per-position lines, shrunk toward the draft-tier prior.
+
+        Every position in ``POSITION_PRIORS`` receives a coefficient: the raw
+        OLS (when ≥2 samples) blended with the prior by effective sample size,
+        or the pure prior when there are too few samples to fit a line.
+        """
         import numpy as np
 
         by_pos: dict[str, list[tuple[float, float]]] = defaultdict(list)
@@ -181,13 +224,24 @@ class RookieDraftCapitalPPG:
             by_pos[pos].append((x, float(ppg)))
 
         coef: dict[str, tuple[float, float]] = {}
-        for pos, pairs in by_pos.items():
-            if len(pairs) < cls.MIN_SAMPLES:
+        for pos in cls.POSITION_PRIORS:
+            prior = cls._prior_coef(pos)
+            if prior is None:
+                continue
+            pairs = by_pos.get(pos, [])
+            n = len(pairs)
+            if n < 2:
+                # Not enough to fit a line — use the prior as-is.
+                coef[pos] = prior
                 continue
             x_arr = np.array([p[0] for p in pairs])
             y_arr = np.array([p[1] for p in pairs])
             slope, intercept = np.polyfit(x_arr, y_arr, 1)
-            coef[pos] = (float(intercept), float(slope))
+            w = cls.PRIOR_STRENGTH / (cls.PRIOR_STRENGTH + n)
+            coef[pos] = (
+                w * prior[0] + (1 - w) * float(intercept),
+                w * prior[1] + (1 - w) * float(slope),
+            )
         return coef
 
     def project_ppg(
@@ -201,5 +255,11 @@ class RookieDraftCapitalPPG:
         if overall_pick is not None and int(overall_pick) > 0 and position in self._coef:
             x = math.log(self.TOTAL_PICKS) - math.log(int(overall_pick))
             intercept, slope = self._coef[position]
-            return max(0.0, intercept + slope * x)
+            projected = intercept + slope * x
+            # Cap at the position's empirical top-tier ceiling so the log-pick
+            # line can't extrapolate above the observed range for picks 1-5.
+            anchors = self.POSITION_PRIORS.get(position)
+            if anchors is not None:
+                projected = min(projected, anchors[0])
+            return max(0.0, projected)
         return self._avg_ppg.get(position)
