@@ -114,6 +114,10 @@ project model seasons="2022,2023,2024,2025":
 backtest model seasons="2022,2023,2024,2025":
     {{python}} scripts/feature_projections/cli.py backtest --model {{model}} --test-seasons {{seasons}}
 
+# Backtest the rookie (0-history) projection path  (e.g. just rookie-backtest --seasons 2023,2024,2025)
+rookie-backtest *args:
+    {{python}} scripts/feature_projections/rookie_backtest.py {{args}}
+
 # Train a learned model  (e.g. just train v24_learned_elite)
 train model seasons="2022,2023,2024":
     {{python}} scripts/feature_projections/train_model.py --model {{model}} --seasons {{seasons}}

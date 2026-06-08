@@ -59,6 +59,7 @@ docs/
 │   ├── [experiment-log.md](docs/generated/experiment-log.md)              # History of all model iteration attempts
 │   ├── [player-diagnostics.md](docs/generated/player-diagnostics.md)          # Per-player backtest diagnostics
 │   ├── [projection-accuracy.md](docs/generated/projection-accuracy.md)         # Projection model accuracy report
+│   ├── [rookie-backtest.md](docs/generated/rookie-backtest.md)             # Rookie (0-history) projection backtest — draft_capital vs baselines
 │   └── [segment-analysis.md](docs/generated/segment-analysis.md)            # Segmented projection accuracy analysis
 ├── references/
 │   ├── environment-variables.md       # .env and .env.local variable reference
