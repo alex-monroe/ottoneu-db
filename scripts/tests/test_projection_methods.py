@@ -265,28 +265,55 @@ class TestRookieDraftCapitalPPG:
         method = RookieDraftCapitalPPG({}, {})
         assert method.name == "rookie_draft_capital"
 
-    def test_fit_skips_positions_below_min_samples(self):
-        # 4 RB samples, but MIN_SAMPLES is 5 — RB should be dropped.
-        samples = [("RB", 1, 12.0), ("RB", 32, 8.0), ("RB", 100, 4.0), ("RB", 200, 2.0)]
-        coef = RookieDraftCapitalPPG.fit(samples)
-        assert "RB" not in coef
+    def test_fit_emits_every_prior_position(self):
+        # Even with no samples at all, every position with a prior gets a coef
+        # (the pure prior) so drafted rookies always get a draft-aware estimate.
+        coef = RookieDraftCapitalPPG.fit([])
+        assert set(coef) == set(RookieDraftCapitalPPG.POSITION_PRIORS)
+        for pos in RookieDraftCapitalPPG.POSITION_PRIORS:
+            assert coef[pos] == pytest.approx(RookieDraftCapitalPPG._prior_coef(pos))
 
-    def test_fit_recovers_linear_relation(self):
-        # y = 1 + 2*x exactly for picks {1, 16, 64, 128, 200}
+    def test_fit_uses_pure_prior_below_two_samples(self):
+        # A single RB sample can't fit a line — fall back to the prior exactly.
+        coef = RookieDraftCapitalPPG.fit([("RB", 1, 99.0)])
+        assert coef["RB"] == pytest.approx(RookieDraftCapitalPPG._prior_coef("RB"))
+
+    def test_fit_recovers_linear_relation_on_prior_line(self):
+        # Samples lying exactly on the WR prior line → OLS recovers the prior,
+        # and blending the prior with itself leaves it unchanged.
+        prior_int, prior_slope = RookieDraftCapitalPPG._prior_coef("WR")
         picks = [1, 16, 64, 128, 200]
-        samples = [("WR", p, 1.0 + 2.0 * self._x(p)) for p in picks]
+        samples = [("WR", p, prior_int + prior_slope * self._x(p)) for p in picks]
         coef = RookieDraftCapitalPPG.fit(samples)
-        intercept, slope = coef["WR"]
-        assert intercept == pytest.approx(1.0, abs=1e-6)
-        assert slope == pytest.approx(2.0, abs=1e-6)
+        assert coef["WR"][0] == pytest.approx(prior_int, abs=1e-6)
+        assert coef["WR"][1] == pytest.approx(prior_slope, abs=1e-6)
+
+    def test_fit_shrinks_toward_prior(self):
+        # A steeper-than-prior relation gets pulled back toward the prior; with
+        # n samples the prior weight is PRIOR_STRENGTH / (PRIOR_STRENGTH + n).
+        prior_int, prior_slope = RookieDraftCapitalPPG._prior_coef("WR")
+        raw_int, raw_slope = 1.0, 5.0
+        picks = [1, 16, 64, 128, 200]
+        samples = [("WR", p, raw_int + raw_slope * self._x(p)) for p in picks]
+        n = len(picks)
+        w = RookieDraftCapitalPPG.PRIOR_STRENGTH / (RookieDraftCapitalPPG.PRIOR_STRENGTH + n)
+        coef = RookieDraftCapitalPPG.fit(samples)
+        assert coef["WR"][0] == pytest.approx(w * prior_int + (1 - w) * raw_int, abs=1e-6)
+        assert coef["WR"][1] == pytest.approx(w * prior_slope + (1 - w) * raw_slope, abs=1e-6)
 
     def test_fit_ignores_invalid_picks(self):
-        good = [("WR", p, 1.0 + 2.0 * self._x(p)) for p in [1, 16, 64, 128, 200]]
+        prior_int, prior_slope = RookieDraftCapitalPPG._prior_coef("WR")
+        good = [("WR", p, prior_int + prior_slope * self._x(p)) for p in [1, 16, 64, 128, 200]]
         bad = [("WR", 0, 99.0), ("WR", -5, 99.0), ("", 10, 5.0)]
         coef = RookieDraftCapitalPPG.fit(good + bad)
-        intercept, slope = coef["WR"]
-        assert intercept == pytest.approx(1.0, abs=1e-6)
-        assert slope == pytest.approx(2.0, abs=1e-6)
+        assert coef["WR"][0] == pytest.approx(prior_int, abs=1e-6)
+        assert coef["WR"][1] == pytest.approx(prior_slope, abs=1e-6)
+
+    def test_project_caps_at_position_ceiling(self):
+        # A runaway line is capped at the position's pick-1 ceiling.
+        ceiling = RookieDraftCapitalPPG.POSITION_PRIORS["RB"][0]
+        method = RookieDraftCapitalPPG({"RB": (50.0, 50.0)}, {})
+        assert method.project_ppg([], position="RB", overall_pick=1) == pytest.approx(ceiling)
 
     def test_project_uses_fit_when_pick_known(self):
         method = RookieDraftCapitalPPG({"WR": (1.0, 2.0)}, {"WR": 5.0})

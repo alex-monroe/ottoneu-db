@@ -30,6 +30,10 @@ TARGET_SEASONS = [2024, 2025, 2026]
 # taken an NFL snap. See GH #488.
 ROOKIE_SEASON_WINDOW = 2
 
+# Earliest season present in player_stats. The rookie draft-capital fit pools
+# all rookie seasons from here up to (but not including) each target season.
+EARLIEST_STATS_SEASON = 2019
+
 
 def recent_drafted_no_stats(
     drafted_no_stats: set[str],
@@ -98,28 +102,37 @@ def compute_avg_rookie_ppg(multi_season_df: pd.DataFrame, players_df: pd.DataFra
 
 def compute_rookie_draft_samples(multi_season_df: pd.DataFrame, players_df: pd.DataFrame,
                                   pick_by_player: dict[str, int],
+                                  season_drafted_by_player: dict[str, int],
                                   min_games: int = MIN_GAMES) -> list[tuple[str, int, float]]:
     """Build (position, overall_pick, year1_ppg) samples from historical rookies.
 
-    A "rookie sample" is a player whose only season in the window is their
-    first, who qualifies by min_games, has a known position, and has a
-    ``draft_capital`` row. Used to fit RookieDraftCapitalPPG's per-position OLS.
+    A "rookie sample" is the ``season_drafted`` season of a drafted player who
+    qualifies by min_games and has a known position. Keying on the known draft
+    season (rather than "only one season in the window") lets the caller pool
+    *all* available history — a player's later seasons no longer disqualify
+    their rookie row — which stabilizes the small per-position fits.
+    Used to fit RookieDraftCapitalPPG's per-position lines.
     """
     if multi_season_df.empty or players_df.empty or not pick_by_player:
         return []
     pos_map = dict(zip(players_df['player_id_ref'], players_df['position']))
     samples: list[tuple[str, int, float]] = []
     for player_id, group in multi_season_df.groupby('player_id'):
-        if len(group) != 1:
+        pid = str(player_id)
+        pick = pick_by_player.get(pid)
+        if not pick or int(pick) <= 0:
             continue
-        row = group.iloc[0]
-        if int(row['games_played']) < min_games:
+        drafted = season_drafted_by_player.get(pid)
+        if drafted is None:
             continue
-        pos = pos_map.get(str(player_id))
+        pos = pos_map.get(pid)
         if not pos or pos == 'K':
             continue
-        pick = pick_by_player.get(str(player_id))
-        if not pick or int(pick) <= 0:
+        rookie_rows = group[group['season'] == drafted]
+        if rookie_rows.empty:
+            continue
+        row = rookie_rows.iloc[0]
+        if int(row['games_played']) < min_games:
             continue
         samples.append((pos, int(pick), float(row['ppg'])))
     return samples
@@ -174,7 +187,9 @@ def upsert_college_projections():
       - Recently drafted: is_college=False with a draft_capital row but no
         player_stats history. After the draft we flip is_college off, so
         relying on that flag alone would orphan their projection.
-    Both groups receive the position-average rookie PPG.
+    Drafted rookies are projected from draft capital (RookieDraftCapitalPPG,
+    fit on pooled historical rookie seasons); true college prospects without a
+    draft pick fall back to the position-average rookie PPG.
     """
     supabase = get_supabase_client()
     # Paginated fetch — the players table exceeds the 1000-row default page size
@@ -252,20 +267,36 @@ def upsert_college_projections():
             for pid in eligible
         ]
 
+    # Fetch the full stats history once (player_stats starts in 2019). The
+    # rookie draft-capital fit pools all seasons strictly before each target
+    # for stability; the position-mean fallback keeps its narrow 3-year window.
+    pooled_df = fetch_multi_season_stats(
+        list(range(EARLIEST_STATS_SEASON, max(TARGET_SEASONS)))
+    )
+
     all_records = []
     for season in TARGET_SEASONS:
         college_players = college_players_for_season(season)
-        historical_seasons = list(range(season - 3, season))
-        multi_season_df = fetch_multi_season_stats(historical_seasons)
-        avg_rookie_ppg = compute_avg_rookie_ppg(multi_season_df, players_df)
+        # Narrow window for the position-mean fallback (recent rookie baseline).
+        narrow_df = (
+            pooled_df[(pooled_df['season'] >= season - 3) & (pooled_df['season'] < season)]
+            if not pooled_df.empty else pooled_df
+        )
+        avg_rookie_ppg = compute_avg_rookie_ppg(narrow_df, players_df)
 
+        # Pool every rookie season strictly before the target (no leakage).
+        rookie_hist_df = (
+            pooled_df[pooled_df['season'] < season] if not pooled_df.empty else pooled_df
+        )
         rookie_method: RookieDraftCapitalPPG | None = None
-        samples = compute_rookie_draft_samples(multi_season_df, players_df, pick_by_player)
+        samples = compute_rookie_draft_samples(
+            rookie_hist_df, players_df, pick_by_player, season_drafted_by_player
+        )
         if samples:
             coef = RookieDraftCapitalPPG.fit(samples)
             if coef:
                 rookie_method = RookieDraftCapitalPPG(coef, avg_rookie_ppg)
-                print(f"  Rookie draft-capital fit for {season}: "
+                print(f"  Rookie draft-capital fit for {season} (n={len(samples)}): "
                       f"{ {p: (round(a, 2), round(b, 2)) for p, (a, b) in coef.items()} }")
 
         if avg_rookie_ppg or rookie_method is not None:
