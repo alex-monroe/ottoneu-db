@@ -214,23 +214,37 @@ def main() -> None:
         help="Latest season to ingest (default: latest available)",
     )
     parser.add_argument(
+        "--current",
+        action="store_true",
+        help=(
+            "Refresh only the current projection season (since = until = "
+            "projection_season). Use for the scheduled offseason refresh so "
+            "we re-pull just the upcoming season's evolving depth charts "
+            "without re-touching every historical row."
+        ),
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Map and aggregate without writing to the database",
     )
     args = parser.parse_args()
 
-    from scripts.season import stats_season
+    from scripts.season import projection_season, stats_season
 
-    until = args.until if args.until is not None else stats_season()
-    print(f"Depth Charts Backfill (since={args.since}, until={until}, dry_run={args.dry_run})")
+    if args.current:
+        since = until = projection_season()
+    else:
+        since = args.since
+        until = args.until if args.until is not None else stats_season()
+    print(f"Depth Charts Backfill (since={since}, until={until}, dry_run={args.dry_run})")
 
     supabase = get_supabase_client()
     player_lookup = build_player_lookup(supabase)
     print(f"  {len(player_lookup)} players in lookup")
 
     print("\nLoading nflverse depth charts (Week 1 REG, offense)...")
-    df = load_depth_charts(args.since, until)
+    df = load_depth_charts(since, until)
     seasons = sorted(df["season"].unique().tolist())
     print(f"  {len(df)} skill-position depth rows across seasons {seasons}")
 

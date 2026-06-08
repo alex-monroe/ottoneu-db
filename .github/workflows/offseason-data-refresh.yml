@@ -1,0 +1,63 @@
+name: Offseason Data Refresh
+
+# Keeps the upcoming season's projections fresh through the offseason by
+# re-pulling the data sources that evolve before Week 1 — NFL depth charts
+# (camp battles, FA/draft role changes) and Vegas implied team totals (once the
+# schedule drops) — and then re-running the active projection model.
+#
+# Both backfills target only the current projection season (`--current`) and
+# upsert, so they are idempotent and safely no-op until the upcoming season's
+# nflverse data appears. The depth-chart loader freezes the tier at the
+# opening-day snapshot (cutoff ~Sept 7), so runs after Week 1 don't drift.
+#
+# GH #555. See docs/exec-plans/season-cycle.md for season resolution.
+
+on:
+  # Manual trigger (e.g. a one-off refresh after a notable depth-chart move).
+  workflow_dispatch:
+
+  # Daily at 9:00 AM UTC, April–September only. This window covers the
+  # post-draft / free-agency churn, the schedule release (Vegas lines, ~May),
+  # training camp + preseason (depth charts, Aug), and opening week (early
+  # Sept). Outside this window the inputs are static, so there's nothing to
+  # refresh.
+  schedule:
+    - cron: "0 9 * 4-9 *"
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          # Install this repo as a package so `import scripts.*` resolves.
+          pip install -e . --no-deps
+
+      - name: Create .env
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_SECRET_KEY }}" >> .env
+
+      - name: Refresh depth charts (current season)
+        run: python scripts/backfill_depth_charts.py --current
+
+      - name: Refresh Vegas lines (current season)
+        run: python scripts/backfill_vegas_lines.py --current
+
+      - name: Re-project active model and promote to player_projections
+        run: python scripts/update_projections.py
