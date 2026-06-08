@@ -123,16 +123,32 @@ def main() -> None:
         help=f"Earliest season to ingest (default: {DEFAULT_SINCE_SEASON})",
     )
     parser.add_argument(
+        "--current",
+        action="store_true",
+        help=(
+            "Refresh only the current projection season (since = "
+            "projection_season). Use for the scheduled offseason refresh once "
+            "the NFL schedule drops and per-game lines start moving."
+        ),
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Aggregate without writing to the database",
     )
     args = parser.parse_args()
 
-    print(f"Vegas Lines Backfill (since={args.since}, dry_run={args.dry_run})")
+    if args.current:
+        from scripts.season import projection_season
+
+        since = projection_season()
+    else:
+        since = args.since
+
+    print(f"Vegas Lines Backfill (since={since}, dry_run={args.dry_run})")
 
     print("\nLoading nflverse games.csv...")
-    games = load_games(args.since)
+    games = load_games(since)
     seasons = sorted(games["season"].unique().tolist())
     print(f"  {len(games)} regular-season games across seasons {seasons}")
 

@@ -124,8 +124,8 @@ just accuracy-report [--run-backtest] ...           # Generate accuracy report
 # Backfills / seeds
 just backfill-nfl-stats [--seasons ...] [--dry-run]    # Backfill nfl_stats from nflverse
 just backfill-draft-capital [--since YYYY] [--dry-run] # Backfill draft_capital from nflverse draft_picks
-just backfill-vegas [--since YYYY] [--dry-run]         # Backfill team_vegas_lines from nflverse games.csv
-just backfill-depth-charts [--since YYYY] [--until YYYY] [--dry-run]  # Backfill depth_charts (opening-day depth tier) from nflverse
+just backfill-vegas [--since YYYY | --current] [--dry-run]  # Backfill team_vegas_lines from nflverse games.csv (--current = projection season only)
+just backfill-depth-charts [--since YYYY] [--until YYYY] [--current] [--dry-run]  # Backfill depth_charts (opening-day depth tier) from nflverse (--current = projection season only)
 just seed-win-totals --season YYYY                     # Upsert preseason sportsbook win totals (implied_total left NULL until schedule drops)
 just scrape-draft-sharks [--season YYYY] [--positions qb rb wr te] [--dry-run]  # Scrape Draft Sharks Half-PPR Superflex auction values (stored ×2 for the $400 cap)
 just scrape-calendar [--dry-run]                      # Scrape the Ottoneu finances Calendar into league_calendar (drives the season-cycle resolver)
@@ -149,6 +149,7 @@ equivalent self-hosted setup would look like.
 | `scrape-draft-sharks.yml` | Mondays 08:00 UTC + `workflow_dispatch` | `scripts/scrape_draft_sharks.py` — Draft Sharks Half-PPR Superflex auction values (no in-season gate; ×2 for the $400 cap) |
 | `scrape-league-calendar.yml` | Mondays 12:00 UTC + `workflow_dispatch` | `scripts/scrape_league_calendar.py` — refreshes `league_calendar`, the source of truth for the season-cycle resolver. Requires FanGraphs login. |
 | `update-projections.yml` | Push to `main` touching `scripts/projection_methods.py`, `scripts/update_projections.py`, or `scripts/config.py` + `workflow_dispatch` | `scripts/update_projections.py` — re-runs the active model and promotes its outputs into `player_projections` |
+| `offseason-data-refresh.yml` | Daily 09:00 UTC (Apr–Sep) + `workflow_dispatch` | Refreshes the upcoming season's evolving inputs — `backfill_depth_charts.py --current` (depth charts) + `backfill_vegas_lines.py --current` (Vegas lines) — then `update_projections.py` to re-project. Idempotent; no-ops until the season's nflverse data appears. GH #555 |
 | `backfill-nfl-stats.yml` | `workflow_dispatch` only (seasons + dry-run inputs) | `scripts/backfill_nfl_stats.py` — historical NFL stats backfill from nflverse |
 | `backfill-player-stats.yml` | `workflow_dispatch` only (seasons input) | Historical Ottoneu `player_stats` backfill |
 | `run-tests.yml` | Push & PR against `main`/`master` | Full CI — Python (`pytest`) + web (Jest) + doc freshness check |
