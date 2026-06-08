@@ -17,6 +17,7 @@
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
 | `SUPABASE_SECRET_KEY` | Supabase secret key — bypasses RLS (server-side only). Also accepts `OTTONEU_DB_SUPABASE_SECRET_KEY` (Vercel integration) |
 | `SESSION_SECRET` | Random string for HMAC session signing (server-side only) |
+| `GITHUB_TOKEN` | **Optional.** Read-only GitHub token used by the `/admin/workflows` status page to raise the GitHub Actions API rate limit. The repo is public so the page works without it (60 req/hr unauthenticated); set it for headroom. Optionally pair with `GITHUB_REPO_OWNER` / `GITHUB_REPO_NAME` (default `alex-monroe` / `ottoneu-db`). |
 
 ## Templates
 
