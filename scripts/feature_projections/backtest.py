@@ -10,6 +10,27 @@ import pandas as pd
 from scripts.config import get_supabase_client, fetch_all_rows, POSITIONS, MIN_GAMES
 
 
+def _fetch_season_rows(supabase, table, select, season, extra_eq=None, page_size=1000):
+    """Fetch all rows for a season, paginating past PostgREST's 1000-row default.
+
+    A single recent season of player_stats (or a model's projections) can
+    exceed 1000 rows; a plain .execute() would silently truncate and corrupt
+    backtest metrics. extra_eq is an optional (column, value) equality filter.
+    """
+    all_rows: list[dict] = []
+    offset = 0
+    while True:
+        query = supabase.table(table).select(select).eq("season", season)
+        if extra_eq is not None:
+            query = query.eq(extra_eq[0], extra_eq[1])
+        batch = query.range(offset, offset + page_size - 1).execute().data or []
+        all_rows.extend(batch)
+        if len(batch) < page_size:
+            break
+        offset += page_size
+    return all_rows
+
+
 def _compute_metrics(projected: list[float], actual: list[float]) -> dict:
     """Compute MAE, Bias, R², RMSE from paired lists."""
     n = len(projected)
@@ -78,28 +99,24 @@ def backtest_model(
     for season in test_seasons:
         print(f"\nBacktesting model '{model_name}' for season {season}...")
 
-        # Fetch model projections for this season
-        proj_res = (
-            supabase.table("model_projections")
-            .select("player_id, projected_ppg")
-            .eq("model_id", model_id)
-            .eq("season", season)
-            .execute()
+        # Fetch model projections for this season. Paginate past PostgREST's
+        # 1000-row default — projection counts per season can exceed it.
+        proj_data = _fetch_season_rows(
+            supabase, "model_projections", "player_id, projected_ppg",
+            season, extra_eq=("model_id", model_id),
         )
-        if not proj_res.data:
+        if not proj_data:
             print(f"  No projections found for season {season}")
             continue
 
-        proj_map = {row["player_id"]: float(row["projected_ppg"]) for row in proj_res.data}
+        proj_map = {row["player_id"]: float(row["projected_ppg"]) for row in proj_data}
 
-        # Fetch actuals from player_stats
-        actuals_res = (
-            supabase.table("player_stats")
-            .select("player_id, ppg, games_played")
-            .eq("season", season)
-            .execute()
+        # Fetch actuals from player_stats. Paginate — a single recent season can
+        # exceed 1000 rows (e.g. 2025), which would silently drop actuals.
+        actuals_data = _fetch_season_rows(
+            supabase, "player_stats", "player_id, ppg, games_played", season
         )
-        if not actuals_res.data:
+        if not actuals_data:
             print(f"  No actual stats found for season {season}")
             continue
 
@@ -121,7 +138,7 @@ def backtest_model(
         all_actual: list[float] = []
         rookies_skipped = 0
 
-        for row in actuals_res.data:
+        for row in actuals_data:
             pid = row["player_id"]
             games = int(row.get("games_played", 0) or 0)
             if games < min_games:
