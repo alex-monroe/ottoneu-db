@@ -125,6 +125,7 @@ just accuracy-report [--run-backtest] ...           # Generate accuracy report
 just backfill-nfl-stats [--seasons ...] [--dry-run]    # Backfill nfl_stats from nflverse
 just backfill-draft-capital [--since YYYY] [--dry-run] # Backfill draft_capital from nflverse draft_picks
 just backfill-vegas [--since YYYY] [--dry-run]         # Backfill team_vegas_lines from nflverse games.csv
+just backfill-depth-charts [--since YYYY] [--until YYYY] [--dry-run]  # Backfill depth_charts (opening-day depth tier) from nflverse
 just seed-win-totals --season YYYY                     # Upsert preseason sportsbook win totals (implied_total left NULL until schedule drops)
 just scrape-draft-sharks [--season YYYY] [--positions qb rb wr te] [--dry-run]  # Scrape Draft Sharks Half-PPR Superflex auction values (stored ×2 for the $400 cap)
 just scrape-calendar [--dry-run]                      # Scrape the Ottoneu finances Calendar into league_calendar (drives the season-cycle resolver)

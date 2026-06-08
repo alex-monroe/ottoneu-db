@@ -282,6 +282,53 @@ export type Database = {
           },
         ]
       }
+      depth_charts: {
+        Row: {
+          created_at: string
+          id: string
+          player_id: string
+          position: string | null
+          season: number
+          scraped_at: string
+          depth_team: number
+          team: string | null
+          updated_at: string
+          week: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          player_id: string
+          position?: string | null
+          season: number
+          scraped_at?: string
+          depth_team: number
+          team?: string | null
+          updated_at?: string
+          week?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          player_id?: string
+          position?: string | null
+          season?: number
+          scraped_at?: string
+          depth_team?: number
+          team?: string | null
+          updated_at?: string
+          week?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "depth_charts_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: true
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       draft_capital: {
         Row: {
           created_at: string

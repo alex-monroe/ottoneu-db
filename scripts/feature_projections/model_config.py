@@ -498,6 +498,48 @@ MODELS: dict[str, ModelDefinition] = {
             "implied_team_total_raw*position",
         ],
     ),
+    "v31_depth_chart": ModelDefinition(
+        name="v31_depth_chart",
+        version=1,
+        description=(
+            "Full Ridge refit on v27's feature set (usage + advanced receiving "
+            "+ draft_capital + Vegas implied team total) plus two opening-day "
+            "depth-chart signals: depth_chart_position_raw (starter score "
+            "2 - depth_team) and role_change_raw (year-over-year depth-tier "
+            "change). Adds a depth_chart_position_raw*position interaction so "
+            "the combiner can find position-specific role effects. Tests "
+            "whether forward-looking role information — invisible to the 3-year "
+            "weighted-PPG base — improves early-season accuracy and finally "
+            "replaces the failed historical team_context feature. GH #391."
+        ),
+        features=[
+            "weighted_ppg_no_qb_trajectory",
+            "age_curve",
+            "regression_to_mean",
+            "qb_backup_penalty",
+            "usage_share_raw",
+            "target_share_raw",
+            "air_yards_share_raw",
+            "wopr_raw",
+            "racr_raw",
+            "draft_capital_raw",
+            "implied_team_total_raw",
+            "depth_chart_position_raw",
+            "role_change_raw",
+        ],
+        combiner_type="learned",
+        interaction_terms=[
+            "usage_share_raw*position",
+            "usage_share_raw*base_ppg",
+            "usage_share_raw^2",
+            "target_share_raw*position",
+            "wopr_raw*base_ppg",
+            "wopr_raw^2",
+            "draft_capital_raw*position",
+            "implied_team_total_raw*position",
+            "depth_chart_position_raw*position",
+        ],
+    ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
         version=1,
