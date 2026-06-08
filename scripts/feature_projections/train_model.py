@@ -25,7 +25,7 @@ from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
 
 from scripts.config import get_supabase_client, MIN_GAMES, fetch_all_rows
-from scripts.analysis_utils import fetch_multi_season_stats
+from scripts.analysis_utils import fetch_multi_season_stats, fetch_multi_season_nfl_stats
 from scripts.feature_projections.features import FEATURE_REGISTRY
 from scripts.feature_projections.model_config import get_model
 from scripts.feature_projections.runner import (
@@ -100,14 +100,10 @@ def collect_training_data(
             print(f"  No history for {historical_seasons}, skipping")
             continue
 
-        # Fetch nfl_stats
-        nfl_stats_res = (
-            supabase.table("nfl_stats")
-            .select("*")
-            .in_("season", historical_seasons)
-            .execute()
-        )
-        nfl_stats_all = pd.DataFrame(nfl_stats_res.data or [])
+        # Fetch nfl_stats (paginated — a multi-season window exceeds the
+        # 1000-row cap; truncation here corrupted learned-model features and
+        # therefore the trained coefficients; GH #562).
+        nfl_stats_all = fetch_multi_season_nfl_stats(historical_seasons)
         for col in ["total_points", "games_played", "targets", "rushing_attempts",
                      "passing_yards", "passing_tds", "interceptions", "rushing_yards",
                      "rushing_tds", "receptions", "receiving_yards", "receiving_tds",

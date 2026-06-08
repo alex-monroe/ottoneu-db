@@ -9,7 +9,7 @@
  * Historical salary: transaction replay via `roster-reconstruction.ts`.
  */
 
-import { supabase } from "./supabase";
+import { supabase, fetchAllRows } from "./supabase";
 import { LEAGUE_ID } from "./config";
 import { getStatsSeason, getProjectionSeason, getSalarySnapshotDates } from "./season";
 import type {
@@ -36,21 +36,26 @@ async function buildSalaryMapAtDate(
 ): Promise<Map<string, { salary: number; team_name: string | null }>> {
   // Fetch ALL transactions (both seasons) — we need the full history
   // to capture players acquired before the current season.
-  const [txnRes, pricesRes] = await Promise.all([
-    supabase
-      .from("transactions")
-      .select("player_id, transaction_type, team_name, salary, transaction_date")
-      .eq("league_id", LEAGUE_ID)
-      .lte("transaction_date", salaryDate)
-      .order("transaction_date", { ascending: true }),
-    supabase
-      .from("league_prices")
-      .select("player_id, price, team_name")
-      .eq("league_id", LEAGUE_ID),
+  // Paginate: league transactions (~1,079) and league_prices (~1,252) both
+  // exceed the 1000-row cap; truncation would drop players' salary state.
+  const [transactions, leaguePrices] = await Promise.all([
+    fetchAllRows((from, to) =>
+      supabase
+        .from("transactions")
+        .select("player_id, transaction_type, team_name, salary, transaction_date")
+        .eq("league_id", LEAGUE_ID)
+        .lte("transaction_date", salaryDate)
+        .order("transaction_date", { ascending: true })
+        .range(from, to),
+    ),
+    fetchAllRows((from, to) =>
+      supabase
+        .from("league_prices")
+        .select("player_id, price, team_name")
+        .eq("league_id", LEAGUE_ID)
+        .range(from, to),
+    ),
   ]);
-
-  const transactions = txnRes.data ?? [];
-  const leaguePrices = pricesRes.data ?? [];
 
   // Replay transactions to build point-in-time salary state
   const salaryMap = new Map<string, { salary: number; team_name: string | null }>();
@@ -94,19 +99,20 @@ async function buildSalaryMapAtDate(
  */
 export async function fetchPlayersAtDate(salaryDate: string): Promise<Player[]> {
   const statsSeason = await getStatsSeason();
-  const [playersRes, statsRes, salaryMap] = await Promise.all([
-    supabase.from("players").select("*").gt("ottoneu_id", 0),
+  // Paginate players (~1,252 with ottoneu_id>0 now exceeds the 1000-row cap).
+  const [players, statsRes, salaryMap] = await Promise.all([
+    fetchAllRows((from, to) =>
+      supabase.from("players").select("*").gt("ottoneu_id", 0).range(from, to),
+    ),
     supabase.from("player_stats").select("*").eq("season", statsSeason),
     buildSalaryMapAtDate(salaryDate),
   ]);
 
-  if (playersRes.error) throw new Error(`Failed to fetch players: ${playersRes.error.message}`);
   if (statsRes.error) throw new Error(`Failed to fetch player stats: ${statsRes.error.message}`);
 
-  const players = playersRes.data;
   const stats = statsRes.data;
 
-  if (!players || !stats) {
+  if (!stats) {
     throw new Error("Failed to fetch data: returned null from Supabase");
   }
 
@@ -162,21 +168,22 @@ export async function fetchPlayersPreArb(): Promise<Player[]> {
  */
 export async function fetchPlayers(): Promise<Player[]> {
   const statsSeason = await getStatsSeason();
-  const [playersRes, statsRes, pricesRes] = await Promise.all([
-    supabase.from("players").select("*").gt("ottoneu_id", 0),
+  // Paginate players (~1,252) and league_prices (~1,252) past the 1000-row cap.
+  const [players, statsRes, prices] = await Promise.all([
+    fetchAllRows((from, to) =>
+      supabase.from("players").select("*").gt("ottoneu_id", 0).range(from, to),
+    ),
     supabase.from("player_stats").select("*").eq("season", statsSeason),
-    supabase.from("league_prices").select("*").eq("league_id", LEAGUE_ID),
+    fetchAllRows((from, to) =>
+      supabase.from("league_prices").select("*").eq("league_id", LEAGUE_ID).range(from, to),
+    ),
   ]);
 
-  if (playersRes.error) throw new Error(`Failed to fetch players: ${playersRes.error.message}`);
   if (statsRes.error) throw new Error(`Failed to fetch player stats: ${statsRes.error.message}`);
-  if (pricesRes.error) throw new Error(`Failed to fetch league prices: ${pricesRes.error.message}`);
 
-  const players = playersRes.data;
   const stats = statsRes.data;
-  const prices = pricesRes.data;
 
-  if (!players || !stats || !prices) {
+  if (!stats) {
     throw new Error("Failed to fetch data: returned null from Supabase");
   }
 
@@ -220,27 +227,34 @@ export async function fetchPlayers(): Promise<Player[]> {
  */
 export async function fetchPlayerList(): Promise<PlayerListItem[]> {
   const statsSeason = await getStatsSeason();
-  const [playersRes, statsRes, pricesRes] = await Promise.all([
-    supabase
-      .from("players")
-      .select("id, ottoneu_id, name, position, nfl_team")
-      .gt("ottoneu_id", 0)
-      .order("name"),
+  // Paginate players (~1,252) and league_prices (~1,252) past the 1000-row cap
+  // so the directory isn't silently missing ~20% of players.
+  const [players, statsRes, prices] = await Promise.all([
+    fetchAllRows((from, to) =>
+      supabase
+        .from("players")
+        .select("id, ottoneu_id, name, position, nfl_team")
+        .gt("ottoneu_id", 0)
+        .order("name")
+        .range(from, to),
+    ),
     supabase
       .from("player_stats")
       .select("player_id, total_points, games_played, ppg")
       .eq("season", statsSeason),
-    supabase
-      .from("league_prices")
-      .select("player_id, price, team_name")
-      .eq("league_id", LEAGUE_ID),
+    fetchAllRows((from, to) =>
+      supabase
+        .from("league_prices")
+        .select("player_id, price, team_name")
+        .eq("league_id", LEAGUE_ID)
+        .range(from, to),
+    ),
   ]);
 
-  const players = playersRes.data;
   if (!players) return [];
 
   const statsMap = new Map((statsRes.data ?? []).map((s) => [s.player_id, s]));
-  const priceMap = new Map((pricesRes.data ?? []).map((p) => [p.player_id, p]));
+  const priceMap = new Map(prices.map((p) => [p.player_id, p]));
 
   return players.map((p) => {
     const s = statsMap.get(p.id);

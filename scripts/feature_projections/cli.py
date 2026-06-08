@@ -70,16 +70,8 @@ def cmd_diagnostics(args: argparse.Namespace) -> None:
             print(f"Error: Model '{model_name}' not found")
             return
         model_id = model_res.data[0]["id"]
-        proj_res = (
-            supabase.table("model_projections")
-            .select("season")
-            .eq("model_id", model_id)
-            .execute()
-        )
-        stats_res = supabase.table("player_stats").select("season").execute()
-        proj_seasons = {row["season"] for row in (proj_res.data or [])}
-        stats_seasons = {row["season"] for row in (stats_res.data or [])}
-        available = sorted(proj_seasons & stats_seasons, reverse=True)
+        from scripts.analysis_utils import available_model_seasons
+        available = available_model_seasons(supabase, model_id)
         if not available:
             print("No seasons found with both projections and actuals")
             return

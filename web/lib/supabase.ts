@@ -10,8 +10,36 @@ import { Database } from "../types/supabase"
 export const supabase = createClient<Database>(supabaseUrl || "http://localhost:54321", supabaseKey || "fake-anon-key")
 
 // NOTE: The players table has 3000+ rows (most from historical backfill with
-// negative synthetic ottoneu_ids). All web queries MUST add .gt("ottoneu_id", 0)
-// to filter to scraper-origin players and avoid the PostgREST 1000-row limit.
+// negative synthetic ottoneu_ids). Web queries add .gt("ottoneu_id", 0) to
+// filter to scraper-origin players — but that set is now >1000 (1,252+), so
+// .gt() alone NO LONGER avoids the PostgREST 1000-row cap. Any read that can
+// exceed 1000 rows (players, league_prices/transactions for the league,
+// player_projections for a season) MUST page through with fetchAllRows below.
+
+/**
+ * Page through a Supabase query past PostgREST's 1000-row default cap.
+ *
+ * Pass a builder that applies `.range(from, to)` to your filtered query, e.g.:
+ *   const rows = await fetchAllRows((from, to) =>
+ *     supabase.from("players").select("*").gt("ottoneu_id", 0).range(from, to));
+ *
+ * A plain `.select()` silently returns only the first 1000 rows, which on this
+ * project drops ~20% of players and full player-seasons from analysis pages.
+ */
+export async function fetchAllRows<T>(
+  buildPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+): Promise<T[]> {
+  const pageSize = 1000;
+  const out: T[] = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await buildPage(offset, offset + pageSize - 1);
+    if (error) throw new Error(error.message);
+    if (!data || data.length === 0) break;
+    out.push(...data);
+    if (data.length < pageSize) break;
+  }
+  return out;
+}
 
 /**
  * Server-side admin client using the secret key — bypasses RLS.

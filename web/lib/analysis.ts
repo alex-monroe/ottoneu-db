@@ -8,7 +8,7 @@
  * lives in data.ts — import from there for non-projection needs.
  */
 
-import { supabase } from "./supabase";
+import { supabase, fetchAllRows } from "./supabase";
 import { LEAGUE_ID } from "./config";
 import { getStatsSeason, getProjectionSeason } from "./season";
 import { fetchPlayers, fetchDraftSharksMap, type DraftSharksValue } from "./data";
@@ -118,29 +118,33 @@ export async function fetchModelBacktestData(
   targetSeason: number,
   modelId: string
 ): Promise<BacktestPlayer[]> {
-  const [playersRes, targetStatsRes, pricesRes] = await Promise.all([
-    supabase.from("players").select("id, name, position, nfl_team").gt("ottoneu_id", 0),
+  // Paginate players (~1,252) and league_prices (~1,252) past the 1000-row cap.
+  const [players, targetStatsRes, prices] = await Promise.all([
+    fetchAllRows((from, to) =>
+      supabase.from("players").select("id, name, position, nfl_team").gt("ottoneu_id", 0).range(from, to),
+    ),
     supabase
       .from("player_stats")
       .select("player_id, ppg, games_played")
       .eq("season", targetSeason),
-    supabase
-      .from("league_prices")
-      .select("player_id, price, team_name")
-      .eq("league_id", LEAGUE_ID),
+    fetchAllRows((from, to) =>
+      supabase
+        .from("league_prices")
+        .select("player_id, price, team_name")
+        .eq("league_id", LEAGUE_ID)
+        .range(from, to),
+    ),
   ]);
 
-  if (playersRes.error) throw new Error(`Failed to fetch players: ${playersRes.error.message}`);
   if (targetStatsRes.error) throw new Error(`Failed to fetch target season stats: ${targetStatsRes.error.message}`);
-  if (pricesRes.error) throw new Error(`Failed to fetch target season prices: ${pricesRes.error.message}`);
 
-  if (!playersRes.data || !targetStatsRes.data) {
+  if (!targetStatsRes.data) {
     throw new Error("Failed to fetch data: returned null from Supabase");
   }
 
-  const playerMap = new Map(playersRes.data.map((p) => [String(p.id), p]));
+  const playerMap = new Map(players.map((p) => [String(p.id), p]));
   const targetStatsMap = new Map(targetStatsRes.data.map((s) => [String(s.player_id), s]));
-  const pricesMap = new Map((pricesRes.data ?? []).map((p) => [String(p.player_id), p]));
+  const pricesMap = new Map(prices.map((p) => [String(p.player_id), p]));
 
   const projectionMap = await buildModelProjectionMap(modelId, targetSeason);
   const result: BacktestPlayer[] = [];
@@ -186,14 +190,15 @@ export async function fetchModelBacktestData(
 async function buildProjectionMap(
   season: number
 ): Promise<Map<string, { ppg: number; method: string }>> {
-  const { data: projectionsData, error: projectionsError } = await supabase
-    .from("player_projections")
-    .select("player_id, projected_ppg, projection_method")
-    .eq("season", season);
-
-  if (projectionsError) {
-    throw new Error(`Failed to fetch player projections: ${projectionsError.message}`);
-  }
+  // Paginate: a single season of player_projections (~1,289-1,458) exceeds the
+  // 1000-row cap, so a plain select silently drops ~25% of projected players.
+  const projectionsData = await fetchAllRows((from, to) =>
+    supabase
+      .from("player_projections")
+      .select("player_id, projected_ppg, projection_method")
+      .eq("season", season)
+      .range(from, to),
+  );
 
   const projections = new Map<string, { ppg: number; method: string }>();
   if (projectionsData) {
@@ -315,35 +320,39 @@ export async function fetchPlayersWithProjectedPpg(
 export async function fetchBacktestData(
   targetSeason: number
 ): Promise<BacktestPlayer[]> {
-  const [playersRes, targetStatsRes, pricesRes] =
+  // Paginate players (~1,252) and league_prices (~1,252) past the 1000-row cap.
+  const [players, targetStatsRes, prices] =
     await Promise.all([
-      supabase.from("players").select("id, name, position, nfl_team").gt("ottoneu_id", 0),
+      fetchAllRows((from, to) =>
+        supabase.from("players").select("id, name, position, nfl_team").gt("ottoneu_id", 0).range(from, to),
+      ),
       supabase
         .from("player_stats")
         .select("player_id, ppg, games_played")
         .eq("season", targetSeason),
-      supabase
-        .from("league_prices")
-        .select("player_id, price, team_name")
-        .eq("league_id", LEAGUE_ID),
+      fetchAllRows((from, to) =>
+        supabase
+          .from("league_prices")
+          .select("player_id, price, team_name")
+          .eq("league_id", LEAGUE_ID)
+          .range(from, to),
+      ),
     ]);
 
-  if (playersRes.error) throw new Error(`Failed to fetch players: ${playersRes.error.message}`);
   if (targetStatsRes.error) throw new Error(`Failed to fetch target season stats: ${targetStatsRes.error.message}`);
-  if (pricesRes.error) throw new Error(`Failed to fetch target season prices: ${pricesRes.error.message}`);
 
-  if (!playersRes.data || !targetStatsRes.data) {
+  if (!targetStatsRes.data) {
     throw new Error("Failed to fetch data: returned null from Supabase");
   }
 
   const playerMap = new Map(
-    playersRes.data.map((p) => [String(p.id), p])
+    players.map((p) => [String(p.id), p])
   );
   const targetStatsMap = new Map(
     targetStatsRes.data.map((s) => [String(s.player_id), s])
   );
   const pricesMap = new Map(
-    (pricesRes.data ?? []).map((p) => [String(p.player_id), p])
+    prices.map((p) => [String(p.player_id), p])
   );
 
   const projectionMap = await buildProjectionMap(targetSeason);
