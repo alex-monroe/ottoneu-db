@@ -1,6 +1,6 @@
 # Projection Model Accuracy Report
 
-_Generated: 2026-06-08 09:13_
+_Generated: 2026-06-08 09:43_
 
 Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed error (positive = under-projection), **R²** = Goodness of fit (higher is better), **RMSE** = Root mean square error, **N** = player sample size.
 
@@ -35,8 +35,10 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v23_draft_capital` | **2.009** | +0.204 | **0.705** | **2.659** | 154 |
 | `v25_draft_capital_residual` | **2.044** | +0.004 | **0.695** | **2.705** | 154 |
 | `v26_vegas_residual` | **2.026** | -0.023 | **0.700** | **2.680** | 154 |
-| `v27_vegas_full_refit` | **2.059** | +0.466 | **0.704** | **2.662** | 154 |
+| `v27_vegas_full_refit` | **2.062** | +0.462 | **0.703** | **2.666** | 154 |
 | `v28_reliability_weighting` | **2.049** | +0.351 | **0.692** | **2.717** | 154 |
+| `v29_reliability_residual` | **2.013** | +0.234 | **0.703** | **2.670** | 154 |
+| `v30_reliability_full_refit` | **2.023** | +0.370 | **0.703** | **2.667** | 154 |
 | `external_fantasypros_v1` | 2.827 | +1.480 | 0.494 | 3.809 | 103 |
 
 ### QB
@@ -70,6 +72,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v26_vegas_residual` | **3.365** | -0.140 | **0.353** | **4.135** | 36 |
 | `v27_vegas_full_refit` | **3.397** | +1.124 | **0.384** | **4.035** | 36 |
 | `v28_reliability_weighting` | **3.332** | +0.815 | **0.342** | **4.171** | 36 |
+| `v29_reliability_residual` | **3.307** | +0.718 | **0.360** | **4.113** | 36 |
+| `v30_reliability_full_refit` | **3.259** | +0.817 | **0.389** | **4.017** | 36 |
 | `external_fantasypros_v1` | 4.617 | +2.881 | -0.147 | 5.861 | 29 |
 
 ### RB
@@ -103,6 +107,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v26_vegas_residual` | **2.590** | -0.227 | **0.580** | **2.980** | 25 |
 | `v27_vegas_full_refit` | **2.592** | -0.066 | **0.582** | **2.973** | 25 |
 | `v28_reliability_weighting` | **2.457** | -0.019 | **0.591** | **2.940** | 25 |
+| `v29_reliability_residual` | **2.555** | -0.240 | **0.581** | **2.979** | 25 |
+| `v30_reliability_full_refit` | **2.658** | -0.144 | **0.559** | **3.053** | 25 |
 | `external_fantasypros_v1` | **2.591** | +0.483 | **0.516** | **3.067** | 19 |
 
 ### WR
@@ -134,8 +140,10 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v23_draft_capital` | **1.655** | +0.514 | **0.696** | **1.984** | 33 |
 | `v25_draft_capital_residual` | **1.644** | +0.462 | **0.708** | **1.944** | 33 |
 | `v26_vegas_residual` | **1.589** | +0.423 | **0.716** | **1.919** | 33 |
-| `v27_vegas_full_refit` | **1.758** | +0.866 | **0.672** | **2.061** | 33 |
+| `v27_vegas_full_refit` | **1.775** | +0.849 | **0.665** | **2.083** | 33 |
 | `v28_reliability_weighting` | **1.864** | +0.944 | **0.636** | **2.173** | 33 |
+| `v29_reliability_residual` | **1.656** | +0.609 | **0.699** | **1.975** | 33 |
+| `v30_reliability_full_refit` | **1.738** | +0.789 | **0.658** | **2.105** | 33 |
 | `external_fantasypros_v1` | 1.917 | +1.272 | 0.499 | 2.405 | 27 |
 
 ### TE
@@ -169,6 +177,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v26_vegas_residual` | **1.240** | +0.220 | **0.687** | **1.595** | 36 |
 | `v27_vegas_full_refit` | **1.273** | +0.340 | **0.674** | **1.629** | 36 |
 | `v28_reliability_weighting` | **1.266** | +0.122 | **0.702** | **1.557** | 36 |
+| `v29_reliability_residual` | **1.252** | +0.185 | **0.704** | **1.552** | 36 |
+| `v30_reliability_full_refit` | **1.257** | +0.274 | **0.696** | **1.572** | 36 |
 | `external_fantasypros_v1` | 2.010 | +0.905 | 0.366 | 2.414 | 28 |
 
 ### K
@@ -202,6 +212,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v26_vegas_residual` | 1.212 | -0.612 | **-1.034** | **1.523** | 24 |
 | `v27_vegas_full_refit` | **1.088** | -0.330 | **-0.788** | **1.428** | 24 |
 | `v28_reliability_weighting` | **1.130** | -0.431 | **-0.878** | **1.463** | 24 |
+| `v29_reliability_residual` | **1.137** | -0.437 | **-0.894** | **1.469** | 24 |
+| `v30_reliability_full_refit` | **1.046** | -0.197 | **-0.704** | **1.393** | 24 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## Season 2023
@@ -231,12 +243,14 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | **2.623** | +0.245 | 0.445 | 3.724 | 188 |
 | `v20_learned_usage` | **2.558** | -0.018 | **0.504** | **3.519** | 188 |
 | `v21_tiered_regression` | 2.706 | +0.580 | 0.388 | 3.910 | 188 |
-| `v22_advanced_receiving` | **2.495** | -0.157 | **0.516** | **3.476** | 188 |
+| `v22_advanced_receiving` | **2.500** | -0.152 | **0.515** | **3.481** | 188 |
 | `v23_draft_capital` | **2.537** | -0.036 | **0.521** | **3.457** | 188 |
-| `v25_draft_capital_residual` | **2.496** | -0.187 | **0.516** | **3.478** | 188 |
+| `v25_draft_capital_residual` | **2.501** | -0.183 | **0.514** | **3.483** | 188 |
 | `v26_vegas_residual` | **2.467** | -0.219 | **0.516** | **3.477** | 188 |
-| `v27_vegas_full_refit` | **2.528** | +0.277 | **0.490** | **3.570** | 188 |
+| `v27_vegas_full_refit` | **2.532** | +0.280 | **0.488** | **3.574** | 188 |
 | `v28_reliability_weighting` | **2.562** | +0.153 | **0.508** | **3.504** | 188 |
+| `v29_reliability_residual` | **2.558** | +0.034 | **0.509** | **3.501** | 188 |
+| `v30_reliability_full_refit` | **2.525** | +0.147 | **0.522** | **3.456** | 188 |
 | `external_fantasypros_v1` | **2.175** | +1.548 | **0.655** | **3.059** | 136 |
 
 ### QB
@@ -268,8 +282,10 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v23_draft_capital` | 4.054 | +0.213 | **0.219** | **5.135** | 39 |
 | `v25_draft_capital_residual` | 3.923 | -0.593 | **0.215** | **5.148** | 39 |
 | `v26_vegas_residual` | 3.896 | -0.644 | **0.206** | **5.178** | 39 |
-| `v27_vegas_full_refit` | 4.208 | +0.659 | 0.120 | 5.449 | 39 |
+| `v27_vegas_full_refit` | 4.205 | +0.656 | 0.121 | 5.448 | 39 |
 | `v28_reliability_weighting` | 4.121 | +0.207 | **0.195** | **5.211** | 39 |
+| `v29_reliability_residual` | 4.101 | +0.131 | **0.197** | **5.205** | 39 |
+| `v30_reliability_full_refit` | 4.110 | +0.267 | **0.197** | **5.205** | 39 |
 | `external_fantasypros_v1` | **3.131** | +1.752 | **0.410** | **4.278** | 33 |
 
 ### RB
@@ -303,6 +319,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v26_vegas_residual` | **3.076** | +0.881 | **0.023** | **4.202** | 37 |
 | `v27_vegas_full_refit` | **3.118** | +1.002 | **0.002** | **4.246** | 37 |
 | `v28_reliability_weighting` | **3.069** | +1.074 | **0.047** | **4.149** | 37 |
+| `v29_reliability_residual` | **3.066** | +0.899 | **0.061** | **4.119** | 37 |
+| `v30_reliability_full_refit` | **3.070** | +0.948 | **0.092** | **4.049** | 37 |
 | `external_fantasypros_v1` | **2.647** | +2.475 | **0.308** | **3.561** | 30 |
 
 ### WR
@@ -334,8 +352,10 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v23_draft_capital` | **2.405** | -0.136 | **0.493** | **2.940** | 44 |
 | `v25_draft_capital_residual` | **2.381** | -0.173 | **0.499** | **2.923** | 44 |
 | `v26_vegas_residual` | **2.265** | -0.238 | **0.541** | **2.796** | 44 |
-| `v27_vegas_full_refit` | **2.277** | +0.316 | **0.534** | **2.817** | 44 |
+| `v27_vegas_full_refit` | **2.280** | +0.312 | **0.533** | **2.820** | 44 |
 | `v28_reliability_weighting` | **2.437** | +0.359 | **0.489** | **2.951** | 44 |
+| `v29_reliability_residual` | **2.463** | +0.025 | **0.477** | **2.986** | 44 |
+| `v30_reliability_full_refit` | **2.405** | +0.153 | **0.516** | **2.872** | 44 |
 | `external_fantasypros_v1` | **1.753** | +1.181 | **0.654** | **2.313** | 38 |
 
 ### TE
@@ -363,12 +383,14 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | **1.548** | -0.076 | **0.517** | **2.006** | 44 |
 | `v20_learned_usage` | **1.709** | -0.712 | **0.471** | **2.099** | 44 |
 | `v21_tiered_regression` | **1.679** | +0.327 | **0.463** | **2.116** | 44 |
-| `v22_advanced_receiving` | **1.653** | -0.506 | **0.495** | **2.051** | 44 |
+| `v22_advanced_receiving` | **1.673** | -0.486 | **0.478** | **2.086** | 44 |
 | `v23_draft_capital` | **1.726** | -0.572 | **0.466** | **2.110** | 44 |
-| `v25_draft_capital_residual` | **1.631** | -0.464 | **0.497** | **2.047** | 44 |
+| `v25_draft_capital_residual` | **1.651** | -0.444 | **0.480** | **2.082** | 44 |
 | `v26_vegas_residual` | **1.634** | -0.473 | **0.494** | **2.054** | 44 |
-| `v27_vegas_full_refit` | **1.634** | -0.322 | **0.495** | **2.052** | 44 |
+| `v27_vegas_full_refit` | **1.650** | -0.305 | **0.480** | **2.083** | 44 |
 | `v28_reliability_weighting` | **1.710** | -0.491 | **0.481** | **2.081** | 44 |
+| `v29_reliability_residual` | **1.688** | -0.448 | **0.485** | **2.072** | 44 |
+| `v30_reliability_full_refit` | **1.627** | -0.381 | **0.494** | **2.054** | 44 |
 | `external_fantasypros_v1` | **1.327** | +0.959 | **0.713** | **1.563** | 35 |
 
 ### K
@@ -402,6 +424,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v26_vegas_residual` | 1.107 | -0.727 | -0.749 | 1.361 | 24 |
 | `v27_vegas_full_refit` | **0.991** | -0.434 | **-0.423** | **1.228** | 24 |
 | `v28_reliability_weighting` | **1.033** | -0.551 | -0.521 | 1.269 | 24 |
+| `v29_reliability_residual` | **1.037** | -0.554 | -0.529 | 1.273 | 24 |
+| `v30_reliability_full_refit` | **0.977** | -0.322 | **-0.325** | **1.185** | 24 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## Season 2024
@@ -431,12 +455,14 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | **2.681** | -0.032 | **0.547** | **3.458** | 274 |
 | `v20_learned_usage` | **2.698** | -0.606 | **0.549** | **3.451** | 274 |
 | `v21_tiered_regression` | **2.735** | +0.406 | **0.510** | **3.595** | 274 |
-| `v22_advanced_receiving` | **2.667** | -0.704 | **0.533** | **3.510** | 274 |
+| `v22_advanced_receiving` | **2.669** | -0.702 | **0.533** | **3.511** | 274 |
 | `v23_draft_capital` | **2.651** | -0.586 | **0.556** | **3.421** | 274 |
 | `v25_draft_capital_residual` | **2.649** | -0.724 | **0.539** | **3.487** | 274 |
 | `v26_vegas_residual` | **2.637** | -0.752 | **0.541** | **3.482** | 274 |
-| `v27_vegas_full_refit` | **2.630** | -0.202 | **0.572** | **3.361** | 274 |
+| `v27_vegas_full_refit` | **2.630** | -0.199 | **0.572** | **3.360** | 274 |
 | `v28_reliability_weighting` | **2.645** | -0.364 | **0.557** | **3.421** | 274 |
+| `v29_reliability_residual` | **2.640** | -0.458 | **0.561** | **3.405** | 274 |
+| `v30_reliability_full_refit` | **2.592** | -0.370 | **0.572** | **3.362** | 274 |
 | `external_fantasypros_v1` | **2.671** | +1.449 | **0.579** | **3.509** | 187 |
 
 ### QB
@@ -468,8 +494,10 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v23_draft_capital` | **3.786** | -0.626 | **0.472** | **4.740** | 49 |
 | `v25_draft_capital_residual` | **3.746** | -1.426 | **0.431** | **4.921** | 49 |
 | `v26_vegas_residual` | **3.678** | -1.427 | **0.437** | **4.893** | 49 |
-| `v27_vegas_full_refit` | **3.796** | +0.045 | **0.504** | **4.595** | 49 |
+| `v27_vegas_full_refit` | **3.789** | +0.051 | **0.506** | **4.585** | 49 |
 | `v28_reliability_weighting` | **3.739** | -0.577 | **0.479** | **4.709** | 49 |
+| `v29_reliability_residual` | **3.785** | -0.649 | **0.471** | **4.746** | 49 |
+| `v30_reliability_full_refit` | **3.774** | -0.488 | **0.468** | **4.758** | 49 |
 | `external_fantasypros_v1` | **3.821** | +2.322 | **0.385** | **5.050** | 41 |
 
 ### RB
@@ -503,6 +531,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v26_vegas_residual` | 3.318 | -0.492 | **0.396** | **4.032** | 58 |
 | `v27_vegas_full_refit` | 3.270 | -0.141 | **0.405** | **4.000** | 58 |
 | `v28_reliability_weighting` | 3.293 | -0.182 | **0.395** | **4.033** | 58 |
+| `v29_reliability_residual` | 3.291 | -0.340 | **0.406** | **3.996** | 58 |
+| `v30_reliability_full_refit` | 3.313 | -0.359 | **0.413** | **3.972** | 58 |
 | `external_fantasypros_v1` | 3.386 | +1.851 | 0.255 | **3.950** | 42 |
 
 ### WR
@@ -530,12 +560,14 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | **2.849** | -0.004 | **0.308** | **3.387** | 71 |
 | `v20_learned_usage` | **2.684** | -0.330 | **0.375** | **3.219** | 71 |
 | `v21_tiered_regression` | **2.915** | +0.385 | **0.259** | **3.505** | 71 |
-| `v22_advanced_receiving` | **2.668** | -0.677 | **0.337** | **3.315** | 71 |
+| `v22_advanced_receiving` | **2.670** | -0.671 | **0.335** | **3.320** | 71 |
 | `v23_draft_capital` | **2.573** | -0.688 | **0.385** | **3.192** | 71 |
 | `v25_draft_capital_residual` | **2.650** | -0.783 | **0.342** | **3.304** | 71 |
 | `v26_vegas_residual` | **2.625** | -0.874 | **0.352** | **3.278** | 71 |
-| `v27_vegas_full_refit` | **2.550** | -0.270 | **0.417** | **3.110** | 71 |
+| `v27_vegas_full_refit` | **2.552** | -0.265 | **0.415** | **3.114** | 71 |
 | `v28_reliability_weighting` | **2.614** | -0.234 | **0.378** | **3.210** | 71 |
+| `v29_reliability_residual` | **2.575** | -0.457 | **0.399** | **3.157** | 71 |
+| `v30_reliability_full_refit` | **2.462** | -0.363 | **0.447** | **3.029** | 71 |
 | `external_fantasypros_v1` | **2.166** | +1.256 | **0.531** | **2.696** | 54 |
 
 ### TE
@@ -563,12 +595,14 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | 1.823 | +0.010 | 0.506 | 2.244 | 64 |
 | `v20_learned_usage` | 1.956 | -0.879 | 0.427 | 2.416 | 64 |
 | `v21_tiered_regression` | 1.835 | +0.435 | 0.469 | 2.328 | 64 |
-| `v22_advanced_receiving` | 1.805 | -0.623 | 0.502 | 2.254 | 64 |
+| `v22_advanced_receiving` | 1.808 | -0.620 | 0.500 | 2.257 | 64 |
 | `v23_draft_capital` | 1.869 | -0.747 | 0.475 | 2.314 | 64 |
 | `v25_draft_capital_residual` | 1.796 | -0.572 | 0.506 | 2.245 | 64 |
 | `v26_vegas_residual` | 1.815 | -0.581 | 0.498 | 2.262 | 64 |
-| `v27_vegas_full_refit` | 1.852 | -0.489 | 0.490 | 2.281 | 64 |
+| `v27_vegas_full_refit` | 1.855 | -0.486 | 0.489 | 2.283 | 64 |
 | `v28_reliability_weighting` | 1.859 | -0.647 | 0.492 | 2.275 | 64 |
+| `v29_reliability_residual` | 1.846 | -0.599 | 0.499 | 2.260 | 64 |
+| `v30_reliability_full_refit` | 1.768 | -0.543 | **0.529** | **2.191** | 64 |
 | `external_fantasypros_v1` | **1.676** | +0.606 | 0.496 | **2.042** | 50 |
 
 ### K
@@ -602,6 +636,8 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v26_vegas_residual` | **1.479** | -0.266 | **-0.228** | **1.902** | 32 |
 | `v27_vegas_full_refit` | **1.415** | +0.035 | **-0.200** | **1.880** | 32 |
 | `v28_reliability_weighting` | **1.437** | -0.092 | **-0.199** | **1.879** | 32 |
+| `v29_reliability_residual` | **1.438** | -0.100 | **-0.195** | **1.875** | 32 |
+| `v30_reliability_full_refit` | **1.413** | +0.123 | **-0.205** | **1.884** | 32 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## Season 2025
@@ -631,12 +667,14 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | **2.615** | -0.772 | **0.548** | **3.446** | 260 |
 | `v20_learned_usage` | **2.914** | -1.522 | **0.479** | **3.701** | 260 |
 | `v21_tiered_regression` | **2.621** | -0.210 | **0.550** | **3.441** | 260 |
-| `v22_advanced_receiving` | 2.935 | -1.597 | **0.447** | **3.812** | 260 |
+| `v22_advanced_receiving` | **2.709** | -1.228 | **0.558** | **3.547** | 316 |
 | `v23_draft_capital` | **2.867** | -1.381 | **0.493** | **3.650** | 260 |
 | `v25_draft_capital_residual` | **2.718** | -1.253 | **0.555** | **3.556** | 316 |
 | `v26_vegas_residual` | 2.938 | -1.636 | **0.444** | **3.824** | 260 |
-| `v27_vegas_full_refit` | **2.597** | -0.845 | **0.588** | **3.291** | 260 |
+| `v27_vegas_full_refit` | **2.532** | -0.898 | **0.639** | **3.203** | 316 |
 | `v28_reliability_weighting` | **2.658** | -1.059 | **0.599** | **3.396** | 310 |
+| `v29_reliability_residual` | **2.646** | -1.135 | **0.599** | **3.397** | 310 |
+| `v30_reliability_full_refit` | **2.660** | -1.069 | **0.590** | **3.434** | 310 |
 | `external_fantasypros_v1` | **2.373** | +0.644 | **0.656** | **3.332** | 225 |
 
 ### QB
@@ -664,12 +702,14 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | **3.876** | -0.986 | **0.383** | **5.031** | 53 |
 | `v20_learned_usage` | **3.668** | -1.449 | **0.424** | **4.863** | 53 |
 | `v21_tiered_regression` | **3.962** | -0.614 | **0.371** | **5.080** | 53 |
-| `v22_advanced_receiving` | **3.988** | -2.027 | **0.264** | **5.494** | 53 |
+| `v22_advanced_receiving` | **4.055** | -2.012 | **0.242** | **5.576** | 53 |
 | `v23_draft_capital` | **3.695** | -1.097 | **0.424** | **4.859** | 53 |
 | `v25_draft_capital_residual` | **4.091** | -1.935 | **0.240** | **5.584** | 53 |
 | `v26_vegas_residual` | **4.003** | -1.957 | **0.264** | **5.493** | 53 |
-| `v27_vegas_full_refit` | **3.433** | -0.354 | **0.538** | **4.351** | 53 |
+| `v27_vegas_full_refit` | **3.372** | -0.345 | **0.533** | **4.377** | 53 |
 | `v28_reliability_weighting` | **3.742** | -1.174 | **0.409** | **4.970** | 52 |
+| `v29_reliability_residual` | **3.715** | -1.230 | **0.411** | **4.961** | 52 |
+| `v30_reliability_full_refit` | **3.649** | -1.085 | **0.418** | **4.930** | 52 |
 | `external_fantasypros_v1` | **3.577** | +1.960 | **0.432** | **5.091** | 47 |
 
 ### RB
@@ -697,12 +737,14 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | **2.743** | -0.794 | **0.633** | **3.268** | 54 |
 | `v20_learned_usage` | 3.270 | -1.724 | 0.462 | 3.957 | 54 |
 | `v21_tiered_regression` | **2.780** | +0.098 | **0.624** | **3.306** | 54 |
-| `v22_advanced_receiving` | 3.133 | -1.420 | 0.514 | 3.760 | 54 |
+| `v22_advanced_receiving` | **2.985** | -1.025 | **0.580** | 3.627 | 76 |
 | `v23_draft_capital` | 3.193 | -1.497 | 0.485 | 3.868 | 54 |
 | `v25_draft_capital_residual` | **2.989** | -1.101 | **0.578** | 3.633 | 76 |
 | `v26_vegas_residual` | 3.020 | -1.480 | 0.528 | 3.706 | 54 |
-| `v27_vegas_full_refit` | **2.777** | -0.984 | **0.590** | **3.454** | 54 |
+| `v27_vegas_full_refit` | **2.893** | -1.157 | **0.601** | **3.536** | 76 |
 | `v28_reliability_weighting` | 2.995 | -1.100 | **0.577** | 3.651 | 75 |
+| `v29_reliability_residual` | 2.999 | -1.220 | **0.575** | 3.660 | 75 |
+| `v30_reliability_full_refit` | 3.086 | -1.251 | 0.545 | 3.786 | 75 |
 | `external_fantasypros_v1` | **2.235** | +0.481 | **0.761** | **2.826** | 58 |
 
 ### WR
@@ -730,12 +772,14 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | **2.557** | -1.310 | **0.117** | **3.315** | 61 |
 | `v20_learned_usage` | **3.013** | -2.039 | -0.105 | 3.708 | 61 |
 | `v21_tiered_regression` | **2.529** | -0.590 | **0.181** | **3.192** | 61 |
-| `v22_advanced_receiving` | 3.104 | -2.287 | -0.098 | 3.696 | 61 |
+| `v22_advanced_receiving` | **2.559** | -1.418 | **0.522** | **3.034** | 79 |
 | `v23_draft_capital` | **2.966** | -2.152 | **-0.041** | **3.599** | 61 |
 | `v25_draft_capital_residual` | **2.571** | -1.536 | **0.515** | **3.056** | 79 |
 | `v26_vegas_residual` | 3.225 | -2.514 | -0.166 | 3.809 | 61 |
-| `v27_vegas_full_refit` | **2.639** | -1.429 | **0.169** | **3.216** | 61 |
+| `v27_vegas_full_refit` | **2.467** | -1.286 | **0.546** | **2.955** | 79 |
 | `v28_reliability_weighting` | **2.558** | -1.252 | **0.547** | **3.011** | 75 |
+| `v29_reliability_residual` | **2.529** | -1.448 | **0.546** | **3.013** | 75 |
+| `v30_reliability_full_refit` | **2.524** | -1.349 | **0.548** | **3.008** | 75 |
 | `external_fantasypros_v1` | **2.474** | -0.349 | **0.348** | **3.069** | 59 |
 
 ### TE
@@ -763,12 +807,14 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | **1.957** | -0.381 | **0.531** | **2.417** | 62 |
 | `v20_learned_usage` | 2.445 | -1.277 | 0.367 | 2.807 | 62 |
 | `v21_tiered_regression` | **1.848** | +0.097 | **0.554** | **2.356** | 62 |
-| `v22_advanced_receiving` | 2.260 | -1.085 | 0.429 | 2.667 | 62 |
+| `v22_advanced_receiving` | **1.988** | -0.782 | **0.550** | **2.365** | 76 |
 | `v23_draft_capital` | 2.364 | -1.117 | 0.373 | 2.793 | 62 |
 | `v25_draft_capital_residual` | **1.981** | -0.738 | **0.548** | **2.371** | 76 |
 | `v26_vegas_residual` | 2.241 | -1.032 | 0.436 | 2.650 | 62 |
-| `v27_vegas_full_refit` | 2.168 | -0.767 | **0.467** | **2.577** | 62 |
+| `v27_vegas_full_refit` | **1.990** | -0.732 | **0.543** | **2.383** | 76 |
 | `v28_reliability_weighting` | 2.049 | -0.867 | **0.526** | **2.428** | 76 |
+| `v29_reliability_residual` | 2.042 | -0.823 | **0.525** | **2.431** | 76 |
+| `v30_reliability_full_refit` | 2.111 | -0.810 | **0.484** | **2.532** | 76 |
 | `external_fantasypros_v1` | **1.480** | +0.746 | **0.678** | **2.070** | 61 |
 
 ### K
@@ -796,12 +842,14 @@ Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed
 | `v19_usage_level_full` | **1.635** | -0.067 | **-0.362** | **2.130** | 30 |
 | `v20_learned_usage` | **1.709** | -0.739 | **-0.346** | **2.118** | 30 |
 | `v21_tiered_regression` | **1.748** | +0.089 | **-0.548** | **2.271** | 30 |
-| `v22_advanced_receiving` | **1.766** | -0.807 | **-0.406** | **2.164** | 30 |
+| `v22_advanced_receiving` | 1.907 | -1.005 | **-0.338** | **2.341** | 32 |
 | `v23_draft_capital` | **1.659** | -0.654 | **-0.302** | **2.083** | 30 |
 | `v25_draft_capital_residual` | 1.909 | -1.006 | **-0.338** | **2.341** | 32 |
 | `v26_vegas_residual` | **1.767** | -0.808 | **-0.407** | **2.165** | 30 |
-| `v27_vegas_full_refit` | **1.601** | -0.431 | **-0.262** | **2.050** | 30 |
+| `v27_vegas_full_refit` | **1.732** | -0.633 | **-0.186** | **2.204** | 32 |
 | `v28_reliability_weighting` | **1.786** | -0.777 | **-0.245** | **2.258** | 32 |
+| `v29_reliability_residual` | **1.793** | -0.786 | **-0.248** | **2.261** | 32 |
+| `v30_reliability_full_refit` | **1.681** | -0.570 | **-0.154** | **2.174** | 32 |
 | `external_fantasypros_v1` | — | — | — | — | — |
 
 ## All Seasons Combined
@@ -833,12 +881,14 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v19_usage_level_full` | **2.550** | -0.139 | **0.548** | **3.408** | 876 |
 | `v20_learned_usage` | **2.619** | -0.613 | **0.545** | **3.421** | 876 |
 | `v21_tiered_regression` | **2.610** | +0.303 | **0.518** | **3.517** | 876 |
-| `v22_advanced_receiving` | **2.601** | -0.725 | **0.533** | **3.469** | 876 |
+| `v22_advanced_receiving` | **2.546** | -0.650 | **0.565** | **3.396** | 932 |
 | `v23_draft_capital` | **2.578** | -0.565 | **0.556** | **3.380** | 876 |
-| `v25_draft_capital_residual` | **2.542** | -0.675 | **0.566** | **3.393** | 932 |
+| `v25_draft_capital_residual` | **2.543** | -0.674 | **0.565** | **3.394** | 932 |
 | `v26_vegas_residual` | **2.583** | -0.772 | **0.535** | **3.463** | 876 |
-| `v27_vegas_full_refit` | **2.498** | -0.172 | **0.582** | **3.276** | 876 |
+| `v27_vegas_full_refit` | **2.483** | -0.230 | **0.600** | **3.248** | 932 |
 | `v28_reliability_weighting` | **2.533** | -0.373 | **0.584** | **3.323** | 926 |
+| `v29_reliability_residual` | **2.521** | -0.469 | **0.586** | **3.312** | 926 |
+| `v30_reliability_full_refit` | **2.507** | -0.376 | **0.590** | **3.302** | 926 |
 | `external_fantasypros_v1` | **2.489** | +1.196 | **0.608** | **3.409** | 651 |
 
 ### QB
@@ -866,12 +916,14 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v19_usage_level_full` | **3.792** | -0.308 | **0.346** | **4.858** | 177 |
 | `v20_learned_usage` | **3.700** | -0.650 | **0.383** | **4.738** | 177 |
 | `v21_tiered_regression` | **3.917** | +0.084 | **0.287** | **5.060** | 177 |
-| `v22_advanced_receiving` | **3.789** | -1.220 | **0.315** | **5.019** | 177 |
+| `v22_advanced_receiving` | **3.809** | -1.215 | **0.308** | **5.046** | 177 |
 | `v23_draft_capital` | **3.709** | -0.306 | **0.383** | **4.736** | 177 |
 | `v25_draft_capital_residual` | **3.813** | -1.120 | **0.307** | **5.043** | 177 |
 | `v26_vegas_residual` | **3.760** | -1.151 | **0.317** | **5.005** | 177 |
-| `v27_vegas_full_refit` | **3.697** | +0.280 | **0.405** | **4.622** | 177 |
+| `v27_vegas_full_refit` | **3.676** | +0.284 | **0.404** | **4.627** | 177 |
 | `v28_reliability_weighting` | **3.741** | -0.295 | **0.367** | **4.801** | 176 |
+| `v29_reliability_residual` | **3.736** | -0.368 | **0.370** | **4.797** | 176 |
+| `v30_reliability_full_refit` | **3.706** | -0.230 | **0.377** | **4.774** | 176 |
 | `external_fantasypros_v1` | **3.747** | +2.191 | **0.302** | **5.075** | 150 |
 
 ### RB
@@ -899,12 +951,14 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v19_usage_level_full` | **3.020** | -0.122 | **0.359** | **3.858** | 174 |
 | `v20_learned_usage` | **3.113** | -0.591 | **0.375** | **3.886** | 174 |
 | `v21_tiered_regression` | **3.064** | +0.558 | **0.323** | **3.961** | 174 |
-| `v22_advanced_receiving` | **3.095** | -0.365 | **0.384** | **3.840** | 174 |
+| `v22_advanced_receiving` | **3.042** | -0.331 | **0.424** | **3.781** | 196 |
 | `v23_draft_capital` | **3.118** | -0.481 | **0.389** | **3.840** | 174 |
 | `v25_draft_capital_residual` | **3.050** | -0.427 | **0.426** | **3.777** | 196 |
 | `v26_vegas_residual` | **3.069** | -0.469 | **0.384** | **3.835** | 174 |
-| `v27_vegas_full_refit` | **2.987** | -0.149 | **0.402** | **3.760** | 174 |
+| `v27_vegas_full_refit` | **3.009** | -0.310 | **0.427** | **3.757** | 196 |
 | `v28_reliability_weighting` | **3.029** | -0.276 | **0.424** | **3.787** | 195 |
+| `v29_reliability_residual` | **3.042** | -0.430 | **0.428** | **3.776** | 195 |
+| `v30_reliability_full_refit` | **3.096** | -0.426 | **0.422** | **3.809** | 195 |
 | `external_fantasypros_v1` | **2.688** | +1.269 | **0.496** | **3.356** | 149 |
 
 ### WR
@@ -932,12 +986,14 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v19_usage_level_full` | **2.545** | -0.224 | **0.329** | **3.151** | 209 |
 | `v20_learned_usage` | **2.636** | -0.460 | **0.283** | **3.222** | 209 |
 | `v21_tiered_regression` | **2.579** | +0.241 | **0.315** | **3.198** | 209 |
-| `v22_advanced_receiving` | **2.585** | -0.799 | **0.301** | **3.183** | 209 |
+| `v22_advanced_receiving` | **2.437** | -0.612 | **0.484** | **2.978** | 227 |
 | `v23_draft_capital` | **2.507** | -0.809 | **0.333** | **3.112** | 209 |
 | `v25_draft_capital_residual` | **2.424** | -0.746 | **0.486** | **2.978** | 227 |
 | `v26_vegas_residual` | **2.561** | -1.014 | **0.298** | **3.180** | 209 |
-| `v27_vegas_full_refit` | **2.394** | -0.306 | **0.409** | **2.940** | 209 |
+| `v27_vegas_full_refit` | **2.357** | -0.346 | **0.520** | **2.871** | 227 |
 | `v28_reliability_weighting` | **2.449** | -0.285 | **0.495** | **2.958** | 223 |
+| `v29_reliability_residual` | **2.402** | -0.537 | **0.508** | **2.926** | 223 |
+| `v30_reliability_full_refit` | **2.365** | -0.422 | **0.526** | **2.872** | 223 |
 | `external_fantasypros_v1` | **2.142** | +0.710 | **0.492** | **2.710** | 178 |
 
 ### TE
@@ -965,12 +1021,14 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v19_usage_level_full` | **1.753** | -0.057 | **0.531** | **2.182** | 206 |
 | `v20_learned_usage` | 1.930 | -0.827 | 0.465 | 2.359 | 206 |
 | `v21_tiered_regression` | **1.792** | +0.388 | **0.497** | **2.244** | 206 |
-| `v22_advanced_receiving` | 1.811 | -0.599 | **0.510** | **2.251** | 206 |
+| `v22_advanced_receiving` | **1.751** | -0.520 | **0.543** | **2.169** | 220 |
 | `v23_draft_capital` | 1.876 | -0.665 | 0.481 | 2.322 | 206 |
-| `v25_draft_capital_residual` | **1.736** | -0.477 | **0.548** | **2.160** | 220 |
+| `v25_draft_capital_residual` | **1.740** | -0.473 | **0.544** | **2.167** | 220 |
 | `v26_vegas_residual` | 1.804 | -0.554 | **0.512** | **2.247** | 206 |
-| `v27_vegas_full_refit` | **1.799** | -0.392 | **0.516** | **2.231** | 206 |
+| `v27_vegas_full_refit` | **1.765** | -0.400 | **0.536** | **2.186** | 220 |
 | `v28_reliability_weighting` | **1.798** | -0.566 | **0.536** | **2.192** | 220 |
+| `v29_reliability_residual` | **1.785** | -0.518 | **0.539** | **2.186** | 220 |
+| `v30_reliability_full_refit` | **1.775** | -0.469 | **0.534** | **2.204** | 220 |
 | `external_fantasypros_v1` | **1.591** | +0.774 | **0.583** | **2.032** | 174 |
 
 ### K
@@ -998,10 +1056,12 @@ _Weighted averages across all seasons (weighted by player count N). RMSE is appr
 | `v19_usage_level_full` | **1.314** | +0.117 | **-0.507** | **1.790** | 110 |
 | `v20_learned_usage` | **1.359** | -0.476 | **-0.454** | **1.750** | 110 |
 | `v21_tiered_regression` | **1.384** | +0.207 | **-0.691** | **1.901** | 110 |
-| `v22_advanced_receiving` | **1.417** | -0.589 | **-0.565** | **1.800** | 110 |
+| `v22_advanced_receiving` | 1.464 | -0.649 | **-0.543** | **1.869** | 112 |
 | `v23_draft_capital` | **1.353** | -0.465 | **-0.454** | **1.745** | 110 |
 | `v25_draft_capital_residual` | 1.465 | -0.651 | **-0.544** | **1.869** | 112 |
 | `v26_vegas_residual` | **1.418** | -0.590 | **-0.566** | **1.800** | 110 |
-| `v27_vegas_full_refit` | **1.302** | -0.274 | **-0.394** | **1.717** | 110 |
+| `v27_vegas_full_refit` | **1.345** | -0.335 | **-0.370** | **1.777** | 112 |
 | `v28_reliability_weighting` | **1.384** | -0.459 | **-0.427** | **1.808** | 112 |
+| `v29_reliability_residual` | **1.389** | -0.466 | **-0.431** | **1.810** | 112 |
+| `v30_reliability_full_refit` | **1.317** | -0.239 | **-0.323** | **1.755** | 112 |
 | `external_fantasypros_v1` | — | — | — | — | — |
