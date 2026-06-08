@@ -18,7 +18,7 @@ from typing import Any, Optional
 import pandas as pd
 
 from scripts.config import get_supabase_client, fetch_all_rows, POSITIONS, MIN_GAMES
-from scripts.analysis_utils import fetch_multi_season_stats
+from scripts.analysis_utils import fetch_multi_season_stats, fetch_multi_season_nfl_stats
 from scripts.feature_projections.features import FEATURE_REGISTRY
 from scripts.feature_projections.features.base import ProjectionFeature
 from scripts.feature_projections.combiner import combine_features
@@ -99,14 +99,8 @@ def _run_combo(
         if history_df.empty:
             continue
 
-        # Fetch historical nfl_stats
-        nfl_stats_res = (
-            supabase.table("nfl_stats")
-            .select("*")
-            .in_("season", historical_seasons)
-            .execute()
-        )
-        nfl_stats_all = pd.DataFrame(nfl_stats_res.data or [])
+        # Fetch historical nfl_stats (paginated past the 1000-row cap; GH #562).
+        nfl_stats_all = fetch_multi_season_nfl_stats(historical_seasons)
         for col in [
             "total_points", "games_played", "targets", "rushing_attempts",
             "passing_yards", "passing_tds", "interceptions", "rushing_yards",

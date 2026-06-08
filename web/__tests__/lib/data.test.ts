@@ -37,6 +37,7 @@ function makeBuilder(table: string) {
     builder.gt = chain("gt");
     builder.lte = chain("lte");
     builder.order = chain("order");
+    builder.range = chain("range");
 
     const result = () => {
         const entry = tableResults.get(table);
@@ -55,6 +56,22 @@ function makeBuilder(table: string) {
 jest.mock("@/lib/supabase", () => ({
     supabase: {
         from: jest.fn((table: string) => makeBuilder(table)),
+    },
+    // Real paging logic: the mock builder's .range() is thenable and resolves
+    // to the full (sub-1000-row) fixture, so this returns after one page.
+    fetchAllRows: async (
+        buildPage: (f: number, t: number) => PromiseLike<{ data: unknown[] | null; error: { message: string } | null }>,
+    ) => {
+        const pageSize = 1000;
+        const out: unknown[] = [];
+        for (let offset = 0; ; offset += pageSize) {
+            const { data, error } = await buildPage(offset, offset + pageSize - 1);
+            if (error) throw new Error(error.message);
+            if (!data || data.length === 0) break;
+            out.push(...data);
+            if (data.length < pageSize) break;
+        }
+        return out;
     },
 }));
 
@@ -148,7 +165,9 @@ describe("fetchPlayers", () => {
         setTable("player_stats", statsRows);
         setTable("league_prices", pricesRows);
 
-        await expect(fetchPlayers()).rejects.toThrow(/Failed to fetch players/);
+        // The paginated players read now surfaces the underlying DB error
+        // (via fetchAllRows) rather than a wrapped "Failed to fetch players".
+        await expect(fetchPlayers()).rejects.toThrow(/boom/);
     });
 
     test("defaults price to 0 and team_name to null when prices row is missing", async () => {

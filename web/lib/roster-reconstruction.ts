@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase, fetchAllRows } from "./supabase";
 import { LEAGUE_ID, CAP_PER_TEAM } from "./config";
 import { getLeagueSeason, getStatsSeason, type SeasonContext } from "./season";
 
@@ -75,29 +75,39 @@ export async function fetchRosterData(): Promise<RosterData> {
     getLeagueSeason(),
     getStatsSeason(),
   ]);
-  const [txnRes, playersRes, statsRes, pricesRes] = await Promise.all([
-    supabase
-      .from("transactions")
-      .select("player_id, transaction_type, team_name, salary, transaction_date")
-      .eq("league_id", LEAGUE_ID)
-      .eq("season", leagueSeason)
-      .order("transaction_date", { ascending: true }),
-    supabase.from("players").select("id, ottoneu_id, name, position, nfl_team").gt("ottoneu_id", 0),
+  // Paginate the league-wide reads (players ~1,252, league_prices ~1,252, and
+  // transactions which can approach the cap) past PostgREST's 1000-row default.
+  const [transactions, players, statsRes, leaguePrices] = await Promise.all([
+    fetchAllRows((from, to) =>
+      supabase
+        .from("transactions")
+        .select("player_id, transaction_type, team_name, salary, transaction_date")
+        .eq("league_id", LEAGUE_ID)
+        .eq("season", leagueSeason)
+        .order("transaction_date", { ascending: true })
+        .range(from, to),
+    ),
+    fetchAllRows((from, to) =>
+      supabase.from("players").select("id, ottoneu_id, name, position, nfl_team").gt("ottoneu_id", 0).range(from, to),
+    ),
     supabase
       .from("player_stats")
       .select("player_id, ppg, pps, games_played, snaps")
       .eq("season", statsSeason),
-    supabase
-      .from("league_prices")
-      .select("player_id, price, team_name")
-      .eq("league_id", LEAGUE_ID),
+    fetchAllRows((from, to) =>
+      supabase
+        .from("league_prices")
+        .select("player_id, price, team_name")
+        .eq("league_id", LEAGUE_ID)
+        .range(from, to),
+    ),
   ]);
 
   return {
-    transactions: (txnRes.data as RawTransaction[]) ?? [],
-    players: (playersRes.data as RawPlayer[]) ?? [],
+    transactions: transactions as RawTransaction[],
+    players: players as RawPlayer[],
     stats: (statsRes.data as RawStats[]) ?? [],
-    leaguePrices: (pricesRes.data as RawLeaguePrice[]) ?? [],
+    leaguePrices: leaguePrices as RawLeaguePrice[],
   };
 }
 
