@@ -25,6 +25,7 @@ Several formerly-standalone pages were consolidated into **tabbed routes** using
 | `/depth-charts` | Opening-day NFL depth-chart review (team cards grouped by division, QB/RB/WR/TE tiers, role-change arrows, active-model projected PPG, season selector) — spot-check the data feeding the `depth_chart_position_raw` / `role_change_raw` projection features |
 | `/login` | Email/password login |
 | `/admin` | User management (admin only) |
+| `/admin/workflows` | Workflow status history (admin only) — GitHub-status-style grid of the scheduled GitHub Actions over the last 21 days, read live from the public GitHub Actions API (server-side; no token required, optional `GITHUB_TOKEN` for rate limit) |
 
 ## Reusable Components
 
