@@ -411,6 +411,40 @@ MODELS: dict[str, ModelDefinition] = {
             "implied_team_total_raw*position",
         ],
     ),
+    "v28_reliability_weighting": ModelDefinition(
+        name="v28_reliability_weighting",
+        version=1,
+        description=(
+            "v22 (advanced receiving learned ridge) with the base feature swapped "
+            "from weighted_ppg_no_qb_trajectory to weighted_ppg_reliability_no_qb: "
+            "the per-season games-played reliability factor uses exponent 1.5 "
+            "instead of linear 1.0, so a recent low-games season is down-weighted "
+            "more aggressively relative to an older full season. Isolated A/B vs "
+            "v22 — only the base feature's small-sample handling differs. "
+            "Addresses the concern that a 3-game recent season carries less signal "
+            "than a 17-game season two years prior."
+        ),
+        features=[
+            "weighted_ppg_reliability_no_qb",
+            "age_curve",
+            "regression_to_mean",
+            "qb_backup_penalty",
+            "usage_share_raw",
+            "target_share_raw",
+            "air_yards_share_raw",
+            "wopr_raw",
+            "racr_raw",
+        ],
+        combiner_type="learned",
+        interaction_terms=[
+            "usage_share_raw*position",
+            "usage_share_raw*base_ppg",
+            "usage_share_raw^2",
+            "target_share_raw*position",
+            "wopr_raw*base_ppg",
+            "wopr_raw^2",
+        ],
+    ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
         version=1,

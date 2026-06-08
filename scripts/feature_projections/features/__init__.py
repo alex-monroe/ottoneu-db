@@ -6,6 +6,7 @@ All features register themselves here. The registry maps feature name -> class.
 from scripts.feature_projections.features.weighted_ppg import (
     WeightedPPGFeature,
     WeightedPPGNoQBTrajectoryFeature,
+    WeightedPPGReliabilityNoQBFeature,
     WeightedPPGRookieGrowthFeature,
     WeightedPPGRookieGrowthNoQBFeature,
 )
@@ -40,6 +41,7 @@ from scripts.feature_projections.features.vegas_team_total import (
 FEATURE_REGISTRY: dict[str, type] = {
     "weighted_ppg": WeightedPPGFeature,
     "weighted_ppg_no_qb_trajectory": WeightedPPGNoQBTrajectoryFeature,
+    "weighted_ppg_reliability_no_qb": WeightedPPGReliabilityNoQBFeature,
     "age_curve": AgeCurveFeature,
     "stat_efficiency": StatEfficiencyFeature,
     "games_played": GamesPlayedFeature,
