@@ -22,6 +22,7 @@ Several formerly-standalone pages were consolidated into **tabbed routes** using
 | `/value` | Tabbed: **VORP** (bar chart + table) · **Surplus** (rankings, bargains, overpaid, team summaries) · **Adjustments** (per-user manual value overrides) |
 | `/arbitration` | Tabbed: **Targets** (per-opponent breakdown) · **Simulation** (Monte Carlo) · **Planner** (save budget allocations). The Targets/Simulation value-mode toggle uses `?mode=` and preserves `?tab=` via `ModeToggle`'s `extraParams`. |
 | `/vegas-lines` | Preseason Vegas implied team totals review (AFC/NFC division cards, season selector) — spot-check the data feeding the `implied_team_total_raw` projection feature |
+| `/depth-charts` | Opening-day NFL depth-chart review (team cards grouped by division, QB/RB/WR/TE tiers, role-change arrows, active-model projected PPG, season selector) — spot-check the data feeding the `depth_chart_position_raw` / `role_change_raw` projection features |
 | `/login` | Email/password login |
 | `/admin` | User management (admin only) |
 

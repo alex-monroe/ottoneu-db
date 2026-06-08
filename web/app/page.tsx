@@ -15,6 +15,7 @@ import {
   ExternalLink,
   ArrowRight,
   CalendarClock,
+  Network,
   type LucideIcon,
 } from "lucide-react";
 import { getSeasonContextNow } from "@/lib/season";
@@ -60,6 +61,7 @@ const HUB_GROUPS: HubGroup[] = [
       { href: "/projected-salary", title: "Projected Salary", description: "Keep-or-cut decisions against projected value.", icon: DollarSign },
       { href: "/projection-accuracy", title: "Projection Accuracy", description: "Backtest accuracy explorer across models.", icon: Target },
       { href: "/vegas-lines", title: "Vegas Lines", description: "Preseason implied team totals feeding the model.", icon: TrendingUp },
+      { href: "/depth-charts", title: "Depth Charts", description: "Opening-day NFL roles the projections are built on.", icon: Network },
     ],
   },
   {
