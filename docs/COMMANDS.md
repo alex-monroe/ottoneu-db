@@ -114,6 +114,7 @@ just roster-context [season]  # Build the roster-question context pack (live lea
 just list-models                                    # List available models
 just project <model> [seasons]                      # Generate projections
 just backtest <model> [seasons]                     # Backtest against actuals
+just rookie-backtest [--seasons ...] [--output ...] # Backtest rookie (0-history) path vs baselines
 just train <model> [seasons]                        # Train a learned model
 just promote <model>                                # Promote model to production
 just compare <models> [season]                      # Compare two or more models
