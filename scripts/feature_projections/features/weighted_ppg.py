@@ -40,6 +40,17 @@ class WeightedPPGFeature(ProjectionFeature):
     ROOKIE_MIN_FACTOR = 0.75
     ROOKIE_MAX_FACTOR = 1.50
 
+    # Exponent applied to the per-season games-played reliability factor in
+    # _weighted_average. The effective weight of a season is
+    #   recency_weight * (games_played / 17) ** GAMES_RELIABILITY_EXPONENT.
+    # 1.0 (default) is linear inverse-variance weighting — a 3-game season
+    # contributes 3/17 of a full season's reliability. Values > 1.0 down-weight
+    # small samples more aggressively (a steeper reliability curve), reflecting
+    # that very-low-games seasons can be noisier than pure variance predicts
+    # (injury/situational/garbage-time effects). 1.0 leaves output byte-identical
+    # to the historical behaviour, so existing models are unaffected.
+    GAMES_RELIABILITY_EXPONENT = 1.0
+
     @property
     def name(self) -> str:
         return "weighted_ppg"
@@ -78,7 +89,7 @@ class WeightedPPGFeature(ProjectionFeature):
 
         for i, (_, row) in enumerate(recent.iloc[::-1].iterrows()):
             recency_w = weights[i]
-            games_scale = float(row["games_played"]) / 17.0
+            games_scale = (float(row["games_played"]) / 17.0) ** self.GAMES_RELIABILITY_EXPONENT
             effective_w = recency_w * games_scale
 
             numerator += float(row["ppg"]) * effective_w
@@ -135,6 +146,33 @@ class WeightedPPGNoQBTrajectoryFeature(WeightedPPGFeature):
     @property
     def name(self) -> str:
         return "weighted_ppg_no_qb_trajectory"
+
+    @property
+    def is_base(self) -> bool:
+        return True
+
+
+class WeightedPPGReliabilityNoQBFeature(WeightedPPGNoQBTrajectoryFeature):
+    """WeightedPPG (no QB/K trajectory) with a steeper small-sample reliability curve.
+
+    Identical to WeightedPPGNoQBTrajectoryFeature except the per-season
+    games-played reliability factor is raised to GAMES_RELIABILITY_EXPONENT = 1.5
+    instead of the default linear 1.0. This relatively penalises very-low-games
+    seasons harder when blending the recency-weighted average: a 3-game season's
+    reliability drops from 3/17 ≈ 0.18 (linear) to (3/17)**1.5 ≈ 0.074, so a
+    fuller prior season dominates more decisively.
+
+    Veterans with all-full seasons are essentially unchanged (a 17-game season's
+    factor is 1.0 regardless of exponent). The exponent only bites when a season
+    is partial — exactly the case the user flagged: a recent low-games season
+    carrying less signal than an older full season.
+    """
+
+    GAMES_RELIABILITY_EXPONENT = 1.5
+
+    @property
+    def name(self) -> str:
+        return "weighted_ppg_reliability_no_qb"
 
     @property
     def is_base(self) -> bool:
