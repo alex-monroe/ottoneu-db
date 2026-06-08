@@ -8,7 +8,7 @@ Tests the build_stats_data function to ensure it:
 import pandas as pd
 import pytest
 
-from scripts.tasks.scrape_roster import build_stats_data
+from scripts.tasks.scrape_roster import build_stats_data, choose_prospect_to_adopt
 
 
 # --- Fixtures ---
@@ -155,6 +155,39 @@ def test_build_stats_data_preserves_existing_on_empty_nfl_stats():
 
 
 # --- Tests: half-season splits ---
+
+# --- Tests: prospect adoption (duplicate-player guard) ---
+
+def test_adopt_positive_id_prospect_with_draft_capital():
+    """A drafted prospect with a positive placeholder id + draft capital is adopted."""
+    candidates = [{"id": "prospect-uuid", "ottoneu_id": 122070, "has_draft_capital": True}]
+    assert choose_prospect_to_adopt(candidates) == "prospect-uuid"
+
+
+def test_adopt_negative_synthetic_backfill_record():
+    """The original behavior — negative synthetic ids — still adopts."""
+    candidates = [{"id": "synthetic-uuid", "ottoneu_id": -123, "has_draft_capital": False}]
+    assert choose_prospect_to_adopt(candidates) == "synthetic-uuid"
+
+
+def test_no_adoption_for_unrelated_real_player():
+    """A same-name+position real player without draft capital is NOT adopted."""
+    candidates = [{"id": "other-real", "ottoneu_id": 4321, "has_draft_capital": False}]
+    assert choose_prospect_to_adopt(candidates) is None
+
+
+def test_no_candidates_returns_none():
+    assert choose_prospect_to_adopt([]) is None
+
+
+def test_prospect_preferred_over_unrelated_real_namesake():
+    """With a real namesake and a draft-capital prospect, adopt the prospect."""
+    candidates = [
+        {"id": "real-namesake", "ottoneu_id": 5000, "has_draft_capital": False},
+        {"id": "prospect", "ottoneu_id": 99001, "has_draft_capital": True},
+    ]
+    assert choose_prospect_to_adopt(candidates) == "prospect"
+
 
 def test_build_stats_data_without_h1h2_columns():
     """When snap data lacks h1/h2 columns, half-season values default to 0."""

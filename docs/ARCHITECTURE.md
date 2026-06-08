@@ -30,6 +30,8 @@ Three task types:
 
 Jobs support dependencies, retries (up to 3 attempts), and batch grouping. `ottoneu_scraper.py` is a backward-compatible wrapper that enqueues a batch and runs the worker. Data is upserted into three tables: `players`, `player_stats`, `league_prices`.
 
+**Player identity across the college→NFL transition.** One human can hold multiple Ottoneu IDs over their lifecycle: a college prospect is backfilled with a placeholder `ottoneu_id` (and often a `draft_capital` row), then gets a *new* real id once drafted and rostered. `scrape_roster` reconciles this before inserting (`choose_prospect_to_adopt`): when no row owns the incoming real id, it adopts a same-`(name, position)` prospect record — one with a synthetic negative id **or** carrying draft capital — by updating its id, instead of creating a duplicate. (Earlier it only matched negative synthetic ids, so positively-keyed drafted prospects duplicated — stranding draft capital + projections on the orphan while the site showed the canonical row. The one-off `scripts/merge_duplicate_drafted_players.py` reconciled the existing dupes; the guard prevents recurrence. See GH #483.)
+
 ### NFL Stats (separate from Ottoneu data)
 
 `nfl_stats` stores pure NFL statistical data from nflverse-data (2010–present), kept separate from the Ottoneu fantasy data in `player_stats`. Backfilled via `scripts/backfill_nfl_stats.py` or the `Backfill NFL Stats` GitHub Action.
