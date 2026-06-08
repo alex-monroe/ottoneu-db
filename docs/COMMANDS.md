@@ -133,7 +133,30 @@ just scrape-calendar [--dry-run]                      # Scrape the Ottoneu finan
 just py "<python-snippet>"                          # Run a one-off Python snippet against the project venv (read-only diagnostics)
 ```
 
-## Daily Scheduling (cron)
+## Scheduled & On-Demand Automation
+
+Production scheduling lives in **GitHub Actions** (`.github/workflows/`), not a local cron.
+The cron snippets at the bottom of this section are kept only as a reference for what an
+equivalent self-hosted setup would look like.
+
+### GitHub Actions
+
+| Workflow | Trigger | What it runs |
+|----------|---------|--------------|
+| `scrape-players.yml` | Daily 06:00 UTC (gated to Sep–Jan) + `workflow_dispatch` | `scripts/ottoneu_scraper.py` — full roster + player-card scrape (uses `SUPABASE_URL` / `SUPABASE_SECRET_KEY`) |
+| `scrape-arbitration-progress.yml` | Every 6h (gated to Jan–Mar + Apr 1) + `workflow_dispatch` | `scripts/scrape_arbitration_progress.py` — pulls per-team allocation status via FanGraphs login (`FANGRAPHS_USERNAME` / `FANGRAPHS_PASSWORD`) |
+| `scrape-draft-sharks.yml` | Mondays 08:00 UTC + `workflow_dispatch` | `scripts/scrape_draft_sharks.py` — Draft Sharks Half-PPR Superflex auction values (no in-season gate; ×2 for the $400 cap) |
+| `scrape-league-calendar.yml` | Mondays 12:00 UTC + `workflow_dispatch` | `scripts/scrape_league_calendar.py` — refreshes `league_calendar`, the source of truth for the season-cycle resolver. Requires FanGraphs login. |
+| `update-projections.yml` | Push to `main` touching `scripts/projection_methods.py`, `scripts/update_projections.py`, or `scripts/config.py` + `workflow_dispatch` | `scripts/update_projections.py` — re-runs the active model and promotes its outputs into `player_projections` |
+| `backfill-nfl-stats.yml` | `workflow_dispatch` only (seasons + dry-run inputs) | `scripts/backfill_nfl_stats.py` — historical NFL stats backfill from nflverse |
+| `backfill-player-stats.yml` | `workflow_dispatch` only (seasons input) | Historical Ottoneu `player_stats` backfill |
+| `run-tests.yml` | Push & PR against `main`/`master` | Full CI — Python (`pytest`) + web (Jest) + doc freshness check |
+| `claude-code-review.yml` | PR opened by Jules · `/claude-review` comment · `workflow_dispatch` | Claude-driven automated code review on the target PR |
+
+All scheduled scraping workflows that hit Supabase use the **service key**
+(`secrets.SUPABASE_SECRET_KEY`) for writes — anon would be blocked by RLS.
+
+### Equivalent local cron (reference only)
 
 ```bash
 # Daily at 6 AM: enqueue batch and run worker
@@ -142,15 +165,3 @@ just py "<python-snippet>"                          # Run a one-off Python snipp
 # Every 6 hours (Jan-Mar): scrape arbitration progress
 0 */6 * 1-3 * cd /path/to/ottoneu_db && source venv/bin/activate && python scripts/scrape_arbitration_progress.py
 ```
-
-### GitHub Actions
-
-- `.github/workflows/scrape-draft-sharks.yml` — scrapes Draft Sharks auction values weekly
-  (Mondays 08:00 UTC) and on manual `workflow_dispatch`. Runs `scripts/scrape_draft_sharks.py`
-  via Playwright; no in-season gate (auction values matter year-round). Requires the
-  `SUPABASE_URL` / `SUPABASE_KEY` repo secrets.
-- `.github/workflows/scrape-league-calendar.yml` — scrapes the Ottoneu finances Calendar
-  weekly (Mondays 12:00 UTC) and on manual `workflow_dispatch`. Runs
-  `scripts/scrape_league_calendar.py` via Playwright (FanGraphs login required) to refresh
-  `league_calendar`, the source of truth for the season-cycle resolver. Requires the
-  `SUPABASE_URL` / `SUPABASE_KEY` / `FANGRAPHS_USERNAME` / `FANGRAPHS_PASSWORD` repo secrets.
