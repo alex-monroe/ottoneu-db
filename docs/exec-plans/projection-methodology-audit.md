@@ -60,10 +60,56 @@ different experiment-log rows had different amounts of contamination.
    surface the out-of-sample **LOSO CV MAE** next to the in-sample backtest MAE
    so the optimism gap is visible. See `accuracy_report.py`
    `generate_leakage_section` / `--no-leakage-section`.
-2. **(follow-up, Finding 1b)** Adopt a fixed held-out window — train on ≤2023,
+2. **(shipped, Finding 1b)** Adopt a fixed held-out window — train on ≤2023,
    evaluate 2024–2025 for *all* models (additive, learned, external) — so every
-   model is judged on the same untouched data. Re-rank everything; expect the
-   ranking to compress.
+   model is judged on the same untouched data. See results below.
+
+### Finding 1b result — held-out re-ranking (`just holdout-eval`, #572)
+
+`scripts/feature_projections/holdout_eval.py` retrains every learned/residual
+model on **2021–2023** (into a temp dir, so production JSONs and
+`model_projections` are untouched) and scores **2024–2025** out-of-sample, with
+additive/external models read from their already-held-out projections — all
+through the identical `backtest_model` filter. Full table:
+[projection-holdout-eval.md](../generated/projection-holdout-eval.md).
+
+**The leaked ranking does not just compress — it inverts.** Combined held-out
+ALL MAE (N≈635–647):
+
+| | Leaked (in-sample) | Held-out (honest) |
+|---|---|---|
+| #1 model | `v31_depth_chart` 2.358 | `v14_qb_starter` (additive) **2.450** |
+| `v31_depth_chart` rank | 1 / 30 | **22 / 30** (2.660) |
+| Learned family (`v20`–`v31`) | top of table | **ranks 22–30 — the entire bottom** |
+| `v1_baseline` | last | rank 21 (2.633) — beats every learned model |
+| FantasyPros | mid-pack | rank 3 (2.462) |
+
+Every additive model and FantasyPros beat every learned model out-of-sample.
+The learned stack's apparent superiority was an artifact of train/test leakage.
+Out of sample the learned models also carry a large **over-projection bias**
+(−1.0 to −1.3 PPG vs additive ≈ −0.2), i.e. they systematically project too
+high — they only "win" on R²/RMSE because they fit the variance shape while
+being biased.
+
+Nuance (don't over-read): the learned models *do* win **QB** MAE
+(e.g. `v22` 3.589 vs `v14` 3.783), so the learned approach captures real
+QB-specific signal; it is the aggregate, dominated by over-projection on
+RB/WR/TE/K, that sinks them.
+
+Caveats: under the clean protocol the learned models train on 3 seasons
+(2021–2023) vs the 5 they used (with leakage) in production, and they score a
+slightly smaller player set (N≈635 vs 647) due to advanced-feature
+availability. A rolling-origin (expanding-window) protocol would be a fairer
+next refinement. But the central conclusion is robust: **the promoted `v31` is
+not the best model out-of-sample, and the learned-model ranking that justified
+v20→v31 was driven by leakage.**
+
+**Recommended actions (new follow-ups):** (a) **done** — prod reverted to the
+additive `v14_qb_starter` (the honest OOS leader, far better calibrated);
+(b) [#579](https://github.com/alex-monroe/ottoneu-db/issues/579) — before any
+learned model is trusted/re-promoted, fix its out-of-sample over-projection bias
+(recalibration) and re-evaluate via `just holdout-eval`, not the leaked
+backtest.
 
 ---
 
@@ -75,9 +121,29 @@ MAE (the `/experiment` `NEUTRAL` band is literally ±0.01). With that many looks
 at one small dataset, some "winners" are sampling noise. No promotion decision
 has been tested for significance.
 
-**Remediation:** add a paired bootstrap over players for the MAE *difference*
-between two models, and require a model to clear a significance/effect-size bar
-(not just a point-estimate delta) before it is promoted.
+**Remediation (shipped):** `scripts/feature_projections/significance.py`
+(`just significance MODEL_A MODEL_B`) computes a paired bootstrap over players of
+the held-out MAE difference, returning a 95% CI and a bootstrap p-value. A
+difference counts as real only if the CI excludes zero. It reuses
+`holdout_eval.gather_predictions`, so it tests the leakage-free out-of-sample
+numbers by default.
+
+### Finding 2 result — most historical "improvements" are within noise
+
+Paired bootstrap on the held-out window (train 2021–2023, eval 2024–2025, ALL,
+10k resamples):
+
+| Comparison | ΔMAE (A−B) | 95% CI | Verdict |
+|---|---|---|---|
+| `v14_qb_starter` vs `v31_depth_chart` (new prod vs old) | −0.263 | [−0.40, −0.13] | **significant** — v14 better |
+| `v14_qb_starter` vs `v19_usage_level_full` (held-out #1 vs #2) | −0.006 | [−0.028, +0.017] | not significant |
+| `v22_advanced_receiving` vs `v27_vegas_full_refit` | −0.029 | [−0.079, +0.022] | not significant |
+
+The promotion back to `v14` clears the bar (CI excludes 0, p≈0). But the
+in-sample "improvements" the experiment log celebrated — e.g. advanced-receiving
+→ draft-capital → Vegas, each worth ~0.01–0.03 MAE — are **not statistically
+distinguishable** out-of-sample. Going forward, no model should be promoted on a
+point-estimate delta that fails `just significance`.
 
 ---
 
@@ -158,8 +224,9 @@ averaged) alongside the pooled number.
 | Finding | Severity | Issue | Status |
 |---|---|---|---|
 | 1 — train/test leakage (report honesty) | 🔴 | [#571](https://github.com/alex-monroe/ottoneu-db/issues/571) | shipped in this PR |
-| 1b — held-out evaluation window | 🔴 | [#572](https://github.com/alex-monroe/ottoneu-db/issues/572) | open |
-| 2 — bootstrap significance on MAE deltas | 🟠 | [#573](https://github.com/alex-monroe/ottoneu-db/issues/573) | open |
+| 1b — held-out evaluation window | 🔴 | [#572](https://github.com/alex-monroe/ottoneu-db/issues/572) | shipped (`just holdout-eval`); ranking inverts — see above |
+| 2 — bootstrap significance on MAE deltas | 🟠 | [#573](https://github.com/alex-monroe/ottoneu-db/issues/573) | shipped (`just significance`); see Finding 2 result |
+| (rec) recalibrate learned models before re-promotion | 🔴 | [#579](https://github.com/alex-monroe/ottoneu-db/issues/579) | open |
 | 3 — availability-inclusive evaluation | 🟠 | [#574](https://github.com/alex-monroe/ottoneu-db/issues/574) | open |
 | 4 — naïve baselines + matched-sample FP | 🟠 | [#575](https://github.com/alex-monroe/ottoneu-db/issues/575) | open |
 | 5 — R² aggregation discipline | 🟡 | [#576](https://github.com/alex-monroe/ottoneu-db/issues/576) | open |

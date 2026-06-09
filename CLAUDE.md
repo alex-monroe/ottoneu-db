@@ -59,7 +59,8 @@ docs/
 │   ├── [db-schema.md](docs/generated/db-schema.md)                   # Database tables, keys, relationships
 │   ├── [experiment-log.md](docs/generated/experiment-log.md)              # History of all model iteration attempts
 │   ├── [player-diagnostics.md](docs/generated/player-diagnostics.md)          # Per-player backtest diagnostics
-│   ├── [projection-accuracy.md](docs/generated/projection-accuracy.md)         # Projection model accuracy report
+│   ├── [projection-accuracy.md](docs/generated/projection-accuracy.md)         # Projection model accuracy report (in-sample; see audit caveat)
+│   ├── [projection-holdout-eval.md](docs/generated/projection-holdout-eval.md)     # Held-out (leakage-free) model re-ranking — `just holdout-eval` (#572)
 │   ├── [rookie-backtest.md](docs/generated/rookie-backtest.md)             # Rookie (0-history) projection backtest — draft_capital vs baselines
 │   └── [segment-analysis.md](docs/generated/segment-analysis.md)            # Segmented projection accuracy analysis
 ├── references/
