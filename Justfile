@@ -122,6 +122,10 @@ rookie-backtest *args:
 train model seasons="2021,2022,2023,2024,2025":
     {{python}} scripts/feature_projections/train_model.py --model {{model}} --seasons {{seasons}}
 
+# Held-out re-rank: retrain learned models on a clean window, score all models OOS (GH #572)
+holdout-eval *args:
+    {{python}} scripts/feature_projections/holdout_eval.py {{args}}
+
 # Promote a model to production  (e.g. just promote v24_learned_elite)
 promote model:
     {{python}} scripts/feature_projections/cli.py promote --model {{model}}

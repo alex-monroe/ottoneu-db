@@ -60,10 +60,55 @@ different experiment-log rows had different amounts of contamination.
    surface the out-of-sample **LOSO CV MAE** next to the in-sample backtest MAE
    so the optimism gap is visible. See `accuracy_report.py`
    `generate_leakage_section` / `--no-leakage-section`.
-2. **(follow-up, Finding 1b)** Adopt a fixed held-out window — train on ≤2023,
+2. **(shipped, Finding 1b)** Adopt a fixed held-out window — train on ≤2023,
    evaluate 2024–2025 for *all* models (additive, learned, external) — so every
-   model is judged on the same untouched data. Re-rank everything; expect the
-   ranking to compress.
+   model is judged on the same untouched data. See results below.
+
+### Finding 1b result — held-out re-ranking (`just holdout-eval`, #572)
+
+`scripts/feature_projections/holdout_eval.py` retrains every learned/residual
+model on **2021–2023** (into a temp dir, so production JSONs and
+`model_projections` are untouched) and scores **2024–2025** out-of-sample, with
+additive/external models read from their already-held-out projections — all
+through the identical `backtest_model` filter. Full table:
+[projection-holdout-eval.md](../generated/projection-holdout-eval.md).
+
+**The leaked ranking does not just compress — it inverts.** Combined held-out
+ALL MAE (N≈635–647):
+
+| | Leaked (in-sample) | Held-out (honest) |
+|---|---|---|
+| #1 model | `v31_depth_chart` 2.358 | `v14_qb_starter` (additive) **2.450** |
+| `v31_depth_chart` rank | 1 / 30 | **22 / 30** (2.660) |
+| Learned family (`v20`–`v31`) | top of table | **ranks 22–30 — the entire bottom** |
+| `v1_baseline` | last | rank 21 (2.633) — beats every learned model |
+| FantasyPros | mid-pack | rank 3 (2.462) |
+
+Every additive model and FantasyPros beat every learned model out-of-sample.
+The learned stack's apparent superiority was an artifact of train/test leakage.
+Out of sample the learned models also carry a large **over-projection bias**
+(−1.0 to −1.3 PPG vs additive ≈ −0.2), i.e. they systematically project too
+high — they only "win" on R²/RMSE because they fit the variance shape while
+being biased.
+
+Nuance (don't over-read): the learned models *do* win **QB** MAE
+(e.g. `v22` 3.589 vs `v14` 3.783), so the learned approach captures real
+QB-specific signal; it is the aggregate, dominated by over-projection on
+RB/WR/TE/K, that sinks them.
+
+Caveats: under the clean protocol the learned models train on 3 seasons
+(2021–2023) vs the 5 they used (with leakage) in production, and they score a
+slightly smaller player set (N≈635 vs 647) due to advanced-feature
+availability. A rolling-origin (expanding-window) protocol would be a fairer
+next refinement. But the central conclusion is robust: **the promoted `v31` is
+not the best model out-of-sample, and the learned-model ranking that justified
+v20→v31 was driven by leakage.**
+
+**Recommended actions (new follow-ups):** (a) reconsider the active model — an
+additive `v12`/`v14`-class model is the honest leader and is far better
+calibrated; (b) before any learned model is trusted/promoted, fix its
+out-of-sample over-projection bias (recalibration) and re-evaluate via
+`just holdout-eval`, not the leaked backtest.
 
 ---
 
@@ -158,7 +203,7 @@ averaged) alongside the pooled number.
 | Finding | Severity | Issue | Status |
 |---|---|---|---|
 | 1 — train/test leakage (report honesty) | 🔴 | [#571](https://github.com/alex-monroe/ottoneu-db/issues/571) | shipped in this PR |
-| 1b — held-out evaluation window | 🔴 | [#572](https://github.com/alex-monroe/ottoneu-db/issues/572) | open |
+| 1b — held-out evaluation window | 🔴 | [#572](https://github.com/alex-monroe/ottoneu-db/issues/572) | shipped (`just holdout-eval`); ranking inverts — see above |
 | 2 — bootstrap significance on MAE deltas | 🟠 | [#573](https://github.com/alex-monroe/ottoneu-db/issues/573) | open |
 | 3 — availability-inclusive evaluation | 🟠 | [#574](https://github.com/alex-monroe/ottoneu-db/issues/574) | open |
 | 4 — naïve baselines + matched-sample FP | 🟠 | [#575](https://github.com/alex-monroe/ottoneu-db/issues/575) | open |
