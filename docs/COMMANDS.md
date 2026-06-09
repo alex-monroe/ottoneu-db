@@ -116,6 +116,8 @@ just project <model> [seasons]                      # Generate projections
 just backtest <model> [seasons]                     # Backtest against actuals
 just rookie-backtest [--seasons ...] [--output ...] # Backtest rookie (0-history) path vs baselines
 just train <model> [seasons]                        # Train a learned model
+just holdout-eval [--train ...] [--eval ...] ...    # Held-out re-rank: retrain learned models on a clean window and score every model OOS (#572)
+just significance <model_a> <model_b> [...]         # Paired bootstrap: is the held-out MAE gap between two models significant? (#573)
 just promote <model>                                # Promote model to production
 just compare <models> [season]                      # Compare two or more models
 just diagnostics [--model <m>] [--season <s>] ...  # Per-player diagnostics
