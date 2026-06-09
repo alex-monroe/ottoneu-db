@@ -57,7 +57,7 @@ const HUB_GROUPS: HubGroup[] = [
     label: "Projections",
     gated: true,
     links: [
-      { href: "/projections", title: "Projections", description: "Recency-weighted projected PPG for every player.", icon: LineChart },
+      { href: "/projections", title: "Projections", description: "Season-long projected PPG for every player — rookies included, ranked by position.", icon: LineChart },
       { href: "/projected-salary", title: "Projected Salary", description: "Keep-or-cut decisions against projected value.", icon: DollarSign },
       { href: "/projection-accuracy", title: "Projection Accuracy", description: "Backtest accuracy explorer across models.", icon: Target },
       { href: "/vegas-lines", title: "Vegas Lines", description: "Preseason implied team totals feeding the model.", icon: TrendingUp },

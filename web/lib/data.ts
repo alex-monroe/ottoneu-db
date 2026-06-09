@@ -46,14 +46,14 @@ async function buildSalaryMapAtDate(
         .eq("league_id", LEAGUE_ID)
         .lte("transaction_date", salaryDate)
         .order("transaction_date", { ascending: true })
-        .range(from, to),
+        .order("id").range(from, to),
     ),
     fetchAllRows((from, to) =>
       supabase
         .from("league_prices")
         .select("player_id, price, team_name")
         .eq("league_id", LEAGUE_ID)
-        .range(from, to),
+        .order("id").range(from, to),
     ),
   ]);
 
@@ -102,7 +102,7 @@ export async function fetchPlayersAtDate(salaryDate: string): Promise<Player[]> 
   // Paginate players (~1,252 with ottoneu_id>0 now exceeds the 1000-row cap).
   const [players, statsRes, salaryMap] = await Promise.all([
     fetchAllRows((from, to) =>
-      supabase.from("players").select("*").gt("ottoneu_id", 0).range(from, to),
+      supabase.from("players").select("*").gt("ottoneu_id", 0).order("id").range(from, to),
     ),
     supabase.from("player_stats").select("*").eq("season", statsSeason),
     buildSalaryMapAtDate(salaryDate),
@@ -171,11 +171,11 @@ export async function fetchPlayers(): Promise<Player[]> {
   // Paginate players (~1,252) and league_prices (~1,252) past the 1000-row cap.
   const [players, statsRes, prices] = await Promise.all([
     fetchAllRows((from, to) =>
-      supabase.from("players").select("*").gt("ottoneu_id", 0).range(from, to),
+      supabase.from("players").select("*").gt("ottoneu_id", 0).order("id").range(from, to),
     ),
     supabase.from("player_stats").select("*").eq("season", statsSeason),
     fetchAllRows((from, to) =>
-      supabase.from("league_prices").select("*").eq("league_id", LEAGUE_ID).range(from, to),
+      supabase.from("league_prices").select("*").eq("league_id", LEAGUE_ID).order("id").range(from, to),
     ),
   ]);
 
@@ -236,7 +236,7 @@ export async function fetchPlayerList(): Promise<PlayerListItem[]> {
         .select("id, ottoneu_id, name, position, nfl_team")
         .gt("ottoneu_id", 0)
         .order("name")
-        .range(from, to),
+        .order("id").range(from, to),
     ),
     supabase
       .from("player_stats")
@@ -247,7 +247,7 @@ export async function fetchPlayerList(): Promise<PlayerListItem[]> {
         .from("league_prices")
         .select("player_id, price, team_name")
         .eq("league_id", LEAGUE_ID)
-        .range(from, to),
+        .order("id").range(from, to),
     ),
   ]);
 
