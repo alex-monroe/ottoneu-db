@@ -2,6 +2,14 @@
 
 ## Status: Active
 
+> ⚠️ **Read first:** [projection-methodology-audit.md](projection-methodology-audit.md)
+> (2026-06-08) found that the headline `ALL MAE` for learned models (`v20`–`v31`)
+> in the tables below is **in-sample** (trained on the seasons it is scored on),
+> so the cross-model ranking is not trustworthy as stated — the promoted `v31`'s
+> out-of-sample LOSO (2.440) is actually worse than `v27`'s (2.428). The accuracy
+> report now flags leaked models (⚠️) and shows a LOSO out-of-sample reference.
+> Tracking issues: #571–#577.
+
 ---
 
 ## Diagnosis: Why v3-v6 Features Degrade Accuracy

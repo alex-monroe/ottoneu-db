@@ -14,14 +14,17 @@ Options:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 from datetime import datetime
+from typing import Optional
 
 # Repo root — used to compute the default report output path below.
 repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from scripts.config import get_supabase_client, POSITIONS
 from scripts.feature_projections.model_config import MODELS
+from scripts.feature_projections.learned_combiner import TRAINED_MODELS_DIR
 
 
 # Positions to show in table (ALL first, then standard positions)
@@ -35,6 +38,62 @@ METRICS = [
     ("rmse", "RMSE", ".3f"),
     ("player_count", "N", "d"),
 ]
+
+
+# --- Train/test leakage detection (Finding 1, docs/exec-plans/projection-methodology-audit.md) ---
+#
+# Learned/residual models are fit by `train_model.py` and their coefficients are
+# saved to trained_models/<name>.json with the training seasons recorded under
+# training_metadata.seasons. When those seasons overlap the seasons being
+# backtested here, the reported MAE is in-sample fit quality, not held-out
+# accuracy — and it is NOT comparable to the additive models (no learned
+# params → already out-of-sample) or to FantasyPros (external). These helpers
+# surface that overlap and the out-of-sample LOSO CV metric so the optimism gap
+# is visible in the report rather than silently inflating the ranking.
+
+
+def _all_train_seasons(params: dict) -> set:
+    """Recursively collect every training season a model saw.
+
+    For residual models the base model was also fit on its own seasons (embedded
+    under base_model_params), so the leakage profile is the union of both.
+    """
+    seasons = set(int(s) for s in params.get("training_metadata", {}).get("seasons", []))
+    base = params.get("base_model_params")
+    if base:
+        seasons |= _all_train_seasons(base)
+    return seasons
+
+
+def _load_training_provenance(model_name: str) -> Optional[dict]:
+    """Read a learned/residual model's trained_models JSON.
+
+    Returns None for additive/external models (no JSON on disk), which are
+    already evaluated out-of-sample. Otherwise returns:
+        {"train_seasons": set[int], "is_residual": bool,
+         "loso_mae": float | None, "loso_is_absolute": bool}
+    For residual models the LOSO metric is on the residual scale
+    (actual − base_pred), not absolute PPG, so it is not directly comparable to
+    the backtest MAE — flagged via loso_is_absolute=False.
+    """
+    path = TRAINED_MODELS_DIR / f"{model_name}.json"
+    if not path.exists():
+        return None
+    try:
+        with open(path) as f:
+            params = json.load(f)
+    except (OSError, ValueError):
+        return None
+
+    is_residual = params.get("combiner_type") == "residual"
+    meta = params.get("training_metadata", {})
+    loso = meta.get("loso_residual_mae") if is_residual else meta.get("loso_mae")
+    return {
+        "train_seasons": _all_train_seasons(params),
+        "is_residual": is_residual,
+        "loso_mae": loso,
+        "loso_is_absolute": not is_residual,
+    }
 
 
 def _fetch_backtest_results(model_id: int, seasons: list[int]) -> dict[int, dict[str, dict]]:
@@ -93,7 +152,7 @@ def _format_val(val, fmt: str) -> str:
         return str(val)
 
 
-def generate_markdown_table(seasons: list[int]) -> str:
+def generate_markdown_table(seasons: list[int], include_leakage_section: bool = True) -> str:
     """Fetch backtest results and format a markdown comparison table."""
     supabase = get_supabase_client()
 
@@ -116,6 +175,28 @@ def generate_markdown_table(seasons: list[int]) -> str:
     if not model_data:
         return "_No backtest results found. Run with --run-backtest to generate them._\n"
 
+    model_names = list(model_data.keys())
+
+    # Detect train/eval season overlap per model (Finding 1). A learned/residual
+    # model whose training seasons intersect the eval seasons is reported
+    # in-sample; mark it so its MAE is not silently compared against the
+    # out-of-sample additive models and FantasyPros.
+    eval_set = set(int(s) for s in seasons)
+    provenance: dict[str, dict] = {}
+    leaked_models: set[str] = set()
+    for model_name in model_names:
+        prov = _load_training_provenance(model_name)
+        if prov is None:
+            continue
+        prov["leaked_seasons"] = sorted(prov["train_seasons"] & eval_set)
+        provenance[model_name] = prov
+        if prov["leaked_seasons"]:
+            leaked_models.add(model_name)
+
+    if not include_leakage_section:
+        # Suppress both the inline markers and the dedicated section.
+        leaked_models = set()
+
     lines: list[str] = []
     lines.append(f"# Projection Model Accuracy Report\n")
     lines.append(f"_Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}_\n")
@@ -125,8 +206,14 @@ def generate_markdown_table(seasons: list[int]) -> str:
         "**R²** = Goodness of fit (higher is better), "
         "**RMSE** = Root mean square error, **N** = player sample size.\n"
     )
-
-    model_names = list(model_data.keys())
+    if leaked_models:
+        lines.append(
+            "⚠️ = model was **trained on one or more of the seasons scored below**, "
+            "so its metrics are in-sample fit quality, not held-out accuracy, and are "
+            "**not comparable** to the additive (`v1`–`v19`) or external models, which are "
+            "evaluated out-of-sample. See the [Out-of-Sample Reference](#out-of-sample-reference-loso-cv) "
+            "section and [docs/exec-plans/projection-methodology-audit.md](../exec-plans/projection-methodology-audit.md).\n"
+        )
 
     def _render_position_table(
         lines: list[str],
@@ -143,7 +230,8 @@ def generate_markdown_table(seasons: list[int]) -> str:
         for model_name in model_names:
             row_data = get_row_data(model_name)
             model_def = MODELS[model_name]
-            label = f"`{model_name}`" + (" _(baseline)_" if model_def.is_baseline else "")
+            leak_marker = " ⚠️" if model_name in leaked_models else ""
+            label = f"`{model_name}`{leak_marker}" + (" _(baseline)_" if model_def.is_baseline else "")
 
             cols = [label]
             for metric_key, _, fmt in METRICS:
@@ -242,6 +330,48 @@ def generate_markdown_table(seasons: list[int]) -> str:
             lambda model_name, p=pos: _aggregate(model_name, p),
         )
 
+    # --- Out-of-sample reference (Finding 1) ---
+    if include_leakage_section and provenance:
+        lines.append("## Out-of-Sample Reference (LOSO CV)\n")
+        lines.append(
+            "_The **Backtest ALL MAE** column is the pooled 2022–2025 backtest reported in the "
+            "tables above. For a learned/residual model it is in-sample on every season listed "
+            "under **Leaked eval seasons** (and only genuinely out-of-sample on the rest), so it "
+            "understates true error and is **not** comparable to the additive (`v1`–`v19`) or "
+            "external models. The **LOSO MAE** is the leave-one-season-out cross-validation error "
+            "recorded at training time — the honest out-of-sample number for that model. "
+            "Residual models report LOSO on the residual scale (actual − base prediction), which "
+            "is not comparable to absolute MAE and is shown as `n/a`. LOSO folds differ by model "
+            "(each was trained on its own season set), so cross-model LOSO is indicative, not "
+            "exact — the clean fix is a shared held-out window (Finding 1b). See "
+            "[docs/exec-plans/projection-methodology-audit.md](../exec-plans/projection-methodology-audit.md)._\n"
+        )
+        lines.append("| Model | Trained on | Leaked eval seasons | Backtest ALL MAE | LOSO MAE |")
+        lines.append("| --- | --- | --- | --- | --- |")
+        for model_name in model_names:
+            prov = provenance.get(model_name)
+            if prov is None:
+                continue
+            agg = _aggregate(model_name, "ALL")
+            in_sample = agg.get("mae") if agg else None
+            train_str = ",".join(str(s) for s in sorted(prov["train_seasons"])) or "—"
+            leaked_str = (
+                ",".join(str(s) for s in prov["leaked_seasons"]) if prov["leaked_seasons"] else "none"
+            )
+            loso = prov["loso_mae"]
+            if not prov["loso_is_absolute"]:
+                loso_str = "n/a (residual)"
+            elif loso is None:
+                loso_str = "—"
+            else:
+                loso_str = f"{loso:.3f}"
+            in_sample_str = f"{in_sample:.3f}" if in_sample is not None else "—"
+            lines.append(
+                f"| `{model_name}`{' ⚠️' if model_name in leaked_models else ''} | {train_str} "
+                f"| {leaked_str} | {in_sample_str} | {loso_str} |"
+            )
+        lines.append("")
+
     return "\n".join(lines)
 
 
@@ -262,6 +392,11 @@ def main() -> None:
         default=os.path.join(repo_root, "docs", "generated", "projection-accuracy.md"),
         help="Output file path (default: docs/generated/projection-accuracy.md)",
     )
+    parser.add_argument(
+        "--no-leakage-section",
+        action="store_true",
+        help="Omit the train/eval leakage flags and Out-of-Sample (LOSO) reference section",
+    )
     args = parser.parse_args()
 
     seasons = [int(s.strip()) for s in args.seasons.split(",")]
@@ -271,7 +406,7 @@ def main() -> None:
         _run_backtests(seasons)
 
     print("\nGenerating accuracy report...")
-    table = generate_markdown_table(seasons)
+    table = generate_markdown_table(seasons, include_leakage_section=not args.no_leakage_section)
 
     # Write to file
     os.makedirs(os.path.dirname(args.output), exist_ok=True)

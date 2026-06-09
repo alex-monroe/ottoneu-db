@@ -52,6 +52,7 @@ docs/
 │   ├── [feature-projections.md](docs/exec-plans/feature-projections.md)         # Feature-based player projection system
 │   ├── [market-projections.md](docs/exec-plans/market-projections.md)          # Market-based projection system (DEFERRED)
 │   ├── [projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md)  # 4-phase accuracy improvement roadmap
+│   ├── [projection-methodology-audit.md](docs/exec-plans/projection-methodology-audit.md)  # ML-quality audit: train/test leakage + eval findings (#571–#577)
 │   ├── [qb-usage-share.md](docs/exec-plans/qb-usage-share.md)              # QB Usage Share findings and next steps
 │   └── [season-cycle.md](docs/exec-plans/season-cycle.md)                # Cross-season data & UI scheme (date-driven season-cycle resolver)
 ├── generated/
