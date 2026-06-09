@@ -264,11 +264,19 @@ def _fmt(val, fmt: str) -> str:
         return str(val)
 
 
-def run(
+def gather_predictions(
     train_seasons: list[int],
     eval_seasons: list[int],
     only_models: Optional[list[str]] = None,
-) -> str:
+) -> tuple[dict[str, dict[int, dict[str, float]]], dict[int, dict[str, float]], dict[str, str]]:
+    """Produce held-out predictions for every model on the eval seasons.
+
+    Returns (preds, actuals_by_season, pos_map) where
+    preds = {model_name: {season: {player_id: predicted_ppg}}}. Learned/residual
+    models are retrained on train_seasons in a sandboxed temp dir; parameter-free
+    models are read from their already-held-out model_projections. This is the
+    shared machinery behind both the held-out report and the significance test.
+    """
     supabase = get_supabase_client()
 
     players_data = fetch_all_rows(supabase, "players", "id, position")
@@ -286,8 +294,7 @@ def run(
     learned = [m for m in model_names if get_model(m).combiner_type in ("learned", "residual")]
     others = [m for m in model_names if m not in learned]
 
-    # {model: {season: {pos: metrics}}}
-    results: dict[str, dict[int, dict[str, dict]]] = {}
+    preds: dict[str, dict[int, dict[str, float]]] = {}
 
     # --- Parameter-free models: read held-out projections from the DB ---
     for model_name in others:
@@ -295,11 +302,7 @@ def run(
         if not res.data:
             continue
         model_id = res.data[0]["id"]
-        preds_by_season = _db_preds_for_eval(supabase, model_id, eval_seasons)
-        results[model_name] = {
-            s: _metrics_from_preds(preds_by_season.get(s, {}), actuals_by_season[s], pos_map)
-            for s in eval_seasons
-        }
+        preds[model_name] = _db_preds_for_eval(supabase, model_id, eval_seasons)
 
     # --- Learned/residual models: retrain on the held-out window in a temp dir ---
     temp_dir = Path(tempfile.mkdtemp(prefix="holdout_models_"))
@@ -311,15 +314,32 @@ def run(
             preds_by_season = _learned_preds_for_eval(
                 model_name, train_seasons, eval_seasons, temp_dir
             )
-            if not preds_by_season:
-                continue
-            results[model_name] = {
-                s: _metrics_from_preds(preds_by_season.get(s, {}), actuals_by_season[s], pos_map)
-                for s in eval_seasons
-            }
+            if preds_by_season:
+                preds[model_name] = preds_by_season
     finally:
         learned_combiner.TRAINED_MODELS_DIR = orig_dir
         shutil.rmtree(temp_dir, ignore_errors=True)
+
+    return preds, actuals_by_season, pos_map
+
+
+def run(
+    train_seasons: list[int],
+    eval_seasons: list[int],
+    only_models: Optional[list[str]] = None,
+) -> str:
+    preds, actuals_by_season, pos_map = gather_predictions(
+        train_seasons, eval_seasons, only_models
+    )
+
+    # {model: {season: {pos: metrics}}}
+    results: dict[str, dict[int, dict[str, dict]]] = {
+        model_name: {
+            s: _metrics_from_preds(model_preds.get(s, {}), actuals_by_season[s], pos_map)
+            for s in eval_seasons
+        }
+        for model_name, model_preds in preds.items()
+    }
 
     return _render(results, train_seasons, eval_seasons)
 

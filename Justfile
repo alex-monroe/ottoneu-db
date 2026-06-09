@@ -126,6 +126,11 @@ train model seasons="2021,2022,2023,2024,2025":
 holdout-eval *args:
     {{python}} scripts/feature_projections/holdout_eval.py {{args}}
 
+# Paired bootstrap: is the held-out MAE gap between two models significant? (GH #573)
+#   e.g. just significance v14_qb_starter v31_depth_chart
+significance model_a model_b *args:
+    {{python}} scripts/feature_projections/significance.py {{model_a}} {{model_b}} {{args}}
+
 # Promote a model to production  (e.g. just promote v24_learned_elite)
 promote model:
     {{python}} scripts/feature_projections/cli.py promote --model {{model}}
