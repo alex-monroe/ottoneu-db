@@ -23,7 +23,9 @@ def _fetch_season_rows(supabase, table, select, season, extra_eq=None, page_size
         query = supabase.table(table).select(select).eq("season", season)
         if extra_eq is not None:
             query = query.eq(extra_eq[0], extra_eq[1])
-        batch = query.range(offset, offset + page_size - 1).execute().data or []
+        # Stable ORDER BY required — without it filtered .range() pages overlap
+        # and silently drop rows, corrupting backtest metrics. Order by the PK.
+        batch = query.order("id").range(offset, offset + page_size - 1).execute().data or []
         all_rows.extend(batch)
         if len(batch) < page_size:
             break

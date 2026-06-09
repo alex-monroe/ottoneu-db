@@ -37,6 +37,9 @@ def promote_model(model_name: str) -> int:
             supabase.table("model_projections")
             .select("player_id, season, projected_ppg")
             .eq("model_id", model_id)
+            # Stable ORDER BY required — without it filtered .range() pages overlap
+            # and silently drop projection rows during promotion. Order by the PK.
+            .order("id")
             .range(offset, offset + page_size - 1)
             .execute()
         )

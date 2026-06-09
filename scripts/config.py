@@ -105,6 +105,10 @@ def fetch_all_rows(supabase, table: str, select: str = "*",
     while True:
         batch = (
             supabase.table(table).select(select)
+            # Stable ORDER BY is mandatory: without it Postgres/PostgREST give no
+            # guaranteed row order across requests, so successive .range() pages
+            # overlap and silently DROP rows from the result. Order by the PK.
+            .order("id")
             .range(offset, offset + page_size - 1)
             .execute()
             .data or []

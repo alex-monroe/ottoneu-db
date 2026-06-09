@@ -27,6 +27,9 @@ def _fetch_seasons_paginated(supabase, table: str, select: str,
         batch = (
             supabase.table(table).select(select)
             .in_('season', seasons)
+            # Stable ORDER BY required — without it filtered .range() pages
+            # overlap and silently drop rows (e.g. ~340 nfl_stats player-seasons).
+            .order('id')
             .range(offset, offset + page_size - 1)
             .execute()
             .data or []
@@ -81,7 +84,8 @@ def available_model_seasons(supabase, model_id: str) -> list:
             query = supabase.table(table).select("season")
             if eq is not None:
                 query = query.eq(eq[0], eq[1])
-            batch = query.range(offset, offset + page - 1).execute().data or []
+            # Stable ORDER BY required (see _fetch_seasons_paginated) — order by PK.
+            batch = query.order("id").range(offset, offset + page - 1).execute().data or []
             out.update(r["season"] for r in batch)
             if len(batch) < page:
                 break
