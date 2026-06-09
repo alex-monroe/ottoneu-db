@@ -427,3 +427,138 @@ export async function fetchAndMergeProjectedData(
 
   return projected;
 }
+
+// === Projection Board (rookie-inclusive) ===
+
+/**
+ * Projection methods used for players with no NFL track record. These players
+ * have a `player_projections` row but no `player_stats` history, so a stats-keyed
+ * fetch (fetchPlayers) silently drops them. The board treats them as rookies.
+ */
+const ROOKIE_PROJECTION_METHODS = new Set([
+  "rookie_draft_capital",
+  "college_prospect",
+]);
+
+/** Human-readable label for a rookie projection source. */
+export function rookieSourceLabel(method: string): string | null {
+  switch (method) {
+    case "rookie_draft_capital":
+      return "Rookie";
+    case "college_prospect":
+      return "College";
+    default:
+      return null;
+  }
+}
+
+function ageFromBirthDate(birth: string | null): number | null {
+  if (!birth) return null;
+  const ts = Date.parse(birth);
+  if (Number.isNaN(ts)) return null;
+  return Math.floor((Date.now() - ts) / (365.25 * 86_400_000));
+}
+
+export interface ProjectionBoardRow {
+  player_id: string;
+  ottoneu_id: number;
+  name: string;
+  position: string;
+  nfl_team: string;
+  team_name: string | null;
+  price: number;
+  /** Observed PPG in `statsSeason` (null for players with no NFL history). */
+  observed_ppg: number | null;
+  projected_ppg: number;
+  /** projected − observed (null when there is no observed baseline). */
+  ppg_delta: number | null;
+  projection_method: string;
+  is_rookie: boolean;
+  age: number | null;
+  games_played: number;
+  overall_rank: number;
+  position_rank: number;
+}
+
+/**
+ * Fetch every projected player for `projectionYear` — including rookies and
+ * college prospects that have no `player_stats` history. Unlike
+ * `fetchAndMergeProjectedData` (which builds on the stats-keyed `fetchPlayers`
+ * and therefore drops historyless players), this uses `player_projections` as
+ * the source of truth for inclusion and left-joins stats/prices/identity.
+ *
+ * Rows are sorted by projected PPG (desc) with overall + positional ranks.
+ */
+export async function fetchProjectionBoard(
+  projectionYear: number,
+  statsSeason: number
+): Promise<ProjectionBoardRow[]> {
+  const [players, statsRes, prices, projMap] = await Promise.all([
+    fetchAllRows((from, to) =>
+      supabase
+        .from("players")
+        .select("id, ottoneu_id, name, position, nfl_team, birth_date, is_college")
+        .gt("ottoneu_id", 0)
+        .range(from, to),
+    ),
+    supabase
+      .from("player_stats")
+      .select("player_id, ppg, games_played")
+      .eq("season", statsSeason),
+    fetchAllRows((from, to) =>
+      supabase
+        .from("league_prices")
+        .select("player_id, price, team_name")
+        .eq("league_id", LEAGUE_ID)
+        .range(from, to),
+    ),
+    buildProjectionMap(projectionYear),
+  ]);
+
+  if (statsRes.error)
+    throw new Error(`Failed to fetch player stats: ${statsRes.error.message}`);
+
+  const playerMap = new Map(players.map((p) => [String(p.id), p]));
+  const statsMap = new Map(
+    (statsRes.data ?? []).map((s) => [String(s.player_id), s])
+  );
+  const pricesMap = new Map(prices.map((p) => [String(p.player_id), p]));
+
+  const rows: Array<Omit<ProjectionBoardRow, "overall_rank" | "position_rank">> =
+    [];
+  for (const [playerId, proj] of projMap.entries()) {
+    const player = playerMap.get(playerId);
+    if (!player) continue;
+
+    const stats = statsMap.get(playerId);
+    const priceRow = pricesMap.get(playerId);
+    const observed = stats ? Number(stats.ppg) || 0 : null;
+    const isRookie =
+      ROOKIE_PROJECTION_METHODS.has(proj.method) || Boolean(player.is_college);
+
+    rows.push({
+      player_id: playerId,
+      ottoneu_id: player.ottoneu_id ?? 0,
+      name: player.name,
+      position: player.position ?? "",
+      nfl_team: player.nfl_team ?? "",
+      team_name: priceRow?.team_name ?? null,
+      price: priceRow ? Number(priceRow.price) || 0 : 0,
+      observed_ppg: observed,
+      projected_ppg: proj.ppg,
+      ppg_delta: observed === null ? null : proj.ppg - observed,
+      projection_method: proj.method,
+      is_rookie: isRookie,
+      age: ageFromBirthDate(player.birth_date ?? null),
+      games_played: stats ? Number(stats.games_played) || 0 : 0,
+    });
+  }
+
+  rows.sort((a, b) => b.projected_ppg - a.projected_ppg);
+
+  const posCounters: Record<string, number> = {};
+  return rows.map((r, i) => {
+    posCounters[r.position] = (posCounters[r.position] ?? 0) + 1;
+    return { ...r, overall_rank: i + 1, position_rank: posCounters[r.position] };
+  });
+}

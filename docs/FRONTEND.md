@@ -17,7 +17,7 @@ Several formerly-standalone pages were consolidated into **tabbed routes** using
 | `/arb-progress` | Public arbitration progress: team completion status and allocation details |
 | `/arb-planner-public` | Public (read-only) arbitration planner view |
 | `/projected-salary` | Keep vs cut decisions for The Witchcraft |
-| `/projections` | Player projections table (reads `player_projections`) |
+| `/projections` | Season-long player projections board (reads `player_projections` via `fetchProjectionBoard`). Industry-style layout: position tabs (ALL/QB/RB/WR/TE/K with counts), overall + positional ranks, player search, and a "rookies only" toggle. **Includes rookies/college prospects** — inclusion is driven by `player_projections` (source of truth), not `fetchPlayers` (which drops players without prior-season stats), so `rookie_draft_capital`/`college_prospect` players appear with a Rookie/College badge. The methodology card (`ActiveModelCard`) is **admin-only**. |
 | `/projection-accuracy` | Model backtest accuracy explorer |
 | `/value` | Tabbed: **VORP** (bar chart + table) · **Surplus** (rankings, bargains, overpaid, team summaries) · **Adjustments** (per-user manual value overrides) |
 | `/arbitration` | Tabbed: **Targets** (per-opponent breakdown) · **Simulation** (Monte Carlo) · **Planner** (save budget allocations). The Targets/Simulation value-mode toggle uses `?mode=` and preserves `?tab=` via `ModeToggle`'s `extraParams`. |

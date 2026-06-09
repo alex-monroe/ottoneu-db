@@ -28,15 +28,15 @@ export const PHASE_UI: Record<Phase, PhaseUi> = {
   },
   pre_arb: {
     label: "Pre-Arbitration",
-    blurb: "Arbitration is upcoming — plan allocations and watch the league's progress.",
+    blurb: "Arbitration is upcoming — plan allocations off the season-long projections and watch the league's progress.",
     featuredGroup: "Offseason",
-    featuredLinks: ["/arbitration", "/arb-progress"],
+    featuredLinks: ["/projections", "/arbitration", "/arb-progress"],
   },
   pre_keeper: {
     label: "Pre-Keeper",
-    blurb: "Keep-or-cut decisions ahead — review surplus value and projected salaries.",
+    blurb: "Keep-or-cut decisions ahead — weigh surplus value and projected salaries against the season-long projections.",
     featuredGroup: "Value",
-    featuredLinks: ["/value", "/projected-salary"],
+    featuredLinks: ["/projections", "/value", "/projected-salary"],
   },
   pre_draft: {
     label: "Pre-Draft",
