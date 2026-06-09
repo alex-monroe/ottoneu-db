@@ -1,7 +1,7 @@
 """Train a learned model using Ridge regression with leave-one-season-out CV.
 
 Usage:
-    venv/bin/python scripts/feature_projections/train_model.py --model v20_learned_usage --seasons 2022,2023,2024
+    venv/bin/python scripts/feature_projections/train_model.py --model v20_learned_usage --seasons 2021,2022,2023,2024,2025
 
 This computes features for all players across training seasons, builds a feature matrix
 with interaction terms, selects the best Ridge alpha via LOSO cross-validation, and

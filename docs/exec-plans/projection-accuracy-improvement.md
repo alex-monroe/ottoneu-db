@@ -91,7 +91,7 @@ Issue audit (2026-05-05) consolidated duplicates and ranked open work by impact 
 
 | # | Title | Effort | Why first |
 |---|---|---|---|
-| [#380](https://github.com/alex-monroe/ottoneu-db/issues/380) | Backfill 2021 training season | medium | Enabler — raises feature-dimension ceiling for everything below |
+| ~~[#380](https://github.com/alex-monroe/ottoneu-db/issues/380)~~ | ~~Backfill 2021 training season~~ ✅ | medium | Enabler — backfilled `player_stats` 2018–2020, added 2021 + 2025 as training seasons. v31 training set 613 → 1203 samples; combined backtest (2022–2025, N=989) ALL MAE 2.427 → 2.358, R² 0.624 → 0.645. `just train` default now `2021,2022,2023,2024,2025`. Raises the safe feature-dimension ceiling for #381/#382 |
 | ~~[#376](https://github.com/alex-monroe/ottoneu-db/issues/376)~~ | ~~NFL draft capital~~ ✅ | low | v25_draft_capital_residual: ALL MAE 2.370 (current best), R² 0.575, vet predictions byte-identical to v22 |
 | ~~[#391](https://github.com/alex-monroe/ottoneu-db/issues/391)~~ | ~~Depth chart / offseason movement~~ ✅ | medium | v31_depth_chart: ALL MAE 2.439 (vs v27 2.483), R² 0.620, RMSE 3.183. Biggest gains QB −0.126 / RB −0.203 MAE. `depth_charts` table (opening-day depth tier) from nflverse; replaces broken historical `team_context` with forward-looking role info |
 | ~~[#375](https://github.com/alex-monroe/ottoneu-db/issues/375)~~ | ~~Advanced receiving (target_share, air_yards, WOPR)~~ ✅ | low | v22_advanced_receiving: ALL MAE 2.380 (vs v20 2.412), R² 0.572, n=583 backtest seasons |
