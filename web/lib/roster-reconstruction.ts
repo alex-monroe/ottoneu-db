@@ -85,10 +85,10 @@ export async function fetchRosterData(): Promise<RosterData> {
         .eq("league_id", LEAGUE_ID)
         .eq("season", leagueSeason)
         .order("transaction_date", { ascending: true })
-        .range(from, to),
+        .order("id").range(from, to),
     ),
     fetchAllRows((from, to) =>
-      supabase.from("players").select("id, ottoneu_id, name, position, nfl_team").gt("ottoneu_id", 0).range(from, to),
+      supabase.from("players").select("id, ottoneu_id, name, position, nfl_team").gt("ottoneu_id", 0).order("id").range(from, to),
     ),
     supabase
       .from("player_stats")
@@ -99,7 +99,7 @@ export async function fetchRosterData(): Promise<RosterData> {
         .from("league_prices")
         .select("player_id, price, team_name")
         .eq("league_id", LEAGUE_ID)
-        .range(from, to),
+        .order("id").range(from, to),
     ),
   ]);
 

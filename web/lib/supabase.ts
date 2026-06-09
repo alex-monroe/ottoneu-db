@@ -19,12 +19,20 @@ export const supabase = createClient<Database>(supabaseUrl || "http://localhost:
 /**
  * Page through a Supabase query past PostgREST's 1000-row default cap.
  *
- * Pass a builder that applies `.range(from, to)` to your filtered query, e.g.:
+ * Pass a builder that applies a STABLE `.order(...)` AND `.range(from, to)` to
+ * your filtered query, e.g.:
  *   const rows = await fetchAllRows((from, to) =>
- *     supabase.from("players").select("*").gt("ottoneu_id", 0).range(from, to));
+ *     supabase.from("players").select("*").gt("ottoneu_id", 0).order("id").range(from, to));
  *
  * A plain `.select()` silently returns only the first 1000 rows, which on this
  * project drops ~20% of players and full player-seasons from analysis pages.
+ *
+ * The `.order("id")` (or any unique-column order) is REQUIRED, not optional:
+ * PostgREST/Postgres do not guarantee a stable row order across requests without
+ * an ORDER BY, so successive `.range()` pages can overlap — silently dropping
+ * rows from the final result (e.g. 1,252 players collapsed to 1,070 unique,
+ * stranding individual players like a rookie projection). Always order by the
+ * primary key (`id` works even when not in the `select` list).
  */
 export async function fetchAllRows<T>(
   buildPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,

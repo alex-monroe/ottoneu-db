@@ -121,7 +121,7 @@ export async function fetchModelBacktestData(
   // Paginate players (~1,252) and league_prices (~1,252) past the 1000-row cap.
   const [players, targetStatsRes, prices] = await Promise.all([
     fetchAllRows((from, to) =>
-      supabase.from("players").select("id, name, position, nfl_team").gt("ottoneu_id", 0).range(from, to),
+      supabase.from("players").select("id, name, position, nfl_team").gt("ottoneu_id", 0).order("id").range(from, to),
     ),
     supabase
       .from("player_stats")
@@ -132,7 +132,7 @@ export async function fetchModelBacktestData(
         .from("league_prices")
         .select("player_id, price, team_name")
         .eq("league_id", LEAGUE_ID)
-        .range(from, to),
+        .order("id").range(from, to),
     ),
   ]);
 
@@ -197,7 +197,7 @@ async function buildProjectionMap(
       .from("player_projections")
       .select("player_id, projected_ppg, projection_method")
       .eq("season", season)
-      .range(from, to),
+      .order("id").range(from, to),
   );
 
   const projections = new Map<string, { ppg: number; method: string }>();
@@ -324,7 +324,7 @@ export async function fetchBacktestData(
   const [players, targetStatsRes, prices] =
     await Promise.all([
       fetchAllRows((from, to) =>
-        supabase.from("players").select("id, name, position, nfl_team").gt("ottoneu_id", 0).range(from, to),
+        supabase.from("players").select("id, name, position, nfl_team").gt("ottoneu_id", 0).order("id").range(from, to),
       ),
       supabase
         .from("player_stats")
@@ -335,7 +335,7 @@ export async function fetchBacktestData(
           .from("league_prices")
           .select("player_id, price, team_name")
           .eq("league_id", LEAGUE_ID)
-          .range(from, to),
+          .order("id").range(from, to),
       ),
     ]);
 
@@ -499,7 +499,7 @@ export async function fetchProjectionBoard(
         .from("players")
         .select("id, ottoneu_id, name, position, nfl_team, birth_date, is_college")
         .gt("ottoneu_id", 0)
-        .range(from, to),
+        .order("id").range(from, to),
     ),
     supabase
       .from("player_stats")
@@ -510,7 +510,7 @@ export async function fetchProjectionBoard(
         .from("league_prices")
         .select("player_id, price, team_name")
         .eq("league_id", LEAGUE_ID)
-        .range(from, to),
+        .order("id").range(from, to),
     ),
     buildProjectionMap(projectionYear),
   ]);
