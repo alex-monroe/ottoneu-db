@@ -1,7 +1,9 @@
 """Task: Pull multi-season NFL player stats via nflverse-data and upsert to player_stats.
 
 Reads directly from the nflverse-data `stats_player` GitHub release, which:
-- Covers 2022-present and is updated within days of each season ending
+- Covers ~2018-present (older seasons backfill cleanly; used to seed
+  weighted_ppg history for the 2021 training season — GH #380) and is
+  updated within days of each season ending
 - Pre-aggregates stats by player/season (no groupby needed)
 - Includes kicking stats (fg_made_0_39, fg_made_40_49, fg_made_50_plus, pat_made)
 - Works independently of the archived nfl_data_py library
