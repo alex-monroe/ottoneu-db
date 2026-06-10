@@ -26,7 +26,7 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 - **Environment:** See [docs/references/environment-variables.md](docs/references/environment-variables.md) for `.env` setup
 - **Season cycle:** See [docs/exec-plans/season-cycle.md](docs/exec-plans/season-cycle.md) — the site rolls between Ottoneu seasons from the `league_calendar` table; the current season is resolved at runtime via `scripts/season.py` and `web/lib/season.ts`, not from static config
 - **Projection Accuracy Plan:** See [docs/exec-plans/projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md) for the 4-phase accuracy improvement roadmap (Issues #271-#285)
-- **Projection Accuracy:** Run `just accuracy-report` (or `python scripts/feature_projections/accuracy_report.py`) to generate a model comparison table. **Required when updating any projection code** — see Projection Model Update Requirements below.
+- **Projection Accuracy:** The gate for any projection change is the **leakage-free held-out harness** — `just holdout-eval` (#572/#594) + `just significance` (#573/#594), not the in-sample `just accuracy-report` (which is a secondary diagnostic only). See Projection Model Update Requirements below.
 - **Market Projections:** See [docs/exec-plans/market-projections.md](docs/exec-plans/market-projections.md) for the market-based projection system (DEFERRED)
 - **Experiment Log:** See [docs/generated/experiment-log.md](docs/generated/experiment-log.md) for history of all model iteration attempts.
 - **Build System Spec:** See [docs/superpowers/specs/2026-04-19-build-system-design.md](docs/superpowers/specs/2026-04-19-build-system-design.md) for the transition specification to `just` build runner
@@ -117,24 +117,22 @@ Run `just check-arch` to validate these rules locally.
 
 ## Projection Model Update Requirements
 
-When any task modifies the projection system — including `scripts/feature_projections/`, `scripts/projection_methods.py`, `scripts/update_projections.py`, or `model_config.py` — you MUST:
+When any task modifies the projection system — including `scripts/feature_projections/`, `scripts/projection_methods.py`, `scripts/update_projections.py`, or `model_config.py` — you MUST validate it on the **leakage-free held-out harness**. The in-sample `accuracy-report` scores learned models on the seasons they trained on (methodology audit, Findings 1 & 2); it is a **secondary diagnostic only** and must never be the gate or the basis for a promote decision. Use `/experiment` to run this flow.
 
-1. **Run the new model for ALL backtest seasons before calling `--run-backtest`.**
-   The accuracy report covers seasons 2022–2025. If a new model is missing any of those seasons in `model_projections`, that season will show `—` in the table and the combined averages will be wrong. Run:
+1. **Run the held-out re-rank** against production (`v14_qb_starter`) and the naïve baselines, on the rolling-origin protocol (#594). Learned models retrain out-of-sample inside the sandbox; additive/external models need their held-out projections generated first (`just project <name> 2023,2024,2025`). The cache (#597) makes re-runs fast.
    ```
-   just project <name> 2022,2023,2024,2025
+   just holdout-eval --protocol rolling --eval-seasons 2023,2024,2025 --min-train-season 2021 \
+     --models <name>,v14_qb_starter,naive_prior_season_ppg,position_mean_baseline
    ```
-   Then run the full report:
+2. **Test significance vs the active model** (player-clustered paired bootstrap). This is the gate — a point-estimate MAE delta is **not** a result:
    ```
-   just accuracy-report --run-backtest --seasons 2022,2023,2024,2025
+   just significance <name> v14_qb_starter --protocol rolling --eval-seasons 2023,2024,2025 --min-train-season 2021
    ```
-2. **Include the full markdown table** (from `docs/generated/projection-accuracy.md`) in:
-   - The task output / conversation summary
-   - The PR description body under a `## Projection Accuracy` section
-3. **Highlight improvements** — call out which metrics improved vs the baseline (`v1_baseline_weighted_ppg`) in the PR description narrative above the table.
-4. **Promote via `just promote <model>` (or `cli.py promote --model <name>`)** to switch which model the web app serves — `update_projections.py` now reads `projection_models.is_active` dynamically (no more hardcoded `ACTIVE_MODEL` constant). Methodology copy on `/projections`, `/arbitration` (projected mode), and `/projection-accuracy` is rendered live by `<ActiveModelCard>` (`web/components/ActiveModelCard.tsx`) from `fetchActiveProjectionModel()`, so do **not** hardcode model names or feature lists in page copy.
+   Availability-touching changes additionally run `just availability-backtest` and report **both** rate and availability MAE (#574).
+3. **In the PR description**, lead with the held-out ranking + significance verdict (and the per-position Ranking-quality rows, #598). Include the in-sample `accuracy-report` table only if labelled "in-sample diagnostic — not the ranking".
+4. **Promotion requires a *significant* held-out win over the active model** (CI excludes 0), never a point-estimate delta. Promote via `just promote <model>` (or `cli.py promote --model <name>`) — `update_projections.py` reads `projection_models.is_active` dynamically (no hardcoded `ACTIVE_MODEL`). Methodology copy on `/projections`, `/arbitration` (projected mode), and `/projection-accuracy` is rendered live by `<ActiveModelCard>` (`web/components/ActiveModelCard.tsx`) from `fetchActiveProjectionModel()`, so do **not** hardcode model names or feature lists in page copy.
 
-This ensures every projection change is empirically validated before merge.
+**Confirmation discipline (#594):** iterate against the rolling folds; the final window (2025, then 2026 actuals) is confirmation-only — one look per experiment. This ensures every projection change is empirically validated, out-of-sample, before merge.
 
 ### Feature changes require test updates
 

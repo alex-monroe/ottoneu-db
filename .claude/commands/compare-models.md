@@ -1,42 +1,39 @@
 ---
 description: Side-by-side comparison of 2-3 projection models with per-player divergence
 ---
-Follow these steps to compare projection models side-by-side:
+Compare 2–3 projection models side by side, **leading with held-out (leakage-free)
+metrics**. The in-sample `accuracy-report` / `cli.py compare` tables score
+learned models on data they trained on (Findings 1 & 2) — use them only for
+per-player divergence inspection, never to declare a winner.
 
 // turbo
 
-1. **Parse model names from arguments.** The user should provide 2-3 model names separated by spaces (e.g., `v14 v20 v24`). Resolve partial names to full names from model_config.py (e.g., `v14` → `v14_qb_starter`).
+1. **Parse model names from arguments** (2–3 names, e.g. `v14 v20`). Resolve
+   partial names to full names from `model_config.py` (`v14` → `v14_qb_starter`).
 
-2. **Run the full accuracy report** (if not recently generated):
+2. **Held-out comparison (the verdict).** Score exactly the requested models
+   out-of-sample on the shared window:
    ```bash
-   source venv/bin/activate && python scripts/feature_projections/accuracy_report.py \
-     --seasons 2022,2023,2024,2025 --output docs/generated/projection-accuracy.md
+   just holdout-eval --protocol rolling --eval-seasons 2023,2024,2025 --min-train-season 2021 \
+     --models MODEL_A,MODEL_B[,MODEL_C]
    ```
-
-3. **Extract metrics** for ONLY the specified models from the report. Present a focused comparison table per position:
-   ```
-   Position | Metric | Model A    | Model B    | Model C    | Best
-   ALL      | MAE    | 2.515      | 2.412      | 2.469      | B
-   ALL      | R²     | 0.542      | 0.577      | 0.565      | B
-   ALL      | Bias   | +0.170     | -0.026     | -0.050     | B
-   QB       | MAE    | 3.801      | 3.650      | 3.700      | B
-   ...
-   ```
-
-4. **For the most recent season** (2025), identify top 10 players where the models diverge most. Fetch projections from DB:
+   Present the focused per-position table from the generated report, including the
+   **Ranking quality** rows (Spearman ρ + top-N hit, #598). Whenever two models
+   are close, confirm with the paired bootstrap rather than eyeballing MAE:
    ```bash
-   source venv/bin/activate && python -c "
-   from config import get_supabase_client
-   supabase = get_supabase_client()
-   # Fetch projections for the specified models and compare
-   "
+   just significance MODEL_A MODEL_B --protocol rolling --eval-seasons 2023,2024,2025 --min-train-season 2021
    ```
+   State the winner as "significantly better" or "not separable", never as a bare
+   MAE delta.
 
-5. **Present the divergence table:**
+3. **Per-player divergence (diagnostic, most recent season).** Use `cli.py
+   compare` to see where the models disagree most — this is for understanding
+   *why* they differ, not for scoring:
+   ```bash
+   just compare MODEL_A,MODEL_B 2025
    ```
-   Player         | Pos | Model A | Model B | Max Diff
-   Patrick Mahomes| QB  | 18.5    | 20.1    | 1.6
-   ...
-   ```
+   Present the top ~10 players by absolute projection difference.
 
-6. **Summarize**: Which model wins overall? Where does each model have strengths/weaknesses? Are there position-specific recommendations?
+4. **Summarize**: which model is significantly better out-of-sample (level *and*
+   ordering), where each is strong/weak by position, and what drives the largest
+   per-player disagreements.

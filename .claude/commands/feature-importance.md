@@ -1,38 +1,39 @@
 ---
 description: Inspect learned model coefficients and feature importance
 ---
-Follow these steps to analyze feature importance for a learned model:
+Inspect a learned model's coefficients to understand *what it leans on*. This is
+a **diagnostic**, not a selection tool: coefficient magnitude is in-sample and
+says nothing about out-of-sample value. To decide whether a feature earns its
+place, cross-check with held-out ablation (`/ablation`, #588), not these numbers.
 
 // turbo
 
-1. **Identify the learned model** (default: v20_learned_usage). If the user specifies a model in the arguments, use that instead.
+1. **Identify the learned model** (default: `v20_learned_usage` — note this is a
+   learned reference model, not production; production is the additive
+   `v14_qb_starter`, which has no learned coefficients to inspect). Use the
+   user-specified model if given.
 
-2. **Try running the feature analysis script:**
+2. **Run the feature analysis script** (use `venv/bin/python` directly — no
+   `source venv/bin/activate`, which fails in worktrees):
    ```bash
-   source venv/bin/activate && python scripts/feature_projections/feature_analysis.py \
+   venv/bin/python scripts/feature_projections/feature_analysis.py \
      --model MODEL_NAME --seasons 2022,2023,2024
    ```
 
-3. **If the script succeeds**, present its output (correlation matrix, feature-target correlations, VIF, importance ranking).
+3. **If the script succeeds**, present its output (correlation matrix,
+   feature-target correlations, VIF, importance ranking).
 
-4. **If the script fails or doesn't exist**, manually analyze the trained model JSON:
-   - Read `scripts/feature_projections/trained_models/MODEL_NAME.json`
-   - For each feature, compute effective importance = |coefficient| × scaler_scale
-   - Rank features by effective importance
-   - Compute and flag VIF concerns (features with similar names/roles)
+4. **If the script fails or doesn't exist**, analyze the trained model JSON at
+   `scripts/feature_projections/trained_models/MODEL_NAME.json`: per feature,
+   effective importance = |coefficient| × scaler_scale; rank by it; flag likely
+   collinear feature pairs.
 
-5. **Present a ranked importance table:**
-   ```
-   Rank | Feature                         | Coefficient | Scale  | Importance | Notes
-   1    | weighted_ppg_no_qb_trajectory   | +1.170      | 4.867  | 5.694      | Base feature
-   2    | usage_share_raw*base_ppg        | +0.517      | 1.568  | 0.811      | Interaction
-   3    | age_curve                       | -0.342      | 1.203  | 0.411      | Adjustment
-   ...
-   ```
+5. **Present a ranked importance table** (Rank | Feature | Coefficient | Scale |
+   Importance | Notes).
 
-6. **Flag concerns:**
-   - Features with near-zero importance (candidates for removal via `/ablation`)
-   - Features with VIF > 5 (multicollinearity concern)
-   - Unexpected coefficient signs (e.g., positive age_curve for old players)
+6. **Flag concerns** — near-zero-importance features (ablation candidates),
+   VIF > 5 (multicollinearity), unexpected coefficient signs.
 
-7. **Summarize**: Which features drive the model? Are there redundant features? Any surprising coefficient directions?
+7. **Summarize**, and explicitly route any "this feature looks weak/redundant"
+   hunch to `/ablation` for a held-out, significance-tested decision — importance
+   here is only a hypothesis generator.

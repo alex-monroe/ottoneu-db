@@ -1,52 +1,43 @@
 ---
 description: Deep-dive accuracy analysis for a specific player segment
 ---
-Follow these steps to diagnose projection accuracy for a specific player segment:
+Diagnose projection accuracy for a specific player segment. Segment analysis and
+per-player diagnostics are **descriptive** tools — they surface *where* error
+concentrates. Any model-change idea they motivate must still be validated on the
+held-out harness (`/experiment`), never on the in-sample segment numbers.
 
 // turbo
 
-1. **Parse the segment description from arguments.** Examples: "bench WR", "elite QB", "rookies", "age 30+", "high-usage RB". If no segment specified, ask the user.
+1. **Parse the segment** from arguments (e.g. "bench WR", "elite QB", "age 30+",
+   "high-usage RB"). If none given, ask the user.
 
-2. **Run segment analysis** to get accuracy broken down by segments:
+2. **Run segment analysis** across production + a learned reference + the naïve
+   baseline (use `venv/bin/python` directly — no `source venv/bin/activate`):
    ```bash
-   source venv/bin/activate && python scripts/feature_projections/cli.py segment-analysis \
-     --models v1_baseline_weighted_ppg,v14_qb_starter,v20_learned_usage \
+   venv/bin/python scripts/feature_projections/cli.py segment-analysis \
+     --models v14_qb_starter,v20_learned_usage,naive_prior_season_ppg \
      --seasons 2022,2023,2024,2025
    ```
 
-3. **Run per-player diagnostics** for detailed player-level view:
+3. **Run per-player diagnostics** for the player-level view:
    ```bash
-   source venv/bin/activate && python scripts/feature_projections/cli.py diagnostics \
-     --model v20_learned_usage --season 2025 --top 50 \
+   venv/bin/python scripts/feature_projections/cli.py diagnostics \
+     --model v14_qb_starter --season 2025 --top 50 \
      --output docs/generated/player-diagnostics.md
    ```
 
-4. **Read and filter** the generated reports to the requested segment. Look at:
-   - `docs/generated/segment-analysis.md` for segment-level metrics
-   - `docs/generated/player-diagnostics.md` for individual players
+4. **Read and filter** `docs/generated/segment-analysis.md` and
+   `docs/generated/player-diagnostics.md` to the requested segment.
 
-5. **Present segment-specific metrics:**
-   ```
-   Segment: Bench-tier WR (rank > 24)
-   Model              | MAE   | Bias    | R²    | N
-   v1_baseline        | 2.81  | -1.05   | 0.210 | 87
-   v14_qb_starter     | 2.78  | -1.27   | 0.220 | 87
-   v20_learned_usage  | 2.65  | -0.90   | 0.255 | 87
-   ```
+5. **Present segment metrics** (MAE, Bias, R², N per model) and **list the
+   players** with projected vs actual and an over/under-projection label.
 
-6. **List players in the segment** with their projected vs actual:
-   ```
-   Player         | Projected | Actual | Error  | Category
-   John Smith     | 4.50      | 2.10   | -2.40  | bust
-   Jane Doe       | 3.80      | 6.50   | +2.70  | breakout
-   ```
+6. **Identify systematic patterns** — is the segment consistently over/under-
+   projected? Are errors correlated with a feature (age, usage, depth role)? Note
+   that these are in-sample observations on the full history.
 
-7. **Identify systematic patterns:**
-   - Is the segment consistently over-projected or under-projected?
-   - Are errors correlated with specific features (e.g., age, usage share)?
-   - Are certain error categories dominant (breakout, bust, injury)?
-
-8. **Suggest potential improvements:**
-   - Which features might address the gap?
-   - Would a segment-specific weight adjustment help?
-   - Is this a data quality issue or a modeling issue?
+7. **Propose improvements as hypotheses, not conclusions.** For any proposed
+   feature or weight change, hand off to `/experiment` to get a held-out,
+   significance-tested verdict vs `v14_qb_starter` before trusting it. Be alert to
+   the level-vs-ordering split (#579/#598): a segment can be biased in level while
+   still ranked correctly, which changes whether a fix is even worth making.
