@@ -540,6 +540,26 @@ MODELS: dict[str, ModelDefinition] = {
             "depth_chart_position_raw*position",
         ],
     ),
+    "naive_prior_season_ppg": ModelDefinition(
+        name="naive_prior_season_ppg",
+        version=1,
+        description=(
+            "Naïve floor (GH #575): next season = most recent prior season's PPG, "
+            "no weighting/age/regression. Honest lower bound — any model worth its "
+            "complexity must beat 'just use last year'."
+        ),
+        features=["naive_prior_ppg"],
+    ),
+    "position_mean_baseline": ModelDefinition(
+        name="position_mean_baseline",
+        version=1,
+        description=(
+            "Zero-information floor (GH #575): every player projected at their "
+            "position's mean PPG (from the prior-season window). Cannot rank players "
+            "(R² ≈ 0); isolates how much accuracy is just knowing positional scale."
+        ),
+        features=["position_mean"],
+    ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
         version=1,

@@ -219,9 +219,41 @@ and a per-position mean. Notably, `v1_baseline` is already within ~0.05 MAE of
 the best "improved" model on most positions — the most under-discussed result in
 the log.
 
-**Remediation:** add `naive_prior_season_ppg` and `position_mean` baseline
-models; restrict cross-model `ALL` aggregates to the common matched-player set
-when comparing against FantasyPros.
+**Remediation (shipped):** two baseline models — `naive_prior_season_ppg`
+(next season = last season's PPG) and `position_mean_baseline` (everyone at the
+positional mean) — are registered and now appear in every report. And
+`just holdout-eval --matched` scores all models on the common player set for an
+apples-to-apples FantasyPros comparison.
+
+### Finding 4 result — the models barely clear "use last year," and FP ties when matched
+
+Held-out 2024–2025 (`just holdout-eval`), the naïve baselines bracket the field:
+
+| Model | Held-out ALL MAE | Note |
+|---|---|---|
+| `v14_qb_starter` (production) | **2.450** | best |
+| `v1_baseline_weighted_ppg` (3-yr weighted) | 2.633 | rank 21 |
+| learned family `v20`–`v31` | 2.65–2.73 | ranks 22–31 |
+| **`naive_prior_season_ppg`** (persistence) | 2.754 | rank 32 |
+| **`position_mean_baseline`** (no-skill) | 3.710 | rank 33 (floor) |
+
+Two readings:
+
+1. **The whole learned family barely beats persistence.** `v20`–`v31` (2.65–2.73)
+   sit just above "use last year's PPG" (2.754) and *below* the 3-year weighted
+   `v1` (2.633). All that feature engineering buys almost nothing over the
+   simplest possible projection — the under-discussed result the audit flagged,
+   now quantified against an explicit floor. `position_mean` (3.710) sets the
+   no-skill floor; good models clear it by ~1.3 MAE and on R² (0.19 → 0.61),
+   confirming they *do* rank players — they just don't beat persistence by much.
+2. **FantasyPros ties the best internal models once the sample is matched.** The
+   full report shows FP at rank 3 (2.462, N=430) vs internal (N=647) — different
+   players. Restricted to the **common 416 players** (`--matched`,
+   [projection-holdout-eval-matched.md](../generated/projection-holdout-eval-matched.md)),
+   FP (2.502) is statistically tied with `v14` (2.494) and `v19` (2.501) — a gap
+   far inside the bootstrap noise (Finding 2) — while still over-projecting
+   (+1.0 bias). FP is neither clearly ahead nor behind; the earlier "mid-pack FP"
+   impression was a sample artifact.
 
 ---
 
@@ -274,7 +306,7 @@ averaged) alongside the pooled number.
 | 2 — bootstrap significance on MAE deltas | 🟠 | [#573](https://github.com/alex-monroe/ottoneu-db/issues/573) | shipped (`just significance`); see Finding 2 result |
 | (rec) recalibrate learned models before re-promotion | 🔴 | [#579](https://github.com/alex-monroe/ottoneu-db/issues/579) | open |
 | 3 — availability-inclusive evaluation | 🟠 | [#574](https://github.com/alex-monroe/ottoneu-db/issues/574) | shipped (`just availability-backtest`); see Finding 3 result |
-| 4 — naïve baselines + matched-sample FP | 🟠 | [#575](https://github.com/alex-monroe/ottoneu-db/issues/575) | open |
+| 4 — naïve baselines + matched-sample FP | 🟠 | [#575](https://github.com/alex-monroe/ottoneu-db/issues/575) | shipped (2 baseline models + `--matched`); see Finding 4 result |
 | 5 — R² aggregation discipline | 🟡 | [#576](https://github.com/alex-monroe/ottoneu-db/issues/576) | open |
 | 6 — position-balanced headline MAE | 🟡 | [#577](https://github.com/alex-monroe/ottoneu-db/issues/577) | open |
 </content>

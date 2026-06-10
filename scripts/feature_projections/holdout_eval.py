@@ -323,14 +323,41 @@ def gather_predictions(
     return preds, actuals_by_season, pos_map
 
 
+def _restrict_to_common_players(
+    preds: dict[str, dict[int, dict[str, float]]],
+    actuals_by_season: dict[int, dict[str, float]],
+) -> dict[int, dict[str, float]]:
+    """Intersect actuals down to players EVERY model projected, per season.
+
+    Matched-sample mode (Finding 4): the ALL ranking is only apples-to-apples if
+    all models are scored on the same players. FantasyPros projects a smaller,
+    more-fantasy-relevant set than the internal models, so the default report's
+    ALL rows aren't on a common sample. Restricting to the intersection (≈ FP's
+    set) makes the comparison fair, at the cost of a smaller N.
+    """
+    matched: dict[int, dict[str, float]] = {}
+    for season, actuals in actuals_by_season.items():
+        common = set(actuals.keys())
+        for model_preds in preds.values():
+            common &= set(model_preds.get(season, {}).keys())
+        matched[season] = {pid: actuals[pid] for pid in common}
+    return matched
+
+
 def run(
     train_seasons: list[int],
     eval_seasons: list[int],
     only_models: Optional[list[str]] = None,
+    matched: bool = False,
 ) -> str:
     preds, actuals_by_season, pos_map = gather_predictions(
         train_seasons, eval_seasons, only_models
     )
+
+    if matched:
+        actuals_by_season = _restrict_to_common_players(preds, actuals_by_season)
+        for s in eval_seasons:
+            print(f"Matched-sample season {s}: {len(actuals_by_season[s])} common players")
 
     # {model: {season: {pos: metrics}}}
     results: dict[str, dict[int, dict[str, dict]]] = {
@@ -341,13 +368,14 @@ def run(
         for model_name, model_preds in preds.items()
     }
 
-    return _render(results, train_seasons, eval_seasons)
+    return _render(results, train_seasons, eval_seasons, matched=matched)
 
 
 def _render(
     results: dict[str, dict[int, dict[str, dict]]],
     train_seasons: list[int],
     eval_seasons: list[int],
+    matched: bool = False,
 ) -> str:
     metric_cols = [("mae", "MAE", ".3f"), ("bias", "Bias", "+.3f"),
                    ("r_squared", "R²", ".3f"), ("rmse", "RMSE", ".3f"),
@@ -360,8 +388,16 @@ def _render(
         combined[model_name] = {p: _aggregate(season_metrics, p) for p in report_positions}
 
     lines: list[str] = []
-    lines.append("# Projection Held-Out Evaluation (GH #572)\n")
+    title_suffix = " — matched-sample (common players only)" if matched else ""
+    lines.append(f"# Projection Held-Out Evaluation (GH #572){title_suffix}\n")
     lines.append(f"_Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}_\n")
+    if matched:
+        lines.append(
+            "**Matched-sample mode (Finding 4):** every model is scored on the *same* players "
+            "— the intersection of players all evaluated models projected, per season. This makes "
+            "the FantasyPros comparison apples-to-apples (FP projects a smaller, more-available "
+            "set), at the cost of a smaller N. Run without `--matched` for the full-coverage report.\n"
+        )
     lines.append(
         f"**Every model is evaluated out-of-sample on a shared held-out window.** "
         f"Learned/residual models were retrained on **{','.join(map(str, train_seasons))}** "
@@ -439,8 +475,11 @@ def main() -> None:
                         help="Comma-separated held-out evaluation seasons")
     parser.add_argument("--models", default=None,
                         help="Optional comma-separated subset of models (default: all)")
-    parser.add_argument("--output",
-                        default=os.path.join(repo_root, "docs", "generated", "projection-holdout-eval.md"))
+    parser.add_argument("--matched", action="store_true",
+                        help="Matched-sample mode: score all models on the common player set "
+                             "(apples-to-apples FantasyPros comparison, #575). Writes to a "
+                             "-matched output path unless --output is given.")
+    parser.add_argument("--output", default=None)
     args = parser.parse_args()
 
     train_seasons = [int(s) for s in args.train_seasons.split(",")]
@@ -452,12 +491,17 @@ def main() -> None:
 
     only_models = [m.strip() for m in args.models.split(",")] if args.models else None
 
-    table = run(train_seasons, eval_seasons, only_models)
+    output = args.output or os.path.join(
+        repo_root, "docs", "generated",
+        "projection-holdout-eval-matched.md" if args.matched else "projection-holdout-eval.md",
+    )
 
-    os.makedirs(os.path.dirname(args.output), exist_ok=True)
-    with open(args.output, "w") as f:
+    table = run(train_seasons, eval_seasons, only_models, matched=args.matched)
+
+    os.makedirs(os.path.dirname(output), exist_ok=True)
+    with open(output, "w") as f:
         f.write(table)
-    print(f"\nReport written to: {args.output}")
+    print(f"\nReport written to: {output}")
     print("\n" + "=" * 80)
     print(table)
 
