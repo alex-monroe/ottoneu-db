@@ -265,12 +265,21 @@ spread-out each group happened to be. K is correctly noted as "essentially
 random" (R² ≈ −1) yet is still folded into `ALL R²`, and the combined report
 already concedes R² is "indicative only" (`accuracy_report.py:190`).
 
-**Remediation:** treat MAE/RMSE as the cross-cut headline; keep R² per-slice and
-never weight-average it across heterogeneous groups in decision-making.
+**Remediation (shipped):** combined R² is no longer weight-averaged anywhere.
 
----
+- Where raw residuals are available (`holdout_eval.py`, `availability_backtest.py`),
+  the combined tables now **pool the raw (pred, actual) pairs across seasons and
+  compute one R²** (`_combined_metrics` / `_combined_avail_metrics`) — the
+  statistically correct combine. MAE/Bias/RMSE are unchanged by this (they're
+  exact under N-weighting); only R² moves (e.g. `v14` combined held-out R²
+  0.611 → 0.626).
+- Where only cached per-slice metrics exist (`accuracy_report.py`'s All-Seasons
+  table), a proper pooled R² can't be reconstructed, so combined **R² is omitted
+  (—)** with a note, rather than printing a misleading weighted average. MAE/RMSE
+  (exact under N-weighting) remain the combined headline.
 
-## 🟡 Finding 6: `ALL MAE` mixes positions of very different scale with a drifting mix
+Per-slice (per-season, per-position) R² is unchanged and still shown — those are
+proper pooled-over-players values. R² is never averaged across positions.
 
 `ALL` pools QB (~3.7 MAE) with K (~1.0 MAE), implicitly weighting by how many of
 each position cleared the games filter that year — a mix that drifts season to
@@ -307,7 +316,7 @@ averaged) alongside the pooled number.
 | (rec) recalibrate learned models before re-promotion | 🔴 | [#579](https://github.com/alex-monroe/ottoneu-db/issues/579) | open |
 | 3 — availability-inclusive evaluation | 🟠 | [#574](https://github.com/alex-monroe/ottoneu-db/issues/574) | shipped (`just availability-backtest`); see Finding 3 result |
 | 4 — naïve baselines + matched-sample FP | 🟠 | [#575](https://github.com/alex-monroe/ottoneu-db/issues/575) | shipped (2 baseline models + `--matched`); see Finding 4 result |
-| 5 — R² aggregation discipline | 🟡 | [#576](https://github.com/alex-monroe/ottoneu-db/issues/576) | open |
+| 5 — R² aggregation discipline | 🟡 | [#576](https://github.com/alex-monroe/ottoneu-db/issues/576) | shipped (pooled R² where possible, omitted where not) |
 | 6 — position-balanced headline MAE | 🟡 | [#577](https://github.com/alex-monroe/ottoneu-db/issues/577) | open |
 </content>
 </invoke>

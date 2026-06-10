@@ -216,43 +216,39 @@ def _db_preds_for_eval(
     return out
 
 
-def _aggregate(season_metrics: dict[int, dict[str, dict]], pos: str) -> Optional[dict]:
-    """Weighted-average a model's metrics for one position across eval seasons."""
-    rows = [season_metrics[s].get(pos) for s in season_metrics]
-    rows = [r for r in rows if r is not None]
-    if not rows:
-        return None
-    total_n = sum(r.get("player_count") or 0 for r in rows)
-    if total_n == 0:
-        return None
+def _combined_metrics(
+    model_preds: dict[int, dict[str, float]],
+    actuals_by_season: dict[int, dict[str, float]],
+    pos_map: dict[str, str],
+) -> dict[str, dict]:
+    """Combined ALL + per-position metrics for one model, POOLED across seasons.
 
-    def _wavg(key: str) -> Optional[float]:
-        pairs = [
-            (r.get(key), r.get("player_count") or 0)
-            for r in rows
-            if r.get(key) is not None and (r.get("player_count") or 0) > 0
-        ]
-        if not pairs:
-            return None
-        return sum(v * w for v, w in pairs) / sum(w for _, w in pairs)
-
-    rmse_pairs = [
-        (r.get("rmse"), r.get("player_count") or 0)
-        for r in rows
-        if r.get("rmse") is not None and (r.get("player_count") or 0) > 0
-    ]
-    rmse = (
-        (sum(v**2 * w for v, w in rmse_pairs) / sum(w for _, w in rmse_pairs)) ** 0.5
-        if rmse_pairs
-        else None
-    )
-    return {
-        "mae": _wavg("mae"),
-        "bias": _wavg("bias"),
-        "r_squared": _wavg("r_squared"),
-        "rmse": rmse,
-        "player_count": total_n,
+    R² is not a weighted average of per-season R² (each season's R² uses its own
+    actual-variance denominator), so pooling the raw (pred, actual) pairs and
+    computing one R²/MAE/RMSE over the pooled set is the only correct combine
+    (GH #576, Finding 5). MAE/bias/RMSE happen to be identical to the old
+    N-weighted aggregate; R² is the one that was wrong.
+    """
+    buckets: dict[str, tuple[list[float], list[float]]] = {
+        p: ([], []) for p in ["ALL"] + list(POSITIONS)
     }
+    for season, actuals in actuals_by_season.items():
+        sp = model_preds.get(season, {})
+        for pid, actual in actuals.items():
+            if pid not in sp:
+                continue
+            pred = sp[pid]
+            buckets["ALL"][0].append(pred)
+            buckets["ALL"][1].append(actual)
+            pos = pos_map.get(pid)
+            if pos in buckets:
+                buckets[pos][0].append(pred)
+                buckets[pos][1].append(actual)
+    out: dict[str, dict] = {}
+    for pos, (proj, act) in buckets.items():
+        if proj:
+            out[pos] = _compute_metrics(proj, act)
+    return out
 
 
 def _fmt(val, fmt: str) -> str:
@@ -359,7 +355,7 @@ def run(
         for s in eval_seasons:
             print(f"Matched-sample season {s}: {len(actuals_by_season[s])} common players")
 
-    # {model: {season: {pos: metrics}}}
+    # Per-season metrics (for the per-season tables).
     results: dict[str, dict[int, dict[str, dict]]] = {
         model_name: {
             s: _metrics_from_preds(model_preds.get(s, {}), actuals_by_season[s], pos_map)
@@ -367,12 +363,18 @@ def run(
         }
         for model_name, model_preds in preds.items()
     }
+    # Combined metrics pooled across seasons (proper R² — see _combined_metrics).
+    combined: dict[str, dict[str, dict]] = {
+        model_name: _combined_metrics(model_preds, actuals_by_season, pos_map)
+        for model_name, model_preds in preds.items()
+    }
 
-    return _render(results, train_seasons, eval_seasons, matched=matched)
+    return _render(results, combined, train_seasons, eval_seasons, matched=matched)
 
 
 def _render(
     results: dict[str, dict[int, dict[str, dict]]],
+    combined: dict[str, dict[str, dict]],
     train_seasons: list[int],
     eval_seasons: list[int],
     matched: bool = False,
@@ -381,11 +383,6 @@ def _render(
                    ("r_squared", "R²", ".3f"), ("rmse", "RMSE", ".3f"),
                    ("player_count", "N", "d")]
     report_positions = ["ALL"] + list(POSITIONS)
-
-    # Combined (across eval seasons) per position.
-    combined: dict[str, dict[str, Optional[dict]]] = {}
-    for model_name, season_metrics in results.items():
-        combined[model_name] = {p: _aggregate(season_metrics, p) for p in report_positions}
 
     lines: list[str] = []
     title_suffix = " — matched-sample (common players only)" if matched else ""
@@ -416,7 +413,7 @@ def _render(
     lines.append("| Rank | Model | MAE | Bias | R² | RMSE | N |")
     lines.append("| --- | --- | --- | --- | --- | --- | --- |")
     ranked = sorted(
-        (m for m in combined if combined[m]["ALL"] and combined[m]["ALL"].get("mae") is not None),
+        (m for m in combined if combined[m].get("ALL") and combined[m]["ALL"].get("mae") is not None),
         key=lambda m: combined[m]["ALL"]["mae"],
     )
     best_mae = combined[ranked[0]]["ALL"]["mae"] if ranked else None

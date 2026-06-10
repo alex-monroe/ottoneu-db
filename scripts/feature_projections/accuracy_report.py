@@ -273,9 +273,15 @@ def generate_markdown_table(seasons: list[int], include_leakage_section: bool = 
     # --- Combined totals across all seasons ---
     lines.append("## All Seasons Combined\n")
     lines.append(
-        "_Weighted averages across all seasons (weighted by player count N). "
-        "RMSE is approximated as √(weighted average of RMSE²). "
-        "R² is a weighted average and should be interpreted as indicative only._\n"
+        "_N-weighted across all seasons. MAE/Bias are exact (linear in the errors); "
+        "RMSE is √(N-weighted mean of RMSE²), also exact. **R² is intentionally omitted "
+        "(—) from the combined rows**: it is not a weighted average of per-season R² (each "
+        "season's R² uses its own actual-variance denominator), and this report works from "
+        "cached per-slice metrics without the raw residuals needed to pool it correctly. See "
+        "per-season R² above, and the leakage-free held-out reports "
+        "([projection-holdout-eval.md](projection-holdout-eval.md), "
+        "[projection-availability-eval.md](projection-availability-eval.md)) which compute a "
+        "proper pooled R² from raw pairs. (GH #576, Finding 5.)_\n"
     )
 
     def _aggregate(model_name: str, pos: str) -> dict | None:
@@ -301,7 +307,6 @@ def generate_markdown_table(seasons: list[int], include_leakage_section: bool = 
 
         mae = _wavg("mae")
         bias = _wavg("bias")
-        r_sq = _wavg("r_squared")
         # RMSE: sqrt of weighted average of squared RMSE values
         rmse_pairs = [
             (r.get("rmse"), r.get("player_count") or 0)
@@ -317,7 +322,8 @@ def generate_markdown_table(seasons: list[int], include_leakage_section: bool = 
         return {
             "mae": mae,
             "bias": bias,
-            "r_squared": r_sq,
+            # R² omitted from combined rows — not weighted-averageable; see note above (GH #576).
+            "r_squared": None,
             "rmse": rmse,
             "player_count": total_n,
         }
