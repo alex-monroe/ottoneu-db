@@ -123,11 +123,13 @@ train model seasons="2021,2022,2023,2024,2025":
     {{python}} scripts/feature_projections/train_model.py --model {{model}} --seasons {{seasons}}
 
 # Held-out re-rank: retrain learned models on a clean window, score all models OOS (GH #572)
+#   rolling-origin folds (#594): just holdout-eval --protocol rolling --eval-seasons 2023,2024,2025 --min-train-season 2021
 holdout-eval *args:
     {{python}} scripts/feature_projections/holdout_eval.py {{args}}
 
-# Paired bootstrap: is the held-out MAE gap between two models significant? (GH #573)
+# Paired bootstrap (player-clustered): is the held-out MAE gap between two models significant? (GH #573, #594)
 #   e.g. just significance v14_qb_starter v31_depth_chart
+#   rolling: just significance NEW v14_qb_starter --protocol rolling --eval-seasons 2023,2024,2025 --min-train-season 2021
 significance model_a model_b *args:
     {{python}} scripts/feature_projections/significance.py {{model_a}} {{model_b}} {{args}}
 

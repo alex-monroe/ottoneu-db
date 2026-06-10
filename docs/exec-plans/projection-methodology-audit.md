@@ -111,6 +111,39 @@ learned model is trusted/re-promoted, fix its out-of-sample over-projection bias
 (recalibration) and re-evaluate via `just holdout-eval`, not the leaked
 backtest.
 
+### Rolling-origin protocol (`just holdout-eval --protocol rolling`, #594)
+
+The fixed single-window holdout has two weaknesses the 2026-06 review flagged:
+the same 2024–2025 window driving ≥6 planned experiments recreates the Finding 2
+multiple-comparisons problem one floor up (the window stops being held out once
+it drives many accept/reject decisions), and learned models train on only 3
+seasons vs the 5 production would use (the caveat above). Both are fixed by an
+**expanding-window (rolling-origin)** protocol:
+
+```
+just holdout-eval --protocol rolling --eval-seasons 2023,2024,2025 --min-train-season 2021
+just significance NEW v14_qb_starter --protocol rolling --eval-seasons 2023,2024,2025 --min-train-season 2021
+```
+
+Each eval season is scored by models retrained on *only the seasons strictly
+before it* (`train 2021,2022 → eval 2023`; `train 2021,2022,2023 → eval 2024`;
+`train 2021,2022,2023,2024 → eval 2025`). Learned models therefore get a
+growing, time-honest training window (5 seasons by the final fold); additive and
+external models need no retraining (their projections already only use
+prior-season data). The combined report rows pool every fold's player-seasons;
+the per-season tables are the individual folds.
+
+`significance.py` pools the paired errors across folds and **clusters the
+bootstrap by player** — the same player appearing in 2024 and 2025 is one
+correlated unit, not two independent rows, so the CI no longer narrows
+artificially (review Finding C). The player-cluster bootstrap is now the default
+for the fixed protocol too.
+
+**Protocol for experiments (#587–#592):** iterate against the rolling folds; the
+**final window (2025, then 2026 actuals when they arrive) is confirmation-only —
+one look per experiment.** Promotion still requires a *significant* held-out win
+over the active model (`just significance`), never a point-estimate delta.
+
 ---
 
 ## 🟠 Finding 2: backtest overfitting / multiple comparisons

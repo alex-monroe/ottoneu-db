@@ -342,6 +342,69 @@ def gather_predictions(
     return preds, actuals_by_season, pos_map
 
 
+def rolling_folds(
+    eval_seasons: list[int], min_train_season: int
+) -> list[tuple[list[int], int]]:
+    """Expanding-window folds: each eval season trains on everything strictly before it.
+
+    For eval seasons ``[2023, 2024, 2025]`` and ``min_train_season=2021`` this
+    yields ``([2021,2022] → 2023, [2021,2022,2023] → 2024,
+    [2021,2022,2023,2024] → 2025)`` — a rolling-origin protocol (GH #594). Each
+    fold's learned models retrain on only the seasons available *at that point in
+    time*, mirroring how production would have built them, and no single eval
+    window drives every accept/reject decision.
+    """
+    folds: list[tuple[list[int], int]] = []
+    for season in sorted(set(eval_seasons)):
+        train = [s for s in range(min_train_season, season)]
+        if not train:
+            raise ValueError(
+                f"eval season {season} has no training seasons ≥ {min_train_season} before it"
+            )
+        folds.append((train, season))
+    return folds
+
+
+def gather_predictions_rolling(
+    folds: list[tuple[list[int], int]],
+    only_models: Optional[list[str]] = None,
+) -> tuple[
+    dict[str, dict[int, dict[str, float]]],
+    dict[int, dict[str, float]],
+    dict[str, str],
+    dict[int, list[int]],
+]:
+    """Run ``gather_predictions`` once per rolling fold and merge by eval season.
+
+    Each fold retrains learned models on its own (expanding) training window, so
+    a model's 2025 prediction was produced by a model that never saw 2025 — and,
+    unlike the fixed protocol, also never saw 2024 when predicting 2024. Returns
+    the same ``(preds, actuals_by_season, pos_map)`` shape as
+    ``gather_predictions`` plus a ``{eval_season: train_seasons}`` map for the
+    report header.
+    """
+    merged_preds: dict[str, dict[int, dict[str, float]]] = {}
+    merged_actuals: dict[int, dict[str, float]] = {}
+    pos_map: dict[str, str] = {}
+    fold_train: dict[int, list[int]] = {}
+
+    for train_seasons, eval_season in folds:
+        print(f"\n########## Rolling fold: train {train_seasons} → eval {eval_season} ##########")
+        preds, actuals_by_season, pmap = gather_predictions(
+            train_seasons, [eval_season], only_models
+        )
+        if pmap:
+            pos_map = pmap
+        merged_actuals[eval_season] = actuals_by_season.get(eval_season, {})
+        fold_train[eval_season] = train_seasons
+        for model_name, by_season in preds.items():
+            merged_preds.setdefault(model_name, {})[eval_season] = by_season.get(
+                eval_season, {}
+            )
+
+    return merged_preds, merged_actuals, pos_map, fold_train
+
+
 def _restrict_to_common_players(
     preds: dict[str, dict[int, dict[str, float]]],
     actuals_by_season: dict[int, dict[str, float]],
@@ -368,10 +431,22 @@ def run(
     eval_seasons: list[int],
     only_models: Optional[list[str]] = None,
     matched: bool = False,
+    protocol: str = "fixed",
+    min_train_season: Optional[int] = None,
 ) -> str:
-    preds, actuals_by_season, pos_map = gather_predictions(
-        train_seasons, eval_seasons, only_models
-    )
+    if protocol == "rolling":
+        if min_train_season is None:
+            min_train_season = min(train_seasons)
+        folds = rolling_folds(eval_seasons, min_train_season)
+        preds, actuals_by_season, pos_map, fold_train = gather_predictions_rolling(
+            folds, only_models
+        )
+        eval_seasons = [s for _, s in folds]
+    else:
+        preds, actuals_by_season, pos_map = gather_predictions(
+            train_seasons, eval_seasons, only_models
+        )
+        fold_train = {s: train_seasons for s in eval_seasons}
 
     if matched:
         actuals_by_season = _restrict_to_common_players(preds, actuals_by_season)
@@ -392,7 +467,10 @@ def run(
         for model_name, model_preds in preds.items()
     }
 
-    return _render(results, combined, train_seasons, eval_seasons, matched=matched)
+    return _render(
+        results, combined, train_seasons, eval_seasons,
+        matched=matched, protocol=protocol, fold_train=fold_train,
+    )
 
 
 def _render(
@@ -401,16 +479,37 @@ def _render(
     train_seasons: list[int],
     eval_seasons: list[int],
     matched: bool = False,
+    protocol: str = "fixed",
+    fold_train: Optional[dict[int, list[int]]] = None,
 ) -> str:
+    fold_train = fold_train or {s: train_seasons for s in eval_seasons}
     metric_cols = [("mae", "MAE", ".3f"), ("bias", "Bias", "+.3f"),
                    ("r_squared", "R²", ".3f"), ("rmse", "RMSE", ".3f"),
                    ("player_count", "N", "d")]
     report_positions = ["ALL"] + list(POSITIONS)
 
+    is_rolling = protocol == "rolling"
     lines: list[str] = []
     title_suffix = " — matched-sample (common players only)" if matched else ""
+    if is_rolling:
+        title_suffix += " — rolling-origin"
     lines.append(f"# Projection Held-Out Evaluation (GH #572){title_suffix}\n")
     lines.append(f"_Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}_\n")
+    if is_rolling:
+        fold_desc = "; ".join(
+            f"train {','.join(map(str, fold_train[s]))} → eval {s}"
+            for s in sorted(fold_train)
+        )
+        lines.append(
+            "**Rolling-origin protocol (GH #594).** Each eval season is scored by "
+            "models that trained on an *expanding window of only the seasons before it* "
+            f"— {fold_desc}. This guards the single fixed holdout against decay (no one "
+            "window drives every accept/reject decision) and removes the fixed protocol's "
+            "3-vs-5 training-season handicap on learned models. The combined rows below "
+            "pool every fold's player-seasons; the per-season tables are the individual "
+            "folds. See [docs/exec-plans/projection-methodology-audit.md]"
+            "(../exec-plans/projection-methodology-audit.md) (rolling-origin protocol).\n"
+        )
     if matched:
         lines.append(
             "**Matched-sample mode (Finding 4):** every model is scored on the *same* players "
@@ -418,18 +517,19 @@ def _render(
             "the FantasyPros comparison apples-to-apples (FP projects a smaller, more-available "
             "set), at the cost of a smaller N. Run without `--matched` for the full-coverage report.\n"
         )
-    lines.append(
-        f"**Every model is evaluated out-of-sample on a shared held-out window.** "
-        f"Learned/residual models were retrained on **{','.join(map(str, train_seasons))}** "
-        f"and never saw the eval seasons **{','.join(map(str, eval_seasons))}**; additive and "
-        f"external models are parameter-free w.r.t. training seasons, so their existing "
-        f"projections are already held-out. All models are scored through the identical "
-        f"`backtest_model` filter (target-season games ≥ {MIN_GAMES}, true rookies excluded). "
-        f"Unlike [projection-accuracy.md](projection-accuracy.md), **no model here is scored "
-        f"on data it trained on** — this is the honest ranking. See "
-        f"[docs/exec-plans/projection-methodology-audit.md](../exec-plans/projection-methodology-audit.md) "
-        f"(Finding 1b).\n"
-    )
+    if not is_rolling:
+        lines.append(
+            f"**Every model is evaluated out-of-sample on a shared held-out window.** "
+            f"Learned/residual models were retrained on **{','.join(map(str, train_seasons))}** "
+            f"and never saw the eval seasons **{','.join(map(str, eval_seasons))}**; additive and "
+            f"external models are parameter-free w.r.t. training seasons, so their existing "
+            f"projections are already held-out. All models are scored through the identical "
+            f"`backtest_model` filter (target-season games ≥ {MIN_GAMES}, true rookies excluded). "
+            f"Unlike [projection-accuracy.md](projection-accuracy.md), **no model here is scored "
+            f"on data it trained on** — this is the honest ranking. See "
+            f"[docs/exec-plans/projection-methodology-audit.md](../exec-plans/projection-methodology-audit.md) "
+            f"(Finding 1b).\n"
+        )
 
     # --- Ranking by combined ALL MAE ---
     lines.append("## Ranking — combined held-out ALL (lower MAE = better)\n")
@@ -485,9 +585,14 @@ def _render(
             lines.append(f"| `{model_name}` | " + " | ".join(cells) + " |")
         lines.append("")
 
-    # --- Per-season ALL ---
+    # --- Per-season ALL (one fold each under the rolling protocol) ---
     for season in eval_seasons:
-        lines.append(f"## Season {season} — ALL (held-out)\n")
+        fold_label = (
+            f" — fold (train {','.join(map(str, fold_train[season]))})"
+            if is_rolling and season in fold_train
+            else ""
+        )
+        lines.append(f"## Season {season} — ALL (held-out){fold_label}\n")
         lines.append("| Model | " + " | ".join(n for _, n, _ in metric_cols) + " |")
         lines.append("| " + " | ".join(["---"] * (len(metric_cols) + 1)) + " |")
         season_models = sorted(
@@ -506,9 +611,17 @@ def _render(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Held-out evaluation of all projection models (#572)")
     parser.add_argument("--train-seasons", default="2021,2022,2023",
-                        help="Comma-separated training seasons (must precede eval seasons)")
+                        help="Comma-separated training seasons (fixed protocol; must precede eval seasons)")
     parser.add_argument("--eval-seasons", default="2024,2025",
-                        help="Comma-separated held-out evaluation seasons")
+                        help="Comma-separated held-out evaluation seasons "
+                             "(rolling protocol: each is one fold)")
+    parser.add_argument("--protocol", choices=("fixed", "rolling"), default="fixed",
+                        help="fixed: single train/eval split (default). "
+                             "rolling: expanding-window folds, one per eval season (#594).")
+    parser.add_argument("--min-train-season", type=int, default=None,
+                        help="Rolling protocol: earliest training season "
+                             "(default: min of --train-seasons). Each eval season trains on "
+                             "[min-train-season, eval-season).")
     parser.add_argument("--models", default=None,
                         help="Optional comma-separated subset of models (default: all)")
     parser.add_argument("--matched", action="store_true",
@@ -520,19 +633,33 @@ def main() -> None:
 
     train_seasons = [int(s) for s in args.train_seasons.split(",")]
     eval_seasons = [int(s) for s in args.eval_seasons.split(",")]
-    if set(train_seasons) & set(eval_seasons):
-        parser.error("train-seasons and eval-seasons must not overlap")
-    if max(train_seasons) >= min(eval_seasons):
-        parser.error("all train-seasons must precede all eval-seasons (no future leakage)")
+    if args.protocol == "fixed":
+        if set(train_seasons) & set(eval_seasons):
+            parser.error("train-seasons and eval-seasons must not overlap")
+        if max(train_seasons) >= min(eval_seasons):
+            parser.error("all train-seasons must precede all eval-seasons (no future leakage)")
+    else:
+        min_train = args.min_train_season if args.min_train_season is not None else min(train_seasons)
+        if min(eval_seasons) <= min_train:
+            parser.error(
+                f"rolling: every eval season must be > --min-train-season ({min_train}) "
+                "so each fold has a non-empty training window"
+            )
 
     only_models = [m.strip() for m in args.models.split(",")] if args.models else None
 
-    output = args.output or os.path.join(
-        repo_root, "docs", "generated",
-        "projection-holdout-eval-matched.md" if args.matched else "projection-holdout-eval.md",
-    )
+    if args.protocol == "rolling":
+        default_name = "projection-holdout-eval-rolling.md"
+    elif args.matched:
+        default_name = "projection-holdout-eval-matched.md"
+    else:
+        default_name = "projection-holdout-eval.md"
+    output = args.output or os.path.join(repo_root, "docs", "generated", default_name)
 
-    table = run(train_seasons, eval_seasons, only_models, matched=args.matched)
+    table = run(
+        train_seasons, eval_seasons, only_models, matched=args.matched,
+        protocol=args.protocol, min_train_season=args.min_train_season,
+    )
 
     os.makedirs(os.path.dirname(output), exist_ok=True)
     with open(output, "w") as f:
