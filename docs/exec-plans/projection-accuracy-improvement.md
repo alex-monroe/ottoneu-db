@@ -95,45 +95,63 @@ New data sources and learned models. Expected: MAE < 2.3, R² > 0.60.
 
 ---
 
-## Prioritized Backlog (2026-05-05)
+## Experiment Backlog (post-audit 2026-06-10)
 
-Issue audit (2026-05-05) consolidated duplicates and ranked open work by impact × effort, weighted toward **early, season-long projection accuracy** (i.e., features knowable in the offseason are favored). Closed: #56, #58, #59, #60 (done or stale); #392 (dup of #376), #394 (dup of #378), #393 (split into #375 + #379).
+> The pre-audit backlog below this was **invalidated** by the
+> [methodology audit](projection-methodology-audit.md). Its ranking was built on
+> leaked, in-sample numbers; the held-out re-ranking inverted it (every learned
+> model `v20`–`v31` fell below the additive `v14`), and the `#579` diagnostic
+> showed recalibration can only *tie* `v14`, while adding features (`v27`) made
+> out-of-sample accuracy *worse*. So "add more features / fancier learned models"
+> is the wrong direction. The pre-audit issues (#377, #379, #381–#387, #570) are
+> **closed**. The new backlog is grounded in the honest held-out evidence and
+> every item must clear `just holdout-eval` + `just significance` (not the leaked
+> backtest).
+
+**Active model: `v14_qb_starter`** (additive — the honest out-of-sample leader).
+
+### Priority 1 — Orthogonal axis (the real opportunity)
+
+| # | Experiment | Why |
+|---|---|---|
+| [#587](https://github.com/alex-monroe/ottoneu-db/issues/587) | Availability / expected-games model | Availability is a large *unmodeled* budget (+0.633 MAE / ~20% for `v14`, Finding 3) and is **orthogonal** to rate accuracy where `v14` is near a ceiling. Highest-value direction. |
+
+### Priority 2 — Honest re-validation (cheap, high information)
+
+| # | Experiment | Why |
+|---|---|---|
+| [#588](https://github.com/alex-monroe/ottoneu-db/issues/588) | Honest feature ablation under the held-out harness | Every feature was validated on leaked data; `v27` (all features) de-biases *worse* than minimal `v20`. Prune, don't add. |
+| [#589](https://github.com/alex-monroe/ottoneu-db/issues/589) | Tune the base `weighted_ppg` against the held-out harness | `v14` ≈ base + tiny adjustments; the base does ~all the work and is the highest-leverage target. |
+
+### Priority 3 — Bounded recalibration / ranking experiments
+
+| # | Experiment | Why |
+|---|---|---|
+| [#590](https://github.com/alex-monroe/ottoneu-db/issues/590) | Delta-anchored learned model | Fixes the level-drift bias by anchoring to the per-player base; expected ceiling ≈ tie with `v14`. |
+| [#591](https://github.com/alex-monroe/ottoneu-db/issues/591) | Training-window recalibration (level-matched 2018–2020) | 2018–2020 PPG (~6.9) matches eval seasons (~7.0); wider training window may recalibrate the learned intercept. |
+| [#592](https://github.com/alex-monroe/ottoneu-db/issues/592) | QB-specific anchored model | QB is the one position where learned *beats* `v14` out-of-sample (Finding 1b). |
+
+Deferred (not in the accuracy plan): uncertainty-aware/Bayesian intervals (a separate decision-quality value prop, not point-MAE).
+
+---
+
+## Pre-audit backlog (2026-05-05) — SUPERSEDED, kept for history
+
+_The ranking and "current best" claims below are in-sample and **not valid** — see the audit. All issues here are closed._
 
 ### Tier 1 — Do first (high impact, low/medium effort)
 
 | # | Title | Effort | Why first |
 |---|---|---|---|
-| ~~[#380](https://github.com/alex-monroe/ottoneu-db/issues/380)~~ | ~~Backfill 2021 training season~~ ✅ | medium | Enabler — backfilled `player_stats` 2018–2020, added 2021 + 2025 as training seasons. v31 training set 613 → 1203 samples; combined backtest (2022–2025, N=989) ALL MAE 2.427 → 2.358, R² 0.624 → 0.645. `just train` default now `2021,2022,2023,2024,2025`. Raises the safe feature-dimension ceiling for #381/#382 |
-| ~~[#376](https://github.com/alex-monroe/ottoneu-db/issues/376)~~ | ~~NFL draft capital~~ ✅ | low | v25_draft_capital_residual: ALL MAE 2.370 (current best), R² 0.575, vet predictions byte-identical to v22 |
-| ~~[#391](https://github.com/alex-monroe/ottoneu-db/issues/391)~~ | ~~Depth chart / offseason movement~~ ✅ | medium | v31_depth_chart: ALL MAE 2.439 (vs v27 2.483), R² 0.620, RMSE 3.183. Biggest gains QB −0.126 / RB −0.203 MAE. `depth_charts` table (opening-day depth tier) from nflverse; replaces broken historical `team_context` with forward-looking role info |
-| ~~[#375](https://github.com/alex-monroe/ottoneu-db/issues/375)~~ | ~~Advanced receiving (target_share, air_yards, WOPR)~~ ✅ | low | v22_advanced_receiving: ALL MAE 2.380 (vs v20 2.412), R² 0.572, n=583 backtest seasons |
-| ~~[#378](https://github.com/alex-monroe/ottoneu-db/issues/378)~~ | ~~Vegas implied team totals~~ ✅ | low | v27_vegas_full_refit: ALL MAE 2.458 (vs v25 2.551), R² 0.582, bias −0.041. 320 (team, season) rows from nflverse; replaces broken `team_context` |
+| ~~[#380](https://github.com/alex-monroe/ottoneu-db/issues/380)~~ | ~~Backfill 2021 training season~~ ✅ | medium | Enabler — backfilled `player_stats` 2018–2020, added 2021 + 2025 as training seasons |
+| ~~[#376](https://github.com/alex-monroe/ottoneu-db/issues/376)~~ | ~~NFL draft capital~~ ✅ | low | v25_draft_capital_residual (in-sample numbers — not OOS-validated) |
+| ~~[#391](https://github.com/alex-monroe/ottoneu-db/issues/391)~~ | ~~Depth chart / offseason movement~~ ✅ | medium | v31_depth_chart (in-sample) |
+| ~~[#375](https://github.com/alex-monroe/ottoneu-db/issues/375)~~ | ~~Advanced receiving~~ ✅ | low | v22_advanced_receiving (in-sample) |
+| ~~[#378](https://github.com/alex-monroe/ottoneu-db/issues/378)~~ | ~~Vegas implied team totals~~ ✅ | low | v27_vegas_full_refit (in-sample) |
 
-### Tier 2 — Strong second wave (medium effort)
+### Tiers 2–4 (all closed post-audit)
 
-| # | Title | Effort | Notes |
-|---|---|---|---|
-| [#377](https://github.com/alex-monroe/ottoneu-db/issues/377) | Expand raw features + asymmetric regression fix | medium | Addresses +2.69 elite under-projection bias |
-| [#379](https://github.com/alex-monroe/ottoneu-db/issues/379) | Red zone usage from PBP | medium | New pipeline cost; RB/TE TD signal |
-| [#381](https://github.com/alex-monroe/ottoneu-db/issues/381) | LightGBM combiner | medium | Eliminates manual interaction terms; benefits from #380 |
-| [#382](https://github.com/alex-monroe/ottoneu-db/issues/382) | Position-specific learned models | medium | Biggest QB win; benefits from #380 |
-
-### Tier 3 — High impact but heavy
-
-| # | Title | Effort | Notes |
-|---|---|---|---|
-| [#384](https://github.com/alex-monroe/ottoneu-db/issues/384) | Injury availability model | high | 24% of error budget; two-stage modeling, possibly new data |
-| [#383](https://github.com/alex-monroe/ottoneu-db/issues/383) | Stacked ensemble | medium | Worth most after #381 + #382 land |
-
-### Tier 4 — Defer
-
-| # | Title | Effort | Notes |
-|---|---|---|---|
-| [#387](https://github.com/alex-monroe/ottoneu-db/issues/387) | Coaching/scheme change detection | high | Vegas (#378) captures most of the same signal more efficiently |
-| [#386](https://github.com/alex-monroe/ottoneu-db/issues/386) | Transfer learning weekly→season | high | Requires weekly data pipeline; high complexity |
-| [#385](https://github.com/alex-monroe/ottoneu-db/issues/385) | Bayesian hierarchical model | high | Small MAE gain; main value is decision-quality intervals |
-
-Issues are labeled `priority:p1`–`priority:p4` and `effort:low/medium/high` on GitHub.
+#377, #379, #381, #382, #383 (learned-model expansion — superseded by #588/#590/#592; learned approach only ties `v14` OOS); #384 (injury — superseded by #587); #570 (expand 2016–2020 — superseded by #591); #385/#386/#387 (deferred/closed).
 
 ---
 
