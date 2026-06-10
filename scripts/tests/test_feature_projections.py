@@ -26,6 +26,8 @@ from scripts.feature_projections.features.regression_to_mean import (
 )
 from scripts.feature_projections.features.snap_trend import SnapTrendFeature
 from scripts.feature_projections.features.qb_starter_usage import QBStarterUsageFeature, QBStarterBackupPenaltyFeature
+from scripts.feature_projections.features.naive_prior_ppg import NaivePriorSeasonPPGFeature
+from scripts.feature_projections.features.position_mean import PositionMeanFeature
 from scripts.feature_projections.combiner import combine_features
 from scripts.feature_projections.model_config import get_model, MODELS, ModelDefinition, PositionOverride
 from scripts.feature_projections.runner import _resolve_features_for_position
@@ -1846,3 +1848,54 @@ class TestRoleChangeFeature:
     def test_kicker_excluded(self):
         ctx = {"target_season": 2025, "depth_charts": {("p1", 2024): 2, ("p1", 2025): 1}}
         assert self.feature.compute("p1", "K", pd.DataFrame(), pd.DataFrame(), ctx) is None
+
+
+# ---------------------------------------------------------------------------
+# Naïve baselines (#575)
+# ---------------------------------------------------------------------------
+
+class TestNaivePriorSeasonPPGFeature:
+    def setup_method(self):
+        self.feature = NaivePriorSeasonPPGFeature()
+
+    def test_is_base(self):
+        assert self.feature.is_base is True
+        assert self.feature.name == "naive_prior_ppg"
+
+    def test_empty_history_returns_none(self):
+        assert self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(), {}) is None
+
+    def test_returns_most_recent_season_ppg(self):
+        df = make_history_df([
+            {"player_id": "p1", "season": 2022, "ppg": 8.0, "games_played": 16},
+            {"player_id": "p1", "season": 2024, "ppg": 14.0, "games_played": 17},
+            {"player_id": "p1", "season": 2023, "ppg": 11.0, "games_played": 15},
+        ])
+        # Most recent prior season is 2024 regardless of row order.
+        assert self.feature.compute("p1", "WR", df, pd.DataFrame(), {}) == 14.0
+
+    def test_single_season(self):
+        df = make_history_df([{"player_id": "p1", "season": 2024, "ppg": 9.5, "games_played": 10}])
+        assert self.feature.compute("p1", "RB", df, pd.DataFrame(), {}) == 9.5
+
+
+class TestPositionMeanFeature:
+    def setup_method(self):
+        self.feature = PositionMeanFeature()
+
+    def test_is_base(self):
+        assert self.feature.is_base is True
+        assert self.feature.name == "position_mean"
+
+    def test_returns_positional_mean_from_context(self):
+        assert self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(),
+                                    {"positional_mean_ppg": 7.3}) == 7.3
+
+    def test_missing_mean_returns_none(self):
+        assert self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(), {}) is None
+
+    def test_ignores_history(self):
+        df = make_history_df([{"player_id": "p1", "season": 2024, "ppg": 25.0, "games_played": 17}])
+        # Projection is the positional mean, NOT the player's own production.
+        assert self.feature.compute("p1", "WR", df, pd.DataFrame(),
+                                    {"positional_mean_ppg": 7.3}) == 7.3

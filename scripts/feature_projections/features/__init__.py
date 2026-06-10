@@ -41,6 +41,8 @@ from scripts.feature_projections.features.depth_chart import (
     DepthChartPositionFeature,
     RoleChangeFeature,
 )
+from scripts.feature_projections.features.naive_prior_ppg import NaivePriorSeasonPPGFeature
+from scripts.feature_projections.features.position_mean import PositionMeanFeature
 
 FEATURE_REGISTRY: dict[str, type] = {
     "weighted_ppg": WeightedPPGFeature,
@@ -67,4 +69,6 @@ FEATURE_REGISTRY: dict[str, type] = {
     "implied_team_total_raw": ImpliedTeamTotalRawFeature,
     "depth_chart_position_raw": DepthChartPositionFeature,
     "role_change_raw": RoleChangeFeature,
+    "naive_prior_ppg": NaivePriorSeasonPPGFeature,
+    "position_mean": PositionMeanFeature,
 }
