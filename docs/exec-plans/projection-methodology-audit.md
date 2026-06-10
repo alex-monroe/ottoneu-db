@@ -438,6 +438,60 @@ starters. Re-reading the held-out 2024–2025 numbers under these metrics:
   headline ML conclusion (the leaked learned ranking was driven by leakage) is
   unchanged; what changes is the *target metric* for beating `v14`.
 
+### Coverage-drift root cause: the level drift is an ingestion artifact, not football (GH #599)
+
+The #579 diagnostic attributed the eval-population PPG drift (~9.7 → ~7.0) "partly
+to scoring environment, largely to coverage". This root-causes it. Comparing the
+Ottoneu `player_stats` qualifying population (games ≥ 4) against the stable
+nflverse `nfl_stats` denominator — same scoring; `nfl_stats.ppg` matches
+`player_stats.ppg` to <0.01 for ~90% of overlapping rows —
+([coverage-analysis.md](../generated/coverage-analysis.md), `just coverage-report`):
+
+| | 2018–2020 | **2021–2023** | 2024–2025 |
+|---|---|---|---|
+| `player_stats` coverage of nflverse | ~80% | **29–40%** | ~81–86% |
+| `player_stats` mean PPG (qualifiers) | ~6.5 | **8.0 / 10.0 / 9.6** | ~6.0 |
+| nflverse mean PPG (qualifiers) | ~6.3 | **~6.0** | ~6.2 |
+
+The nflverse mean PPG is rock-stable (~6.0–6.7) across **all 16 seasons**; only
+the `player_stats` mean spikes — and it spikes exactly where coverage collapses.
+**2021–2023 are severely under-ingested** (only the top ~30–40% of qualifying NFL
+players are present), and because the missing players are the low scorers, the
+captured mean is inflated. The drift is an ingestion-coverage artifact, **not a
+change in football**.
+
+**Two consequences.**
+
+1. *The drift contaminates the holdout's own training window.* The fixed protocol
+   trains on 2021–2023 (inflated ~9.6 mean) and scores 2024–2025 (true ~6.0) —
+   that train/eval population mismatch is a direct cause of the learned models'
+   −1.0 to −1.3 over-projection bias (#579). The rolling protocol (#594) reduces
+   but does not remove it while 2021–2023 stay thin.
+2. *#591's premise is true but for the wrong reason.* 2018–2020's "level match" to
+   the eval seasons isn't special to those seasons — **every well-covered season**
+   sits at ~6.5 mean; it's the fixed-holdout's 2021–2023 training window that is
+   the under-covered outlier. So the cleaner fix than "train on 2018–2020" is to
+   **backfill 2021–2023** to full coverage.
+
+**Harmonized eval population (`just holdout-eval --population harmonized`, #599).**
+Independently of any backfill, the held-out report can hold the population fixed
+across seasons: the **top-N per position by actual total points**
+(QB/TE 24, RB 36, WR 48, K 24 — coverage is ~complete at the *top* of each
+position, so the thin seasons aren't penalised). This collapses the cross-season
+mean-actual-PPG range from **4.08** (5.93→10.01 under the full population) to
+**1.37** (10.9→12.3) **with no systematic thin-vs-full gap** — i.e. harmonization
+removes essentially all of the coverage-driven drift, confirming it was an
+artifact. Use `--population harmonized` for any cross-season comparison.
+
+**Backfill recommendation (warranted, follow-up).** The ~1,255 qualifying nflverse
+player-seasons missing from `player_stats` in 2021–2023 (409 / 466 / 380) can be
+backfilled from the same nflverse source already used for 2018–2020 and 2024–2025
+(`pull_player_stats` reads the full `stats_player` parquet with Ottoneu scoring;
+the 2018–2020 backfill set the precedent — GH #380). Because it changes the
+training population for every model, it must run the full held-out re-validation
+(`/experiment`) before any re-promotion — tracked as the #599 backfill follow-up,
+not bundled with this tooling change.
+
 ---
 
 ## What the audit found to be sound (keep doing)

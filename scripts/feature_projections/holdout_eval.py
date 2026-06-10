@@ -454,6 +454,66 @@ def _restrict_to_common_players(
     return matched
 
 
+# Harmonized eval population (GH #599): top-N per position by actual total points.
+# `player_stats` under-covers 2021–2023 (≈30–40% of nflverse), inflating those
+# seasons' mean PPG and making per-season metrics non-comparable. Coverage is
+# ~complete at the *top* of each position, so restricting to a fixed top-N per
+# position holds the population definition constant across seasons and sidesteps
+# the coverage gap. N ≈ 2× the starter pool, sized to fit even the thin seasons.
+HARMONIZED_TOP_N = {"QB": 24, "RB": 36, "WR": 48, "TE": 24, "K": 24}
+
+
+def _restrict_to_harmonized_population(
+    actuals_by_season: dict[int, dict[str, float]],
+    pos_map: dict[str, str],
+    points_by_season: dict[int, dict[str, float]],
+    top_n: dict[str, int],
+) -> dict[int, dict[str, float]]:
+    """Restrict each season's actuals to the top-N per position by actual points.
+
+    Holds the eval population fixed across seasons regardless of ingestion
+    coverage (GH #599). Ranks by actual total points (fantasy relevance), falling
+    back to PPG when total points are unavailable. Takes min(N, available) and
+    warns when a season is short of N for any position.
+    """
+    out: dict[int, dict[str, float]] = {}
+    for season, actuals in actuals_by_season.items():
+        by_pos: dict[str, list[str]] = {}
+        for pid in actuals:
+            pos = pos_map.get(pid)
+            if pos in top_n:
+                by_pos.setdefault(pos, []).append(pid)
+        kept: dict[str, float] = {}
+        season_points = points_by_season.get(season, {})
+        for pos, pids in by_pos.items():
+            n = top_n[pos]
+            ranked = sorted(
+                pids,
+                key=lambda p: season_points.get(p, actuals[p]),
+                reverse=True,
+            )
+            if len(ranked) < n:
+                print(f"  Harmonized {season} {pos}: only {len(ranked)} available (< {n})")
+            for pid in ranked[:n]:
+                kept[pid] = actuals[pid]
+        out[season] = kept
+    return out
+
+
+def _fetch_points_by_season(eval_seasons: list[int]) -> dict[int, dict[str, float]]:
+    """Actual total points per (player, season) for the eval seasons (paginated)."""
+    supabase = get_supabase_client()
+    out: dict[int, dict[str, float]] = {}
+    for season in eval_seasons:
+        rows = _fetch_season_rows(supabase, "player_stats", "player_id, total_points", season)
+        out[season] = {
+            r["player_id"]: float(r["total_points"])
+            for r in rows
+            if r.get("total_points") is not None
+        }
+    return out
+
+
 def run(
     train_seasons: list[int],
     eval_seasons: list[int],
@@ -462,6 +522,7 @@ def run(
     protocol: str = "fixed",
     min_train_season: Optional[int] = None,
     use_cache: bool = True,
+    population: str = "all",
 ) -> str:
     if protocol == "rolling":
         if min_train_season is None:
@@ -476,6 +537,14 @@ def run(
             train_seasons, eval_seasons, only_models, use_cache=use_cache
         )
         fold_train = {s: train_seasons for s in eval_seasons}
+
+    if population == "harmonized":
+        points_by_season = _fetch_points_by_season(eval_seasons)
+        actuals_by_season = _restrict_to_harmonized_population(
+            actuals_by_season, pos_map, points_by_season, HARMONIZED_TOP_N
+        )
+        for s in eval_seasons:
+            print(f"Harmonized season {s}: {len(actuals_by_season[s])} top-N players")
 
     if matched:
         actuals_by_season = _restrict_to_common_players(preds, actuals_by_season)
@@ -499,6 +568,7 @@ def run(
     return _render(
         results, combined, train_seasons, eval_seasons,
         matched=matched, protocol=protocol, fold_train=fold_train,
+        population=population,
     )
 
 
@@ -510,6 +580,7 @@ def _render(
     matched: bool = False,
     protocol: str = "fixed",
     fold_train: Optional[dict[int, list[int]]] = None,
+    population: str = "all",
 ) -> str:
     fold_train = fold_train or {s: train_seasons for s in eval_seasons}
     metric_cols = [("mae", "MAE", ".3f"), ("bias", "Bias", "+.3f"),
@@ -518,11 +589,24 @@ def _render(
     report_positions = ["ALL"] + list(POSITIONS)
 
     is_rolling = protocol == "rolling"
+    is_harmonized = population == "harmonized"
     lines: list[str] = []
     title_suffix = " — matched-sample (common players only)" if matched else ""
+    if is_harmonized:
+        title_suffix += " — harmonized population"
     if is_rolling:
         title_suffix += " — rolling-origin"
     lines.append(f"# Projection Held-Out Evaluation (GH #572){title_suffix}\n")
+    if is_harmonized:
+        topn = ", ".join(f"{p} {n}" for p, n in HARMONIZED_TOP_N.items())
+        lines.append(
+            "**Harmonized eval population (GH #599).** Each season is restricted to "
+            f"the **top-N per position by actual total points** ({topn}). `player_stats` "
+            "under-covers 2021–2023 (≈30–40% of nflverse), inflating those seasons' "
+            "mean PPG; holding a fixed top-N per position across seasons makes the "
+            "per-season metrics comparable and removes the coverage-driven level drift. "
+            "See [coverage-analysis.md](coverage-analysis.md).\n"
+        )
     lines.append(f"_Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}_\n")
     if is_rolling:
         fold_desc = "; ".join(
@@ -693,6 +777,10 @@ def main() -> None:
                              "-matched output path unless --output is given.")
     parser.add_argument("--no-cache", action="store_true",
                         help="Force a retrain instead of reusing cached held-out predictions (#597).")
+    parser.add_argument("--population", choices=("all", "harmonized"), default="all",
+                        help="all: every qualifying non-rookie (default). harmonized: "
+                             "top-N per position by actual total points, fixed across seasons "
+                             "to neutralise the 2021–2023 coverage drift (#599).")
     parser.add_argument("--output", default=None)
     args = parser.parse_args()
 
@@ -713,18 +801,19 @@ def main() -> None:
 
     only_models = [m.strip() for m in args.models.split(",")] if args.models else None
 
+    harmonized_tag = "-harmonized" if args.population == "harmonized" else ""
     if args.protocol == "rolling":
-        default_name = "projection-holdout-eval-rolling.md"
+        default_name = f"projection-holdout-eval-rolling{harmonized_tag}.md"
     elif args.matched:
-        default_name = "projection-holdout-eval-matched.md"
+        default_name = f"projection-holdout-eval-matched{harmonized_tag}.md"
     else:
-        default_name = "projection-holdout-eval.md"
+        default_name = f"projection-holdout-eval{harmonized_tag}.md"
     output = args.output or os.path.join(repo_root, "docs", "generated", default_name)
 
     table = run(
         train_seasons, eval_seasons, only_models, matched=args.matched,
         protocol=args.protocol, min_train_season=args.min_train_season,
-        use_cache=not args.no_cache,
+        use_cache=not args.no_cache, population=args.population,
     )
 
     os.makedirs(os.path.dirname(output), exist_ok=True)
