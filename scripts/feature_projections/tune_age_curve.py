@@ -4,13 +4,15 @@ Tests combinations of peak_age, decline_rate, growth_rate, and scale for each
 position. Computes in-memory projections (base weighted_ppg + age curve delta)
 and compares to actuals to find the optimal parameter set.
 
-**Overfitting caveat:** By default, the same seasons are used for both parameter
-search and evaluation. Results may overfit to historical data. Consider holding
-out one season (e.g., search on 2022-2024, evaluate on 2025) for more robust
-estimates of improvement.
+**Honest tuning protocol (GH #595):** the grid search now defaults to the
+**inner folds** (2022,2023,2024) and holds the confirmation window (2025) back
+for a single confirmatory look per accepted variant — so the search no longer
+sees the seasons used to crown the production model. Pointing ``--seasons`` at
+the confirmation window prints a loud warning. See
+``scripts/feature_projections/tuning_protocol.py``.
 
 Usage:
-    venv/bin/python scripts/feature_projections/tune_age_curve.py [--seasons 2022,2023,2024,2025]
+    venv/bin/python scripts/feature_projections/tune_age_curve.py [--seasons 2022,2023,2024]
     venv/bin/python scripts/feature_projections/tune_age_curve.py --positions QB,WR
 """
 
@@ -25,6 +27,10 @@ import pandas as pd
 
 from scripts.config import get_supabase_client, fetch_all_rows, POSITIONS, MIN_GAMES
 from scripts.analysis_utils import fetch_multi_season_stats
+from scripts.feature_projections.tuning_protocol import (
+    inner_tuning_seasons_str,
+    warn_on_confirmation_overlap,
+)
 from scripts.feature_projections.features.weighted_ppg import WeightedPPGFeature
 from scripts.feature_projections.features.age_curve import (
     AgeCurveFeature,
@@ -245,8 +251,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Tune age curve parameters via grid search")
     parser.add_argument(
         "--seasons",
-        default="2022,2023,2024,2025",
-        help="Comma-separated target seasons (default: 2022,2023,2024,2025)",
+        default=inner_tuning_seasons_str(),
+        help=f"Comma-separated target seasons (default: {inner_tuning_seasons_str()} — "
+             "the inner tuning folds; the confirmation window is excluded, GH #595)",
     )
     parser.add_argument(
         "--positions",
@@ -255,6 +262,7 @@ def main() -> None:
     )
     args = parser.parse_args()
     seasons = [int(s.strip()) for s in args.seasons.split(",")]
+    warn_on_confirmation_overlap(seasons)
     positions = [p.strip().upper() for p in args.positions.split(",")]
 
     print(f"Tuning age curve for positions: {positions}")

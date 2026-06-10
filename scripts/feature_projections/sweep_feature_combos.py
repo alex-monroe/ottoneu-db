@@ -4,8 +4,12 @@ Tests all 2^6 = 64 combinations of the 6 adjustment features on top of the
 base weighted_ppg feature. Computes in-memory projections and backtest metrics
 to rank every combination by weighted-average MAE across seasons.
 
+Tuning defaults to the **inner folds** (2022,2023,2024); the confirmation window
+(2025) is held back for a single confirmatory look per accepted variant (honest
+tuning protocol, GH #595).
+
 Usage:
-    python scripts/feature_projections/sweep_feature_combos.py [--seasons 2024,2025]
+    python scripts/feature_projections/sweep_feature_combos.py [--seasons 2022,2023,2024]
 """
 
 from __future__ import annotations
@@ -19,6 +23,10 @@ import pandas as pd
 
 from scripts.config import get_supabase_client, fetch_all_rows, POSITIONS, MIN_GAMES
 from scripts.analysis_utils import fetch_multi_season_stats, fetch_multi_season_nfl_stats
+from scripts.feature_projections.tuning_protocol import (
+    inner_tuning_seasons_str,
+    warn_on_confirmation_overlap,
+)
 from scripts.feature_projections.features import FEATURE_REGISTRY
 from scripts.feature_projections.features.base import ProjectionFeature
 from scripts.feature_projections.combiner import combine_features
@@ -223,8 +231,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Sweep all feature combinations")
     parser.add_argument(
         "--seasons",
-        default="2024,2025",
-        help="Comma-separated target seasons (default: 2024,2025)",
+        default=inner_tuning_seasons_str(),
+        help=f"Comma-separated target seasons (default: {inner_tuning_seasons_str()} — "
+             "the inner tuning folds; the confirmation window is excluded, GH #595)",
     )
     parser.add_argument(
         "--top",
@@ -239,6 +248,7 @@ def main() -> None:
     )
     args = parser.parse_args()
     seasons = [int(s.strip()) for s in args.seasons.split(",")]
+    warn_on_confirmation_overlap(seasons)
 
     combos = _generate_all_combos()
     print(f"Testing {len(combos)} feature combinations across seasons {seasons}\n")
