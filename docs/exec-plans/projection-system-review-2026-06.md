@@ -192,3 +192,80 @@ Recommended agent batching: (#594 + #597) together (both rework
    (`just significance`), never a point-estimate delta.
 3. Availability-touching work reports **both** rate and availability MAE.
 4. Log held-out MAE + CI in the experiment log (format lands with #596).
+
+---
+
+## Wave 3 re-scope (2026-06-10, post-#608/#609 baseline flip)
+
+**Why this re-scope exists.** Waves 1–2 landed after this plan was written, and
+Wave 2's coverage backfill ([#599](https://github.com/alex-monroe/ottoneu-db/issues/599),
+PRs #607/#608) **reversed the #579 negative result**. The learned family no
+longer drowns in level drift on the corrected population, so a learned model
+([`v31_depth_chart`](#)) was promoted to active ([#609](https://github.com/alex-monroe/ottoneu-db/pull/609)),
+displacing the additive `v14_qb_starter`. Several Wave 3 issues were written
+against the *old* evidence (v14 best, learned loses OOS, features add no value);
+their premises must be re-checked before any experiment runs.
+
+### New baseline evidence (rolling-origin held-out, post-backfill)
+
+From [`projection-holdout-eval-rolling.md`](../generated/projection-holdout-eval-rolling.md)
+(eval 2023–2025, expanding train window from 2021):
+
+- **`v31_depth_chart` is the honest #1** — ALL MAE **2.232**, and it
+  *significantly* beats `v14_qb_starter` (Δ **−0.091**, 95% CI [−0.163, −0.020],
+  p=0.014, 617 player clusters). The learned models occupy ranks 1–10; `v14` is
+  rank 11. The entire `v20`→`v31` ordering is now a *real* out-of-sample
+  progression, not a leakage artifact.
+- **The over-projection bias is gone.** `v20`'s ALL bias moved −1.060 → −0.032
+  on the corrected population — the level-drift that motivated the #579
+  diagnostic (and #590) no longer exists.
+- **New wrinkle — MAE and within-position ranking dissociate (Finding D, #598).**
+  On Spearman ρ the *simpler additive* models still out-rank `v31` at RB and WR
+  (RB: `v4` 0.807 vs `v31` 0.787; WR: `v4` 0.794 vs `v31` 0.779), even though
+  `v31` wins their MAE. External FantasyPros out-ranks everything everywhere
+  (ρ ≈ 0.81–0.83). VORP/auction/keeper decisions consume *ordering*, so `v31`'s
+  MAE win is not unambiguously a decision-quality win at RB/WR. This is now a
+  first-class consideration for any Wave 3 promote decision.
+
+### Comparator flip is mandatory (do this first)
+
+Every Wave 3 DoD, the `/experiment`, `/ablation`, `/compare-models`,
+`/feature-importance`, `/diagnose-segment` skills, the three CLAUDE.md
+"Projection Model Update Requirements" example commands, and the
+experiment-log warning header all still name **`v14_qb_starter`** as the
+production/comparator model. That is now false. The active model is resolved
+dynamically from `projection_models.is_active`; the *docs* lag. Before running
+any experiment, the significance gate must compare against **`v31_depth_chart`**
+(or, better, against `fetchActiveProjectionModel()`'s answer at run time). The
+experiment-log header's "the additive `v14_qb_starter` is the honest best and is
+in production" is stale and contradicts the held-out doc.
+
+### Per-issue disposition
+
+| Issue | Original premise | Post-backfill evidence | Disposition |
+|---|---|---|---|
+| **#587** availability / expected-games | Availability is the large unmodeled error, orthogonal to the rate ceiling | **Unchanged** — the backfill does not touch playing-time loss | **KEEP — still top priority.** Comparator → `v31`. Note the dual-gate tension below. |
+| **#588** honest feature ablation | Features add *no* OOS value (`v27` de-biases worse than `v20`); likely prune most | **Inverted** — `v31`(all features) > `v27` > … > `v14` OOS; the learned stack now earns its features | **KEEP, re-framed** — confirm each feature's *positive* contribution, and add the RB/WR rank-quality lens (does the MAE win cost ordering?). |
+| **#589** tune base `weighted_ppg` | Blocked on #595 (honest tuning protocol) | #595 merged (commit e81868b) → **unblocked** | **KEEP.** Comparator → `v31`. The base now also feeds the learned stack, so a base change re-tunes every learned model. |
+| **#590** delta-anchored learned model | Learned's OOS deficit is ~entirely level-drift bias from the global Ridge intercept | **Premise gone** — bias is now ≈0 and learned already wins outright | **SHELVE/CLOSE.** The motivating diagnostic is reversed; the per-player anchor solves a problem that no longer exists. Revisit only if a future population change reintroduces level drift. |
+| **#591** level-matched 2018–2020 training window | Cross-season level mismatch (mean PPG 9.7→7.0) "largely coverage"; wait for #599 | **Resolved by #599** — the drift was a coverage artifact; the backfill harmonized the population *and* extended history to 2018–2020 | **SHELVE/CLOSE.** Premise was the artifact #599 fixed. |
+| **#592** QB-specific anchored model | QB is *the one* position where learned beats `v14` | Learned now beats `v14` broadly; QB is no longer unique — **but** it remains the largest additive-vs-learned gap (`v31` 3.666 vs `v14` 3.879) and `depth_chart_position×QB` is the largest learned interaction (+0.93 PPG/tier) | **KEEP, re-framed** as a bounded QB bet vs `v31` (drop the "one position" framing); DoD = significant held-out QB win, neutral elsewhere. |
+
+### Re-scoped Wave 3 order
+
+1. **#587** availability / expected-games — top priority, premise-stable.
+   *Architecture note:* `significance`/`holdout-eval` score `projected_ppg`
+   against the **rate** target; only `availability-backtest` has the
+   availability-inclusive target. A constant-haircut model (`ppg × E[games]/17`)
+   improves the availability budget but *regresses* the rate gate, because both
+   read the same projection column. Winning both gates requires a **separate
+   expected-games output** (new `model_projections` column) that multiplies the
+   rate projection only for the availability target — real schema + pipeline
+   work, the largest single build in the wave.
+2. **#588** honest ablation vs `v31` (re-framed; cheap — no new model code).
+3. **#589** tune base `weighted_ppg` vs `v31` (now unblocked).
+4. **#592** QB-specific bounded bet vs `v31` (per-position significance).
+5. ~~#590 delta-anchored~~ — shelved (premise reversed).
+6. ~~#591 level-matched window~~ — shelved (premise resolved by #599).
+
+All gates compare against **`v31_depth_chart`** (the active model), not `v14`.
