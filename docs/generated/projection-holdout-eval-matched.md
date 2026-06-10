@@ -1,6 +1,6 @@
 # Projection Held-Out Evaluation (GH #572) — matched-sample (common players only)
 
-_Generated: 2026-06-10 09:15_
+_Generated: 2026-06-10 09:35_
 
 **Matched-sample mode (Finding 4):** every model is scored on the *same* players — the intersection of players all evaluated models projected, per season. This makes the FantasyPros comparison apples-to-apples (FP projects a smaller, more-available set), at the cost of a smaller N. Run without `--matched` for the full-coverage report.
 
@@ -8,41 +8,43 @@ _Generated: 2026-06-10 09:15_
 
 ## Ranking — combined held-out ALL (lower MAE = better)
 
-| Rank | Model | MAE | Bias | R² | RMSE | N |
-| --- | --- | --- | --- | --- | --- | --- |
-| 1 | `v14_qb_starter` | **2.494** | +0.161 | 0.650 | 3.283 | 416 |
-| 2 | `v19_usage_level_full` | 2.501 | -0.040 | 0.652 | 3.275 | 416 |
-| 3 | `external_fantasypros_v1` | 2.502 | +1.022 | 0.625 | 3.400 | 416 |
-| 4 | `v10_stat_efficiency_v2` | 2.521 | +0.071 | 0.627 | 3.389 | 416 |
-| 5 | `v17_rookie_growth` | 2.522 | +0.119 | 0.647 | 3.299 | 416 |
-| 6 | `v12_no_qb_trajectory` | 2.523 | +0.094 | 0.627 | 3.390 | 416 |
-| 7 | `v16_snap_trend_full` | 2.523 | +0.098 | 0.641 | 3.326 | 416 |
-| 8 | `v11_team_context_v2` | 2.525 | +0.033 | 0.621 | 3.419 | 416 |
-| 9 | `v8_age_regression` | 2.526 | +0.069 | 0.625 | 3.398 | 416 |
-| 10 | `v9_pos_specific` | 2.526 | +0.069 | 0.625 | 3.398 | 416 |
-| 11 | `v13_qb_starter` | 2.527 | +0.070 | 0.624 | 3.403 | 416 |
-| 12 | `v21_tiered_regression` | 2.551 | +0.233 | 0.628 | 3.387 | 416 |
-| 13 | `v7_regression_to_mean` | 2.571 | +0.304 | 0.624 | 3.405 | 416 |
-| 14 | `v3_stat_weighted` | 2.585 | -0.183 | 0.608 | 3.475 | 416 |
-| 15 | `v2_age_adjusted` | 2.587 | -0.197 | 0.607 | 3.480 | 416 |
-| 16 | `v5_team_context` | 2.623 | +0.238 | 0.600 | 3.511 | 416 |
-| 17 | `v15_snap_trend` | 2.624 | -0.259 | 0.595 | 3.532 | 416 |
-| 18 | `v4_availability_adjusted` | 2.628 | +0.272 | 0.604 | 3.494 | 416 |
-| 19 | `v18_usage_level` | 2.633 | -0.397 | 0.598 | 3.519 | 416 |
-| 20 | `v26_vegas_residual` | 2.642 | -0.905 | 0.635 | 3.354 | 416 |
-| 21 | `v6_usage_share` | 2.646 | +0.038 | 0.595 | 3.531 | 416 |
-| 22 | `v20_learned_usage` | 2.647 | -0.627 | 0.636 | 3.347 | 416 |
-| 23 | `v22_advanced_receiving` | 2.650 | -0.661 | 0.634 | 3.357 | 416 |
-| 24 | `v31_depth_chart` | 2.656 | -0.908 | 0.625 | 3.399 | 416 |
-| 25 | `v25_draft_capital_residual` | 2.663 | -0.857 | 0.632 | 3.368 | 416 |
-| 26 | `v28_reliability_weighting` | 2.663 | -0.786 | 0.633 | 3.362 | 416 |
-| 27 | `v27_vegas_full_refit` | 2.674 | -0.872 | 0.624 | 3.403 | 416 |
-| 28 | `v30_reliability_full_refit` | 2.675 | -0.877 | 0.623 | 3.409 | 416 |
-| 29 | `v29_reliability_residual` | 2.693 | -0.964 | 0.626 | 3.396 | 416 |
-| 30 | `v1_baseline_weighted_ppg` | 2.700 | -0.429 | 0.578 | 3.605 | 416 |
-| 31 | `v23_draft_capital` | 2.720 | -0.845 | 0.615 | 3.444 | 416 |
-| 32 | `naive_prior_season_ppg` | 2.890 | -0.281 | 0.494 | 3.949 | 416 |
-| 33 | `position_mean_baseline` | 4.080 | +1.757 | 0.131 | 5.173 | 416 |
+_**MAE** is the pooled-over-players ALL error. **Bal MAE** is the position-balanced MAE — the unweighted mean of the per-position MAEs over a fixed set (QB/RB/WR/TE; K excluded as essentially random and not projected by every model) — which neutralises the drifting position mix of the qualifier pool (GH #577). They can disagree: a model can win the pooled MAE while losing the balanced one if it's strong only where players are easy/plentiful._
+
+| Rank | Model | MAE | Bal MAE | Bias | R² | RMSE | N |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | `v14_qb_starter` | **2.494** | **2.564** | +0.161 | 0.650 | 3.283 | 416 |
+| 2 | `v19_usage_level_full` | 2.501 | 2.569 | -0.040 | 0.652 | 3.275 | 416 |
+| 3 | `external_fantasypros_v1` | 2.502 | 2.595 | +1.022 | 0.625 | 3.400 | 416 |
+| 4 | `v10_stat_efficiency_v2` | 2.521 | 2.598 | +0.071 | 0.627 | 3.389 | 416 |
+| 5 | `v17_rookie_growth` | 2.522 | 2.590 | +0.119 | 0.647 | 3.299 | 416 |
+| 6 | `v12_no_qb_trajectory` | 2.523 | 2.601 | +0.094 | 0.627 | 3.390 | 416 |
+| 7 | `v16_snap_trend_full` | 2.523 | 2.600 | +0.098 | 0.641 | 3.326 | 416 |
+| 8 | `v11_team_context_v2` | 2.525 | 2.602 | +0.033 | 0.621 | 3.419 | 416 |
+| 9 | `v8_age_regression` | 2.526 | 2.603 | +0.069 | 0.625 | 3.398 | 416 |
+| 10 | `v9_pos_specific` | 2.526 | 2.603 | +0.069 | 0.625 | 3.398 | 416 |
+| 11 | `v13_qb_starter` | 2.527 | 2.604 | +0.070 | 0.624 | 3.403 | 416 |
+| 12 | `v21_tiered_regression` | 2.551 | 2.628 | +0.233 | 0.628 | 3.387 | 416 |
+| 13 | `v7_regression_to_mean` | 2.571 | 2.645 | +0.304 | 0.624 | 3.405 | 416 |
+| 14 | `v3_stat_weighted` | 2.585 | 2.665 | -0.183 | 0.608 | 3.475 | 416 |
+| 15 | `v2_age_adjusted` | 2.587 | 2.667 | -0.197 | 0.607 | 3.480 | 416 |
+| 16 | `v5_team_context` | 2.623 | 2.703 | +0.238 | 0.600 | 3.511 | 416 |
+| 17 | `v15_snap_trend` | 2.624 | 2.711 | -0.259 | 0.595 | 3.532 | 416 |
+| 18 | `v4_availability_adjusted` | 2.628 | 2.707 | +0.272 | 0.604 | 3.494 | 416 |
+| 19 | `v18_usage_level` | 2.633 | 2.709 | -0.397 | 0.598 | 3.519 | 416 |
+| 20 | `v6_usage_share` | 2.646 | 2.722 | +0.038 | 0.595 | 3.531 | 416 |
+| 21 | `v20_learned_usage` | 2.647 | 2.707 | -0.627 | 0.636 | 3.347 | 416 |
+| 22 | `v31_depth_chart` | 2.656 | 2.711 | -0.908 | 0.625 | 3.399 | 416 |
+| 23 | `v28_reliability_weighting` | 2.663 | 2.719 | -0.786 | 0.633 | 3.362 | 416 |
+| 24 | `v26_vegas_residual` | 2.663 | 2.718 | -0.827 | 0.627 | 3.388 | 416 |
+| 25 | `v22_advanced_receiving` | 2.664 | 2.717 | -0.566 | 0.630 | 3.376 | 416 |
+| 26 | `v27_vegas_full_refit` | 2.674 | 2.734 | -0.872 | 0.624 | 3.403 | 416 |
+| 27 | `v30_reliability_full_refit` | 2.675 | 2.736 | -0.877 | 0.623 | 3.409 | 416 |
+| 28 | `v25_draft_capital_residual` | 2.693 | 2.751 | -0.779 | 0.623 | 3.408 | 416 |
+| 29 | `v29_reliability_residual` | 2.693 | 2.752 | -0.964 | 0.626 | 3.396 | 416 |
+| 30 | `v1_baseline_weighted_ppg` | 2.700 | 2.775 | -0.429 | 0.578 | 3.605 | 416 |
+| 31 | `v23_draft_capital` | 2.742 | 2.805 | -0.652 | 0.606 | 3.486 | 416 |
+| 32 | `naive_prior_season_ppg` | 2.890 | 2.992 | -0.281 | 0.494 | 3.949 | 416 |
+| 33 | `position_mean_baseline` | 4.080 | 4.150 | +1.757 | 0.131 | 5.173 | 416 |
 
 ## Combined across eval seasons — by position
 
@@ -69,18 +71,18 @@ _Generated: 2026-06-10 09:15_
 | `v15_snap_trend` | 2.624 | -0.259 | 0.595 | 3.532 | 416 |
 | `v4_availability_adjusted` | 2.628 | +0.272 | 0.604 | 3.494 | 416 |
 | `v18_usage_level` | 2.633 | -0.397 | 0.598 | 3.519 | 416 |
-| `v26_vegas_residual` | 2.642 | -0.905 | 0.635 | 3.354 | 416 |
 | `v6_usage_share` | 2.646 | +0.038 | 0.595 | 3.531 | 416 |
 | `v20_learned_usage` | 2.647 | -0.627 | 0.636 | 3.347 | 416 |
-| `v22_advanced_receiving` | 2.650 | -0.661 | 0.634 | 3.357 | 416 |
 | `v31_depth_chart` | 2.656 | -0.908 | 0.625 | 3.399 | 416 |
-| `v25_draft_capital_residual` | 2.663 | -0.857 | 0.632 | 3.368 | 416 |
 | `v28_reliability_weighting` | 2.663 | -0.786 | 0.633 | 3.362 | 416 |
+| `v26_vegas_residual` | 2.663 | -0.827 | 0.627 | 3.388 | 416 |
+| `v22_advanced_receiving` | 2.664 | -0.566 | 0.630 | 3.376 | 416 |
 | `v27_vegas_full_refit` | 2.674 | -0.872 | 0.624 | 3.403 | 416 |
 | `v30_reliability_full_refit` | 2.675 | -0.877 | 0.623 | 3.409 | 416 |
+| `v25_draft_capital_residual` | 2.693 | -0.779 | 0.623 | 3.408 | 416 |
 | `v29_reliability_residual` | 2.693 | -0.964 | 0.626 | 3.396 | 416 |
 | `v1_baseline_weighted_ppg` | 2.700 | -0.429 | 0.578 | 3.605 | 416 |
-| `v23_draft_capital` | 2.720 | -0.845 | 0.615 | 3.444 | 416 |
+| `v23_draft_capital` | 2.742 | -0.652 | 0.606 | 3.486 | 416 |
 | `naive_prior_season_ppg` | 2.890 | -0.281 | 0.494 | 3.949 | 416 |
 | `position_mean_baseline` | 4.080 | +1.757 | 0.131 | 5.173 | 416 |
 
@@ -88,20 +90,20 @@ _Generated: 2026-06-10 09:15_
 
 | Model | MAE | Bias | R² | RMSE | N |
 | --- | --- | --- | --- | --- | --- |
+| `v22_advanced_receiving` | 3.447 | -0.678 | 0.482 | 4.470 | 84 |
 | `v31_depth_chart` | 3.455 | -1.347 | 0.484 | 4.460 | 84 |
-| `v22_advanced_receiving` | 3.462 | -1.114 | 0.481 | 4.471 | 84 |
 | `v20_learned_usage` | 3.486 | -1.200 | 0.477 | 4.491 | 84 |
 | `v28_reliability_weighting` | 3.492 | -1.252 | 0.472 | 4.511 | 84 |
-| `v26_vegas_residual` | 3.520 | -1.402 | 0.461 | 4.558 | 84 |
+| `v26_vegas_residual` | 3.497 | -1.067 | 0.460 | 4.564 | 84 |
 | `v27_vegas_full_refit` | 3.539 | -1.240 | 0.444 | 4.631 | 84 |
 | `v30_reliability_full_refit` | 3.549 | -1.274 | 0.437 | 4.658 | 84 |
 | `v14_qb_starter` | 3.558 | -0.397 | 0.446 | 4.622 | 84 |
 | `v17_rookie_growth` | 3.558 | -0.397 | 0.446 | 4.622 | 84 |
 | `v19_usage_level_full` | 3.558 | -0.397 | 0.446 | 4.622 | 84 |
-| `v25_draft_capital_residual` | 3.566 | -1.377 | 0.452 | 4.594 | 84 |
+| `v25_draft_capital_residual` | 3.563 | -1.036 | 0.448 | 4.612 | 84 |
 | `v29_reliability_residual` | 3.592 | -1.513 | 0.442 | 4.639 | 84 |
-| `v23_draft_capital` | 3.623 | -1.195 | 0.433 | 4.674 | 84 |
 | `v16_snap_trend_full` | 3.637 | -0.420 | 0.433 | 4.676 | 84 |
+| `v23_draft_capital` | 3.666 | -0.712 | 0.425 | 4.710 | 84 |
 | `v21_tiered_regression` | 3.670 | -0.023 | 0.412 | 4.759 | 84 |
 | `v7_regression_to_mean` | 3.703 | +0.480 | 0.388 | 4.857 | 84 |
 | `v12_no_qb_trajectory` | 3.706 | -0.726 | 0.354 | 4.990 | 84 |
@@ -146,17 +148,17 @@ _Generated: 2026-06-10 09:15_
 | `v5_team_context` | 2.780 | +0.777 | 0.569 | 3.535 | 97 |
 | `v15_snap_trend` | 2.788 | +0.238 | 0.573 | 3.521 | 97 |
 | `v21_tiered_regression` | 2.797 | +0.862 | 0.563 | 3.558 | 97 |
-| `v26_vegas_residual` | 2.816 | -0.316 | 0.583 | 3.479 | 97 |
 | `v4_availability_adjusted` | 2.839 | +0.807 | 0.565 | 3.553 | 97 |
 | `v20_learned_usage` | 2.848 | -0.133 | 0.569 | 3.537 | 97 |
+| `v26_vegas_residual` | 2.853 | -0.351 | 0.567 | 3.545 | 97 |
 | `v29_reliability_residual` | 2.873 | -0.485 | 0.579 | 3.496 | 97 |
-| `v25_draft_capital_residual` | 2.874 | -0.289 | 0.575 | 3.509 | 97 |
 | `v28_reliability_weighting` | 2.881 | -0.330 | 0.573 | 3.519 | 97 |
-| `v22_advanced_receiving` | 2.903 | -0.058 | 0.562 | 3.565 | 97 |
 | `v30_reliability_full_refit` | 2.906 | -0.543 | 0.553 | 3.602 | 97 |
 | `v27_vegas_full_refit` | 2.909 | -0.543 | 0.552 | 3.603 | 97 |
+| `v25_draft_capital_residual` | 2.910 | -0.325 | 0.559 | 3.574 | 97 |
 | `v31_depth_chart` | 2.915 | -0.609 | 0.541 | 3.649 | 97 |
-| `v23_draft_capital` | 2.963 | -0.481 | 0.540 | 3.651 | 97 |
+| `v22_advanced_receiving` | 2.922 | -0.174 | 0.552 | 3.602 | 97 |
+| `v23_draft_capital` | 2.991 | -0.282 | 0.516 | 3.745 | 97 |
 | `naive_prior_season_ppg` | 2.999 | -0.058 | 0.426 | 4.080 | 97 |
 | `position_mean_baseline` | 4.790 | +2.922 | -0.228 | 5.967 | 97 |
 
@@ -187,14 +189,14 @@ _Generated: 2026-06-10 09:15_
 | `v18_usage_level` | 2.514 | -0.536 | 0.476 | 3.136 | 127 |
 | `v30_reliability_full_refit` | 2.532 | -1.042 | 0.507 | 3.044 | 127 |
 | `v27_vegas_full_refit` | 2.536 | -1.048 | 0.505 | 3.048 | 127 |
-| `v22_advanced_receiving` | 2.543 | -0.831 | 0.497 | 3.074 | 127 |
-| `v26_vegas_residual` | 2.547 | -1.230 | 0.496 | 3.076 | 127 |
-| `v25_draft_capital_residual` | 2.559 | -1.134 | 0.499 | 3.067 | 127 |
 | `v28_reliability_weighting` | 2.567 | -0.950 | 0.488 | 3.100 | 127 |
 | `v31_depth_chart` | 2.578 | -1.106 | 0.458 | 3.189 | 127 |
-| `v23_draft_capital` | 2.584 | -1.032 | 0.488 | 3.100 | 127 |
+| `v26_vegas_residual` | 2.579 | -1.201 | 0.487 | 3.104 | 127 |
+| `v22_advanced_receiving` | 2.581 | -0.808 | 0.488 | 3.102 | 127 |
 | `v29_reliability_residual` | 2.602 | -1.194 | 0.484 | 3.114 | 127 |
+| `v25_draft_capital_residual` | 2.603 | -1.110 | 0.486 | 3.106 | 127 |
 | `v1_baseline_weighted_ppg` | 2.615 | -0.355 | 0.451 | 3.211 | 127 |
+| `v23_draft_capital` | 2.618 | -0.935 | 0.481 | 3.122 | 127 |
 | `naive_prior_season_ppg` | 2.647 | -0.357 | 0.410 | 3.329 | 127 |
 | `position_mean_baseline` | 4.085 | +2.780 | -0.336 | 5.009 | 127 |
 
@@ -224,15 +226,15 @@ _Generated: 2026-06-10 09:15_
 | `v1_baseline_weighted_ppg` | 1.761 | -0.310 | 0.553 | 2.213 | 108 |
 | `v6_usage_share` | 1.763 | -0.036 | 0.542 | 2.239 | 108 |
 | `naive_prior_season_ppg` | 1.843 | -0.181 | 0.530 | 2.269 | 108 |
-| `v25_draft_capital_residual` | 1.892 | -0.637 | 0.528 | 2.273 | 108 |
 | `v31_depth_chart` | 1.895 | -0.601 | 0.533 | 2.262 | 108 |
-| `v26_vegas_residual` | 1.914 | -0.666 | 0.526 | 2.278 | 108 |
-| `v22_advanced_receiving` | 1.918 | -0.651 | 0.514 | 2.306 | 108 |
+| `v22_advanced_receiving` | 1.920 | -0.546 | 0.508 | 2.321 | 108 |
+| `v25_draft_capital_residual` | 1.926 | -0.599 | 0.509 | 2.318 | 108 |
 | `v28_reliability_weighting` | 1.935 | -0.641 | 0.517 | 2.300 | 108 |
 | `v29_reliability_residual` | 1.940 | -0.698 | 0.517 | 2.301 | 108 |
+| `v23_draft_capital` | 1.943 | -0.604 | 0.499 | 2.343 | 108 |
+| `v26_vegas_residual` | 1.944 | -0.629 | 0.508 | 2.320 | 108 |
 | `v27_vegas_full_refit` | 1.951 | -0.674 | 0.513 | 2.310 | 108 |
 | `v30_reliability_full_refit` | 1.954 | -0.675 | 0.512 | 2.312 | 108 |
-| `v23_draft_capital` | 1.958 | -0.680 | 0.503 | 2.332 | 108 |
 | `v20_learned_usage` | 2.033 | -0.992 | 0.469 | 2.411 | 108 |
 | `position_mean_baseline` | 2.704 | +0.770 | -0.063 | 3.412 | 108 |
 
@@ -248,6 +250,7 @@ _Generated: 2026-06-10 09:15_
 | `v19_usage_level_full` | 2.594 | +0.282 | 0.621 | 3.311 | 185 |
 | `v12_no_qb_trajectory` | 2.598 | +0.453 | 0.612 | 3.352 | 185 |
 | `v14_qb_starter` | 2.599 | +0.507 | 0.616 | 3.334 | 185 |
+| `v22_advanced_receiving` | 2.599 | -0.186 | 0.616 | 3.335 | 185 |
 | `v13_qb_starter` | 2.601 | +0.445 | 0.610 | 3.361 | 185 |
 | `v17_rookie_growth` | 2.603 | +0.480 | 0.615 | 3.339 | 185 |
 | `v11_team_context_v2` | 2.604 | +0.425 | 0.606 | 3.379 | 185 |
@@ -255,20 +258,19 @@ _Generated: 2026-06-10 09:15_
 | `v8_age_regression` | 2.614 | +0.458 | 0.609 | 3.366 | 185 |
 | `v9_pos_specific` | 2.614 | +0.458 | 0.609 | 3.366 | 185 |
 | `v10_stat_efficiency_v2` | 2.616 | +0.453 | 0.611 | 3.357 | 185 |
-| `v22_advanced_receiving` | 2.643 | -0.407 | 0.608 | 3.370 | 185 |
+| `v26_vegas_residual` | 2.637 | -0.460 | 0.607 | 3.373 | 185 |
 | `v16_snap_trend_full` | 2.647 | +0.444 | 0.595 | 3.422 | 185 |
 | `v20_learned_usage` | 2.648 | -0.350 | 0.607 | 3.372 | 185 |
-| `v26_vegas_residual` | 2.650 | -0.667 | 0.606 | 3.376 | 185 |
-| `v25_draft_capital_residual` | 2.654 | -0.621 | 0.603 | 3.390 | 185 |
+| `v25_draft_capital_residual` | 2.648 | -0.415 | 0.602 | 3.394 | 185 |
 | `v3_stat_weighted` | 2.660 | +0.282 | 0.601 | 3.398 | 185 |
 | `v28_reliability_weighting` | 2.661 | -0.635 | 0.602 | 3.393 | 185 |
 | `v2_age_adjusted` | 2.663 | +0.272 | 0.599 | 3.405 | 185 |
 | `v27_vegas_full_refit` | 2.675 | -0.678 | 0.591 | 3.443 | 185 |
 | `external_fantasypros_v1` | 2.679 | +1.456 | 0.572 | 3.520 | 185 |
+| `v23_draft_capital` | 2.679 | -0.231 | 0.582 | 3.477 | 185 |
 | `v21_tiered_regression` | 2.681 | +0.711 | 0.584 | 3.471 | 185 |
 | `v30_reliability_full_refit` | 2.687 | -0.682 | 0.586 | 3.463 | 185 |
 | `v1_baseline_weighted_ppg` | 2.695 | +0.091 | 0.577 | 3.499 | 185 |
-| `v23_draft_capital` | 2.696 | -0.633 | 0.582 | 3.477 | 185 |
 | `v18_usage_level` | 2.696 | +0.047 | 0.595 | 3.425 | 185 |
 | `v29_reliability_residual` | 2.712 | -0.826 | 0.588 | 3.455 | 185 |
 | `v7_regression_to_mean` | 2.722 | +0.721 | 0.585 | 3.467 | 185 |
@@ -303,16 +305,16 @@ _Generated: 2026-06-10 09:15_
 | `v15_snap_trend` | 2.534 | -0.634 | 0.596 | 3.555 | 231 |
 | `v6_usage_share` | 2.535 | -0.359 | 0.606 | 3.511 | 231 |
 | `v18_usage_level` | 2.583 | -0.752 | 0.587 | 3.593 | 231 |
-| `v26_vegas_residual` | 2.636 | -1.096 | 0.644 | 3.337 | 231 |
 | `v20_learned_usage` | 2.647 | -0.850 | 0.646 | 3.328 | 231 |
-| `v22_advanced_receiving` | 2.656 | -0.865 | 0.642 | 3.346 | 231 |
 | `v28_reliability_weighting` | 2.664 | -0.907 | 0.644 | 3.338 | 231 |
 | `v30_reliability_full_refit` | 2.665 | -1.034 | 0.638 | 3.365 | 231 |
-| `v25_draft_capital_residual` | 2.670 | -1.046 | 0.641 | 3.351 | 231 |
 | `v27_vegas_full_refit` | 2.673 | -1.027 | 0.637 | 3.370 | 231 |
 | `v29_reliability_residual` | 2.679 | -1.075 | 0.642 | 3.347 | 231 |
+| `v26_vegas_residual` | 2.684 | -1.122 | 0.631 | 3.399 | 231 |
 | `v31_depth_chart` | 2.695 | -0.987 | 0.619 | 3.451 | 231 |
 | `v1_baseline_weighted_ppg` | 2.703 | -0.845 | 0.565 | 3.687 | 231 |
-| `v23_draft_capital` | 2.739 | -1.015 | 0.626 | 3.418 | 231 |
+| `v22_advanced_receiving` | 2.716 | -0.870 | 0.629 | 3.408 | 231 |
+| `v25_draft_capital_residual` | 2.729 | -1.071 | 0.626 | 3.419 | 231 |
+| `v23_draft_capital` | 2.792 | -0.989 | 0.610 | 3.493 | 231 |
 | `naive_prior_season_ppg` | 2.897 | -0.754 | 0.496 | 3.970 | 231 |
 | `position_mean_baseline` | 4.250 | +1.846 | 0.076 | 5.376 | 231 |

@@ -1,6 +1,6 @@
 # Projection Model Accuracy Report
 
-_Generated: 2026-06-10 09:06_
+_Generated: 2026-06-10 09:29_
 
 Metrics: **MAE** = Mean Absolute Error (lower is better), **Bias** = Mean signed error (positive = under-projection), **R²** = Goodness of fit (higher is better), **RMSE** = Root mean square error, **N** = player sample size.
 
@@ -1157,6 +1157,44 @@ _N-weighted across all seasons. MAE/Bias are exact (linear in the errors); RMSE 
 | `naive_prior_season_ppg` | — | — | — | — | — |
 | `position_mean_baseline` | — | — | — | — | — |
 | `external_fantasypros_v1` | — | — | — | — | — |
+
+### Position-balanced MAE
+
+_The `ALL` rows above pool positions weighted by how many cleared the games filter — a mix that drifts season to season (QB ~3.7 MAE vs K ~1.0), so a model can look better just by having more easy/plentiful players in the pool. **Balanced MAE** is the unweighted mean of the per-position combined MAEs over a fixed set (QB/RB/WR/TE; K is excluded — essentially random and not projected by every model), removing that mix effect and keeping all models comparable. Compare against the pooled `ALL` MAE above. (GH #577.)_
+
+| Model | Balanced MAE | Pooled ALL MAE |
+| --- | --- | --- |
+| `external_fantasypros_v1` | **2.525** | 2.460 |
+| `v31_depth_chart` | 2.566 | 2.358 |
+| `v14_qb_starter` | 2.658 | 2.437 |
+| `v26_vegas_residual` | 2.660 | 2.443 |
+| `v19_usage_level_full` | 2.665 | 2.441 |
+| `v13_qb_starter` | 2.666 | 2.447 |
+| `v10_stat_efficiency_v2` | 2.668 | 2.449 |
+| `v8_age_regression` | 2.669 | 2.449 |
+| `v9_pos_specific` | 2.669 | 2.449 |
+| `v12_no_qb_trajectory` | 2.670 | 2.445 |
+| `v11_team_context_v2` | 2.673 | 2.452 |
+| `v16_snap_trend_full` | 2.674 | 2.447 |
+| `v28_reliability_weighting` | 2.678 | 2.449 |
+| `v29_reliability_residual` | 2.680 | 2.451 |
+| `v27_vegas_full_refit` | 2.687 | 2.458 |
+| `v17_rookie_growth` | 2.690 | 2.467 |
+| `v30_reliability_full_refit` | 2.691 | 2.461 |
+| `v22_advanced_receiving` | 2.695 | 2.474 |
+| `v25_draft_capital_residual` | 2.696 | 2.474 |
+| `v20_learned_usage` | 2.714 | 2.494 |
+| `v3_stat_weighted` | 2.721 | 2.496 |
+| `v2_age_adjusted` | 2.722 | 2.498 |
+| `v23_draft_capital` | 2.723 | 2.493 |
+| `v21_tiered_regression` | 2.729 | 2.501 |
+| `v15_snap_trend` | 2.761 | 2.527 |
+| `v18_usage_level` | 2.768 | 2.541 |
+| `v7_regression_to_mean` | 2.769 | 2.536 |
+| `v1_baseline_weighted_ppg` _(baseline)_ | 2.799 | 2.571 |
+| `v4_availability_adjusted` | 2.800 | 2.567 |
+| `v5_team_context` | 2.806 | 2.571 |
+| `v6_usage_share` | 2.833 | 2.597 |
 
 ## Out-of-Sample Reference (LOSO CV)
 
