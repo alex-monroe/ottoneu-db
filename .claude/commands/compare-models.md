@@ -8,8 +8,8 @@ per-player divergence inspection, never to declare a winner.
 
 // turbo
 
-1. **Parse model names from arguments** (2–3 names, e.g. `v14 v20`). Resolve
-   partial names to full names from `model_config.py` (`v14` → `v14_qb_starter`).
+1. **Parse model names from arguments** (2–3 names, e.g. `v31 v14`). Resolve
+   partial names to full names from `model_config.py` (`v31` → `v31_depth_chart`).
 
 2. **Held-out comparison (the verdict).** Score exactly the requested models
    out-of-sample on the shared window:

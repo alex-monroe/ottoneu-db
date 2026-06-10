@@ -3,19 +3,24 @@
 _Tracks every model iteration attempt to prevent re-trying failed approaches._
 
 > ⚠️ **The historical table at the bottom is in-sample for the learned models
-> (`v20`–`v31`) — they were trained on the seasons they're scored on. The
-> [methodology audit](../exec-plans/projection-methodology-audit.md) (2026-06-10)
-> re-ranked everything out-of-sample: the additive **`v14_qb_starter`** is the
-> honest best and is in production; the entire `v20`→`v31` "progression" was a
-> leakage artifact. Do not read those deltas as real gains.**
+> (`v20`–`v31`) — they were trained on the seasons they're scored on; do not read
+> those deltas as real gains.** The [methodology audit](../exec-plans/projection-methodology-audit.md)
+> (2026-06-10) re-ranked everything out-of-sample. At that point the additive
+> `v14_qb_starter` was the honest best (the `v20`→`v31` in-sample "progression"
+> was a leakage artifact). **That reversed after the #599 coverage backfill**
+> (PRs #607/#608): on the corrected population the learned **`v31_depth_chart`**
+> is the honest held-out #1 and *significantly* beats `v14_qb_starter`
+> (Δ−0.091, CI [−0.163, −0.020], rolling-origin), so `v31_depth_chart` was
+> promoted to active (#609). The current comparator/gate is the active model
+> (`projection_models.is_active` = `v31_depth_chart`), **not** `v14_qb_starter`.
 
 ## Held-out experiments (post-audit protocol — #594+)
 
 New experiments are logged here with **leakage-free held-out** numbers, the gate
 being a *significant* win over the active model. Generate the row with
 `/experiment`: `just holdout-eval --protocol rolling …` for the MAE/CI and
-`just significance NEW v14_qb_starter --protocol rolling …` for the verdict. Δ
-and CI are for `MAE(model) − MAE(v14_qb_starter)` (negative ⇒ model better).
+`just significance NEW v31_depth_chart --protocol rolling …` for the verdict. Δ
+and CI are for `MAE(model) − MAE(v31_depth_chart)` (negative ⇒ model better).
 Iterate on the rolling folds; the final window is confirmation-only (one look).
 
 | Date | Model | Change | Held-out ALL MAE | Δ vs v14 | 95% CI | Significant? | Protocol | PR |
