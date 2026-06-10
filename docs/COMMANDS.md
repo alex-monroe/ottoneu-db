@@ -120,7 +120,18 @@ just promote <model>                                # Promote model to productio
 just compare <models> [season]                      # Compare two or more models
 just diagnostics [--model <m>] [--season <s>] ...  # Per-player diagnostics
 just segment-analysis [--segments <s>] ...          # Segmented accuracy analysis
-just accuracy-report [--run-backtest] ...           # Generate accuracy report
+just accuracy-report [--run-backtest] ...           # Generate accuracy report (in-sample diagnostic)
+
+# Honest (leakage-free) evaluation harness — the gate for any projection change
+just holdout-eval [--protocol rolling] [--eval-seasons ...] [--min-train-season Y] [--models ...] [--matched] [--no-cache]
+                                                    # Re-rank all models out-of-sample (GH #572, #594)
+just significance <model_a> <model_b> [--protocol rolling] [--eval-seasons ...] [--no-cache]
+                                                    # Player-clustered paired bootstrap of the MAE gap (GH #573, #594)
+just availability-backtest [...]                    # Availability-inclusive backtest (rate vs availability budget, GH #574)
+# Held-out predictions are cached under .cache/holdout/, keyed on (model, train window, eval window,
+# model-definition fingerprint), so a second holdout-eval/significance run skips retraining (GH #597).
+# Editing a model's definition or any feature code invalidates the affected entries automatically;
+# pass --no-cache to force a full retrain.
 
 # Backfills / seeds
 just backfill-nfl-stats [--seasons ...] [--dry-run]    # Backfill nfl_stats from nflverse

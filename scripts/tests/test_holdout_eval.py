@@ -7,6 +7,7 @@ expanding-window fold generator and the cluster bootstrap's resampling unit.
 import numpy as np
 import pytest
 
+from scripts.feature_projections import holdout_cache
 from scripts.feature_projections.holdout_eval import rolling_folds
 from scripts.feature_projections.significance import bootstrap_mae_difference
 
@@ -68,3 +69,36 @@ class TestClusterBootstrap:
         # A's errors are smaller ⇒ delta (A−B) negative ⇒ A more accurate.
         assert res["delta"] < 0
         assert res["significant"] is True
+
+
+class TestHoldoutCache:
+    def test_fingerprint_stable(self):
+        fp1 = holdout_cache.model_fingerprint("v14_qb_starter")
+        fp2 = holdout_cache.model_fingerprint("v14_qb_starter")
+        assert fp1 == fp2 and len(fp1) == 16
+
+    def test_fingerprint_differs_between_models(self):
+        assert holdout_cache.model_fingerprint("v14_qb_starter") != holdout_cache.model_fingerprint(
+            "v20_learned_usage"
+        )
+
+    def test_round_trip(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(holdout_cache, "CACHE_DIR", tmp_path / "holdout")
+        model = "v20_learned_usage"
+        train, ev = [2021, 2022, 2023], [2024]
+        assert holdout_cache.load(model, train, ev) is None
+        params = {"intercept": 1.0, "coefs": {"weighted_ppg": 0.9}}
+        preds = {2024: {"p1": 12.3, "p2": 8.1}}
+        holdout_cache.store(model, train, ev, params, preds)
+        got = holdout_cache.load(model, train, ev)
+        assert got["params"] == params
+        # Seasons round-trip back to ints (JSON keys are strings on disk).
+        assert got["preds"] == preds
+
+    def test_eval_window_keys_distinctly(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(holdout_cache, "CACHE_DIR", tmp_path / "holdout")
+        model = "v20_learned_usage"
+        holdout_cache.store(model, [2021], [2024], {"a": 1}, {2024: {"p": 1.0}})
+        # Different eval window ⇒ separate cache entry (miss).
+        assert holdout_cache.load(model, [2021], [2025]) is None
+        assert holdout_cache.load(model, [2021], [2024]) is not None

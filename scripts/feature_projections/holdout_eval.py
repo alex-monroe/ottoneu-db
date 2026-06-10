@@ -44,7 +44,7 @@ from typing import Optional
 import pandas as pd
 
 from scripts.config import get_supabase_client, fetch_all_rows, POSITIONS, MIN_GAMES
-from scripts.feature_projections import learned_combiner
+from scripts.feature_projections import holdout_cache, learned_combiner
 from scripts.feature_projections.learned_combiner import predict, predict_residual
 from scripts.feature_projections.model_config import MODELS, get_model
 from scripts.feature_projections.backtest import (
@@ -137,11 +137,12 @@ def _learned_preds_for_eval(
     train_seasons: list[int],
     eval_seasons: list[int],
     temp_dir: Path,
-) -> dict[int, dict[str, float]]:
+) -> tuple[dict[int, dict[str, float]], Optional[dict]]:
     """Retrain a learned/residual model on train_seasons; predict eval_seasons.
 
-    Returns {season: {player_id: predicted_ppg}}. Saves the held-out params to
-    temp_dir so dependent residual models can load this as their base.
+    Returns ``({season: {player_id: predicted_ppg}}, params)``. Saves the
+    held-out params to temp_dir so dependent residual models can load this as
+    their base; the returned params are also persisted to the prediction cache.
     """
     # Imported here so the monkeypatched TRAINED_MODELS_DIR is in effect when
     # train_ridge_residual calls load_model_params.
@@ -155,12 +156,12 @@ def _learned_preds_for_eval(
     td = collect_training_data(model_name, train_seasons + eval_seasons)
     if td.empty:
         print(f"  {model_name}: no training data, skipping")
-        return {}
+        return {}, None
 
     train_df = td[td["season"].isin(train_seasons)]
     if train_df.empty:
         print(f"  {model_name}: no rows in training window {train_seasons}, skipping")
-        return {}
+        return {}, None
 
     is_residual = model_def.combiner_type == "residual"
     if is_residual:
@@ -192,7 +193,7 @@ def _learned_preds_for_eval(
             if pred is not None:
                 season_preds[str(r["player_id"])] = float(pred)
         preds_by_season[season] = season_preds
-    return preds_by_season
+    return preds_by_season, params
 
 
 def _db_preds_for_eval(
@@ -287,6 +288,7 @@ def gather_predictions(
     train_seasons: list[int],
     eval_seasons: list[int],
     only_models: Optional[list[str]] = None,
+    use_cache: bool = True,
 ) -> tuple[dict[str, dict[int, dict[str, float]]], dict[int, dict[str, float]], dict[str, str]]:
     """Produce held-out predictions for every model on the eval seasons.
 
@@ -295,6 +297,10 @@ def gather_predictions(
     models are retrained on train_seasons in a sandboxed temp dir; parameter-free
     models are read from their already-held-out model_projections. This is the
     shared machinery behind both the held-out report and the significance test.
+
+    Learned/residual predictions are cached per (model, train window, eval
+    window, model-definition fingerprint) under ``.cache/holdout`` (GH #597), so
+    a second invocation skips retraining. ``use_cache=False`` forces a retrain.
     """
     supabase = get_supabase_client()
 
@@ -329,12 +335,25 @@ def gather_predictions(
     learned_combiner.TRAINED_MODELS_DIR = temp_dir
     try:
         for model_name in _dependency_order(learned):
+            cached = holdout_cache.load(model_name, train_seasons, eval_seasons) if use_cache else None
+            if cached is not None:
+                print(f"\n=== Held-out cache hit: {model_name} (train {train_seasons}) ===")
+                # Re-materialize params so a dependent residual can load this base.
+                if cached.get("params") is not None:
+                    (temp_dir / f"{model_name}.json").write_text(json.dumps(cached["params"]))
+                if cached["preds"]:
+                    preds[model_name] = cached["preds"]
+                continue
             print(f"\n=== Held-out retrain: {model_name} (train {train_seasons}) ===")
-            preds_by_season = _learned_preds_for_eval(
+            preds_by_season, params = _learned_preds_for_eval(
                 model_name, train_seasons, eval_seasons, temp_dir
             )
             if preds_by_season:
                 preds[model_name] = preds_by_season
+                if use_cache and params is not None:
+                    holdout_cache.store(
+                        model_name, train_seasons, eval_seasons, params, preds_by_season
+                    )
     finally:
         learned_combiner.TRAINED_MODELS_DIR = orig_dir
         shutil.rmtree(temp_dir, ignore_errors=True)
@@ -368,6 +387,7 @@ def rolling_folds(
 def gather_predictions_rolling(
     folds: list[tuple[list[int], int]],
     only_models: Optional[list[str]] = None,
+    use_cache: bool = True,
 ) -> tuple[
     dict[str, dict[int, dict[str, float]]],
     dict[int, dict[str, float]],
@@ -391,7 +411,7 @@ def gather_predictions_rolling(
     for train_seasons, eval_season in folds:
         print(f"\n########## Rolling fold: train {train_seasons} → eval {eval_season} ##########")
         preds, actuals_by_season, pmap = gather_predictions(
-            train_seasons, [eval_season], only_models
+            train_seasons, [eval_season], only_models, use_cache=use_cache
         )
         if pmap:
             pos_map = pmap
@@ -433,18 +453,19 @@ def run(
     matched: bool = False,
     protocol: str = "fixed",
     min_train_season: Optional[int] = None,
+    use_cache: bool = True,
 ) -> str:
     if protocol == "rolling":
         if min_train_season is None:
             min_train_season = min(train_seasons)
         folds = rolling_folds(eval_seasons, min_train_season)
         preds, actuals_by_season, pos_map, fold_train = gather_predictions_rolling(
-            folds, only_models
+            folds, only_models, use_cache=use_cache
         )
         eval_seasons = [s for _, s in folds]
     else:
         preds, actuals_by_season, pos_map = gather_predictions(
-            train_seasons, eval_seasons, only_models
+            train_seasons, eval_seasons, only_models, use_cache=use_cache
         )
         fold_train = {s: train_seasons for s in eval_seasons}
 
@@ -628,6 +649,8 @@ def main() -> None:
                         help="Matched-sample mode: score all models on the common player set "
                              "(apples-to-apples FantasyPros comparison, #575). Writes to a "
                              "-matched output path unless --output is given.")
+    parser.add_argument("--no-cache", action="store_true",
+                        help="Force a retrain instead of reusing cached held-out predictions (#597).")
     parser.add_argument("--output", default=None)
     args = parser.parse_args()
 
@@ -659,6 +682,7 @@ def main() -> None:
     table = run(
         train_seasons, eval_seasons, only_models, matched=args.matched,
         protocol=args.protocol, min_train_season=args.min_train_season,
+        use_cache=not args.no_cache,
     )
 
     os.makedirs(os.path.dirname(output), exist_ok=True)
