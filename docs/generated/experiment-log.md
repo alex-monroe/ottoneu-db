@@ -2,13 +2,31 @@
 
 _Tracks every model iteration attempt to prevent re-trying failed approaches._
 
-> ⚠️ **The `ALL MAE`/`R²` columns below are in-sample for the learned models
+> ⚠️ **The historical table at the bottom is in-sample for the learned models
 > (`v20`–`v31`) — they were trained on the seasons they're scored on. The
 > [methodology audit](../exec-plans/projection-methodology-audit.md) (2026-06-10)
 > re-ranked everything out-of-sample: the additive **`v14_qb_starter`** is the
 > honest best and is in production; the entire `v20`→`v31` "progression" was a
-> leakage artifact. Do not read the deltas below as real gains. New experiments
-> are validated via `just holdout-eval` + `just significance` (backlog: #587–#592).
+> leakage artifact. Do not read those deltas as real gains.**
+
+## Held-out experiments (post-audit protocol — #594+)
+
+New experiments are logged here with **leakage-free held-out** numbers, the gate
+being a *significant* win over the active model. Generate the row with
+`/experiment`: `just holdout-eval --protocol rolling …` for the MAE/CI and
+`just significance NEW v14_qb_starter --protocol rolling …` for the verdict. Δ
+and CI are for `MAE(model) − MAE(v14_qb_starter)` (negative ⇒ model better).
+Iterate on the rolling folds; the final window is confirmation-only (one look).
+
+| Date | Model | Change | Held-out ALL MAE | Δ vs v14 | 95% CI | Significant? | Protocol | PR |
+|------|-------|--------|------------------|----------|--------|--------------|----------|-----|
+| _—_ | _—_ | _first post-audit experiment lands here_ | _—_ | _—_ | _—_ | _—_ | _—_ | _—_ |
+
+## Historical (in-sample) log — pre-audit, deltas not reliable
+
+These rows predate the held-out harness; their `ALL MAE`/`R²` are in-sample for
+the learned models (see the warning above). Kept to prevent re-trying failed
+approaches, **not** as a ranking.
 
 | Date | Model | Change | ALL MAE | ALL R² | ALL Bias | Verdict | PR |
 |------|-------|--------|---------|--------|----------|---------|-----|

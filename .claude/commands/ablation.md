@@ -1,39 +1,53 @@
 ---
 description: Run feature ablation study to measure individual feature contributions
 ---
-Follow these steps to run a feature ablation study:
+Measure each feature's contribution **on the leakage-free held-out harness**.
+The old `hypothesis_test.py` flow is **in-sample only** (it scores over the same
+seasons the model trained on) and its 0.05/0.02 MAE thresholds are exactly the
+arbitrary-band decisions Finding 2 condemned — do not use it for verdicts.
 
 // turbo
 
-1. **Identify the target model** (default: the current best model, v20_learned_usage). If the user specifies a model in the arguments, use that instead.
+1. **Identify the target model** (default: production `v14_qb_starter`). If the
+   user specifies a model, use that.
 
-2. **List the model's features** by reading `scripts/feature_projections/model_config.py`. Identify the base feature (cannot be removed) and all adjustment features.
+2. **List the model's features** from `scripts/feature_projections/model_config.py`.
+   Identify the base feature (cannot be removed) and the adjustment features.
 
-3. **For each adjustment feature**, run a hypothesis test that removes it:
+3. **For each adjustment feature, define a temporary ablated variant** in
+   `model_config.py` (same model minus that one feature/interaction), with a clear
+   name like `MODEL_NAME_no_FEATURE`. Keep the edits staged but uncommitted.
+
+4. **Score the full model and every ablated variant on the held-out harness**
+   (rolling protocol; the cache makes the repeated runs fast):
    ```bash
-   source venv/bin/activate && python scripts/feature_projections/hypothesis_test.py \
-     --base-model MODEL_NAME --remove-feature FEATURE_NAME --seasons 2022,2023,2024,2025
+   just holdout-eval --protocol rolling --eval-seasons 2023,2024,2025 --min-train-season 2021 \
+     --models MODEL_NAME,MODEL_NAME_no_FEATURE_A,MODEL_NAME_no_FEATURE_B,...
+   ```
+   For each ablated variant, test whether removing the feature *significantly*
+   changes accuracy vs the full model:
+   ```bash
+   just significance MODEL_NAME MODEL_NAME_no_FEATURE_A --protocol rolling \
+     --eval-seasons 2023,2024,2025 --min-train-season 2021
    ```
 
-   If `hypothesis_test.py` is not available or errors, manually:
-   - Note the feature to remove
-   - Create a temporary model variant in model_config.py without that feature
-   - Run projections and backtest for the variant
-   - Record the results
-   - Revert the model_config.py change
-
-4. **Compile results into an ablation table:**
+5. **Compile the ablation table** from the held-out numbers + significance:
    ```
-   Feature Removed        | MAE Delta | R² Delta | Verdict
-   age_curve              | +0.15     | -0.04    | KEEP (significant)
-   regression_to_mean     | +0.02     | -0.01    | KEEP (marginal)
-   qb_backup_penalty      | +0.005   | -0.001   | DROP CANDIDATE
+   Feature Removed     | Held-out MAE Δ | 95% CI            | Significant? | Verdict
+   age_curve           | +0.15          | [+0.08, +0.22]    | Y            | KEEP (load-bearing)
+   regression_to_mean  | +0.02          | [-0.03, +0.07]    | N            | DROP CANDIDATE
+   qb_backup_penalty   | -0.01          | [-0.05, +0.03]    | N            | DROP CANDIDATE
    ```
 
-5. **Assign verdicts per feature:**
-   - **KEEP (significant)**: Removing increases MAE by >0.05
-   - **KEEP (marginal)**: Removing increases MAE by 0.02-0.05
-   - **DROP CANDIDATE**: Removing increases MAE by <0.02 or improves it
-   - **HARMFUL**: Removing actually decreases MAE (improves accuracy)
+6. **Assign verdicts from significance, not a fixed MAE band:**
+   - **KEEP (load-bearing)** — removing it *significantly* increases MAE (CI > 0).
+   - **DROP CANDIDATE** — removing it has no significant effect (CI spans 0). The
+     feature is not earning its complexity; prune it (Finding 4: prune, don't add).
+   - **HARMFUL** — removing it *significantly* decreases MAE (CI < 0). Remove it.
+   Check the per-position **Ranking quality** section too (#598): a feature can be
+   MAE-neutral but improve within-position ordering, which the decisions consume.
 
-6. **Summarize findings**: Which features are load-bearing? Which are deadweight? Are there any features that are actively harmful?
+7. **Revert the temporary `model_config.py` variants** once the table is recorded.
+
+8. **Summarize**: which features are load-bearing, which are deadweight, which are
+   actively harmful — all judged on the held-out, significance-tested numbers.
