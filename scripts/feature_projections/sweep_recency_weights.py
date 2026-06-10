@@ -3,8 +3,13 @@
 Tests multiple weight configurations and reports MAE/R² across seasons
 to find the optimal recency weights.
 
+Tuning runs on the **inner folds** (default 2022,2023,2024) by design — the
+confirmation window (2025) is held back for a single confirmatory look per
+accepted variant (honest tuning protocol, GH #595). Pointing ``--seasons`` at
+the confirmation window prints a loud warning.
+
 Usage:
-    python scripts/feature_projections/sweep_recency_weights.py [--seasons 2022,2023,2024,2025]
+    python scripts/feature_projections/sweep_recency_weights.py [--seasons 2022,2023,2024]
 """
 
 from __future__ import annotations
@@ -17,6 +22,10 @@ import pandas as pd
 
 from scripts.config import get_supabase_client, fetch_all_rows, POSITIONS, MIN_GAMES
 from scripts.analysis_utils import fetch_multi_season_stats
+from scripts.feature_projections.tuning_protocol import (
+    inner_tuning_seasons_str,
+    warn_on_confirmation_overlap,
+)
 from scripts.feature_projections.features.weighted_ppg import WeightedPPGFeature
 
 # Weight variants to test (most recent season first)
@@ -159,11 +168,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Sweep recency weight variants")
     parser.add_argument(
         "--seasons",
-        default="2022,2023,2024,2025",
-        help="Comma-separated target seasons (default: 2022,2023,2024,2025)",
+        default=inner_tuning_seasons_str(),
+        help=f"Comma-separated target seasons (default: {inner_tuning_seasons_str()} — "
+             "the inner tuning folds; the confirmation window is excluded, GH #595)",
     )
     args = parser.parse_args()
     seasons = [int(s.strip()) for s in args.seasons.split(",")]
+    warn_on_confirmation_overlap(seasons)
 
     print(f"Testing {len(WEIGHT_VARIANTS)} weight variants across seasons {seasons}\n")
 

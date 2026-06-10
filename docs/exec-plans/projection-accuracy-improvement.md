@@ -121,7 +121,7 @@ New data sources and learned models. Expected: MAE < 2.3, R² > 0.60.
 | # | Experiment | Why |
 |---|---|---|
 | [#588](https://github.com/alex-monroe/ottoneu-db/issues/588) | Honest feature ablation under the held-out harness | Every feature was validated on leaked data; `v27` (all features) de-biases *worse* than minimal `v20`. Prune, don't add. |
-| [#589](https://github.com/alex-monroe/ottoneu-db/issues/589) | Tune the base `weighted_ppg` against the held-out harness | `v14` ≈ base + tiny adjustments; the base does ~all the work and is the highest-leverage target. |
+| [#589](https://github.com/alex-monroe/ottoneu-db/issues/589) **(blocked on [#595](https://github.com/alex-monroe/ottoneu-db/issues/595))** | Tune the base `weighted_ppg` — on the **inner folds**, confirm once on the held-out window | `v14` ≈ base + tiny adjustments; the base does ~all the work and is the highest-leverage target. Must use the honest tuning protocol (`tuning_protocol.py`) — tuning directly on the held-out window would burn it (Finding A). |
 
 ### Priority 3 — Bounded recalibration / ranking experiments
 

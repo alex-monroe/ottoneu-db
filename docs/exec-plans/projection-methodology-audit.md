@@ -144,6 +144,35 @@ for the fixed protocol too.
 one look per experiment.** Promotion still requires a *significant* held-out win
 over the active model (`just significance`), never a point-estimate delta.
 
+### Honest hyperparameter-tuning protocol (`tuning_protocol.py`, #595)
+
+Finding 1 caught the *learned* models training on the seasons they were scored
+on. The *additive* models have a milder version of the same leak one floor up:
+their hyperparameters were chosen by grid search whose default `--seasons`
+included the 2024–2025 holdout — `tune_age_curve.py` (#272 age-curve params),
+`sweep_recency_weights.py` (#271 recency weights), and `sweep_feature_combos.py`
+all defaulted to `2022,2023,2024,2025`. The headline conclusion (v14 ≫ learned,
+Δ=0.263, CI excludes 0) is structural and survives this, but the *within-additive*
+ranking (v14 vs v19 at Δ=0.006, not significant) is inside the tuning noise.
+
+The remedy is an inner/outer split that mirrors the rolling protocol:
+
+- **Inner (tuning) seasons** (`INNER_TUNING_SEASONS = 2022,2023,2024`) — grid
+  search runs *only* here. The three tuning scripts now default to these.
+- **Confirmation window** (`CONFIRMATION_SEASONS = 2025`) — held back for a
+  single confirmatory look per *accepted* variant. Pointing a tuning script at
+  it prints a loud warning (`warn_on_confirmation_overlap`).
+
+This is a prerequisite for **#589** (tune the base `weighted_ppg`), which as
+originally written — "tune against the held-out harness" — would tune directly
+on the final window and burn it. #589 is **blocked on #595** and must run grid
+search on the inner folds, confirming once on 2025.
+
+*One-look re-check (deferred):* whether v14's current tuned params still beat
+their pre-tuning defaults on the confirmation window is itself a confirmation-
+window look. Rather than spend it on archaeology, it is folded into #589's single
+confirmatory evaluation when the base is next tuned under this protocol.
+
 ---
 
 ## 🟠 Finding 2: backtest overfitting / multiple comparisons
