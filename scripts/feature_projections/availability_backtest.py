@@ -41,7 +41,12 @@ import os
 from datetime import datetime
 
 from scripts.config import get_supabase_client, fetch_all_rows, POSITIONS
-from scripts.feature_projections.backtest import _compute_metrics, _fetch_season_rows
+from scripts.feature_projections.backtest import (
+    TOP_N_BY_POSITION,
+    _compute_metrics,
+    _fetch_season_rows,
+    rank_metrics,
+)
 from scripts.feature_projections.model_config import MODELS, get_model
 
 repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -131,7 +136,11 @@ def _combined_avail_metrics(
         for pos in ["ALL"] + list(POSITIONS):
             proj, act = buckets[t][pos]
             if proj:
-                out[t][pos] = _compute_metrics(proj, act)
+                m = _compute_metrics(proj, act)
+                if pos != "ALL":
+                    # Within-position ordering quality (GH #598).
+                    m.update(rank_metrics(proj, act, TOP_N_BY_POSITION.get(pos, 12)))
+                out[t][pos] = m
     return out
 
 
@@ -256,6 +265,33 @@ def _render(combined: dict[str, dict], seasons: list[int]) -> str:
             lines.append(
                 f"| `{name}` | {_fmt(r['mae'], '.3f')} | {_fmt(r['bias'], '+.3f')} "
                 f"| {_fmt(r['r_squared'], '.3f')} | {_fmt(r['rmse'], '.3f')} | {_fmt(r['player_count'], 'd')} |"
+            )
+        lines.append("")
+
+    # Decision-relevant ranking quality on the availability-inclusive actuals.
+    lines.append("## Ranking quality — per-position ordering (GH #598)\n")
+    lines.append(
+        "_Spearman ρ and top-N hit rate against the **availability-inclusive** actuals "
+        "(total fantasy production per player-season, injuries included) — the ordering "
+        "that VORP/auction decisions actually consume. **Top-N**: 12 for QB/TE, 24 for "
+        "RB/WR (≈ the starter pool)._\n"
+    )
+    for pos in [p for p in POSITIONS if p != "K"]:
+        n_top = TOP_N_BY_POSITION.get(pos, 12)
+        lines.append(f"### {pos} (top-{n_top})\n")
+        lines.append("| Model | Spearman ρ | Top-N hit | N |")
+        lines.append("| --- | --- | --- | --- |")
+        rank_models = sorted(
+            (m for m in combined if combined[m]["avail"].get(pos)
+             and combined[m]["avail"][pos].get("spearman") is not None),
+            key=lambda m: combined[m]["avail"][pos]["spearman"],
+            reverse=True,
+        )
+        for name in rank_models:
+            r = combined[name]["avail"][pos]
+            lines.append(
+                f"| `{name}` | {_fmt(r.get('spearman'), '.3f')} "
+                f"| {_fmt(r.get('topn_hit'), '.3f')} | {_fmt(r.get('player_count'), 'd')} |"
             )
         lines.append("")
 

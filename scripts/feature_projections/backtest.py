@@ -31,6 +31,45 @@ def _fetch_season_rows(supabase, table, select, season, extra_eq=None, page_size
     return all_rows
 
 
+# Decision-relevant top-N per position: roughly the starter pool in a 12-team
+# Superflex half-PPR league (QB/TE ≈ 12, RB/WR ≈ 24). The projections feed VORP,
+# surplus value, auction pricing and keeper calls, where within-position
+# *ordering* and getting the top tier right matter more than absolute PPG level
+# (GH #598). MAE is dominated by the dense mid/low tier and can dissociate from
+# ranking (#579): a model can win MAE while misranking the starters.
+TOP_N_BY_POSITION = {"QB": 12, "RB": 24, "WR": 24, "TE": 12, "K": 12}
+
+
+def rank_metrics(projected: list[float], actual: list[float], n_top: int) -> dict:
+    """Spearman ρ + top-N hit rate for one position's paired (proj, actual).
+
+    Spearman ρ is the rank correlation between projected and actual PPG (1.0 =
+    perfect ordering). Top-N hit rate is the overlap between the model's
+    predicted top-N and the actual top-N, divided by N — directly: of the
+    players it called starters, how many actually finished as starters.
+    """
+    n = len(projected)
+    if n < 3:
+        return {"spearman": None, "topn_hit": None, "n_top": min(n_top, n)}
+
+    import numpy as np
+    from scipy.stats import spearmanr
+
+    rho, _ = spearmanr(projected, actual)
+    rho = None if rho is None or (isinstance(rho, float) and math.isnan(rho)) else float(rho)
+
+    k = min(n_top, n)
+    proj_top = set(np.argsort(projected)[::-1][:k].tolist())
+    act_top = set(np.argsort(actual)[::-1][:k].tolist())
+    hit = len(proj_top & act_top) / k if k else None
+
+    return {
+        "spearman": round(rho, 4) if rho is not None else None,
+        "topn_hit": round(hit, 4) if hit is not None else None,
+        "n_top": k,
+    }
+
+
 def _compute_metrics(projected: list[float], actual: list[float]) -> dict:
     """Compute MAE, Bias, R², RMSE from paired lists."""
     n = len(projected)

@@ -388,6 +388,27 @@ The leakage-free tooling built for Findings 1b/2/3/6 (`just holdout-eval`,
 `just significance`, `just availability-backtest`, `--matched`, balanced MAE) is
 now the harness every new experiment must clear.
 
+### Decision-relevant metrics: the v14-vs-field conclusion is metric-dependent (GH #598)
+
+The held-out report and availability backtest now also report **per-position
+Spearman ρ and top-N hit rate** (N≈12 QB/TE, 24 RB/WR — the starter pool the
+projections actually feed via VORP/auction/keepers). This matters because #579
+showed level and ordering dissociate: a model can win MAE while misranking the
+starters. Re-reading the held-out 2024–2025 numbers under these metrics:
+
+- **On MAE, `v14` leads; on within-position ordering, it does not.** FantasyPros
+  has the best Spearman ρ at QB (0.80 vs v14 0.71), RB (0.83 vs 0.78) and TE
+  (0.79 vs 0.75), and the over-projecting `v20_learned_usage` — which loses MAE
+  badly (bias −1.3) — is essentially tied with `v14` on ρ and *ahead* on top-N
+  hit rate at RB/WR. So the "v14 is the out-of-sample leader" conclusion is a
+  **level (MAE) conclusion, not an ordering one.**
+- **Implication for the backlog.** Because the consumers care about ordering and
+  the top tier, the delta-anchored (#590) and QB-specific (#592) learned bets
+  should be optimized and judged on **rank metrics**, not just MAE — a learned
+  model that out-*ranks* `v14` could be worth promoting even at parity MAE. The
+  headline ML conclusion (the leaked learned ranking was driven by leakage) is
+  unchanged; what changes is the *target metric* for beating `v14`.
+
 ---
 
 ## What the audit found to be sound (keep doing)

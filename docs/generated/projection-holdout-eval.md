@@ -1,6 +1,6 @@
 # Projection Held-Out Evaluation (GH #572)
 
-_Generated: 2026-06-10 09:32_
+_Generated: 2026-06-10 11:13_
 
 **Every model is evaluated out-of-sample on a shared held-out window.** Learned/residual models were retrained on **2021,2022,2023** and never saw the eval seasons **2024,2025**; additive and external models are parameter-free w.r.t. training seasons, so their existing projections are already held-out. All models are scored through the identical `backtest_model` filter (target-season games ≥ 4, true rookies excluded). Unlike [projection-accuracy.md](projection-accuracy.md), **no model here is scored on data it trained on** — this is the honest ranking. See [docs/exec-plans/projection-methodology-audit.md](../exec-plans/projection-methodology-audit.md) (Finding 1b).
 
@@ -33,15 +33,15 @@ _**MAE** is the pooled-over-players ALL error. **Bal MAE** is the position-balan
 | 21 | `v1_baseline_weighted_ppg` | 2.632 | 2.853 | -0.652 | 0.545 | 3.588 | 647 |
 | 22 | `v31_depth_chart` | 2.646 | 2.839 | -1.067 | 0.586 | 3.385 | 635 |
 | 23 | `v20_learned_usage` | 2.683 | 2.866 | -1.060 | 0.588 | 3.377 | 635 |
-| 24 | `v27_vegas_full_refit` | 2.685 | 2.886 | -1.197 | 0.580 | 3.411 | 635 |
-| 25 | `v30_reliability_full_refit` | 2.687 | 2.889 | -1.201 | 0.579 | 3.415 | 635 |
-| 26 | `v28_reliability_weighting` | 2.706 | 2.885 | -1.178 | 0.582 | 3.400 | 635 |
+| 24 | `v30_reliability_full_refit` | 2.687 | 2.889 | -1.201 | 0.579 | 3.415 | 635 |
+| 25 | `v27_vegas_full_refit` | 2.707 | 2.908 | -1.066 | 0.574 | 3.435 | 635 |
+| 26 | `v28_reliability_weighting` | 2.713 | 2.885 | -1.049 | 0.581 | 3.408 | 635 |
 | 27 | `v22_advanced_receiving` | 2.714 | 2.884 | -1.044 | 0.581 | 3.408 | 635 |
-| 28 | `v26_vegas_residual` | 2.714 | 2.888 | -1.199 | 0.577 | 3.422 | 635 |
-| 29 | `v29_reliability_residual` | 2.731 | 2.916 | -1.304 | 0.576 | 3.426 | 635 |
-| 30 | `v25_draft_capital_residual` | 2.740 | 2.917 | -1.176 | 0.573 | 3.437 | 635 |
-| 31 | `v23_draft_capital` | 2.748 | 2.951 | -1.077 | 0.565 | 3.470 | 635 |
-| 32 | `naive_prior_season_ppg` | 2.754 | 3.020 | -0.428 | 0.482 | 3.861 | 667 |
+| 28 | `v26_vegas_residual` | 2.716 | 2.889 | -1.198 | 0.577 | 3.422 | 635 |
+| 29 | `v29_reliability_residual` | 2.738 | 2.917 | -1.175 | 0.573 | 3.437 | 635 |
+| 30 | `naive_prior_season_ppg` | 2.754 | 3.020 | -0.428 | 0.482 | 3.861 | 667 |
+| 31 | `v23_draft_capital` | 2.764 | 2.970 | -1.105 | 0.561 | 3.486 | 635 |
+| 32 | `v25_draft_capital_residual` | 2.764 | 2.943 | -1.200 | 0.568 | 3.457 | 635 |
 | 33 | `position_mean_baseline` | 3.710 | 4.070 | +0.458 | 0.218 | 4.745 | 667 |
 
 ## Combined across eval seasons — by position
@@ -73,15 +73,15 @@ _**MAE** is the pooled-over-players ALL error. **Bal MAE** is the position-balan
 | `v1_baseline_weighted_ppg` | 2.632 | -0.652 | 0.545 | 3.588 | 647 |
 | `v31_depth_chart` | 2.646 | -1.067 | 0.586 | 3.385 | 635 |
 | `v20_learned_usage` | 2.683 | -1.060 | 0.588 | 3.377 | 635 |
-| `v27_vegas_full_refit` | 2.685 | -1.197 | 0.580 | 3.411 | 635 |
 | `v30_reliability_full_refit` | 2.687 | -1.201 | 0.579 | 3.415 | 635 |
-| `v28_reliability_weighting` | 2.706 | -1.178 | 0.582 | 3.400 | 635 |
+| `v27_vegas_full_refit` | 2.707 | -1.066 | 0.574 | 3.435 | 635 |
+| `v28_reliability_weighting` | 2.713 | -1.049 | 0.581 | 3.408 | 635 |
 | `v22_advanced_receiving` | 2.714 | -1.044 | 0.581 | 3.408 | 635 |
-| `v26_vegas_residual` | 2.714 | -1.199 | 0.577 | 3.422 | 635 |
-| `v29_reliability_residual` | 2.731 | -1.304 | 0.576 | 3.426 | 635 |
-| `v25_draft_capital_residual` | 2.740 | -1.176 | 0.573 | 3.437 | 635 |
-| `v23_draft_capital` | 2.748 | -1.077 | 0.565 | 3.470 | 635 |
+| `v26_vegas_residual` | 2.716 | -1.198 | 0.577 | 3.422 | 635 |
+| `v29_reliability_residual` | 2.738 | -1.175 | 0.573 | 3.437 | 635 |
 | `naive_prior_season_ppg` | 2.754 | -0.428 | 0.482 | 3.861 | 667 |
+| `v23_draft_capital` | 2.764 | -1.105 | 0.561 | 3.486 | 635 |
+| `v25_draft_capital_residual` | 2.764 | -1.200 | 0.568 | 3.457 | 635 |
 | `position_mean_baseline` | 3.710 | +0.458 | 0.218 | 4.745 | 667 |
 
 ### QB
@@ -89,16 +89,16 @@ _**MAE** is the pooled-over-players ALL error. **Bal MAE** is the position-balan
 | Model | MAE | Bias | R² | RMSE | N |
 | --- | --- | --- | --- | --- | --- |
 | `v22_advanced_receiving` | 3.551 | -0.988 | 0.442 | 4.566 | 98 |
-| `v26_vegas_residual` | 3.611 | -1.321 | 0.416 | 4.667 | 98 |
-| `v28_reliability_weighting` | 3.613 | -1.548 | 0.424 | 4.638 | 98 |
+| `v28_reliability_weighting` | 3.562 | -1.032 | 0.439 | 4.579 | 98 |
+| `v26_vegas_residual` | 3.604 | -1.325 | 0.417 | 4.663 | 98 |
 | `v31_depth_chart` | 3.624 | -1.582 | 0.430 | 4.613 | 98 |
 | `v20_learned_usage` | 3.626 | -1.493 | 0.426 | 4.629 | 98 |
 | `v25_draft_capital_residual` | 3.657 | -1.300 | 0.410 | 4.694 | 98 |
-| `v27_vegas_full_refit` | 3.667 | -1.544 | 0.392 | 4.764 | 98 |
+| `v29_reliability_residual` | 3.667 | -1.355 | 0.405 | 4.712 | 98 |
 | `v30_reliability_full_refit` | 3.673 | -1.577 | 0.387 | 4.783 | 98 |
+| `v27_vegas_full_refit` | 3.676 | -1.080 | 0.396 | 4.748 | 98 |
 | `external_fantasypros_v1` | 3.690 | +2.129 | 0.413 | 5.072 | 88 |
-| `v29_reliability_residual` | 3.702 | -1.776 | 0.395 | 4.752 | 98 |
-| `v23_draft_capital` | 3.745 | -1.045 | 0.389 | 4.776 | 98 |
+| `v23_draft_capital` | 3.744 | -1.077 | 0.389 | 4.777 | 98 |
 | `v14_qb_starter` | 3.783 | -0.742 | 0.443 | 4.826 | 102 |
 | `v17_rookie_growth` | 3.783 | -0.742 | 0.443 | 4.826 | 102 |
 | `v19_usage_level_full` | 3.783 | -0.742 | 0.443 | 4.826 | 102 |
@@ -150,14 +150,14 @@ _**MAE** is the pooled-over-players ALL error. **Bal MAE** is the position-balan
 | `v1_baseline_weighted_ppg` | 2.806 | -0.518 | 0.561 | 3.716 | 137 |
 | `v31_depth_chart` | 2.963 | -0.978 | 0.568 | 3.656 | 135 |
 | `v20_learned_usage` | 3.101 | -1.005 | 0.533 | 3.802 | 135 |
-| `v28_reliability_weighting` | 3.154 | -1.172 | 0.533 | 3.802 | 135 |
-| `v29_reliability_residual` | 3.157 | -1.292 | 0.534 | 3.797 | 135 |
-| `v26_vegas_residual` | 3.173 | -1.236 | 0.520 | 3.855 | 135 |
-| `v27_vegas_full_refit` | 3.186 | -1.345 | 0.518 | 3.860 | 135 |
+| `v26_vegas_residual` | 3.184 | -1.226 | 0.519 | 3.857 | 135 |
 | `v30_reliability_full_refit` | 3.191 | -1.350 | 0.517 | 3.867 | 135 |
-| `v25_draft_capital_residual` | 3.207 | -1.210 | 0.516 | 3.868 | 135 |
 | `v22_advanced_receiving` | 3.208 | -1.094 | 0.514 | 3.877 | 135 |
-| `v23_draft_capital` | 3.253 | -1.173 | 0.491 | 3.967 | 135 |
+| `v29_reliability_residual` | 3.210 | -1.210 | 0.515 | 3.873 | 135 |
+| `v25_draft_capital_residual` | 3.211 | -1.217 | 0.515 | 3.874 | 135 |
+| `v28_reliability_weighting` | 3.211 | -1.097 | 0.513 | 3.883 | 135 |
+| `v23_draft_capital` | 3.234 | -1.135 | 0.495 | 3.953 | 135 |
+| `v27_vegas_full_refit` | 3.235 | -1.170 | 0.497 | 3.944 | 135 |
 | `position_mean_baseline` | 4.557 | +0.934 | 0.049 | 5.566 | 144 |
 
 ### WR
@@ -188,13 +188,13 @@ _**MAE** is the pooled-over-players ALL error. **Bal MAE** is the position-balan
 | `v1_baseline_weighted_ppg` | 2.614 | -0.624 | 0.491 | 3.301 | 200 |
 | `v20_learned_usage` | 2.637 | -0.923 | 0.510 | 3.186 | 196 |
 | `v30_reliability_full_refit` | 2.689 | -1.484 | 0.490 | 3.252 | 196 |
-| `v27_vegas_full_refit` | 2.692 | -1.488 | 0.489 | 3.256 | 196 |
-| `v26_vegas_residual` | 2.749 | -1.615 | 0.470 | 3.315 | 196 |
+| `v27_vegas_full_refit` | 2.702 | -1.402 | 0.490 | 3.253 | 196 |
+| `v26_vegas_residual` | 2.752 | -1.621 | 0.470 | 3.314 | 196 |
+| `v28_reliability_weighting` | 2.762 | -1.341 | 0.470 | 3.313 | 196 |
 | `v22_advanced_receiving` | 2.769 | -1.347 | 0.468 | 3.321 | 196 |
-| `v28_reliability_weighting` | 2.771 | -1.450 | 0.462 | 3.340 | 196 |
-| `v23_draft_capital` | 2.780 | -1.432 | 0.468 | 3.320 | 196 |
-| `v25_draft_capital_residual` | 2.791 | -1.567 | 0.466 | 3.329 | 196 |
-| `v29_reliability_residual` | 2.800 | -1.627 | 0.459 | 3.349 | 196 |
+| `v29_reliability_residual` | 2.778 | -1.527 | 0.470 | 3.316 | 196 |
+| `v23_draft_capital` | 2.783 | -1.395 | 0.463 | 3.338 | 196 |
+| `v25_draft_capital_residual` | 2.792 | -1.508 | 0.463 | 3.338 | 196 |
 | `v31_depth_chart` | 2.815 | -1.514 | 0.416 | 3.478 | 196 |
 | `position_mean_baseline` | 3.770 | +0.975 | 0.056 | 4.549 | 207 |
 
@@ -225,15 +225,15 @@ _**MAE** is the pooled-over-players ALL error. **Bal MAE** is the position-balan
 | `v6_usage_share` | 1.828 | +0.025 | 0.524 | 2.346 | 144 |
 | `naive_prior_season_ppg` | 1.864 | -0.197 | 0.490 | 2.435 | 150 |
 | `v31_depth_chart` | 1.953 | -0.658 | 0.529 | 2.322 | 142 |
-| `v27_vegas_full_refit` | 1.998 | -0.746 | 0.511 | 2.367 | 142 |
 | `v30_reliability_full_refit` | 2.001 | -0.748 | 0.511 | 2.367 | 142 |
-| `v28_reliability_weighting` | 2.003 | -0.737 | 0.509 | 2.372 | 142 |
-| `v29_reliability_residual` | 2.007 | -0.782 | 0.509 | 2.373 | 142 |
+| `v28_reliability_weighting` | 2.006 | -0.701 | 0.493 | 2.410 | 142 |
 | `v22_advanced_receiving` | 2.008 | -0.701 | 0.491 | 2.414 | 142 |
-| `v25_draft_capital_residual` | 2.013 | -0.743 | 0.492 | 2.412 | 142 |
-| `v26_vegas_residual` | 2.019 | -0.740 | 0.496 | 2.403 | 142 |
-| `v23_draft_capital` | 2.028 | -0.772 | 0.482 | 2.437 | 142 |
+| `v29_reliability_residual` | 2.013 | -0.758 | 0.494 | 2.408 | 142 |
+| `v26_vegas_residual` | 2.014 | -0.734 | 0.496 | 2.402 | 142 |
+| `v27_vegas_full_refit` | 2.019 | -0.745 | 0.490 | 2.417 | 142 |
 | `v20_learned_usage` | 2.099 | -1.109 | 0.453 | 2.504 | 142 |
+| `v25_draft_capital_residual` | 2.113 | -0.927 | 0.448 | 2.515 | 142 |
+| `v23_draft_capital` | 2.117 | -0.982 | 0.443 | 2.527 | 142 |
 | `position_mean_baseline` | 2.769 | +0.223 | 0.017 | 3.381 | 150 |
 
 ### K
@@ -248,9 +248,9 @@ _**MAE** is the pooled-over-players ALL error. **Bal MAE** is the position-balan
 | `v19_usage_level_full` | 1.589 | +0.090 | -0.251 | 2.115 | 64 |
 | `v16_snap_trend_full` | 1.598 | +0.101 | -0.253 | 2.117 | 64 |
 | `v30_reliability_full_refit` | 1.625 | -0.454 | -0.208 | 2.079 | 64 |
-| `v27_vegas_full_refit` | 1.631 | -0.464 | -0.213 | 2.083 | 64 |
+| `v23_draft_capital` | 1.644 | -0.467 | -0.230 | 2.097 | 64 |
+| `v27_vegas_full_refit` | 1.651 | -0.509 | -0.230 | 2.097 | 64 |
 | `v21_tiered_regression` | 1.658 | +0.230 | -0.397 | 2.235 | 64 |
-| `v23_draft_capital` | 1.659 | -0.517 | -0.241 | 2.107 | 64 |
 | `v8_age_regression` | 1.662 | +0.019 | -0.393 | 2.232 | 64 |
 | `v9_pos_specific` | 1.662 | +0.019 | -0.393 | 2.232 | 64 |
 | `v10_stat_efficiency_v2` | 1.662 | +0.019 | -0.393 | 2.232 | 64 |
@@ -260,18 +260,174 @@ _**MAE** is the pooled-over-players ALL error. **Bal MAE** is the position-balan
 | `v2_age_adjusted` | 1.732 | +0.006 | -0.517 | 2.329 | 64 |
 | `v3_stat_weighted` | 1.732 | +0.006 | -0.517 | 2.329 | 64 |
 | `v18_usage_level` | 1.732 | +0.006 | -0.517 | 2.329 | 64 |
-| `v28_reliability_weighting` | 1.736 | -0.768 | -0.298 | 2.155 | 64 |
 | `v15_snap_trend` | 1.742 | +0.017 | -0.519 | 2.331 | 64 |
-| `v29_reliability_residual` | 1.743 | -0.781 | -0.301 | 2.157 | 64 |
 | `v7_regression_to_mean` | 1.753 | +0.243 | -0.636 | 2.419 | 64 |
+| `v28_reliability_weighting` | 1.782 | -0.846 | -0.350 | 2.197 | 64 |
 | `v20_learned_usage` | 1.789 | -0.824 | -0.363 | 2.208 | 64 |
 | `v22_advanced_receiving` | 1.790 | -0.856 | -0.357 | 2.203 | 64 |
+| `v29_reliability_residual` | 1.808 | -0.669 | -0.404 | 2.241 | 64 |
 | `v25_draft_capital_residual` | 1.812 | -0.677 | -0.409 | 2.245 | 64 |
 | `v26_vegas_residual` | 1.812 | -0.677 | -0.409 | 2.245 | 64 |
 | `v4_availability_adjusted` | 1.826 | +0.229 | -0.760 | 2.509 | 64 |
 | `v5_team_context` | 1.826 | +0.229 | -0.760 | 2.509 | 64 |
 | `v6_usage_share` | 1.826 | +0.229 | -0.760 | 2.509 | 64 |
 | `naive_prior_season_ppg` | 1.980 | +0.247 | -1.198 | 2.804 | 64 |
+
+## Ranking quality — per-position ordering (GH #598)
+
+_The projections feed VORP, surplus value, auction pricing and keeper calls, which depend on within-position **ordering** and getting the top tier right — not absolute PPG level. **Spearman ρ** is the rank correlation between projected and actual PPG (1.0 = perfect order). **Top-N hit** is the share of each model's predicted top-N (≈ the starter pool: 12 for QB/TE, 24 for RB/WR) that actually finished top-N. A model can win MAE while losing here (#579) — these are the metrics the downstream decisions actually care about._
+
+### QB (top-12)
+
+| Model | Spearman ρ | Top-N hit | N |
+| --- | --- | --- | --- |
+| `external_fantasypros_v1` | **0.800** | 0.417 | 88 |
+| `v26_vegas_residual` | 0.726 | 0.333 | 98 |
+| `v31_depth_chart` | 0.721 | 0.333 | 98 |
+| `v20_learned_usage` | 0.720 | 0.417 | 98 |
+| `v25_draft_capital_residual` | 0.719 | 0.250 | 98 |
+| `v30_reliability_full_refit` | 0.717 | 0.333 | 98 |
+| `v22_advanced_receiving` | 0.715 | 0.417 | 98 |
+| `v29_reliability_residual` | 0.714 | 0.250 | 98 |
+| `v28_reliability_weighting` | 0.714 | 0.417 | 98 |
+| `v21_tiered_regression` | 0.712 | 0.333 | 102 |
+| `v16_snap_trend_full` | 0.710 | 0.417 | 102 |
+| `v14_qb_starter` | 0.709 | 0.333 | 102 |
+| `v17_rookie_growth` | 0.709 | 0.333 | 102 |
+| `v19_usage_level_full` | 0.709 | 0.333 | 102 |
+| `v27_vegas_full_refit` | 0.701 | 0.250 | 98 |
+| `v23_draft_capital` | 0.685 | 0.250 | 98 |
+| `v4_availability_adjusted` | 0.680 | 0.417 | 102 |
+| `v5_team_context` | 0.679 | 0.417 | 102 |
+| `v6_usage_share` | 0.679 | 0.417 | 102 |
+| `v7_regression_to_mean` | 0.679 | 0.417 | 102 |
+| `v15_snap_trend` | 0.673 | 0.417 | 102 |
+| `v2_age_adjusted` | 0.671 | 0.417 | 102 |
+| `v18_usage_level` | 0.671 | 0.417 | 102 |
+| `v12_no_qb_trajectory` | 0.670 | 0.333 | 102 |
+| `v3_stat_weighted` | 0.670 | 0.417 | 102 |
+| `v10_stat_efficiency_v2` | 0.669 | 0.417 | 102 |
+| `v8_age_regression` | 0.668 | 0.417 | 102 |
+| `v9_pos_specific` | 0.668 | 0.417 | 102 |
+| `v13_qb_starter` | 0.666 | 0.417 | 102 |
+| `v11_team_context_v2` | 0.662 | 0.417 | 102 |
+| `v1_baseline_weighted_ppg` | 0.660 | 0.417 | 102 |
+| `naive_prior_season_ppg` | 0.593 | 0.333 | 102 |
+| `position_mean_baseline` | 0.007 | 0.250 | 102 |
+
+### RB (top-24)
+
+| Model | Spearman ρ | Top-N hit | N |
+| --- | --- | --- | --- |
+| `external_fantasypros_v1` | **0.829** | 0.667 | 100 |
+| `v11_team_context_v2` | 0.790 | 0.625 | 137 |
+| `v18_usage_level` | 0.789 | 0.625 | 137 |
+| `v19_usage_level_full` | 0.788 | 0.667 | 137 |
+| `v31_depth_chart` | 0.788 | 0.583 | 135 |
+| `v7_regression_to_mean` | 0.787 | 0.625 | 137 |
+| `v6_usage_share` | 0.787 | 0.625 | 137 |
+| `naive_prior_season_ppg` | 0.786 | 0.583 | 144 |
+| `v10_stat_efficiency_v2` | 0.785 | 0.583 | 137 |
+| `v16_snap_trend_full` | 0.783 | 0.583 | 137 |
+| `v3_stat_weighted` | 0.783 | 0.583 | 137 |
+| `v15_snap_trend` | 0.782 | 0.625 | 137 |
+| `v8_age_regression` | 0.782 | 0.583 | 137 |
+| `v9_pos_specific` | 0.782 | 0.583 | 137 |
+| `v12_no_qb_trajectory` | 0.782 | 0.583 | 137 |
+| `v13_qb_starter` | 0.782 | 0.583 | 137 |
+| `v14_qb_starter` | 0.782 | 0.583 | 137 |
+| `v5_team_context` | 0.782 | 0.583 | 137 |
+| `v2_age_adjusted` | 0.781 | 0.583 | 137 |
+| `v30_reliability_full_refit` | 0.779 | 0.625 | 135 |
+| `v4_availability_adjusted` | 0.776 | 0.583 | 137 |
+| `v17_rookie_growth` | 0.775 | 0.583 | 137 |
+| `v26_vegas_residual` | 0.775 | 0.667 | 135 |
+| `v1_baseline_weighted_ppg` | 0.770 | 0.667 | 137 |
+| `v21_tiered_regression` | 0.770 | 0.583 | 137 |
+| `v25_draft_capital_residual` | 0.769 | 0.625 | 135 |
+| `v29_reliability_residual` | 0.768 | 0.667 | 135 |
+| `v20_learned_usage` | 0.765 | 0.667 | 135 |
+| `v22_advanced_receiving` | 0.764 | 0.667 | 135 |
+| `v28_reliability_weighting` | 0.763 | 0.667 | 135 |
+| `v27_vegas_full_refit` | 0.756 | 0.542 | 135 |
+| `v23_draft_capital` | 0.748 | 0.542 | 135 |
+| `position_mean_baseline` | 0.300 | 0.375 | 144 |
+
+### WR (top-24)
+
+| Model | Spearman ρ | Top-N hit | N |
+| --- | --- | --- | --- |
+| `v30_reliability_full_refit` | **0.791** | 0.542 | 196 |
+| `v26_vegas_residual` | 0.783 | 0.542 | 196 |
+| `v27_vegas_full_refit` | 0.781 | 0.500 | 196 |
+| `v19_usage_level_full` | 0.780 | 0.417 | 200 |
+| `v29_reliability_residual` | 0.779 | 0.500 | 196 |
+| `v18_usage_level` | 0.777 | 0.417 | 200 |
+| `v15_snap_trend` | 0.775 | 0.417 | 200 |
+| `v16_snap_trend_full` | 0.775 | 0.458 | 200 |
+| `v3_stat_weighted` | 0.774 | 0.417 | 200 |
+| `v10_stat_efficiency_v2` | 0.774 | 0.417 | 200 |
+| `v8_age_regression` | 0.773 | 0.417 | 200 |
+| `v9_pos_specific` | 0.773 | 0.417 | 200 |
+| `v12_no_qb_trajectory` | 0.773 | 0.417 | 200 |
+| `v13_qb_starter` | 0.773 | 0.417 | 200 |
+| `v14_qb_starter` | 0.773 | 0.417 | 200 |
+| `v2_age_adjusted` | 0.772 | 0.417 | 200 |
+| `v7_regression_to_mean` | 0.769 | 0.417 | 200 |
+| `v6_usage_share` | 0.768 | 0.417 | 200 |
+| `v11_team_context_v2` | 0.768 | 0.417 | 200 |
+| `v25_draft_capital_residual` | 0.766 | 0.458 | 196 |
+| `v21_tiered_regression` | 0.765 | 0.458 | 200 |
+| `naive_prior_season_ppg` | 0.765 | 0.458 | 207 |
+| `v4_availability_adjusted` | 0.763 | 0.417 | 200 |
+| `v5_team_context` | 0.762 | 0.417 | 200 |
+| `v28_reliability_weighting` | 0.762 | 0.500 | 196 |
+| `v17_rookie_growth` | 0.762 | 0.417 | 200 |
+| `v23_draft_capital` | 0.761 | 0.375 | 196 |
+| `v22_advanced_receiving` | 0.760 | 0.500 | 196 |
+| `v1_baseline_weighted_ppg` | 0.756 | 0.500 | 200 |
+| `v31_depth_chart` | 0.751 | 0.500 | 196 |
+| `external_fantasypros_v1` | 0.749 | 0.500 | 131 |
+| `v20_learned_usage` | 0.748 | 0.542 | 196 |
+| `position_mean_baseline` | 0.345 | 0.125 | 207 |
+
+### TE (top-12)
+
+| Model | Spearman ρ | Top-N hit | N |
+| --- | --- | --- | --- |
+| `external_fantasypros_v1` | **0.788** | 0.750 | 111 |
+| `v1_baseline_weighted_ppg` | 0.758 | 0.333 | 144 |
+| `v20_learned_usage` | 0.758 | 0.333 | 142 |
+| `v31_depth_chart` | 0.756 | 0.333 | 142 |
+| `v19_usage_level_full` | 0.755 | 0.417 | 144 |
+| `v10_stat_efficiency_v2` | 0.752 | 0.417 | 144 |
+| `v30_reliability_full_refit` | 0.752 | 0.417 | 142 |
+| `v18_usage_level` | 0.752 | 0.417 | 144 |
+| `v3_stat_weighted` | 0.751 | 0.417 | 144 |
+| `v11_team_context_v2` | 0.751 | 0.417 | 144 |
+| `v2_age_adjusted` | 0.751 | 0.417 | 144 |
+| `v8_age_regression` | 0.751 | 0.417 | 144 |
+| `v9_pos_specific` | 0.751 | 0.417 | 144 |
+| `v12_no_qb_trajectory` | 0.751 | 0.417 | 144 |
+| `v13_qb_starter` | 0.751 | 0.417 | 144 |
+| `v14_qb_starter` | 0.751 | 0.417 | 144 |
+| `v15_snap_trend` | 0.748 | 0.500 | 144 |
+| `v21_tiered_regression` | 0.747 | 0.417 | 144 |
+| `v29_reliability_residual` | 0.747 | 0.417 | 142 |
+| `v16_snap_trend_full` | 0.746 | 0.500 | 144 |
+| `v6_usage_share` | 0.745 | 0.417 | 144 |
+| `v7_regression_to_mean` | 0.745 | 0.417 | 144 |
+| `v5_team_context` | 0.744 | 0.417 | 144 |
+| `v28_reliability_weighting` | 0.742 | 0.333 | 142 |
+| `v23_draft_capital` | 0.740 | 0.333 | 142 |
+| `v22_advanced_receiving` | 0.740 | 0.333 | 142 |
+| `v26_vegas_residual` | 0.740 | 0.417 | 142 |
+| `v4_availability_adjusted` | 0.740 | 0.417 | 144 |
+| `v27_vegas_full_refit` | 0.739 | 0.417 | 142 |
+| `v17_rookie_growth` | 0.737 | 0.417 | 144 |
+| `v25_draft_capital_residual` | 0.734 | 0.417 | 142 |
+| `naive_prior_season_ppg` | 0.726 | 0.417 | 150 |
+| `position_mean_baseline` | 0.185 | 0.167 | 150 |
 
 ## Season 2024 — ALL (held-out)
 
@@ -290,21 +446,21 @@ _**MAE** is the pooled-over-players ALL error. **Bal MAE** is the position-balan
 | `v9_pos_specific` | 2.682 | +0.089 | 0.524 | 3.544 | 274 |
 | `v10_stat_efficiency_v2` | 2.690 | +0.090 | 0.524 | 3.542 | 274 |
 | `v22_advanced_receiving` | 2.691 | -0.675 | 0.535 | 3.462 | 271 |
+| `v27_vegas_full_refit` | 2.695 | -0.661 | 0.528 | 3.490 | 271 |
+| `v28_reliability_weighting` | 2.700 | -0.679 | 0.533 | 3.472 | 271 |
 | `v20_learned_usage` | 2.712 | -0.796 | 0.531 | 3.477 | 271 |
-| `v23_draft_capital` | 2.719 | -0.659 | 0.519 | 3.522 | 271 |
+| `v23_draft_capital` | 2.725 | -0.697 | 0.516 | 3.533 | 271 |
+| `v26_vegas_residual` | 2.728 | -0.842 | 0.526 | 3.498 | 271 |
 | `v2_age_adjusted` | 2.731 | -0.043 | 0.505 | 3.612 | 274 |
 | `v3_stat_weighted` | 2.732 | -0.026 | 0.507 | 3.606 | 274 |
-| `v26_vegas_residual` | 2.735 | -0.845 | 0.524 | 3.503 | 271 |
-| `v25_draft_capital_residual` | 2.739 | -0.815 | 0.521 | 3.514 | 271 |
 | `v21_tiered_regression` | 2.739 | +0.406 | 0.510 | 3.597 | 274 |
-| `v27_vegas_full_refit` | 2.745 | -0.993 | 0.513 | 3.544 | 271 |
+| `v25_draft_capital_residual` | 2.746 | -0.830 | 0.518 | 3.527 | 271 |
+| `v29_reliability_residual` | 2.748 | -0.814 | 0.518 | 3.528 | 271 |
 | `v30_reliability_full_refit` | 2.754 | -0.994 | 0.510 | 3.556 | 271 |
 | `v1_baseline_weighted_ppg` | 2.755 | -0.289 | 0.482 | 3.698 | 274 |
 | `v18_usage_level` | 2.757 | -0.199 | 0.500 | 3.631 | 274 |
 | `v15_snap_trend` | 2.764 | -0.059 | 0.497 | 3.642 | 274 |
-| `v28_reliability_weighting` | 2.765 | -1.016 | 0.513 | 3.545 | 271 |
 | `v7_regression_to_mean` | 2.796 | +0.362 | 0.497 | 3.643 | 274 |
-| `v29_reliability_residual` | 2.803 | -1.153 | 0.500 | 3.591 | 271 |
 | `v4_availability_adjusted` | 2.838 | +0.413 | 0.475 | 3.722 | 274 |
 | `v5_team_context` | 2.843 | +0.387 | 0.471 | 3.735 | 274 |
 | `v6_usage_share` | 2.850 | +0.231 | 0.471 | 3.737 | 274 |
@@ -338,13 +494,13 @@ _**MAE** is the pooled-over-players ALL error. **Bal MAE** is the position-balan
 | `v1_baseline_weighted_ppg` | 2.543 | -0.919 | 0.560 | 3.505 | 373 |
 | `naive_prior_season_ppg` | 2.603 | -0.761 | 0.522 | 3.671 | 389 |
 | `v30_reliability_full_refit` | 2.636 | -1.356 | 0.602 | 3.305 | 364 |
-| `v27_vegas_full_refit` | 2.641 | -1.349 | 0.601 | 3.308 | 364 |
 | `v31_depth_chart` | 2.654 | -1.170 | 0.575 | 3.415 | 364 |
 | `v20_learned_usage` | 2.661 | -1.256 | 0.603 | 3.301 | 364 |
-| `v28_reliability_weighting` | 2.663 | -1.298 | 0.606 | 3.288 | 364 |
-| `v29_reliability_residual` | 2.678 | -1.418 | 0.603 | 3.299 | 364 |
-| `v26_vegas_residual` | 2.699 | -1.462 | 0.588 | 3.361 | 364 |
+| `v26_vegas_residual` | 2.706 | -1.463 | 0.587 | 3.364 | 364 |
+| `v27_vegas_full_refit` | 2.716 | -1.368 | 0.580 | 3.394 | 364 |
+| `v28_reliability_weighting` | 2.723 | -1.324 | 0.588 | 3.360 | 364 |
+| `v29_reliability_residual` | 2.730 | -1.443 | 0.587 | 3.368 | 364 |
 | `v22_advanced_receiving` | 2.731 | -1.318 | 0.587 | 3.366 | 364 |
-| `v25_draft_capital_residual` | 2.741 | -1.445 | 0.584 | 3.377 | 364 |
-| `v23_draft_capital` | 2.770 | -1.389 | 0.571 | 3.431 | 364 |
+| `v25_draft_capital_residual` | 2.777 | -1.476 | 0.577 | 3.404 | 364 |
+| `v23_draft_capital` | 2.793 | -1.408 | 0.566 | 3.451 | 364 |
 | `position_mean_baseline` | 3.753 | +0.283 | 0.192 | 4.774 | 389 |
