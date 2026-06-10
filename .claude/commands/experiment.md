@@ -22,12 +22,12 @@ point-estimate delta.
      `holdout-eval` sandbox automatically — no pre-training or pre-projection
      needed (and never train on the eval seasons yourself).
 
-3. **Run the held-out re-rank** against production (`v14_qb_starter`) and the
+3. **Run the held-out re-rank** against production (`v31_depth_chart`) and the
    naïve baselines (`naive_prior_season_ppg`, `position_mean_baseline`). Prefer
    the rolling-origin protocol (#594); the cache (#597) makes re-runs fast:
    ```bash
    just holdout-eval --protocol rolling --eval-seasons 2023,2024,2025 --min-train-season 2021 \
-     --models MODEL_NAME,v14_qb_starter,naive_prior_season_ppg,position_mean_baseline
+     --models MODEL_NAME,v31_depth_chart,naive_prior_season_ppg,position_mean_baseline
    ```
    Read the **Ranking quality** section too (per-position Spearman ρ + top-N hit
    rate, #598) — the projections feed VORP/auction/keepers, which consume
@@ -36,18 +36,18 @@ point-estimate delta.
 4. **Test significance vs the production model** (player-clustered paired
    bootstrap, #594). This is the gate:
    ```bash
-   just significance MODEL_NAME v14_qb_starter --protocol rolling \
+   just significance MODEL_NAME v31_depth_chart --protocol rolling \
      --eval-seasons 2023,2024,2025 --min-train-season 2021
    ```
 
 5. **If the model touches availability / expected games**, additionally report
    the availability budget (rate vs availability MAE, #574):
    ```bash
-   just availability-backtest --models MODEL_NAME,v14_qb_starter
+   just availability-backtest --models MODEL_NAME,v31_depth_chart
    ```
 
 6. **State the verdict** from the significance test, not an MAE band:
-   - **SIGNIFICANT WIN** — the 95% CI for MAE(NEW) − MAE(v14_qb_starter) lies
+   - **SIGNIFICANT WIN** — the 95% CI for MAE(NEW) − MAE(v31_depth_chart) lies
      entirely below 0. Only this clears the bar to consider promotion.
    - **NOT SIGNIFICANT** — CI spans 0. The gap is sampling noise; do not promote
      on it, regardless of the point estimate.
@@ -57,7 +57,7 @@ point-estimate delta.
 
 7. **Append to the experiment log** (`docs/generated/experiment-log.md`) using the
    held-out columns: date, model, change, **held-out ALL MAE**, **Δ vs
-   v14_qb_starter**, **95% CI**, **significant? (Y/N)**, protocol, PR. The
+   v31_depth_chart**, **95% CI**, **significant? (Y/N)**, protocol, PR. The
    in-sample `accuracy-report` is a secondary diagnostic only.
 
 8. **In the PR description**, lead with the held-out + significance result; the

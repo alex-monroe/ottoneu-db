@@ -8,9 +8,10 @@ place, cross-check with held-out ablation (`/ablation`, #588), not these numbers
 
 // turbo
 
-1. **Identify the learned model** (default: `v20_learned_usage` — note this is a
-   learned reference model, not production; production is the additive
-   `v14_qb_starter`, which has no learned coefficients to inspect). Use the
+1. **Identify the learned model** (default: the active model `v31_depth_chart`,
+   itself a learned Ridge model whose coefficients are inspectable). Only the
+   additive models — e.g. `v14_qb_starter` — have no learned coefficients to
+   inspect; pick a learned model if the user names an additive one. Use the
    user-specified model if given.
 
 2. **Run the feature analysis script** (use `venv/bin/python` directly — no

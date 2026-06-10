@@ -11,18 +11,18 @@ held-out harness (`/experiment`), never on the in-sample segment numbers.
 1. **Parse the segment** from arguments (e.g. "bench WR", "elite QB", "age 30+",
    "high-usage RB"). If none given, ask the user.
 
-2. **Run segment analysis** across production + a learned reference + the naïve
+2. **Run segment analysis** across the active model + an additive reference + the naïve
    baseline (use `venv/bin/python` directly — no `source venv/bin/activate`):
    ```bash
    venv/bin/python scripts/feature_projections/cli.py segment-analysis \
-     --models v14_qb_starter,v20_learned_usage,naive_prior_season_ppg \
+     --models v31_depth_chart,v14_qb_starter,naive_prior_season_ppg \
      --seasons 2022,2023,2024,2025
    ```
 
 3. **Run per-player diagnostics** for the player-level view:
    ```bash
    venv/bin/python scripts/feature_projections/cli.py diagnostics \
-     --model v14_qb_starter --season 2025 --top 50 \
+     --model v31_depth_chart --season 2025 --top 50 \
      --output docs/generated/player-diagnostics.md
    ```
 
@@ -38,6 +38,6 @@ held-out harness (`/experiment`), never on the in-sample segment numbers.
 
 7. **Propose improvements as hypotheses, not conclusions.** For any proposed
    feature or weight change, hand off to `/experiment` to get a held-out,
-   significance-tested verdict vs `v14_qb_starter` before trusting it. Be alert to
+   significance-tested verdict vs `v31_depth_chart` before trusting it. Be alert to
    the level-vs-ordering split (#579/#598): a segment can be biased in level while
    still ranked correctly, which changes whether a fix is even worth making.
