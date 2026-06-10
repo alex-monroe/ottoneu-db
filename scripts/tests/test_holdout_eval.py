@@ -9,7 +9,10 @@ import pytest
 
 from scripts.feature_projections import holdout_cache
 from scripts.feature_projections.backtest import rank_metrics
-from scripts.feature_projections.holdout_eval import rolling_folds
+from scripts.feature_projections.holdout_eval import (
+    _restrict_to_harmonized_population,
+    rolling_folds,
+)
 from scripts.feature_projections.significance import bootstrap_mae_difference
 
 
@@ -128,3 +131,37 @@ class TestRankMetrics:
     def test_too_few_points(self):
         m = rank_metrics([1.0], [2.0], n_top=12)
         assert m["spearman"] is None and m["topn_hit"] is None
+
+
+class TestHarmonizedPopulation:
+    def test_keeps_top_n_per_position_by_points(self):
+        # 3 RBs, keep top 2 by points; 1 QB always kept.
+        actuals = {"rb1": 10.0, "rb2": 9.0, "rb3": 1.0, "qb1": 20.0}
+        pos_map = {"rb1": "RB", "rb2": "RB", "rb3": "RB", "qb1": "QB"}
+        points = {2025: {"rb1": 200.0, "rb2": 180.0, "rb3": 30.0, "qb1": 400.0}}
+        out = _restrict_to_harmonized_population(
+            {2025: actuals}, pos_map, points, {"RB": 2, "QB": 1}
+        )
+        assert set(out[2025]) == {"rb1", "rb2", "qb1"}  # rb3 (lowest points) dropped
+        assert out[2025]["rb1"] == 10.0  # values preserved (PPG, not points)
+
+    def test_short_season_keeps_all_available(self):
+        actuals = {"wr1": 12.0, "wr2": 8.0}
+        pos_map = {"wr1": "WR", "wr2": "WR"}
+        points = {2023: {"wr1": 150.0, "wr2": 100.0}}
+        out = _restrict_to_harmonized_population({2023: actuals}, pos_map, points, {"WR": 48})
+        assert set(out[2023]) == {"wr1", "wr2"}  # only 2 available, both kept
+
+    def test_falls_back_to_ppg_when_points_missing(self):
+        actuals = {"te1": 9.0, "te2": 5.0}
+        pos_map = {"te1": "TE", "te2": "TE"}
+        out = _restrict_to_harmonized_population({2024: actuals}, pos_map, {2024: {}}, {"TE": 1})
+        assert set(out[2024]) == {"te1"}  # ranks by PPG when no points map
+
+    def test_positions_outside_config_dropped(self):
+        actuals = {"k1": 8.0, "qb1": 18.0}
+        pos_map = {"k1": "K", "qb1": "QB"}
+        out = _restrict_to_harmonized_population(
+            {2025: actuals}, pos_map, {2025: {}}, {"QB": 24}  # no K entry
+        )
+        assert set(out[2025]) == {"qb1"}

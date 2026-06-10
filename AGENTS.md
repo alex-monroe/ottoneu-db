@@ -55,6 +55,7 @@ docs/
 │   ├── [experiment-log.md](docs/generated/experiment-log.md)              # History of all model iteration attempts
 │   ├── [player-diagnostics.md](docs/generated/player-diagnostics.md)          # Per-player backtest diagnostics
 │   ├── [projection-accuracy.md](docs/generated/projection-accuracy.md)         # Projection model accuracy report
+│   ├── [coverage-analysis.md](docs/generated/coverage-analysis.md)            # Qualifying-population coverage: player_stats vs nflverse (#599)
 │   └── [segment-analysis.md](docs/generated/segment-analysis.md)            # Segmented projection accuracy analysis
 ├── references/
 │   ├── environment-variables.md       # .env and .env.local variable reference

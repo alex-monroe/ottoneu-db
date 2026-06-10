@@ -137,6 +137,10 @@ significance model_a model_b *args:
 availability-backtest *args:
     {{python}} scripts/feature_projections/availability_backtest.py {{args}}
 
+# Qualifying-population coverage analysis: player_stats vs nflverse, per season (GH #599)
+coverage-report *args:
+    {{python}} scripts/feature_projections/coverage_analysis.py {{args}}
+
 # Promote a model to production  (e.g. just promote v24_learned_elite)
 promote model:
     {{python}} scripts/feature_projections/cli.py promote --model {{model}}

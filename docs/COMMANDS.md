@@ -123,11 +123,13 @@ just segment-analysis [--segments <s>] ...          # Segmented accuracy analysi
 just accuracy-report [--run-backtest] ...           # Generate accuracy report (in-sample diagnostic)
 
 # Honest (leakage-free) evaluation harness — the gate for any projection change
-just holdout-eval [--protocol rolling] [--eval-seasons ...] [--min-train-season Y] [--models ...] [--matched] [--no-cache]
+just holdout-eval [--protocol rolling] [--eval-seasons ...] [--min-train-season Y] [--models ...] [--matched] [--population harmonized] [--no-cache]
                                                     # Re-rank all models out-of-sample (GH #572, #594)
+                                                    # --population harmonized: fixed top-N/position to neutralise 2021–2023 coverage drift (#599)
 just significance <model_a> <model_b> [--protocol rolling] [--eval-seasons ...] [--no-cache]
                                                     # Player-clustered paired bootstrap of the MAE gap (GH #573, #594)
 just availability-backtest [...]                    # Availability-inclusive backtest (rate vs availability budget, GH #574)
+just coverage-report [--min-games N]                # Qualifying-population coverage: player_stats vs nflverse, per season (GH #599)
 # Held-out predictions are cached under .cache/holdout/, keyed on (model, train window, eval window,
 # model-definition fingerprint), so a second holdout-eval/significance run skips retraining (GH #597).
 # Editing a model's definition or any feature code invalidates the affected entries automatically;
