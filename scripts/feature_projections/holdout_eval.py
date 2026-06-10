@@ -48,8 +48,10 @@ from scripts.feature_projections import holdout_cache, learned_combiner
 from scripts.feature_projections.learned_combiner import predict, predict_residual
 from scripts.feature_projections.model_config import MODELS, get_model
 from scripts.feature_projections.backtest import (
+    TOP_N_BY_POSITION,
     _compute_metrics,
     _fetch_season_rows,
+    rank_metrics,
 )
 
 repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -247,8 +249,14 @@ def _combined_metrics(
                 buckets[pos][1].append(actual)
     out: dict[str, dict] = {}
     for pos, (proj, act) in buckets.items():
-        if proj:
-            out[pos] = _compute_metrics(proj, act)
+        if not proj:
+            continue
+        m = _compute_metrics(proj, act)
+        if pos != "ALL":
+            # Rank metrics are within-position only — ordering across positions
+            # isn't a decision the projections feed (GH #598).
+            m.update(rank_metrics(proj, act, TOP_N_BY_POSITION.get(pos, 12)))
+        out[pos] = m
     return out
 
 
@@ -604,6 +612,40 @@ def _render(
             row = combined[model_name][pos]
             cells = [_fmt(row.get(k), fmt) for k, _, fmt in metric_cols]
             lines.append(f"| `{model_name}` | " + " | ".join(cells) + " |")
+        lines.append("")
+
+    # --- Decision-relevant ranking quality (per-position Spearman + top-N) ---
+    lines.append("## Ranking quality — per-position ordering (GH #598)\n")
+    lines.append(
+        "_The projections feed VORP, surplus value, auction pricing and keeper calls, "
+        "which depend on within-position **ordering** and getting the top tier right — "
+        "not absolute PPG level. **Spearman ρ** is the rank correlation between projected "
+        "and actual PPG (1.0 = perfect order). **Top-N hit** is the share of each model's "
+        "predicted top-N (≈ the starter pool: 12 for QB/TE, 24 for RB/WR) that actually "
+        "finished top-N. A model can win MAE while losing here (#579) — these are the "
+        "metrics the downstream decisions actually care about._\n"
+    )
+    for pos in [p for p in POSITIONS if p != "K"]:
+        n_top = TOP_N_BY_POSITION.get(pos, 12)
+        lines.append(f"### {pos} (top-{n_top})\n")
+        lines.append("| Model | Spearman ρ | Top-N hit | N |")
+        lines.append("| --- | --- | --- | --- |")
+        rank_models = sorted(
+            (m for m in combined if combined[m].get(pos)
+             and combined[m][pos].get("spearman") is not None),
+            key=lambda m: combined[m][pos]["spearman"],
+            reverse=True,
+        )
+        best_rho = combined[rank_models[0]][pos]["spearman"] if rank_models else None
+        for model_name in rank_models:
+            row = combined[model_name][pos]
+            rho_str = _fmt(row.get("spearman"), ".3f")
+            if best_rho is not None and row.get("spearman") == best_rho:
+                rho_str = f"**{rho_str}**"
+            lines.append(
+                f"| `{model_name}` | {rho_str} | {_fmt(row.get('topn_hit'), '.3f')} "
+                f"| {_fmt(row.get('player_count'), 'd')} |"
+            )
         lines.append("")
 
     # --- Per-season ALL (one fold each under the rolling protocol) ---

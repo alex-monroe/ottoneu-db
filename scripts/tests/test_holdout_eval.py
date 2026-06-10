@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from scripts.feature_projections import holdout_cache
+from scripts.feature_projections.backtest import rank_metrics
 from scripts.feature_projections.holdout_eval import rolling_folds
 from scripts.feature_projections.significance import bootstrap_mae_difference
 
@@ -102,3 +103,28 @@ class TestHoldoutCache:
         # Different eval window ⇒ separate cache entry (miss).
         assert holdout_cache.load(model, [2021], [2025]) is None
         assert holdout_cache.load(model, [2021], [2024]) is not None
+
+
+class TestRankMetrics:
+    def test_perfect_ordering(self):
+        proj = [1.0, 2.0, 3.0, 4.0, 5.0]
+        actual = [10.0, 20.0, 30.0, 40.0, 50.0]  # same order, different scale
+        m = rank_metrics(proj, actual, n_top=2)
+        assert m["spearman"] == pytest.approx(1.0)
+        assert m["topn_hit"] == pytest.approx(1.0)  # top-2 predicted == top-2 actual
+        assert m["n_top"] == 2
+
+    def test_reversed_ordering(self):
+        proj = [1.0, 2.0, 3.0, 4.0, 5.0]
+        actual = [50.0, 40.0, 30.0, 20.0, 10.0]
+        m = rank_metrics(proj, actual, n_top=2)
+        assert m["spearman"] == pytest.approx(-1.0)
+        assert m["topn_hit"] == pytest.approx(0.0)  # no overlap
+
+    def test_top_n_capped_at_n(self):
+        m = rank_metrics([1.0, 2.0, 3.0], [3.0, 2.0, 1.0], n_top=24)
+        assert m["n_top"] == 3
+
+    def test_too_few_points(self):
+        m = rank_metrics([1.0], [2.0], n_top=12)
+        assert m["spearman"] is None and m["topn_hit"] is None
