@@ -165,16 +165,19 @@ def run(
     seed: int = 0,
     protocol: str = "fixed",
     min_train_season: Optional[int] = None,
+    use_cache: bool = True,
 ) -> dict:
     models = _expand_with_bases([model_a, model_b])
     if protocol == "rolling":
         if min_train_season is None:
             min_train_season = min(train_seasons)
         folds = rolling_folds(eval_seasons, min_train_season)
-        preds, actuals_by_season, pos_map, _ = gather_predictions_rolling(folds, models)
+        preds, actuals_by_season, pos_map, _ = gather_predictions_rolling(
+            folds, models, use_cache=use_cache
+        )
     else:
         preds, actuals_by_season, pos_map = gather_predictions(
-            train_seasons, eval_seasons, models
+            train_seasons, eval_seasons, models, use_cache=use_cache
         )
     err_a, err_b, pids = _paired_errors(
         preds, actuals_by_season, pos_map, model_a, model_b, position
@@ -231,6 +234,8 @@ def main() -> None:
     parser.add_argument("--position", default="ALL", help="ALL | QB | RB | WR | TE | K")
     parser.add_argument("--iterations", type=int, default=10000)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--no-cache", action="store_true",
+                        help="Force a retrain instead of reusing cached held-out predictions (#597).")
     args = parser.parse_args()
 
     train_seasons = [int(s) for s in args.train_seasons.split(",")]
@@ -251,6 +256,7 @@ def main() -> None:
         args.model_a, args.model_b, train_seasons, eval_seasons,
         position=args.position, iterations=args.iterations, seed=args.seed,
         protocol=args.protocol, min_train_season=args.min_train_season,
+        use_cache=not args.no_cache,
     )
     _print_result(res, train_seasons, eval_seasons)
 
