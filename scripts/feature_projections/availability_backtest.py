@@ -39,8 +39,10 @@ from __future__ import annotations
 import argparse
 import os
 from datetime import datetime
+from typing import Optional
 
 from scripts.config import get_supabase_client, fetch_all_rows, POSITIONS
+from scripts.feature_projections.expected_games import MODES, build_expected_games
 from scripts.feature_projections.backtest import (
     TOP_N_BY_POSITION,
     _compute_metrics,
@@ -98,6 +100,7 @@ def _combined_avail_metrics(
     preds_by_season: dict[int, dict[str, float]],
     actuals_by_season: dict[int, dict[str, dict]],
     pos_map: dict[str, str],
+    expected_games: Optional[dict[tuple[str, int], float]] = None,
 ) -> dict:
     """Rate + availability metrics (ALL + per position), POOLED across seasons.
 
@@ -106,6 +109,12 @@ def _combined_avail_metrics(
     average of per-season R² (GH #576, Finding 5). MAE/bias/RMSE are unchanged
     vs an N-weighted aggregate; R² is the one that was wrong. Returns
     {"rate": {pos: metrics}, "avail": {pos: metrics}, "mean_games": float}.
+
+    When ``expected_games`` is supplied (GH #587 stage a), the *availability*
+    prediction is haircut to ``pred × min(E[games], 17) / 17`` while the rate
+    prediction is left untouched — so the rate gate is unaffected and only the
+    availability budget moves. A player with no expected-games estimate keeps the
+    unscaled rate prediction (the prior behaviour).
     """
     targets = {"rate": "ppg", "avail": "avail"}
     buckets: dict[str, dict[str, tuple[list, list]]] = {
@@ -123,11 +132,18 @@ def _combined_avail_metrics(
             pos = pos_map.get(pid)
             games_sum += actual["games"]
             games_n += 1
+            # Availability-haircut prediction (rate prediction is unchanged).
+            avail_pred = pred
+            if expected_games is not None:
+                eg = expected_games.get((pid, season))
+                if eg is not None:
+                    avail_pred = pred * min(eg, GAMES_FULL_SEASON) / GAMES_FULL_SEASON
+            pred_for = {"rate": pred, "avail": avail_pred}
             for t, key in targets.items():
-                buckets[t]["ALL"][0].append(pred)
+                buckets[t]["ALL"][0].append(pred_for[t])
                 buckets[t]["ALL"][1].append(actual[key])
                 if pos in buckets[t]:
-                    buckets[t][pos][0].append(pred)
+                    buckets[t][pos][0].append(pred_for[t])
                     buckets[t][pos][1].append(actual[key])
 
     out: dict = {"mean_games": (games_sum / games_n) if games_n else None}
@@ -172,7 +188,7 @@ def _balanced_mae(pos_metrics: dict) -> float | None:
     return sum(maes) / len(maes) if maes else None
 
 
-def run(seasons: list[int], model_names: list[str]) -> str:
+def run(seasons: list[int], model_names: list[str], expected_games_mode: str = "none") -> str:
     supabase = get_supabase_client()
     players_data = fetch_all_rows(supabase, "players", "id, position")
     pos_map = {row["id"]: row["position"] for row in players_data}
@@ -181,6 +197,13 @@ def run(seasons: list[int], model_names: list[str]) -> str:
     actuals_by_season = {s: _build_availability_actuals(supabase, s, all_stats) for s in seasons}
     for s in seasons:
         print(f"Season {s}: {len(actuals_by_season[s])} players (games ≥ {MIN_INCLUDE_GAMES}, non-rookie)")
+
+    # Expected-games haircut lookup (GH #587 stage a) — leakage-free, built from
+    # seasons strictly before each target. {} when mode == "none".
+    expected_games = build_expected_games(all_stats, pos_map, seasons, expected_games_mode)
+    if expected_games_mode != "none":
+        print(f"Expected-games haircut: mode={expected_games_mode}, "
+              f"{len(expected_games)} (player, season) estimates")
 
     # {model: pooled combined metrics}
     combined: dict[str, dict] = {}
@@ -197,19 +220,28 @@ def run(seasons: list[int], model_names: list[str]) -> str:
             )
             preds_by_season[s] = {r["player_id"]: float(r["projected_ppg"]) for r in preds_rows
                                   if r.get("projected_ppg") is not None}
-        cm = _combined_avail_metrics(preds_by_season, actuals_by_season, pos_map)
+        cm = _combined_avail_metrics(preds_by_season, actuals_by_season, pos_map, expected_games)
         if cm.get("avail", {}).get("ALL"):
             combined[name] = cm
 
-    return _render(combined, seasons)
+    return _render(combined, seasons, expected_games_mode)
 
 
-def _render(combined: dict[str, dict], seasons: list[int]) -> str:
+def _render(combined: dict[str, dict], seasons: list[int], expected_games_mode: str = "none") -> str:
     report_positions = ["ALL"] + list(POSITIONS)
 
     lines: list[str] = []
     lines.append("# Projection Availability-Inclusive Evaluation (GH #574)\n")
     lines.append(f"_Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}_\n")
+    if expected_games_mode != "none":
+        lines.append(
+            f"> **Expected-games haircut active (GH #587 stage a, mode "
+            f"`{expected_games_mode}`).** The *availability* prediction is scaled to "
+            f"`pred × min(E[games], {GAMES_FULL_SEASON}) / {GAMES_FULL_SEASON}` using a "
+            f"leakage-free expected-games estimate (seasons strictly before the target); "
+            f"the **rate** prediction and its gate are unchanged. Compare the availability "
+            f"budget below against the unscaled (`--expected-games none`) run.\n"
+        )
     lines.append(
         f"Standard backtests score only players with ≥4 games, hiding injured/benched/bust "
         f"seasons. This evaluation keeps everyone with ≥{MIN_INCLUDE_GAMES} game (non-rookie) and "
@@ -310,6 +342,10 @@ def main() -> None:
                         help="Comma-separated subset (default: all parameter-free models)")
     parser.add_argument("--include-learned", action="store_true",
                         help="Also include learned/residual models (in-sample projections — diagnostic only)")
+    parser.add_argument("--expected-games", default="none", choices=list(MODES),
+                        help="Availability haircut (GH #587 stage a): 'none' (raw rate), "
+                             "'constant' (per-position mean games), or 'history' "
+                             "(player recency-weighted games). Scales the avail prediction only.")
     parser.add_argument("--output",
                         default=os.path.join(repo_root, "docs", "generated", "projection-availability-eval.md"))
     args = parser.parse_args()
@@ -322,7 +358,7 @@ def main() -> None:
         if args.include_learned:
             model_names += [n for n, m in MODELS.items() if m.combiner_type in ("learned", "residual")]
 
-    table = run(seasons, model_names)
+    table = run(seasons, model_names, expected_games_mode=args.expected_games)
 
     os.makedirs(os.path.dirname(args.output), exist_ok=True)
     with open(args.output, "w") as f:

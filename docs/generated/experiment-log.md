@@ -29,6 +29,33 @@ Iterate on the rolling folds; the final window is confirmation-only (one look).
 | 2026-06-10 | v31_depth_chart | same — fixed window (3-season train handicap) | 2.269 | −0.020 | [−0.113, +0.078] | N (p=0.68) | fixed 2021–23→24–25 | #599 backfill |
 | 2026-06-10 | v20_learned_usage | same backfill — over-projection bias check | 2.325 | — | bias −1.060→**−0.032** | bias artifact removed | fixed | #599 backfill |
 
+### Availability / expected-games (#587) — measured on `availability-backtest`, not rate MAE
+
+#587 targets the *availability budget* (avail-MAE − rate-MAE), a different metric
+from the rate-MAE held-out table above. Stage (a) is a leakage-free eval-time
+expected-games haircut on the rate projection
+(`pred_avail = pred × min(E[games], 17)/17`, E[games] from seasons strictly before
+the target), exposed as `just availability-backtest --expected-games {none,constant,history}`.
+The rate projection — and its `significance` gate — are untouched, so this isolates
+the availability question. Seasons 2022–2025, model `v14_qb_starter` (DoD names its
++0.589 budget):
+
+| Mode | Avail MAE | Availability budget | Avail bias | Note |
+|------|-----------|---------------------|------------|------|
+| none (raw rate) | 2.986 | +0.589 | −1.946 | baseline — no availability modeling |
+| constant (per-position mean games) | 2.630 | +0.232 | +1.020 | overcorrects — flat haircut over-penalises durable players |
+| **history (player recency-weighted games)** | **2.268** | **−0.130** | **−0.236** | **bar-setter: −0.718 avail MAE (−24%), budget turns negative, bias collapses** |
+
+The per-player **history** haircut clears the DoD decisively — v14's availability
+budget +0.589 → −0.130 (below even FantasyPros's −0.124) and the −1.95
+over-projection bias collapses to −0.24, with the rate projection unchanged. The
+same effect holds on `v8_age_regression` (budget +0.625 → −0.138), so it is not a
+v14 quirk. **Guardrail:** the haircut *hurts* already-availability-aware projections
+(FantasyPros budget −0.124 → +0.084) — apply it to pure-rate models only. Next
+increments: (b) age/position/depth-role expected-games model, then productionise as
+a separate `projected_games` output column so the live VORP/auction consumers get
+availability-inclusive projections without disturbing the rate gate.
+
 ## Historical (in-sample) log — pre-audit, deltas not reliable
 
 These rows predate the held-out harness; their `ALL MAE`/`R²` are in-sample for
