@@ -20,7 +20,9 @@ Iterate on the rolling folds; the final window is confirmation-only (one look).
 
 | Date | Model | Change | Held-out ALL MAE | Δ vs v14 | 95% CI | Significant? | Protocol | PR |
 |------|-------|--------|------------------|----------|--------|--------------|----------|-----|
-| _—_ | _—_ | _first post-audit experiment lands here_ | _—_ | _—_ | _—_ | _—_ | _—_ | _—_ |
+| 2026-06-10 | v31_depth_chart | #599 backfill of 2021–2023 player_stats (coverage 29–40%→82–84%); all models re-projected/retrained on the corrected population | 2.232 | **−0.091** | [−0.163, −0.020] | **Y** (p=0.014, 617 clusters) | rolling 2023–2025 | #599 backfill |
+| 2026-06-10 | v31_depth_chart | same — fixed window (3-season train handicap) | 2.269 | −0.020 | [−0.113, +0.078] | N (p=0.68) | fixed 2021–23→24–25 | #599 backfill |
+| 2026-06-10 | v20_learned_usage | same backfill — over-projection bias check | 2.325 | — | bias −1.060→**−0.032** | bias artifact removed | fixed | #599 backfill |
 
 ## Historical (in-sample) log — pre-audit, deltas not reliable
 

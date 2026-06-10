@@ -125,11 +125,18 @@ New data sources and learned models. Expected: MAE < 2.3, R² > 0.60.
 
 ### Priority 3 — Bounded recalibration / ranking experiments
 
+> **Re-scoped 2026-06-10 after the #599 backfill.** Fixing the 2021–2023 coverage
+> bug removed the learned models' over-projection bias and lifted the whole family
+> back to parity with `v14` out-of-sample (v31 #1 by 0.020 MAE, *not* significant).
+> So #590/#592 are now bets on a **calibrated, competitive** learned base rather
+> than a discredited one, and **#591 is moot** — the "level mismatch" it set out to
+> fix was the coverage artifact, now corrected.
+
 | # | Experiment | Why |
 |---|---|---|
-| [#590](https://github.com/alex-monroe/ottoneu-db/issues/590) | Delta-anchored learned model | Fixes the level-drift bias by anchoring to the per-player base; expected ceiling ≈ tie with `v14`. |
-| [#591](https://github.com/alex-monroe/ottoneu-db/issues/591) | Training-window recalibration (level-matched 2018–2020) | 2018–2020 PPG (~6.9) matches eval seasons (~7.0); wider training window may recalibrate the learned intercept. |
-| [#592](https://github.com/alex-monroe/ottoneu-db/issues/592) | QB-specific anchored model | QB is the one position where learned *beats* `v14` out-of-sample (Finding 1b). |
+| [#590](https://github.com/alex-monroe/ottoneu-db/issues/590) | Delta-anchored learned model | Anchor to the per-player base for robustness; now starting from a learned family that already ties `v14` post-backfill — aim for a *significant* held-out win. |
+| [#592](https://github.com/alex-monroe/ottoneu-db/issues/592) | QB-specific anchored model | QB is where learned has the clearest edge; per-position significance on the corrected population. |
+| ~~[#591](https://github.com/alex-monroe/ottoneu-db/issues/591)~~ **moot** | ~~Training-window recalibration (level-matched 2018–2020)~~ | The level mismatch was the #599 coverage bug (2021–2023 under-ingested), not a real scoring-environment shift. Now that all seasons are ~6.2 mean, a wider/level-matched window has no recalibration premise. |
 
 Deferred (not in the accuracy plan): uncertainty-aware/Bayesian intervals (a separate decision-quality value prop, not point-MAE).
 

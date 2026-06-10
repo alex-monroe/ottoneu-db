@@ -376,6 +376,14 @@ mix-driven illusion visible at a glance.
 
 ## 🔬 Modeling follow-up (#579): recalibration ties `v14` but doesn't beat it — NEGATIVE RESULT
 
+> ⚠️ **Superseded (2026-06-10).** The #599 backfill showed this negative result
+> was itself an artifact of the 2021–2023 coverage bug — the over-projection bias
+> below was caused by training on an inflated population, not by the models. With
+> coverage corrected the bias vanishes and the learned family returns to the top
+> of the honest ranking (still a tie with `v14`, not a significant win). See
+> [the backfill result](#backfill-result-2026-06-10-full-coverage-removes-the-bias-and-reverses-the-579-conclusion).
+> The diagnostic below is kept for the record; read its conclusion as overturned.
+
 Finding 1b left a 🔴 follow-up: the learned models over-project out-of-sample
 (bias −1.0 to −1.3) — recalibrate before re-promoting. A diagnostic settled it,
 and the answer is a **negative result**: recalibration alone cannot make a
@@ -483,14 +491,62 @@ mean-actual-PPG range from **4.08** (5.93→10.01 under the full population) to
 removes essentially all of the coverage-driven drift, confirming it was an
 artifact. Use `--population harmonized` for any cross-season comparison.
 
-**Backfill recommendation (warranted, follow-up).** The ~1,255 qualifying nflverse
-player-seasons missing from `player_stats` in 2021–2023 (409 / 466 / 380) can be
-backfilled from the same nflverse source already used for 2018–2020 and 2024–2025
-(`pull_player_stats` reads the full `stats_player` parquet with Ottoneu scoring;
-the 2018–2020 backfill set the precedent — GH #380). Because it changes the
-training population for every model, it must run the full held-out re-validation
-(`/experiment`) before any re-promotion — tracked as the #599 backfill follow-up,
-not bundled with this tooling change.
+### Backfill result (2026-06-10): full coverage removes the bias and **reverses the #579 conclusion**
+
+The 2021–2023 backfill was executed: `pull_player_stats` for 2021–2023 added
+**1,997** qualifying player-seasons from the same nflverse source used for the
+other years (the ~1,932 "unmatched" are defensive players / O-linemen not in the
+fantasy `players` table — correctly skipped). Coverage **29–40% → 82–84%**, mean
+PPG **8.0/10.0/9.6 → ~6.2** — now consistent with every other season. All 22
+additive models were re-projected on the corrected population and every learned
+model retrained out-of-sample (cache cleared — it is keyed on model definition,
+not data).
+
+The effect is decisive. Held-out (train 2021–2023, eval 2024–2025), apples-to-
+apples (N≈810–842):
+
+| Model | Before backfill | After backfill | Bias before → after |
+|---|---|---|---|
+| `v31_depth_chart` | rank 22, MAE 2.660 | **rank 1, MAE 2.269** | −1.4 → −0.107 |
+| `v25_draft_capital_residual` | bottom of table | rank 6, MAE 2.311 | — → −0.242 |
+| `v20_learned_usage` | MAE 2.683, bias −1.060 | MAE 2.325, **bias −0.032** | −1.060 → −0.032 |
+| `v27_vegas_full_refit` | MAE 2.707, bias −1.066 | MAE 2.345, bias −0.154 | −1.066 → −0.154 |
+| `v14_qb_starter` (production) | rank 1, MAE 2.450 | rank 3, MAE 2.297 | −0.149 → −0.278 |
+| `external_fantasypros_v1` | rank 3, MAE 2.462 | rank 30, MAE 2.424 (bias +0.96) | — |
+
+**The learned models' −1.0 to −1.3 over-projection bias was the coverage
+artifact, full stop.** Training on the inflated ~9.6-mean 2021–2023 baked in a
+level that didn't transfer to the true ~6.0 eval seasons (#579's exact mechanism).
+With consistent coverage the bias collapses to ≈0 and the whole learned family
+climbs back to the top of the honest ranking — `v31_depth_chart` is again #1, but
+now **without leakage** (retrained on a clean window, scored out-of-sample).
+
+**So #579 ("learned models can't beat `v14`, even with an oracle de-bias") was
+itself an artifact of the data bug, not a property of the models.** The corrected
+result depends on which protocol — and the fairer one **overturns** the production
+choice:
+
+- **Fixed window (train 2021–2023 → 2024–2025)** — `v31` leads `v14` by 0.020 MAE
+  but the paired player-clustered bootstrap is **not significant** (95% CI
+  [−0.113, +0.078], p=0.68): a tie. (This protocol still hands the learned models
+  only 3 training seasons vs the 5 production would use.)
+- **Rolling-origin (#594, the fair protocol — expanding to 5 training seasons)** —
+  `v31` beats `v14` by **0.091 MAE, and it is SIGNIFICANT**: 95% CI
+  [−0.163, −0.020], p=0.014, clustered over 617 players (N=1,216). `v27` is second
+  (2.298). The learned family clearly leads once it gets a time-honest training
+  window on clean data.
+
+**This clears the promotion gate** ("a *significant* held-out win over the active
+model"): under the standing rolling protocol, the demoted-by-#579 `v31_depth_chart`
+is now the honest, well-calibrated (bias −0.16) out-of-sample leader. Promotion is
+a production decision left to the operator, but `v31` (or a #590/#592 successor) is
+now the live candidate. This also **re-opens #590 (delta-anchored) and #592
+(QB-specific)** as bets on a competitive base and makes **#591 (level-matched
+window) moot** — the level mismatch *was* the coverage bug, now fixed.
+
+*Production note:* the active model's current-season (2026) projections were
+computed on pre-backfill history and should be regenerated (`just analyze`) so the
+web app is consistent with the corrected data; no automatic promotion was made.
 
 ---
 

@@ -1,6 +1,6 @@
 # Qualifying-Population Coverage Analysis (GH #599)
 
-_Generated: 2026-06-10 13:43_
+_Generated: 2026-06-10 14:19_
 
 Coverage of the Ottoneu `player_stats` qualifying population (games ≥ 4) against the stable nflverse `nfl_stats` denominator (same scoring). **Coverage %** = player_stats qualifiers ÷ nfl_stats qualifiers. **Missing** = qualifying nflverse player-seasons absent from `player_stats`.
 
@@ -19,9 +19,9 @@ Coverage of the Ottoneu `player_stats` qualifying population (games ≥ 4) again
 | 2018 | 633 | 524 | 6.51 | 654 | 80% | 130 |
 | 2019 | 636 | 513 | 6.48 | 635 | 81% | 122 |
 | 2020 | 678 | 547 | 6.54 | 672 | 81% | 125 |
-| 2021 | 331 | 275 | 8.03 | 684 | 40% | 409 |
-| 2022 | 201 | 189 | 10.01 | 655 | 29% | 466 |
-| 2023 | 248 | 234 | 9.60 | 614 | 38% | 380 |
+| 2021 | 706 | 561 | 6.24 | 684 | 82% | 123 |
+| 2022 | 667 | 536 | 6.13 | 655 | 82% | 119 |
+| 2023 | 632 | 517 | 6.23 | 614 | 84% | 97 |
 | 2024 | 651 | 537 | 6.15 | 622 | 86% | 85 |
 | 2025 | 1252 | 516 | 5.93 | 638 | 81% | 152 |
 
@@ -42,9 +42,9 @@ _If the level drift were football, both columns would move together. They don't:
 | 2018 | 6.51 | 6.39 | 80% |
 | 2019 | 6.48 | 6.22 | 81% |
 | 2020 | 6.54 | 6.32 | 81% |
-| 2021 | 8.03 | 5.99 | 40% |
-| 2022 | 10.01 | 5.74 | 29% |
-| 2023 | 9.60 | 5.77 | 38% |
+| 2021 | 6.24 | 5.99 | 82% |
+| 2022 | 6.13 | 5.74 | 82% |
+| 2023 | 6.23 | 5.77 | 84% |
 | 2024 | 6.15 | 5.68 | 86% |
 | 2025 | 5.93 | 5.46 | 81% |
 
@@ -63,8 +63,8 @@ _If the level drift were football, both columns would move together. They don't:
 | 2018 | 55 | 141 | 194 | 98 | 36 |
 | 2019 | 49 | 135 | 196 | 95 | 38 |
 | 2020 | 57 | 151 | 205 | 96 | 38 |
-| 2021 | 42 | 53 | 88 | 62 | 30 |
-| 2022 | 40 | 38 | 43 | 43 | 25 |
-| 2023 | 47 | 47 | 55 | 56 | 29 |
+| 2021 | 59 | 145 | 211 | 107 | 39 |
+| 2022 | 59 | 145 | 197 | 100 | 35 |
+| 2023 | 61 | 130 | 191 | 99 | 36 |
 | 2024 | 58 | 129 | 202 | 106 | 42 |
 | 2025 | 65 | 119 | 182 | 112 | 38 |
