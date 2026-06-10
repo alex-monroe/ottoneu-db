@@ -131,6 +131,10 @@ holdout-eval *args:
 significance model_a model_b *args:
     {{python}} scripts/feature_projections/significance.py {{model_a}} {{model_b}} {{args}}
 
+# Availability-inclusive backtest: keep injured/partial seasons, measure the availability budget (GH #574)
+availability-backtest *args:
+    {{python}} scripts/feature_projections/availability_backtest.py {{args}}
+
 # Promote a model to production  (e.g. just promote v24_learned_elite)
 promote model:
     {{python}} scripts/feature_projections/cli.py promote --model {{model}}

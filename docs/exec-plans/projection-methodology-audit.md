@@ -157,9 +157,55 @@ the roadmap: issue #384 (injury/availability, "24% of error budget") targets
 exactly the population the evaluation filters out. You cannot measure progress
 on availability while deleting unavailable players from the test set.
 
-**Remediation:** add an availability-inclusive evaluation track (e.g. score
-total season points, or PPG×games, with DNP/low-games seasons retained as
-low-scoring outcomes) as a parallel metric.
+**Remediation (shipped):** `scripts/feature_projections/availability_backtest.py`
+(`just availability-backtest`) keeps every non-rookie with ≥1 game and scores
+each projection against two targets: **Rate** (actual PPG) and **Avail**
+(production per scheduled game, `ppg × min(games,17)/17`, missed games = 0). The
+gap is the **availability error budget**. Report:
+[projection-availability-eval.md](../generated/projection-availability-eval.md).
+
+### Finding 3 result — the availability budget is large, and the discarded feature was right
+
+Combined 2022–2025, inclusive population (N=1069 internal, mean games **12.6** —
+the average rostered player missed ~4 of 17 games):
+
+| Model | Rate MAE | Avail MAE | Avail budget | Avail bias |
+|---|---|---|---|---|
+| `v7_regression_to_mean` (has `games_played`) | 2.652 | **3.096** | **+0.444** | −1.53 |
+| `v4_availability_adjusted` (has `games_played`) | 2.673 | **3.106** | **+0.434** | −1.53 |
+| `v14_qb_starter` (**production**) | 2.555 | 3.188 | +0.633 | −1.75 |
+| `v1_baseline_weighted_ppg` | 2.693 | 3.510 | +0.817 | −2.24 |
+
+Two findings:
+
+1. **The availability budget is real and unmodeled.** Every internal model pays
+   +0.43 to +0.82 MAE purely for ignoring playing-time loss — for production
+   `v14`, +0.633, ≈20% of its availability-inclusive error (the audit's #384
+   cited ~24%). It shows up as a large negative bias (systematic
+   over-projection): a PPG rate projection assumes the player suits up.
+
+2. **The feature the rate-only backtest discarded was measuring the right
+   thing.** The `v3`–`v7` family carries a `games_played`/availability
+   adjustment and was dropped because it *raised* rate MAE (see the v3–v6
+   regression table above). On the availability target the ordering flips:
+   `v4`/`v5`/`v7` have the **lowest** budget *and* the **lowest avail MAE**,
+   beating both production `v14` and the naive `v1`. The feature traded a little
+   rate accuracy for a lot of availability accuracy — value the rate-only metric
+   was structurally blind to.
+
+Caveats: this population (games ≥ 1) is harder than the standard report's
+(games ≥ 4), so the MAE numbers are **not** comparable to
+[projection-accuracy.md](../generated/projection-accuracy.md). QB avail figures
+are extreme (the inclusive pool is dominated by 1–3 game backups). FantasyPros'
+row (N=703, mean games 13.1) is scored on its own smaller, more-available
+projected set, so its low budget is partly sample selection — don't read it as
+"FP models availability." Players with literally 0 games (no stats row) are
+still missing, so the true budget is a lower bound.
+
+**Recommended follow-up:** revisit a `games_played`/availability feature
+evaluated against the availability objective (ties directly to #384), and report
+both rate and availability MAE for any future availability work via
+`just availability-backtest`.
 
 ---
 
@@ -227,7 +273,7 @@ averaged) alongside the pooled number.
 | 1b — held-out evaluation window | 🔴 | [#572](https://github.com/alex-monroe/ottoneu-db/issues/572) | shipped (`just holdout-eval`); ranking inverts — see above |
 | 2 — bootstrap significance on MAE deltas | 🟠 | [#573](https://github.com/alex-monroe/ottoneu-db/issues/573) | shipped (`just significance`); see Finding 2 result |
 | (rec) recalibrate learned models before re-promotion | 🔴 | [#579](https://github.com/alex-monroe/ottoneu-db/issues/579) | open |
-| 3 — availability-inclusive evaluation | 🟠 | [#574](https://github.com/alex-monroe/ottoneu-db/issues/574) | open |
+| 3 — availability-inclusive evaluation | 🟠 | [#574](https://github.com/alex-monroe/ottoneu-db/issues/574) | shipped (`just availability-backtest`); see Finding 3 result |
 | 4 — naïve baselines + matched-sample FP | 🟠 | [#575](https://github.com/alex-monroe/ottoneu-db/issues/575) | open |
 | 5 — R² aggregation discipline | 🟡 | [#576](https://github.com/alex-monroe/ottoneu-db/issues/576) | open |
 | 6 — position-balanced headline MAE | 🟡 | [#577](https://github.com/alex-monroe/ottoneu-db/issues/577) | open |
