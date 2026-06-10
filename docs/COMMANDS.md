@@ -121,6 +121,8 @@ just compare <models> [season]                      # Compare two or more models
 just diagnostics [--model <m>] [--season <s>] ...  # Per-player diagnostics
 just segment-analysis [--segments <s>] ...          # Segmented accuracy analysis
 just accuracy-report [--run-backtest] ...           # Generate accuracy report
+just holdout-eval [--train-seasons ...] [--eval-seasons ...] [--output ...]  # Held-out (leakage-free) re-rank: retrain learned models on the train window, score every model OOS on eval (GH #572)
+just significance <model_a> <model_b> [--seasons ...]  # Paired bootstrap on the held-out MAE gap between two models (GH #573)
 
 # Backfills / seeds
 just backfill-nfl-stats [--seasons ...] [--dry-run]    # Backfill nfl_stats from nflverse
