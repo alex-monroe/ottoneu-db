@@ -39,7 +39,6 @@ from __future__ import annotations
 import argparse
 import os
 from datetime import datetime
-from typing import Optional
 
 from scripts.config import get_supabase_client, fetch_all_rows, POSITIONS
 from scripts.feature_projections.backtest import _compute_metrics, _fetch_season_rows
@@ -90,33 +89,43 @@ def _build_availability_actuals(
     return out
 
 
-def _model_metrics(
-    preds: dict[str, float],
-    actuals: dict[str, dict],
+def _combined_avail_metrics(
+    preds_by_season: dict[int, dict[str, float]],
+    actuals_by_season: dict[int, dict[str, dict]],
     pos_map: dict[str, str],
 ) -> dict:
-    """Rate + availability metrics (ALL + per position) plus mean games."""
+    """Rate + availability metrics (ALL + per position), POOLED across seasons.
+
+    Pools the raw (pred, actual) pairs across seasons before computing each
+    metric. This is required for a correct combined R² — R² is not a weighted
+    average of per-season R² (GH #576, Finding 5). MAE/bias/RMSE are unchanged
+    vs an N-weighted aggregate; R² is the one that was wrong. Returns
+    {"rate": {pos: metrics}, "avail": {pos: metrics}, "mean_games": float}.
+    """
     targets = {"rate": "ppg", "avail": "avail"}
-    # accumulate paired lists
     buckets: dict[str, dict[str, tuple[list, list]]] = {
         t: {p: ([], []) for p in ["ALL"] + list(POSITIONS)} for t in targets
     }
-    games_list: list[int] = []
+    games_sum = 0
+    games_n = 0
 
-    for pid, actual in actuals.items():
-        if pid not in preds:
-            continue
-        pred = preds[pid]
-        pos = pos_map.get(pid)
-        games_list.append(actual["games"])
-        for t, key in targets.items():
-            buckets[t]["ALL"][0].append(pred)
-            buckets[t]["ALL"][1].append(actual[key])
-            if pos in buckets[t]:
-                buckets[t][pos][0].append(pred)
-                buckets[t][pos][1].append(actual[key])
+    for season, actuals in actuals_by_season.items():
+        preds = preds_by_season.get(season, {})
+        for pid, actual in actuals.items():
+            if pid not in preds:
+                continue
+            pred = preds[pid]
+            pos = pos_map.get(pid)
+            games_sum += actual["games"]
+            games_n += 1
+            for t, key in targets.items():
+                buckets[t]["ALL"][0].append(pred)
+                buckets[t]["ALL"][1].append(actual[key])
+                if pos in buckets[t]:
+                    buckets[t][pos][0].append(pred)
+                    buckets[t][pos][1].append(actual[key])
 
-    out: dict = {"mean_games": (sum(games_list) / len(games_list)) if games_list else None}
+    out: dict = {"mean_games": (games_sum / games_n) if games_n else None}
     for t in targets:
         out[t] = {}
         for pos in ["ALL"] + list(POSITIONS):
@@ -124,31 +133,6 @@ def _model_metrics(
             if proj:
                 out[t][pos] = _compute_metrics(proj, act)
     return out
-
-
-def _aggregate_metric(
-    season_results: dict[int, dict], target: str, pos: str
-) -> Optional[dict]:
-    """Weighted-average one (target, position) across seasons for a model."""
-    rows = [season_results[s][target].get(pos) for s in season_results if season_results[s].get(target)]
-    rows = [r for r in rows if r is not None]
-    if not rows:
-        return None
-    total_n = sum(r.get("player_count") or 0 for r in rows)
-    if total_n == 0:
-        return None
-
-    def _wavg(key: str) -> Optional[float]:
-        pairs = [(r.get(key), r.get("player_count") or 0) for r in rows
-                 if r.get(key) is not None and (r.get("player_count") or 0) > 0]
-        return sum(v * w for v, w in pairs) / sum(w for _, w in pairs) if pairs else None
-
-    rmse_pairs = [(r.get("rmse"), r.get("player_count") or 0) for r in rows
-                  if r.get("rmse") is not None and (r.get("player_count") or 0) > 0]
-    rmse = ((sum(v**2 * w for v, w in rmse_pairs) / sum(w for _, w in rmse_pairs)) ** 0.5
-            if rmse_pairs else None)
-    return {"mae": _wavg("mae"), "bias": _wavg("bias"), "r_squared": _wavg("r_squared"),
-            "rmse": rmse, "player_count": total_n}
 
 
 def _fmt(val, fmt: str) -> str:
@@ -170,44 +154,30 @@ def run(seasons: list[int], model_names: list[str]) -> str:
     for s in seasons:
         print(f"Season {s}: {len(actuals_by_season[s])} players (games ≥ {MIN_INCLUDE_GAMES}, non-rookie)")
 
-    # {model: {season: metrics}}
-    results: dict[str, dict[int, dict]] = {}
+    # {model: pooled combined metrics}
+    combined: dict[str, dict] = {}
     for name in model_names:
         res = supabase.table("projection_models").select("id").eq("name", name).execute()
         if not res.data:
             continue
         model_id = res.data[0]["id"]
-        season_results: dict[int, dict] = {}
+        preds_by_season: dict[int, dict[str, float]] = {}
         for s in seasons:
             preds_rows = _fetch_season_rows(
                 supabase, "model_projections", "player_id, projected_ppg",
                 s, extra_eq=("model_id", model_id),
             )
-            preds = {r["player_id"]: float(r["projected_ppg"]) for r in preds_rows
-                     if r.get("projected_ppg") is not None}
-            if preds:
-                season_results[s] = _model_metrics(preds, actuals_by_season[s], pos_map)
-        if season_results:
-            results[name] = season_results
+            preds_by_season[s] = {r["player_id"]: float(r["projected_ppg"]) for r in preds_rows
+                                  if r.get("projected_ppg") is not None}
+        cm = _combined_avail_metrics(preds_by_season, actuals_by_season, pos_map)
+        if cm.get("avail", {}).get("ALL"):
+            combined[name] = cm
 
-    return _render(results, seasons)
+    return _render(combined, seasons)
 
 
-def _render(results: dict[str, dict[int, dict]], seasons: list[int]) -> str:
+def _render(combined: dict[str, dict], seasons: list[int]) -> str:
     report_positions = ["ALL"] + list(POSITIONS)
-    # Combined per model: rate ALL, avail ALL+positions, mean games.
-    combined: dict[str, dict] = {}
-    for name, sr in results.items():
-        combined[name] = {
-            "rate": {p: _aggregate_metric(sr, "rate", p) for p in report_positions},
-            "avail": {p: _aggregate_metric(sr, "avail", p) for p in report_positions},
-        }
-        gpairs = [(sr[s]["mean_games"], sr[s]["avail"]["ALL"]["player_count"])
-                  for s in sr
-                  if sr[s].get("mean_games") is not None and sr[s].get("avail", {}).get("ALL")]
-        combined[name]["mean_games"] = (
-            sum(g * n for g, n in gpairs) / sum(n for _, n in gpairs) if gpairs else None
-        )
 
     lines: list[str] = []
     lines.append("# Projection Availability-Inclusive Evaluation (GH #574)\n")
