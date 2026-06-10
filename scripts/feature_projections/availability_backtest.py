@@ -144,6 +144,25 @@ def _fmt(val, fmt: str) -> str:
         return str(val)
 
 
+# Fixed set for the balanced MAE (K excluded — essentially random and not
+# projected by every model; see holdout_eval.BALANCED_POSITIONS).
+BALANCED_POSITIONS = ("QB", "RB", "WR", "TE")
+
+
+def _balanced_mae(pos_metrics: dict) -> float | None:
+    """Position-balanced MAE: unweighted mean of per-position MAE (GH #577).
+
+    Neutralises the drifting position mix of the qualifier pool; averaged over a
+    fixed position set so all models are comparable.
+    """
+    maes = [
+        pos_metrics[p]["mae"]
+        for p in BALANCED_POSITIONS
+        if p in pos_metrics and pos_metrics[p].get("mae") is not None
+    ]
+    return sum(maes) / len(maes) if maes else None
+
+
 def run(seasons: list[int], model_names: list[str]) -> str:
     supabase = get_supabase_client()
     players_data = fetch_all_rows(supabase, "players", "id, position")
@@ -199,8 +218,13 @@ def _render(combined: dict[str, dict], seasons: list[int]) -> str:
 
     # Decomposition: rate vs availability, sorted by avail MAE.
     lines.append("## Rate vs availability decomposition (combined ALL)\n")
-    lines.append("| Model | N | Mean games | Rate MAE | Avail MAE | Availability budget | Avail bias |")
-    lines.append("| --- | --- | --- | --- | --- | --- | --- |")
+    lines.append(
+        "_**Avail MAE** is pooled over players; **Bal Avail MAE** is the position-balanced "
+        "availability MAE (unweighted mean of per-position avail MAE over QB/RB/WR/TE; K "
+        "excluded), which removes the drifting position mix of the qualifier pool (GH #577)._\n"
+    )
+    lines.append("| Model | N | Mean games | Rate MAE | Avail MAE | Bal Avail MAE | Availability budget | Avail bias |")
+    lines.append("| --- | --- | --- | --- | --- | --- | --- | --- |")
     ranked = sorted(
         (m for m in combined if combined[m]["avail"]["ALL"]),
         key=lambda m: combined[m]["avail"]["ALL"]["mae"],
@@ -209,10 +233,11 @@ def _render(combined: dict[str, dict], seasons: list[int]) -> str:
         rate = combined[name]["rate"]["ALL"]
         avail = combined[name]["avail"]["ALL"]
         budget = (avail["mae"] - rate["mae"]) if (rate and avail) else None
+        bal_avail = _balanced_mae(combined[name]["avail"])
         lines.append(
             f"| `{name}` | {_fmt(avail['player_count'], 'd')} | {_fmt(combined[name]['mean_games'], '.1f')} "
-            f"| {_fmt(rate['mae'], '.3f')} | {_fmt(avail['mae'], '.3f')} | {_fmt(budget, '+.3f')} "
-            f"| {_fmt(avail['bias'], '+.3f')} |"
+            f"| {_fmt(rate['mae'], '.3f')} | {_fmt(avail['mae'], '.3f')} | {_fmt(bal_avail, '.3f')} "
+            f"| {_fmt(budget, '+.3f')} | {_fmt(avail['bias'], '+.3f')} |"
         )
     lines.append("")
 

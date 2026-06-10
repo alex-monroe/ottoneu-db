@@ -260,6 +260,29 @@ def _fmt(val, fmt: str) -> str:
         return str(val)
 
 
+# Positions used for the balanced MAE. K is excluded: it is essentially random
+# (R² < 0 for every model) and not all models project it (FantasyPros has none),
+# so including it would add noise and break cross-model comparability.
+BALANCED_POSITIONS = ("QB", "RB", "WR", "TE")
+
+
+def _balanced_mae(pos_metrics: dict[str, dict]) -> Optional[float]:
+    """Position-balanced MAE: unweighted mean of per-position MAE (GH #577).
+
+    The pooled `ALL` MAE weights positions by how many cleared the games filter,
+    a mix that drifts season to season and lets a model look better just by
+    having more easy (low-MAE) players in the qualifier pool. Averaging the
+    per-position MAEs with equal weight over a fixed position set
+    (`BALANCED_POSITIONS`) neutralises that.
+    """
+    maes = [
+        pos_metrics[p]["mae"]
+        for p in BALANCED_POSITIONS
+        if p in pos_metrics and pos_metrics[p].get("mae") is not None
+    ]
+    return sum(maes) / len(maes) if maes else None
+
+
 def gather_predictions(
     train_seasons: list[int],
     eval_seasons: list[int],
@@ -410,20 +433,36 @@ def _render(
 
     # --- Ranking by combined ALL MAE ---
     lines.append("## Ranking — combined held-out ALL (lower MAE = better)\n")
-    lines.append("| Rank | Model | MAE | Bias | R² | RMSE | N |")
-    lines.append("| --- | --- | --- | --- | --- | --- | --- |")
+    lines.append(
+        "_**MAE** is the pooled-over-players ALL error. **Bal MAE** is the position-balanced "
+        "MAE — the unweighted mean of the per-position MAEs over a fixed set (QB/RB/WR/TE; K "
+        "excluded as essentially random and not projected by every model) — which neutralises the "
+        "drifting position mix of the qualifier pool (GH #577). They can disagree: a model can win "
+        "the pooled MAE while losing the balanced one if it's strong only where players are easy/"
+        "plentiful._\n"
+    )
+    lines.append("| Rank | Model | MAE | Bal MAE | Bias | R² | RMSE | N |")
+    lines.append("| --- | --- | --- | --- | --- | --- | --- | --- |")
     ranked = sorted(
         (m for m in combined if combined[m].get("ALL") and combined[m]["ALL"].get("mae") is not None),
         key=lambda m: combined[m]["ALL"]["mae"],
     )
     best_mae = combined[ranked[0]]["ALL"]["mae"] if ranked else None
+    best_bal = min(
+        (b for b in (_balanced_mae(combined[m]) for m in ranked) if b is not None),
+        default=None,
+    )
     for i, model_name in enumerate(ranked, 1):
         row = combined[model_name]["ALL"]
         mae_str = _fmt(row["mae"], ".3f")
         if best_mae is not None and row["mae"] == best_mae:
             mae_str = f"**{mae_str}**"
+        bal = _balanced_mae(combined[model_name])
+        bal_str = _fmt(bal, ".3f")
+        if best_bal is not None and bal == best_bal:
+            bal_str = f"**{bal_str}**"
         lines.append(
-            f"| {i} | `{model_name}` | {mae_str} | {_fmt(row['bias'], '+.3f')} "
+            f"| {i} | `{model_name}` | {mae_str} | {bal_str} | {_fmt(row['bias'], '+.3f')} "
             f"| {_fmt(row['r_squared'], '.3f')} | {_fmt(row['rmse'], '.3f')} "
             f"| {_fmt(row['player_count'], 'd')} |"
         )

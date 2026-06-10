@@ -1,36 +1,38 @@
 # Projection Availability-Inclusive Evaluation (GH #574)
 
-_Generated: 2026-06-10 09:06_
+_Generated: 2026-06-10 09:30_
 
 Standard backtests score only players with ≥4 games, hiding injured/benched/bust seasons. This evaluation keeps everyone with ≥1 game (non-rookie) and scores each PPG projection against two targets: **Rate** = actual PPG, and **Avail** = availability-inclusive production per scheduled game (`ppg × min(games,17) / 17`, missed games = 0). The gap **avail-MAE − rate-MAE** is the *availability error budget* — error from playing-time loss that no current rate feature addresses. Default models are parameter-free (additive + external), whose stored projections are leakage-free; learned models (if included) use in-sample projections (see #571). Seasons: 2022,2023,2024,2025. See [docs/exec-plans/projection-methodology-audit.md](../exec-plans/projection-methodology-audit.md) (Finding 3).
 
 ## Rate vs availability decomposition (combined ALL)
 
-| Model | N | Mean games | Rate MAE | Avail MAE | Availability budget | Avail bias |
-| --- | --- | --- | --- | --- | --- | --- |
-| `external_fantasypros_v1` | 703 | 13.1 | 2.598 | 2.489 | -0.109 | -0.455 |
-| `v7_regression_to_mean` | 1069 | 12.6 | 2.652 | 3.096 | +0.444 | -1.530 |
-| `v4_availability_adjusted` | 1069 | 12.6 | 2.673 | 3.106 | +0.433 | -1.527 |
-| `v5_team_context` | 1069 | 12.6 | 2.679 | 3.117 | +0.437 | -1.550 |
-| `v21_tiered_regression` | 1069 | 12.6 | 2.599 | 3.120 | +0.521 | -1.536 |
-| `v6_usage_share` | 1069 | 12.6 | 2.703 | 3.179 | +0.475 | -1.697 |
-| `v14_qb_starter` | 1069 | 12.6 | 2.555 | 3.188 | +0.633 | -1.747 |
-| `v16_snap_trend_full` | 1069 | 12.6 | 2.570 | 3.216 | +0.646 | -1.781 |
-| `v19_usage_level_full` | 1069 | 12.6 | 2.560 | 3.247 | +0.687 | -1.894 |
-| `v12_no_qb_trajectory` | 1069 | 12.6 | 2.568 | 3.252 | +0.684 | -1.815 |
-| `v17_rookie_growth` | 1069 | 12.6 | 2.610 | 3.252 | +0.642 | -1.817 |
-| `v10_stat_efficiency_v2` | 1069 | 12.6 | 2.577 | 3.257 | +0.681 | -1.835 |
-| `v8_age_regression` | 1069 | 12.6 | 2.579 | 3.265 | +0.686 | -1.843 |
-| `v9_pos_specific` | 1069 | 12.6 | 2.579 | 3.265 | +0.686 | -1.843 |
-| `v13_qb_starter` | 1069 | 12.6 | 2.578 | 3.268 | +0.691 | -1.842 |
-| `v11_team_context_v2` | 1069 | 12.6 | 2.585 | 3.270 | +0.685 | -1.869 |
-| `v3_stat_weighted` | 1069 | 12.6 | 2.615 | 3.334 | +0.720 | -1.996 |
-| `v2_age_adjusted` | 1069 | 12.6 | 2.617 | 3.343 | +0.726 | -2.010 |
-| `v15_snap_trend` | 1069 | 12.6 | 2.649 | 3.375 | +0.725 | -2.044 |
-| `v18_usage_level` | 1069 | 12.6 | 2.658 | 3.414 | +0.756 | -2.157 |
-| `naive_prior_season_ppg` | 1098 | 12.4 | 2.819 | 3.476 | +0.657 | -1.979 |
-| `v1_baseline_weighted_ppg` | 1069 | 12.6 | 2.693 | 3.510 | +0.817 | -2.242 |
-| `position_mean_baseline` | 1098 | 12.4 | 4.078 | 4.312 | +0.234 | -0.700 |
+_**Avail MAE** is pooled over players; **Bal Avail MAE** is the position-balanced availability MAE (unweighted mean of per-position avail MAE over QB/RB/WR/TE; K excluded), which removes the drifting position mix of the qualifier pool (GH #577)._
+
+| Model | N | Mean games | Rate MAE | Avail MAE | Bal Avail MAE | Availability budget | Avail bias |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `external_fantasypros_v1` | 703 | 13.1 | 2.598 | 2.489 | 2.510 | -0.109 | -0.455 |
+| `v7_regression_to_mean` | 1069 | 12.6 | 2.652 | 3.096 | 3.312 | +0.444 | -1.530 |
+| `v4_availability_adjusted` | 1069 | 12.6 | 2.673 | 3.106 | 3.317 | +0.433 | -1.527 |
+| `v5_team_context` | 1069 | 12.6 | 2.679 | 3.117 | 3.330 | +0.437 | -1.550 |
+| `v21_tiered_regression` | 1069 | 12.6 | 2.599 | 3.120 | 3.348 | +0.521 | -1.536 |
+| `v6_usage_share` | 1069 | 12.6 | 2.703 | 3.179 | 3.396 | +0.475 | -1.697 |
+| `v14_qb_starter` | 1069 | 12.6 | 2.555 | 3.188 | 3.431 | +0.633 | -1.747 |
+| `v16_snap_trend_full` | 1069 | 12.6 | 2.570 | 3.216 | 3.468 | +0.646 | -1.781 |
+| `v19_usage_level_full` | 1069 | 12.6 | 2.560 | 3.247 | 3.495 | +0.687 | -1.894 |
+| `v12_no_qb_trajectory` | 1069 | 12.6 | 2.568 | 3.252 | 3.512 | +0.684 | -1.815 |
+| `v17_rookie_growth` | 1069 | 12.6 | 2.610 | 3.252 | 3.501 | +0.642 | -1.817 |
+| `v10_stat_efficiency_v2` | 1069 | 12.6 | 2.577 | 3.257 | 3.509 | +0.681 | -1.835 |
+| `v8_age_regression` | 1069 | 12.6 | 2.579 | 3.265 | 3.519 | +0.686 | -1.843 |
+| `v9_pos_specific` | 1069 | 12.6 | 2.579 | 3.265 | 3.519 | +0.686 | -1.843 |
+| `v13_qb_starter` | 1069 | 12.6 | 2.578 | 3.268 | 3.523 | +0.691 | -1.842 |
+| `v11_team_context_v2` | 1069 | 12.6 | 2.585 | 3.270 | 3.524 | +0.685 | -1.869 |
+| `v3_stat_weighted` | 1069 | 12.6 | 2.615 | 3.334 | 3.590 | +0.720 | -1.996 |
+| `v2_age_adjusted` | 1069 | 12.6 | 2.617 | 3.343 | 3.601 | +0.726 | -2.010 |
+| `v15_snap_trend` | 1069 | 12.6 | 2.649 | 3.375 | 3.642 | +0.725 | -2.044 |
+| `v18_usage_level` | 1069 | 12.6 | 2.658 | 3.414 | 3.677 | +0.756 | -2.157 |
+| `naive_prior_season_ppg` | 1098 | 12.4 | 2.819 | 3.476 | 3.754 | +0.657 | -1.979 |
+| `v1_baseline_weighted_ppg` | 1069 | 12.6 | 2.693 | 3.510 | 3.788 | +0.817 | -2.242 |
+| `position_mean_baseline` | 1098 | 12.4 | 4.078 | 4.312 | 4.717 | +0.234 | -0.700 |
 
 ## Availability-inclusive metrics by position
 

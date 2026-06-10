@@ -286,8 +286,29 @@ each position cleared the games filter that year — a mix that drifts season to
 season (2022 n=154 vs 2024 n=274). A model that merely changes the position mix
 of qualifiers can look like an accuracy gain.
 
-**Remediation:** report a position-balanced headline (per-position MAE then
-averaged) alongside the pooled number.
+**Remediation (shipped):** every report now shows a **position-balanced MAE**
+alongside the pooled `ALL` — the unweighted mean of the per-position MAEs over a
+fixed set (QB/RB/WR/TE; K excluded as essentially random and not projected by
+every model, so it's comparable across models). `holdout_eval.py` and
+`availability_backtest.py` add a `Bal MAE` column; `accuracy_report.py` adds a
+Position-balanced ranking table.
+
+### Finding 6 result — balanced metric confirms the leader and exposed a coverage confound
+
+- On the **matched** held-out sample (same 416 players, the clean comparison),
+  `v14` leads on **both** pooled (2.494) and balanced (2.564) MAE — the
+  position-mix worry does not overturn the top of the board.
+- In the **full** (unmatched) held-out report the two disagree: `v14` wins
+  pooled (2.450) but FantasyPros wins balanced (2.544 vs `v14` 2.653). That flip
+  is **not** real skill — it's FP's smaller, per-position-favourable coverage
+  (N=430 vs 647), and it vanishes once players are matched. So the balanced
+  metric and matched mode (#575) are complementary: balanced guards against
+  position-mix gaming, matched guards against coverage gaming, and only together
+  do they show `v14` robustly ahead.
+
+Net: the balanced headline mostly **confirms** the pooled ranking here rather
+than overturning it — which is the reassuring outcome — while making any future
+mix-driven illusion visible at a glance.
 
 ---
 
@@ -317,6 +338,6 @@ averaged) alongside the pooled number.
 | 3 — availability-inclusive evaluation | 🟠 | [#574](https://github.com/alex-monroe/ottoneu-db/issues/574) | shipped (`just availability-backtest`); see Finding 3 result |
 | 4 — naïve baselines + matched-sample FP | 🟠 | [#575](https://github.com/alex-monroe/ottoneu-db/issues/575) | shipped (2 baseline models + `--matched`); see Finding 4 result |
 | 5 — R² aggregation discipline | 🟡 | [#576](https://github.com/alex-monroe/ottoneu-db/issues/576) | shipped (pooled R² where possible, omitted where not) |
-| 6 — position-balanced headline MAE | 🟡 | [#577](https://github.com/alex-monroe/ottoneu-db/issues/577) | open |
+| 6 — position-balanced headline MAE | 🟡 | [#577](https://github.com/alex-monroe/ottoneu-db/issues/577) | shipped (`Bal MAE` in all reports); see Finding 6 result |
 </content>
 </invoke>

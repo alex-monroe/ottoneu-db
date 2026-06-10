@@ -336,6 +336,48 @@ def generate_markdown_table(seasons: list[int], include_leakage_section: bool = 
             lambda model_name, p=pos: _aggregate(model_name, p),
         )
 
+    # --- Position-balanced combined MAE (Finding 6 / #577) ---
+    lines.append("### Position-balanced MAE\n")
+    lines.append(
+        "_The `ALL` rows above pool positions weighted by how many cleared the games filter — "
+        "a mix that drifts season to season (QB ~3.7 MAE vs K ~1.0), so a model can look better "
+        "just by having more easy/plentiful players in the pool. **Balanced MAE** is the "
+        "unweighted mean of the per-position combined MAEs over a fixed set (QB/RB/WR/TE; K is "
+        "excluded — essentially random and not projected by every model), removing that mix "
+        "effect and keeping all models comparable. Compare against the pooled `ALL` MAE above. "
+        "(GH #577.)_\n"
+    )
+    lines.append("| Model | Balanced MAE | Pooled ALL MAE |")
+    lines.append("| --- | --- | --- |")
+
+    # K excluded — see note above and holdout_eval.BALANCED_POSITIONS.
+    balanced_positions = ("QB", "RB", "WR", "TE")
+
+    def _balanced(model_name: str) -> float | None:
+        maes = []
+        for pos in balanced_positions:
+            agg = _aggregate(model_name, pos)
+            if agg and agg.get("mae") is not None:
+                maes.append(agg["mae"])
+        return sum(maes) / len(maes) if maes else None
+
+    bal_rows = []
+    for model_name in model_names:
+        bal = _balanced(model_name)
+        all_agg = _aggregate(model_name, "ALL")
+        pooled = all_agg.get("mae") if all_agg else None
+        if bal is not None:
+            bal_rows.append((model_name, bal, pooled))
+    bal_rows.sort(key=lambda r: r[1])
+    best_bal = bal_rows[0][1] if bal_rows else None
+    for model_name, bal, pooled in bal_rows:
+        bal_str = _format_val(bal, ".3f")
+        if best_bal is not None and bal == best_bal:
+            bal_str = f"**{bal_str}**"
+        label = f"`{model_name}`" + (" _(baseline)_" if MODELS[model_name].is_baseline else "")
+        lines.append(f"| {label} | {bal_str} | {_format_val(pooled, '.3f')} |")
+    lines.append("")
+
     # --- Out-of-sample reference (Finding 1) ---
     if include_leakage_section and provenance:
         lines.append("## Out-of-Sample Reference (LOSO CV)\n")
