@@ -1,6 +1,6 @@
 # Projection Held-Out Evaluation (GH #572)
 
-_Generated: 2026-06-10 11:13_
+_Generated: 2026-06-10 14:10_
 
 **Every model is evaluated out-of-sample on a shared held-out window.** Learned/residual models were retrained on **2021,2022,2023** and never saw the eval seasons **2024,2025**; additive and external models are parameter-free w.r.t. training seasons, so their existing projections are already held-out. All models are scored through the identical `backtest_model` filter (target-season games ≥ 4, true rookies excluded). Unlike [projection-accuracy.md](projection-accuracy.md), **no model here is scored on data it trained on** — this is the honest ranking. See [docs/exec-plans/projection-methodology-audit.md](../exec-plans/projection-methodology-audit.md) (Finding 1b).
 
@@ -10,39 +10,39 @@ _**MAE** is the pooled-over-players ALL error. **Bal MAE** is the position-balan
 
 | Rank | Model | MAE | Bal MAE | Bias | R² | RMSE | N |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `v14_qb_starter` | **2.450** | 2.653 | -0.149 | 0.626 | 3.251 | 647 |
-| 2 | `v19_usage_level_full` | 2.456 | 2.659 | -0.280 | 0.627 | 3.249 | 647 |
-| 3 | `external_fantasypros_v1` | 2.462 | **2.544** | +0.990 | 0.645 | 3.360 | 430 |
-| 4 | `v16_snap_trend_full` | 2.467 | 2.681 | -0.183 | 0.620 | 3.278 | 647 |
-| 5 | `v12_no_qb_trajectory` | 2.471 | 2.687 | -0.207 | 0.606 | 3.339 | 647 |
-| 6 | `v10_stat_efficiency_v2` | 2.484 | 2.697 | -0.231 | 0.600 | 3.364 | 647 |
-| 7 | `v13_qb_starter` | 2.484 | 2.697 | -0.233 | 0.598 | 3.374 | 647 |
-| 8 | `v8_age_regression` | 2.485 | 2.697 | -0.235 | 0.599 | 3.369 | 647 |
-| 9 | `v9_pos_specific` | 2.485 | 2.697 | -0.235 | 0.599 | 3.369 | 647 |
-| 10 | `v11_team_context_v2` | 2.490 | 2.703 | -0.258 | 0.595 | 3.386 | 647 |
-| 11 | `v17_rookie_growth` | 2.495 | 2.698 | -0.208 | 0.619 | 3.283 | 647 |
-| 12 | `v21_tiered_regression` | 2.498 | 2.702 | +0.021 | 0.601 | 3.361 | 647 |
-| 13 | `v3_stat_weighted` | 2.528 | 2.741 | -0.375 | 0.580 | 3.448 | 647 |
-| 14 | `v7_regression_to_mean` | 2.529 | 2.737 | +0.018 | 0.595 | 3.385 | 647 |
-| 15 | `v2_age_adjusted` | 2.531 | 2.744 | -0.389 | 0.578 | 3.454 | 647 |
-| 16 | `v15_snap_trend` | 2.560 | 2.783 | -0.423 | 0.570 | 3.488 | 647 |
-| 17 | `v18_usage_level` | 2.563 | 2.774 | -0.520 | 0.571 | 3.484 | 647 |
-| 18 | `v4_availability_adjusted` | 2.565 | 2.772 | +0.015 | 0.575 | 3.466 | 647 |
-| 19 | `v5_team_context` | 2.566 | 2.775 | -0.006 | 0.572 | 3.479 | 647 |
-| 20 | `v6_usage_share` | 2.583 | 2.791 | -0.137 | 0.568 | 3.495 | 647 |
-| 21 | `v1_baseline_weighted_ppg` | 2.632 | 2.853 | -0.652 | 0.545 | 3.588 | 647 |
-| 22 | `v31_depth_chart` | 2.646 | 2.839 | -1.067 | 0.586 | 3.385 | 635 |
-| 23 | `v20_learned_usage` | 2.683 | 2.866 | -1.060 | 0.588 | 3.377 | 635 |
-| 24 | `v30_reliability_full_refit` | 2.687 | 2.889 | -1.201 | 0.579 | 3.415 | 635 |
-| 25 | `v27_vegas_full_refit` | 2.707 | 2.908 | -1.066 | 0.574 | 3.435 | 635 |
-| 26 | `v28_reliability_weighting` | 2.713 | 2.885 | -1.049 | 0.581 | 3.408 | 635 |
-| 27 | `v22_advanced_receiving` | 2.714 | 2.884 | -1.044 | 0.581 | 3.408 | 635 |
-| 28 | `v26_vegas_residual` | 2.716 | 2.889 | -1.198 | 0.577 | 3.422 | 635 |
-| 29 | `v29_reliability_residual` | 2.738 | 2.917 | -1.175 | 0.573 | 3.437 | 635 |
-| 30 | `naive_prior_season_ppg` | 2.754 | 3.020 | -0.428 | 0.482 | 3.861 | 667 |
-| 31 | `v23_draft_capital` | 2.764 | 2.970 | -1.105 | 0.561 | 3.486 | 635 |
-| 32 | `v25_draft_capital_residual` | 2.764 | 2.943 | -1.200 | 0.568 | 3.457 | 635 |
-| 33 | `position_mean_baseline` | 3.710 | 4.070 | +0.458 | 0.218 | 4.745 | 667 |
+| 1 | `v31_depth_chart` | **2.269** | **2.472** | -0.107 | 0.667 | 3.002 | 810 |
+| 2 | `v26_vegas_residual` | 2.295 | 2.511 | -0.255 | 0.665 | 3.009 | 810 |
+| 3 | `v14_qb_starter` | 2.297 | 2.515 | -0.278 | 0.661 | 3.065 | 842 |
+| 4 | `v19_usage_level_full` | 2.300 | 2.518 | -0.383 | 0.661 | 3.067 | 842 |
+| 5 | `v16_snap_trend_full` | 2.305 | 2.533 | -0.303 | 0.656 | 3.086 | 842 |
+| 6 | `v25_draft_capital_residual` | 2.311 | 2.526 | -0.242 | 0.665 | 3.011 | 810 |
+| 7 | `v12_no_qb_trajectory` | 2.314 | 2.549 | -0.324 | 0.645 | 3.136 | 842 |
+| 8 | `v17_rookie_growth` | 2.320 | 2.537 | -0.315 | 0.659 | 3.075 | 842 |
+| 9 | `v29_reliability_residual` | 2.324 | 2.532 | -0.234 | 0.658 | 3.043 | 810 |
+| 10 | `v8_age_regression` | 2.325 | 2.559 | -0.345 | 0.640 | 3.159 | 842 |
+| 11 | `v9_pos_specific` | 2.325 | 2.559 | -0.345 | 0.640 | 3.159 | 842 |
+| 12 | `v20_learned_usage` | 2.325 | 2.525 | -0.032 | 0.653 | 3.066 | 810 |
+| 13 | `v10_stat_efficiency_v2` | 2.326 | 2.563 | -0.336 | 0.640 | 3.157 | 842 |
+| 14 | `v13_qb_starter` | 2.327 | 2.563 | -0.344 | 0.638 | 3.165 | 842 |
+| 15 | `v23_draft_capital` | 2.328 | 2.546 | -0.154 | 0.652 | 3.070 | 810 |
+| 16 | `v22_advanced_receiving` | 2.330 | 2.532 | -0.035 | 0.656 | 3.051 | 810 |
+| 17 | `v30_reliability_full_refit` | 2.331 | 2.543 | -0.151 | 0.653 | 3.066 | 810 |
+| 18 | `v7_regression_to_mean` | 2.332 | 2.571 | -0.044 | 0.639 | 3.161 | 842 |
+| 19 | `v4_availability_adjusted` | 2.335 | 2.571 | -0.099 | 0.631 | 3.199 | 842 |
+| 20 | `v28_reliability_weighting` | 2.337 | 2.536 | -0.047 | 0.649 | 3.081 | 810 |
+| 21 | `v11_team_context_v2` | 2.338 | 2.572 | -0.360 | 0.637 | 3.173 | 842 |
+| 22 | `v27_vegas_full_refit` | 2.345 | 2.563 | -0.154 | 0.650 | 3.075 | 810 |
+| 23 | `v21_tiered_regression` | 2.346 | 2.571 | -0.245 | 0.635 | 3.180 | 842 |
+| 24 | `v5_team_context` | 2.349 | 2.592 | -0.120 | 0.624 | 3.226 | 842 |
+| 25 | `v3_stat_weighted` | 2.355 | 2.592 | -0.529 | 0.623 | 3.232 | 842 |
+| 26 | `v2_age_adjusted` | 2.358 | 2.595 | -0.533 | 0.622 | 3.237 | 842 |
+| 27 | `v6_usage_share` | 2.358 | 2.595 | -0.219 | 0.622 | 3.235 | 842 |
+| 28 | `v15_snap_trend` | 2.378 | 2.627 | -0.558 | 0.615 | 3.265 | 842 |
+| 29 | `v18_usage_level` | 2.387 | 2.621 | -0.638 | 0.614 | 3.271 | 842 |
+| 30 | `external_fantasypros_v1` | 2.424 | 2.514 | +0.963 | 0.659 | 3.326 | 445 |
+| 31 | `v1_baseline_weighted_ppg` | 2.436 | 2.681 | -0.735 | 0.596 | 3.347 | 842 |
+| 32 | `naive_prior_season_ppg` | 2.523 | 2.829 | -0.439 | 0.539 | 3.580 | 855 |
+| 33 | `position_mean_baseline` | 3.726 | 4.095 | +0.742 | 0.171 | 4.799 | 855 |
 
 ## Combined across eval seasons — by position
 
@@ -50,228 +50,228 @@ _**MAE** is the pooled-over-players ALL error. **Bal MAE** is the position-balan
 
 | Model | MAE | Bias | R² | RMSE | N |
 | --- | --- | --- | --- | --- | --- |
-| `v14_qb_starter` | 2.450 | -0.149 | 0.626 | 3.251 | 647 |
-| `v19_usage_level_full` | 2.456 | -0.280 | 0.627 | 3.249 | 647 |
-| `external_fantasypros_v1` | 2.462 | +0.990 | 0.645 | 3.360 | 430 |
-| `v16_snap_trend_full` | 2.467 | -0.183 | 0.620 | 3.278 | 647 |
-| `v12_no_qb_trajectory` | 2.471 | -0.207 | 0.606 | 3.339 | 647 |
-| `v10_stat_efficiency_v2` | 2.484 | -0.231 | 0.600 | 3.364 | 647 |
-| `v13_qb_starter` | 2.484 | -0.233 | 0.598 | 3.374 | 647 |
-| `v8_age_regression` | 2.485 | -0.235 | 0.599 | 3.369 | 647 |
-| `v9_pos_specific` | 2.485 | -0.235 | 0.599 | 3.369 | 647 |
-| `v11_team_context_v2` | 2.490 | -0.258 | 0.595 | 3.386 | 647 |
-| `v17_rookie_growth` | 2.495 | -0.208 | 0.619 | 3.283 | 647 |
-| `v21_tiered_regression` | 2.498 | +0.021 | 0.601 | 3.361 | 647 |
-| `v3_stat_weighted` | 2.528 | -0.375 | 0.580 | 3.448 | 647 |
-| `v7_regression_to_mean` | 2.529 | +0.018 | 0.595 | 3.385 | 647 |
-| `v2_age_adjusted` | 2.531 | -0.389 | 0.578 | 3.454 | 647 |
-| `v15_snap_trend` | 2.560 | -0.423 | 0.570 | 3.488 | 647 |
-| `v18_usage_level` | 2.563 | -0.520 | 0.571 | 3.484 | 647 |
-| `v4_availability_adjusted` | 2.565 | +0.015 | 0.575 | 3.466 | 647 |
-| `v5_team_context` | 2.566 | -0.006 | 0.572 | 3.479 | 647 |
-| `v6_usage_share` | 2.583 | -0.137 | 0.568 | 3.495 | 647 |
-| `v1_baseline_weighted_ppg` | 2.632 | -0.652 | 0.545 | 3.588 | 647 |
-| `v31_depth_chart` | 2.646 | -1.067 | 0.586 | 3.385 | 635 |
-| `v20_learned_usage` | 2.683 | -1.060 | 0.588 | 3.377 | 635 |
-| `v30_reliability_full_refit` | 2.687 | -1.201 | 0.579 | 3.415 | 635 |
-| `v27_vegas_full_refit` | 2.707 | -1.066 | 0.574 | 3.435 | 635 |
-| `v28_reliability_weighting` | 2.713 | -1.049 | 0.581 | 3.408 | 635 |
-| `v22_advanced_receiving` | 2.714 | -1.044 | 0.581 | 3.408 | 635 |
-| `v26_vegas_residual` | 2.716 | -1.198 | 0.577 | 3.422 | 635 |
-| `v29_reliability_residual` | 2.738 | -1.175 | 0.573 | 3.437 | 635 |
-| `naive_prior_season_ppg` | 2.754 | -0.428 | 0.482 | 3.861 | 667 |
-| `v23_draft_capital` | 2.764 | -1.105 | 0.561 | 3.486 | 635 |
-| `v25_draft_capital_residual` | 2.764 | -1.200 | 0.568 | 3.457 | 635 |
-| `position_mean_baseline` | 3.710 | +0.458 | 0.218 | 4.745 | 667 |
+| `v31_depth_chart` | 2.269 | -0.107 | 0.667 | 3.002 | 810 |
+| `v26_vegas_residual` | 2.295 | -0.255 | 0.665 | 3.009 | 810 |
+| `v14_qb_starter` | 2.297 | -0.278 | 0.661 | 3.065 | 842 |
+| `v19_usage_level_full` | 2.300 | -0.383 | 0.661 | 3.067 | 842 |
+| `v16_snap_trend_full` | 2.305 | -0.303 | 0.656 | 3.086 | 842 |
+| `v25_draft_capital_residual` | 2.311 | -0.242 | 0.665 | 3.011 | 810 |
+| `v12_no_qb_trajectory` | 2.314 | -0.324 | 0.645 | 3.136 | 842 |
+| `v17_rookie_growth` | 2.320 | -0.315 | 0.659 | 3.075 | 842 |
+| `v29_reliability_residual` | 2.324 | -0.234 | 0.658 | 3.043 | 810 |
+| `v8_age_regression` | 2.325 | -0.345 | 0.640 | 3.159 | 842 |
+| `v9_pos_specific` | 2.325 | -0.345 | 0.640 | 3.159 | 842 |
+| `v20_learned_usage` | 2.325 | -0.032 | 0.653 | 3.066 | 810 |
+| `v10_stat_efficiency_v2` | 2.326 | -0.336 | 0.640 | 3.157 | 842 |
+| `v13_qb_starter` | 2.327 | -0.344 | 0.638 | 3.165 | 842 |
+| `v23_draft_capital` | 2.328 | -0.154 | 0.652 | 3.070 | 810 |
+| `v22_advanced_receiving` | 2.330 | -0.035 | 0.656 | 3.051 | 810 |
+| `v30_reliability_full_refit` | 2.331 | -0.151 | 0.653 | 3.066 | 810 |
+| `v7_regression_to_mean` | 2.332 | -0.044 | 0.639 | 3.161 | 842 |
+| `v4_availability_adjusted` | 2.335 | -0.099 | 0.631 | 3.199 | 842 |
+| `v28_reliability_weighting` | 2.337 | -0.047 | 0.649 | 3.081 | 810 |
+| `v11_team_context_v2` | 2.338 | -0.360 | 0.637 | 3.173 | 842 |
+| `v27_vegas_full_refit` | 2.345 | -0.154 | 0.650 | 3.075 | 810 |
+| `v21_tiered_regression` | 2.346 | -0.245 | 0.635 | 3.180 | 842 |
+| `v5_team_context` | 2.349 | -0.120 | 0.624 | 3.226 | 842 |
+| `v3_stat_weighted` | 2.355 | -0.529 | 0.623 | 3.232 | 842 |
+| `v2_age_adjusted` | 2.358 | -0.533 | 0.622 | 3.237 | 842 |
+| `v6_usage_share` | 2.358 | -0.219 | 0.622 | 3.235 | 842 |
+| `v15_snap_trend` | 2.378 | -0.558 | 0.615 | 3.265 | 842 |
+| `v18_usage_level` | 2.387 | -0.638 | 0.614 | 3.271 | 842 |
+| `external_fantasypros_v1` | 2.424 | +0.963 | 0.659 | 3.326 | 445 |
+| `v1_baseline_weighted_ppg` | 2.436 | -0.735 | 0.596 | 3.347 | 842 |
+| `naive_prior_season_ppg` | 2.523 | -0.439 | 0.539 | 3.580 | 855 |
+| `position_mean_baseline` | 3.726 | +0.742 | 0.171 | 4.799 | 855 |
 
 ### QB
 
 | Model | MAE | Bias | R² | RMSE | N |
 | --- | --- | --- | --- | --- | --- |
-| `v22_advanced_receiving` | 3.551 | -0.988 | 0.442 | 4.566 | 98 |
-| `v28_reliability_weighting` | 3.562 | -1.032 | 0.439 | 4.579 | 98 |
-| `v26_vegas_residual` | 3.604 | -1.325 | 0.417 | 4.663 | 98 |
-| `v31_depth_chart` | 3.624 | -1.582 | 0.430 | 4.613 | 98 |
-| `v20_learned_usage` | 3.626 | -1.493 | 0.426 | 4.629 | 98 |
-| `v25_draft_capital_residual` | 3.657 | -1.300 | 0.410 | 4.694 | 98 |
-| `v29_reliability_residual` | 3.667 | -1.355 | 0.405 | 4.712 | 98 |
-| `v30_reliability_full_refit` | 3.673 | -1.577 | 0.387 | 4.783 | 98 |
-| `v27_vegas_full_refit` | 3.676 | -1.080 | 0.396 | 4.748 | 98 |
+| `v28_reliability_weighting` | 3.537 | -0.670 | 0.511 | 4.398 | 102 |
+| `v22_advanced_receiving` | 3.566 | -0.388 | 0.505 | 4.422 | 102 |
+| `v31_depth_chart` | 3.582 | -0.801 | 0.507 | 4.416 | 102 |
+| `v20_learned_usage` | 3.591 | -0.448 | 0.498 | 4.456 | 102 |
+| `v29_reliability_residual` | 3.598 | -0.890 | 0.494 | 4.470 | 102 |
+| `v26_vegas_residual` | 3.603 | -0.676 | 0.492 | 4.482 | 102 |
+| `v30_reliability_full_refit` | 3.633 | -0.799 | 0.484 | 4.514 | 102 |
+| `v25_draft_capital_residual` | 3.633 | -0.663 | 0.488 | 4.498 | 102 |
 | `external_fantasypros_v1` | 3.690 | +2.129 | 0.413 | 5.072 | 88 |
-| `v23_draft_capital` | 3.744 | -1.077 | 0.389 | 4.777 | 98 |
-| `v14_qb_starter` | 3.783 | -0.742 | 0.443 | 4.826 | 102 |
-| `v17_rookie_growth` | 3.783 | -0.742 | 0.443 | 4.826 | 102 |
-| `v19_usage_level_full` | 3.783 | -0.742 | 0.443 | 4.826 | 102 |
-| `v21_tiered_regression` | 3.852 | -0.322 | 0.414 | 4.947 | 102 |
-| `v16_snap_trend_full` | 3.857 | -0.755 | 0.429 | 4.886 | 102 |
-| `v12_no_qb_trajectory` | 3.919 | -1.111 | 0.354 | 5.194 | 102 |
-| `v13_qb_starter` | 3.957 | -1.234 | 0.327 | 5.304 | 102 |
-| `v8_age_regression` | 3.959 | -1.246 | 0.331 | 5.287 | 102 |
-| `v9_pos_specific` | 3.959 | -1.246 | 0.331 | 5.287 | 102 |
-| `v10_stat_efficiency_v2` | 3.976 | -1.232 | 0.332 | 5.282 | 102 |
-| `v11_team_context_v2` | 3.986 | -1.284 | 0.322 | 5.324 | 102 |
-| `v7_regression_to_mean` | 4.017 | +0.185 | 0.364 | 5.155 | 102 |
-| `v2_age_adjusted` | 4.064 | -1.387 | 0.299 | 5.412 | 102 |
-| `v18_usage_level` | 4.064 | -1.387 | 0.299 | 5.412 | 102 |
-| `v3_stat_weighted` | 4.068 | -1.367 | 0.302 | 5.401 | 102 |
-| `v4_availability_adjusted` | 4.085 | +0.079 | 0.329 | 5.297 | 102 |
-| `v5_team_context` | 4.134 | +0.044 | 0.320 | 5.329 | 102 |
-| `v6_usage_share` | 4.134 | +0.044 | 0.320 | 5.329 | 102 |
-| `v15_snap_trend` | 4.158 | -1.400 | 0.281 | 5.481 | 102 |
-| `v1_baseline_weighted_ppg` | 4.218 | -1.808 | 0.263 | 5.548 | 102 |
-| `naive_prior_season_ppg` | 4.851 | -0.904 | 0.050 | 6.300 | 102 |
-| `position_mean_baseline` | 5.184 | -0.755 | -0.013 | 6.506 | 102 |
+| `v23_draft_capital` | 3.710 | -0.761 | 0.475 | 4.554 | 102 |
+| `v27_vegas_full_refit` | 3.713 | -0.540 | 0.472 | 4.567 | 102 |
+| `v14_qb_starter` | 3.774 | -0.666 | 0.461 | 4.839 | 106 |
+| `v17_rookie_growth` | 3.774 | -0.666 | 0.461 | 4.839 | 106 |
+| `v19_usage_level_full` | 3.774 | -0.666 | 0.461 | 4.839 | 106 |
+| `v16_snap_trend_full` | 3.845 | -0.671 | 0.449 | 4.896 | 106 |
+| `v21_tiered_regression` | 3.857 | -0.533 | 0.433 | 4.966 | 106 |
+| `v12_no_qb_trajectory` | 3.910 | -1.034 | 0.381 | 5.188 | 106 |
+| `v8_age_regression` | 3.950 | -1.163 | 0.360 | 5.272 | 106 |
+| `v9_pos_specific` | 3.950 | -1.163 | 0.360 | 5.272 | 106 |
+| `v11_team_context_v2` | 3.962 | -1.201 | 0.357 | 5.285 | 106 |
+| `v13_qb_starter` | 3.967 | -1.153 | 0.354 | 5.298 | 106 |
+| `v10_stat_efficiency_v2` | 3.967 | -1.145 | 0.363 | 5.262 | 106 |
+| `v7_regression_to_mean` | 4.034 | +0.224 | 0.384 | 5.175 | 106 |
+| `v4_availability_adjusted` | 4.049 | -0.026 | 0.357 | 5.285 | 106 |
+| `v2_age_adjusted` | 4.056 | -1.473 | 0.323 | 5.425 | 106 |
+| `v18_usage_level` | 4.056 | -1.473 | 0.323 | 5.425 | 106 |
+| `v3_stat_weighted` | 4.060 | -1.461 | 0.324 | 5.421 | 106 |
+| `v6_usage_share` | 4.089 | -0.065 | 0.353 | 5.302 | 106 |
+| `v5_team_context` | 4.129 | -0.077 | 0.349 | 5.321 | 106 |
+| `v15_snap_trend` | 4.147 | -1.478 | 0.307 | 5.490 | 106 |
+| `v1_baseline_weighted_ppg` | 4.204 | -1.879 | 0.290 | 5.556 | 106 |
+| `naive_prior_season_ppg` | 4.781 | -0.955 | 0.097 | 6.264 | 106 |
+| `position_mean_baseline` | 5.490 | +0.605 | -0.011 | 6.628 | 106 |
 
 ### RB
 
 | Model | MAE | Bias | R² | RMSE | N |
 | --- | --- | --- | --- | --- | --- |
-| `v11_team_context_v2` | 2.686 | -0.005 | 0.616 | 3.479 | 137 |
-| `v10_stat_efficiency_v2` | 2.702 | +0.057 | 0.615 | 3.480 | 137 |
-| `v6_usage_share` | 2.712 | -0.088 | 0.598 | 3.556 | 137 |
-| `v3_stat_weighted` | 2.713 | -0.132 | 0.607 | 3.520 | 137 |
-| `v5_team_context` | 2.716 | +0.150 | 0.597 | 3.562 | 137 |
-| `v8_age_regression` | 2.717 | +0.039 | 0.612 | 3.495 | 137 |
-| `v9_pos_specific` | 2.717 | +0.039 | 0.612 | 3.495 | 137 |
-| `v12_no_qb_trajectory` | 2.717 | +0.039 | 0.612 | 3.495 | 137 |
-| `v13_qb_starter` | 2.717 | +0.039 | 0.612 | 3.495 | 137 |
-| `v14_qb_starter` | 2.717 | +0.039 | 0.612 | 3.495 | 137 |
-| `external_fantasypros_v1` | 2.718 | +1.056 | 0.636 | 3.345 | 100 |
-| `v2_age_adjusted` | 2.719 | -0.175 | 0.605 | 3.526 | 137 |
-| `v19_usage_level_full` | 2.721 | -0.200 | 0.616 | 3.479 | 137 |
-| `v7_regression_to_mean` | 2.725 | +0.126 | 0.606 | 3.523 | 137 |
-| `v4_availability_adjusted` | 2.758 | +0.176 | 0.594 | 3.574 | 137 |
-| `v18_usage_level` | 2.762 | -0.413 | 0.596 | 3.569 | 137 |
-| `v16_snap_trend_full` | 2.769 | -0.068 | 0.601 | 3.543 | 137 |
-| `naive_prior_season_ppg` | 2.777 | -0.454 | 0.543 | 3.857 | 144 |
-| `v15_snap_trend` | 2.778 | -0.281 | 0.589 | 3.596 | 137 |
-| `v21_tiered_regression` | 2.782 | +0.220 | 0.578 | 3.647 | 137 |
-| `v17_rookie_growth` | 2.785 | -0.068 | 0.600 | 3.547 | 137 |
-| `v1_baseline_weighted_ppg` | 2.806 | -0.518 | 0.561 | 3.716 | 137 |
-| `v31_depth_chart` | 2.963 | -0.978 | 0.568 | 3.656 | 135 |
-| `v20_learned_usage` | 3.101 | -1.005 | 0.533 | 3.802 | 135 |
-| `v26_vegas_residual` | 3.184 | -1.226 | 0.519 | 3.857 | 135 |
-| `v30_reliability_full_refit` | 3.191 | -1.350 | 0.517 | 3.867 | 135 |
-| `v22_advanced_receiving` | 3.208 | -1.094 | 0.514 | 3.877 | 135 |
-| `v29_reliability_residual` | 3.210 | -1.210 | 0.515 | 3.873 | 135 |
-| `v25_draft_capital_residual` | 3.211 | -1.217 | 0.515 | 3.874 | 135 |
-| `v28_reliability_weighting` | 3.211 | -1.097 | 0.513 | 3.883 | 135 |
-| `v23_draft_capital` | 3.234 | -1.135 | 0.495 | 3.953 | 135 |
-| `v27_vegas_full_refit` | 3.235 | -1.170 | 0.497 | 3.944 | 135 |
-| `position_mean_baseline` | 4.557 | +0.934 | 0.049 | 5.566 | 144 |
+| `v5_team_context` | 2.279 | +0.024 | 0.675 | 3.150 | 194 |
+| `v6_usage_share` | 2.287 | -0.162 | 0.676 | 3.144 | 194 |
+| `v4_availability_adjusted` | 2.298 | +0.023 | 0.681 | 3.122 | 194 |
+| `v3_stat_weighted` | 2.300 | -0.331 | 0.681 | 3.120 | 194 |
+| `v2_age_adjusted` | 2.312 | -0.346 | 0.678 | 3.136 | 194 |
+| `v19_usage_level_full` | 2.329 | -0.314 | 0.681 | 3.120 | 194 |
+| `v8_age_regression` | 2.330 | -0.137 | 0.679 | 3.130 | 194 |
+| `v9_pos_specific` | 2.330 | -0.137 | 0.679 | 3.130 | 194 |
+| `v12_no_qb_trajectory` | 2.330 | -0.137 | 0.679 | 3.130 | 194 |
+| `v13_qb_starter` | 2.330 | -0.137 | 0.679 | 3.130 | 194 |
+| `v14_qb_starter` | 2.330 | -0.137 | 0.679 | 3.130 | 194 |
+| `v10_stat_efficiency_v2` | 2.332 | -0.108 | 0.679 | 3.132 | 194 |
+| `v7_regression_to_mean` | 2.333 | +0.053 | 0.669 | 3.177 | 194 |
+| `v11_team_context_v2` | 2.342 | -0.151 | 0.678 | 3.136 | 194 |
+| `v16_snap_trend_full` | 2.346 | -0.214 | 0.671 | 3.169 | 194 |
+| `v15_snap_trend` | 2.349 | -0.423 | 0.665 | 3.197 | 194 |
+| `v18_usage_level` | 2.352 | -0.523 | 0.667 | 3.186 | 194 |
+| `v1_baseline_weighted_ppg` | 2.374 | -0.588 | 0.646 | 3.287 | 194 |
+| `naive_prior_season_ppg` | 2.376 | -0.319 | 0.621 | 3.403 | 197 |
+| `v17_rookie_growth` | 2.384 | -0.216 | 0.669 | 3.180 | 194 |
+| `v21_tiered_regression` | 2.426 | -0.046 | 0.642 | 3.304 | 194 |
+| `v31_depth_chart` | 2.472 | +0.239 | 0.638 | 3.282 | 184 |
+| `v20_learned_usage` | 2.559 | +0.084 | 0.620 | 3.363 | 184 |
+| `v25_draft_capital_residual` | 2.577 | -0.058 | 0.632 | 3.312 | 184 |
+| `v26_vegas_residual` | 2.583 | -0.065 | 0.630 | 3.320 | 184 |
+| `v29_reliability_residual` | 2.606 | +0.098 | 0.623 | 3.352 | 184 |
+| `v23_draft_capital` | 2.609 | +0.057 | 0.606 | 3.426 | 184 |
+| `v27_vegas_full_refit` | 2.610 | -0.007 | 0.610 | 3.407 | 184 |
+| `v22_advanced_receiving` | 2.613 | +0.084 | 0.616 | 3.382 | 184 |
+| `v30_reliability_full_refit` | 2.621 | +0.089 | 0.610 | 3.409 | 184 |
+| `external_fantasypros_v1` | 2.649 | +1.044 | 0.656 | 3.292 | 104 |
+| `v28_reliability_weighting` | 2.656 | +0.280 | 0.600 | 3.452 | 184 |
+| `position_mean_baseline` | 4.468 | +1.071 | -0.038 | 5.630 | 197 |
 
 ### WR
 
 | Model | MAE | Bias | R² | RMSE | N |
 | --- | --- | --- | --- | --- | --- |
-| `external_fantasypros_v1` | 2.200 | +0.436 | 0.610 | 2.767 | 131 |
-| `v16_snap_trend_full` | 2.348 | -0.214 | 0.581 | 2.997 | 200 |
-| `v8_age_regression` | 2.373 | -0.175 | 0.582 | 2.993 | 200 |
-| `v9_pos_specific` | 2.373 | -0.175 | 0.582 | 2.993 | 200 |
-| `v12_no_qb_trajectory` | 2.373 | -0.175 | 0.582 | 2.993 | 200 |
-| `v13_qb_starter` | 2.373 | -0.175 | 0.582 | 2.993 | 200 |
-| `v14_qb_starter` | 2.373 | -0.175 | 0.582 | 2.993 | 200 |
-| `v10_stat_efficiency_v2` | 2.376 | -0.175 | 0.582 | 2.992 | 200 |
-| `v19_usage_level_full` | 2.380 | -0.379 | 0.581 | 2.996 | 200 |
-| `v11_team_context_v2` | 2.390 | -0.193 | 0.572 | 3.028 | 200 |
-| `v21_tiered_regression` | 2.408 | -0.166 | 0.549 | 3.108 | 200 |
-| `v7_regression_to_mean` | 2.421 | -0.279 | 0.564 | 3.056 | 200 |
-| `v15_snap_trend` | 2.425 | -0.431 | 0.542 | 3.132 | 200 |
-| `v3_stat_weighted` | 2.430 | -0.382 | 0.546 | 3.119 | 200 |
-| `v2_age_adjusted` | 2.435 | -0.392 | 0.543 | 3.127 | 200 |
-| `v4_availability_adjusted` | 2.444 | -0.270 | 0.535 | 3.155 | 200 |
-| `v17_rookie_growth` | 2.450 | -0.267 | 0.566 | 3.050 | 200 |
-| `v5_team_context` | 2.459 | -0.293 | 0.527 | 3.181 | 200 |
-| `v18_usage_level` | 2.488 | -0.596 | 0.528 | 3.180 | 200 |
-| `v6_usage_share` | 2.488 | -0.497 | 0.515 | 3.222 | 200 |
-| `naive_prior_season_ppg` | 2.587 | -0.551 | 0.480 | 3.375 | 207 |
-| `v1_baseline_weighted_ppg` | 2.614 | -0.624 | 0.491 | 3.301 | 200 |
-| `v20_learned_usage` | 2.637 | -0.923 | 0.510 | 3.186 | 196 |
-| `v30_reliability_full_refit` | 2.689 | -1.484 | 0.490 | 3.252 | 196 |
-| `v27_vegas_full_refit` | 2.702 | -1.402 | 0.490 | 3.253 | 196 |
-| `v26_vegas_residual` | 2.752 | -1.621 | 0.470 | 3.314 | 196 |
-| `v28_reliability_weighting` | 2.762 | -1.341 | 0.470 | 3.313 | 196 |
-| `v22_advanced_receiving` | 2.769 | -1.347 | 0.468 | 3.321 | 196 |
-| `v29_reliability_residual` | 2.778 | -1.527 | 0.470 | 3.316 | 196 |
-| `v23_draft_capital` | 2.783 | -1.395 | 0.463 | 3.338 | 196 |
-| `v25_draft_capital_residual` | 2.792 | -1.508 | 0.463 | 3.338 | 196 |
-| `v31_depth_chart` | 2.815 | -1.514 | 0.416 | 3.478 | 196 |
-| `position_mean_baseline` | 3.770 | +0.975 | 0.056 | 4.549 | 207 |
+| `external_fantasypros_v1` | 2.160 | +0.391 | 0.653 | 2.752 | 140 |
+| `v26_vegas_residual` | 2.196 | -0.337 | 0.614 | 2.765 | 286 |
+| `v31_depth_chart` | 2.226 | -0.269 | 0.591 | 2.846 | 286 |
+| `v25_draft_capital_residual` | 2.235 | -0.307 | 0.609 | 2.783 | 286 |
+| `v4_availability_adjusted` | 2.246 | -0.349 | 0.590 | 2.895 | 299 |
+| `v7_regression_to_mean` | 2.251 | -0.317 | 0.606 | 2.839 | 299 |
+| `v16_snap_trend_full` | 2.252 | -0.433 | 0.606 | 2.839 | 299 |
+| `v23_draft_capital` | 2.256 | -0.211 | 0.592 | 2.841 | 286 |
+| `v30_reliability_full_refit` | 2.260 | -0.215 | 0.586 | 2.864 | 286 |
+| `v10_stat_efficiency_v2` | 2.264 | -0.401 | 0.608 | 2.833 | 299 |
+| `v29_reliability_residual` | 2.265 | -0.341 | 0.587 | 2.859 | 286 |
+| `v8_age_regression` | 2.267 | -0.406 | 0.607 | 2.836 | 299 |
+| `v9_pos_specific` | 2.267 | -0.406 | 0.607 | 2.836 | 299 |
+| `v12_no_qb_trajectory` | 2.267 | -0.406 | 0.607 | 2.836 | 299 |
+| `v13_qb_starter` | 2.267 | -0.406 | 0.607 | 2.836 | 299 |
+| `v14_qb_starter` | 2.267 | -0.406 | 0.607 | 2.836 | 299 |
+| `v19_usage_level_full` | 2.272 | -0.551 | 0.604 | 2.847 | 299 |
+| `v5_team_context` | 2.274 | -0.383 | 0.577 | 2.944 | 299 |
+| `v27_vegas_full_refit` | 2.276 | -0.241 | 0.589 | 2.853 | 286 |
+| `v21_tiered_regression` | 2.284 | -0.514 | 0.577 | 2.942 | 299 |
+| `v11_team_context_v2` | 2.287 | -0.421 | 0.600 | 2.862 | 299 |
+| `v17_rookie_growth` | 2.288 | -0.451 | 0.610 | 2.827 | 299 |
+| `v22_advanced_receiving` | 2.290 | +0.005 | 0.581 | 2.881 | 286 |
+| `v6_usage_share` | 2.295 | -0.512 | 0.570 | 2.966 | 299 |
+| `v28_reliability_weighting` | 2.295 | -0.071 | 0.566 | 2.930 | 286 |
+| `v20_learned_usage` | 2.305 | -0.036 | 0.575 | 2.901 | 286 |
+| `v15_snap_trend` | 2.310 | -0.647 | 0.574 | 2.952 | 299 |
+| `v3_stat_weighted` | 2.314 | -0.620 | 0.575 | 2.950 | 299 |
+| `v2_age_adjusted` | 2.314 | -0.619 | 0.575 | 2.949 | 299 |
+| `v18_usage_level` | 2.360 | -0.765 | 0.559 | 3.006 | 299 |
+| `naive_prior_season_ppg` | 2.427 | -0.607 | 0.512 | 3.167 | 304 |
+| `v1_baseline_weighted_ppg` | 2.434 | -0.775 | 0.539 | 3.073 | 299 |
+| `position_mean_baseline` | 3.739 | +0.918 | -0.041 | 4.626 | 304 |
 
 ### TE
 
 | Model | MAE | Bias | R² | RMSE | N |
 | --- | --- | --- | --- | --- | --- |
-| `external_fantasypros_v1` | 1.568 | +0.683 | 0.618 | 2.057 | 111 |
-| `v10_stat_efficiency_v2` | 1.736 | +0.017 | 0.576 | 2.216 | 144 |
-| `v8_age_regression` | 1.740 | +0.024 | 0.574 | 2.221 | 144 |
-| `v9_pos_specific` | 1.740 | +0.024 | 0.574 | 2.221 | 144 |
-| `v12_no_qb_trajectory` | 1.740 | +0.024 | 0.574 | 2.221 | 144 |
-| `v13_qb_starter` | 1.740 | +0.024 | 0.574 | 2.221 | 144 |
-| `v14_qb_starter` | 1.740 | +0.024 | 0.574 | 2.221 | 144 |
-| `v16_snap_trend_full` | 1.749 | +0.031 | 0.572 | 2.225 | 144 |
-| `v11_team_context_v2` | 1.750 | +0.016 | 0.571 | 2.229 | 144 |
-| `v3_stat_weighted` | 1.753 | -0.063 | 0.565 | 2.245 | 144 |
-| `v19_usage_level_full` | 1.754 | -0.054 | 0.570 | 2.231 | 144 |
-| `v2_age_adjusted` | 1.756 | -0.058 | 0.564 | 2.246 | 144 |
-| `v21_tiered_regression` | 1.765 | +0.242 | 0.555 | 2.269 | 144 |
-| `v15_snap_trend` | 1.770 | -0.050 | 0.564 | 2.246 | 144 |
-| `v1_baseline_weighted_ppg` | 1.773 | -0.326 | 0.541 | 2.304 | 144 |
-| `v17_rookie_growth` | 1.774 | -0.014 | 0.564 | 2.246 | 144 |
-| `v18_usage_level` | 1.784 | -0.136 | 0.550 | 2.283 | 144 |
-| `v7_regression_to_mean` | 1.784 | +0.109 | 0.545 | 2.295 | 144 |
-| `v5_team_context` | 1.793 | +0.104 | 0.538 | 2.312 | 144 |
-| `v4_availability_adjusted` | 1.800 | +0.117 | 0.539 | 2.309 | 144 |
-| `v6_usage_share` | 1.828 | +0.025 | 0.524 | 2.346 | 144 |
-| `naive_prior_season_ppg` | 1.864 | -0.197 | 0.490 | 2.435 | 150 |
-| `v31_depth_chart` | 1.953 | -0.658 | 0.529 | 2.322 | 142 |
-| `v30_reliability_full_refit` | 2.001 | -0.748 | 0.511 | 2.367 | 142 |
-| `v28_reliability_weighting` | 2.006 | -0.701 | 0.493 | 2.410 | 142 |
-| `v22_advanced_receiving` | 2.008 | -0.701 | 0.491 | 2.414 | 142 |
-| `v29_reliability_residual` | 2.013 | -0.758 | 0.494 | 2.408 | 142 |
-| `v26_vegas_residual` | 2.014 | -0.734 | 0.496 | 2.402 | 142 |
-| `v27_vegas_full_refit` | 2.019 | -0.745 | 0.490 | 2.417 | 142 |
-| `v20_learned_usage` | 2.099 | -1.109 | 0.453 | 2.504 | 142 |
-| `v25_draft_capital_residual` | 2.113 | -0.927 | 0.448 | 2.515 | 142 |
-| `v23_draft_capital` | 2.117 | -0.982 | 0.443 | 2.527 | 142 |
-| `position_mean_baseline` | 2.769 | +0.223 | 0.017 | 3.381 | 150 |
+| `external_fantasypros_v1` | 1.558 | +0.688 | 0.622 | 2.046 | 113 |
+| `v31_depth_chart` | 1.607 | -0.001 | 0.616 | 2.051 | 171 |
+| `v23_draft_capital` | 1.610 | -0.065 | 0.595 | 2.105 | 171 |
+| `v20_learned_usage` | 1.645 | +0.032 | 0.571 | 2.168 | 171 |
+| `v27_vegas_full_refit` | 1.652 | -0.141 | 0.589 | 2.121 | 171 |
+| `v28_reliability_weighting` | 1.655 | +0.036 | 0.582 | 2.140 | 171 |
+| `v30_reliability_full_refit` | 1.657 | -0.045 | 0.592 | 2.112 | 171 |
+| `v22_advanced_receiving` | 1.659 | -0.049 | 0.582 | 2.140 | 171 |
+| `v29_reliability_residual` | 1.659 | -0.066 | 0.588 | 2.125 | 171 |
+| `v25_draft_capital_residual` | 1.659 | -0.175 | 0.592 | 2.113 | 171 |
+| `v26_vegas_residual` | 1.662 | -0.174 | 0.581 | 2.142 | 171 |
+| `v7_regression_to_mean` | 1.666 | +0.065 | 0.580 | 2.157 | 176 |
+| `v5_team_context` | 1.684 | +0.035 | 0.574 | 2.172 | 176 |
+| `v10_stat_efficiency_v2` | 1.687 | -0.107 | 0.580 | 2.157 | 176 |
+| `v8_age_regression` | 1.690 | -0.103 | 0.579 | 2.159 | 176 |
+| `v9_pos_specific` | 1.690 | -0.103 | 0.579 | 2.159 | 176 |
+| `v12_no_qb_trajectory` | 1.690 | -0.103 | 0.579 | 2.159 | 176 |
+| `v13_qb_starter` | 1.690 | -0.103 | 0.579 | 2.159 | 176 |
+| `v14_qb_starter` | 1.690 | -0.103 | 0.579 | 2.159 | 176 |
+| `v16_snap_trend_full` | 1.691 | -0.093 | 0.579 | 2.159 | 176 |
+| `v4_availability_adjusted` | 1.691 | +0.050 | 0.569 | 2.184 | 176 |
+| `v3_stat_weighted` | 1.695 | -0.213 | 0.573 | 2.174 | 176 |
+| `v19_usage_level_full` | 1.696 | -0.166 | 0.577 | 2.163 | 176 |
+| `v11_team_context_v2` | 1.697 | -0.110 | 0.576 | 2.167 | 176 |
+| `v2_age_adjusted` | 1.698 | -0.207 | 0.572 | 2.177 | 176 |
+| `v15_snap_trend` | 1.701 | -0.198 | 0.573 | 2.174 | 176 |
+| `v17_rookie_growth` | 1.702 | -0.117 | 0.577 | 2.165 | 176 |
+| `v6_usage_share` | 1.708 | -0.018 | 0.557 | 2.215 | 176 |
+| `v1_baseline_weighted_ppg` | 1.711 | -0.426 | 0.552 | 2.226 | 176 |
+| `v18_usage_level` | 1.716 | -0.271 | 0.560 | 2.208 | 176 |
+| `v21_tiered_regression` | 1.717 | +0.010 | 0.556 | 2.216 | 176 |
+| `naive_prior_season_ppg` | 1.731 | -0.214 | 0.527 | 2.290 | 181 |
+| `position_mean_baseline` | 2.684 | +0.341 | -0.010 | 3.348 | 181 |
 
 ### K
 
 | Model | MAE | Bias | R² | RMSE | N |
 | --- | --- | --- | --- | --- | --- |
-| `position_mean_baseline` | 1.471 | +0.195 | -0.045 | 1.934 | 64 |
-| `v31_depth_chart` | 1.502 | +0.002 | -0.094 | 1.978 | 64 |
-| `v12_no_qb_trajectory` | 1.589 | +0.090 | -0.251 | 2.115 | 64 |
-| `v14_qb_starter` | 1.589 | +0.090 | -0.251 | 2.115 | 64 |
-| `v17_rookie_growth` | 1.589 | +0.090 | -0.251 | 2.115 | 64 |
-| `v19_usage_level_full` | 1.589 | +0.090 | -0.251 | 2.115 | 64 |
-| `v16_snap_trend_full` | 1.598 | +0.101 | -0.253 | 2.117 | 64 |
-| `v30_reliability_full_refit` | 1.625 | -0.454 | -0.208 | 2.079 | 64 |
-| `v23_draft_capital` | 1.644 | -0.467 | -0.230 | 2.097 | 64 |
-| `v27_vegas_full_refit` | 1.651 | -0.509 | -0.230 | 2.097 | 64 |
-| `v21_tiered_regression` | 1.658 | +0.230 | -0.397 | 2.235 | 64 |
-| `v8_age_regression` | 1.662 | +0.019 | -0.393 | 2.232 | 64 |
-| `v9_pos_specific` | 1.662 | +0.019 | -0.393 | 2.232 | 64 |
-| `v10_stat_efficiency_v2` | 1.662 | +0.019 | -0.393 | 2.232 | 64 |
-| `v11_team_context_v2` | 1.662 | +0.019 | -0.393 | 2.232 | 64 |
-| `v13_qb_starter` | 1.662 | +0.019 | -0.393 | 2.232 | 64 |
-| `v1_baseline_weighted_ppg` | 1.727 | +0.079 | -0.541 | 2.348 | 64 |
-| `v2_age_adjusted` | 1.732 | +0.006 | -0.517 | 2.329 | 64 |
-| `v3_stat_weighted` | 1.732 | +0.006 | -0.517 | 2.329 | 64 |
-| `v18_usage_level` | 1.732 | +0.006 | -0.517 | 2.329 | 64 |
-| `v15_snap_trend` | 1.742 | +0.017 | -0.519 | 2.331 | 64 |
-| `v7_regression_to_mean` | 1.753 | +0.243 | -0.636 | 2.419 | 64 |
-| `v28_reliability_weighting` | 1.782 | -0.846 | -0.350 | 2.197 | 64 |
-| `v20_learned_usage` | 1.789 | -0.824 | -0.363 | 2.208 | 64 |
-| `v22_advanced_receiving` | 1.790 | -0.856 | -0.357 | 2.203 | 64 |
-| `v29_reliability_residual` | 1.808 | -0.669 | -0.404 | 2.241 | 64 |
-| `v25_draft_capital_residual` | 1.812 | -0.677 | -0.409 | 2.245 | 64 |
-| `v26_vegas_residual` | 1.812 | -0.677 | -0.409 | 2.245 | 64 |
-| `v4_availability_adjusted` | 1.826 | +0.229 | -0.760 | 2.509 | 64 |
-| `v5_team_context` | 1.826 | +0.229 | -0.760 | 2.509 | 64 |
-| `v6_usage_share` | 1.826 | +0.229 | -0.760 | 2.509 | 64 |
-| `naive_prior_season_ppg` | 1.980 | +0.247 | -1.198 | 2.804 | 64 |
+| `position_mean_baseline` | 1.510 | +0.268 | -0.055 | 1.963 | 67 |
+| `v25_draft_capital_residual` | 1.550 | +0.007 | -0.165 | 2.063 | 67 |
+| `v26_vegas_residual` | 1.550 | +0.007 | -0.165 | 2.063 | 67 |
+| `v29_reliability_residual` | 1.554 | -0.125 | -0.154 | 2.054 | 67 |
+| `v28_reliability_weighting` | 1.555 | -0.102 | -0.159 | 2.058 | 67 |
+| `v22_advanced_receiving` | 1.556 | +0.032 | -0.173 | 2.070 | 67 |
+| `v30_reliability_full_refit` | 1.573 | +0.185 | -0.178 | 2.075 | 67 |
+| `v20_learned_usage` | 1.575 | +0.134 | -0.202 | 2.096 | 67 |
+| `v31_depth_chart` | 1.585 | +0.414 | -0.184 | 2.080 | 67 |
+| `v23_draft_capital` | 1.591 | +0.203 | -0.201 | 2.095 | 67 |
+| `v12_no_qb_trajectory` | 1.595 | +0.042 | -0.227 | 2.118 | 67 |
+| `v14_qb_starter` | 1.595 | +0.042 | -0.227 | 2.118 | 67 |
+| `v17_rookie_growth` | 1.595 | +0.042 | -0.227 | 2.118 | 67 |
+| `v19_usage_level_full` | 1.595 | +0.042 | -0.227 | 2.118 | 67 |
+| `v27_vegas_full_refit` | 1.602 | +0.367 | -0.222 | 2.113 | 67 |
+| `v16_snap_trend_full` | 1.603 | +0.053 | -0.229 | 2.119 | 67 |
+| `v21_tiered_regression` | 1.650 | +0.164 | -0.349 | 2.220 | 67 |
+| `v8_age_regression` | 1.663 | -0.025 | -0.360 | 2.229 | 67 |
+| `v9_pos_specific` | 1.663 | -0.025 | -0.360 | 2.229 | 67 |
+| `v10_stat_efficiency_v2` | 1.663 | -0.025 | -0.360 | 2.229 | 67 |
+| `v11_team_context_v2` | 1.663 | -0.025 | -0.360 | 2.229 | 67 |
+| `v13_qb_starter` | 1.663 | -0.025 | -0.360 | 2.229 | 67 |
+| `v1_baseline_weighted_ppg` | 1.727 | +0.015 | -0.499 | 2.341 | 67 |
+| `v2_age_adjusted` | 1.731 | -0.055 | -0.476 | 2.323 | 67 |
+| `v3_stat_weighted` | 1.731 | -0.055 | -0.476 | 2.323 | 67 |
+| `v18_usage_level` | 1.731 | -0.055 | -0.476 | 2.323 | 67 |
+| `v15_snap_trend` | 1.741 | -0.045 | -0.478 | 2.324 | 67 |
+| `v7_regression_to_mean` | 1.750 | +0.188 | -0.589 | 2.410 | 67 |
+| `v4_availability_adjusted` | 1.821 | +0.158 | -0.704 | 2.495 | 67 |
+| `v5_team_context` | 1.821 | +0.158 | -0.704 | 2.495 | 67 |
+| `v6_usage_share` | 1.821 | +0.158 | -0.704 | 2.495 | 67 |
+| `naive_prior_season_ppg` | 1.960 | +0.184 | -1.116 | 2.781 | 67 |
 
 ## Ranking quality — per-position ordering (GH #598)
 
@@ -282,225 +282,225 @@ _The projections feed VORP, surplus value, auction pricing and keeper calls, whi
 | Model | Spearman ρ | Top-N hit | N |
 | --- | --- | --- | --- |
 | `external_fantasypros_v1` | **0.800** | 0.417 | 88 |
-| `v26_vegas_residual` | 0.726 | 0.333 | 98 |
-| `v31_depth_chart` | 0.721 | 0.333 | 98 |
-| `v20_learned_usage` | 0.720 | 0.417 | 98 |
-| `v25_draft_capital_residual` | 0.719 | 0.250 | 98 |
-| `v30_reliability_full_refit` | 0.717 | 0.333 | 98 |
-| `v22_advanced_receiving` | 0.715 | 0.417 | 98 |
-| `v29_reliability_residual` | 0.714 | 0.250 | 98 |
-| `v28_reliability_weighting` | 0.714 | 0.417 | 98 |
-| `v21_tiered_regression` | 0.712 | 0.333 | 102 |
-| `v16_snap_trend_full` | 0.710 | 0.417 | 102 |
-| `v14_qb_starter` | 0.709 | 0.333 | 102 |
-| `v17_rookie_growth` | 0.709 | 0.333 | 102 |
-| `v19_usage_level_full` | 0.709 | 0.333 | 102 |
-| `v27_vegas_full_refit` | 0.701 | 0.250 | 98 |
-| `v23_draft_capital` | 0.685 | 0.250 | 98 |
-| `v4_availability_adjusted` | 0.680 | 0.417 | 102 |
-| `v5_team_context` | 0.679 | 0.417 | 102 |
-| `v6_usage_share` | 0.679 | 0.417 | 102 |
-| `v7_regression_to_mean` | 0.679 | 0.417 | 102 |
-| `v15_snap_trend` | 0.673 | 0.417 | 102 |
-| `v2_age_adjusted` | 0.671 | 0.417 | 102 |
-| `v18_usage_level` | 0.671 | 0.417 | 102 |
-| `v12_no_qb_trajectory` | 0.670 | 0.333 | 102 |
-| `v3_stat_weighted` | 0.670 | 0.417 | 102 |
-| `v10_stat_efficiency_v2` | 0.669 | 0.417 | 102 |
-| `v8_age_regression` | 0.668 | 0.417 | 102 |
-| `v9_pos_specific` | 0.668 | 0.417 | 102 |
-| `v13_qb_starter` | 0.666 | 0.417 | 102 |
-| `v11_team_context_v2` | 0.662 | 0.417 | 102 |
-| `v1_baseline_weighted_ppg` | 0.660 | 0.417 | 102 |
-| `naive_prior_season_ppg` | 0.593 | 0.333 | 102 |
-| `position_mean_baseline` | 0.007 | 0.250 | 102 |
+| `v26_vegas_residual` | 0.735 | 0.333 | 102 |
+| `v28_reliability_weighting` | 0.735 | 0.417 | 102 |
+| `v29_reliability_residual` | 0.733 | 0.333 | 102 |
+| `v31_depth_chart` | 0.728 | 0.333 | 102 |
+| `v22_advanced_receiving` | 0.728 | 0.417 | 102 |
+| `v25_draft_capital_residual` | 0.726 | 0.333 | 102 |
+| `v20_learned_usage` | 0.723 | 0.417 | 102 |
+| `v16_snap_trend_full` | 0.720 | 0.417 | 106 |
+| `v21_tiered_regression` | 0.718 | 0.333 | 106 |
+| `v14_qb_starter` | 0.718 | 0.333 | 106 |
+| `v17_rookie_growth` | 0.718 | 0.333 | 106 |
+| `v19_usage_level_full` | 0.718 | 0.333 | 106 |
+| `v30_reliability_full_refit` | 0.718 | 0.333 | 102 |
+| `v27_vegas_full_refit` | 0.710 | 0.250 | 102 |
+| `v23_draft_capital` | 0.705 | 0.250 | 102 |
+| `v5_team_context` | 0.689 | 0.417 | 106 |
+| `v4_availability_adjusted` | 0.689 | 0.417 | 106 |
+| `v6_usage_share` | 0.688 | 0.417 | 106 |
+| `v7_regression_to_mean` | 0.685 | 0.417 | 106 |
+| `v3_stat_weighted` | 0.683 | 0.417 | 106 |
+| `v15_snap_trend` | 0.683 | 0.417 | 106 |
+| `v12_no_qb_trajectory` | 0.683 | 0.333 | 106 |
+| `v2_age_adjusted` | 0.682 | 0.417 | 106 |
+| `v18_usage_level` | 0.682 | 0.417 | 106 |
+| `v8_age_regression` | 0.681 | 0.417 | 106 |
+| `v9_pos_specific` | 0.681 | 0.417 | 106 |
+| `v10_stat_efficiency_v2` | 0.680 | 0.417 | 106 |
+| `v11_team_context_v2` | 0.679 | 0.417 | 106 |
+| `v13_qb_starter` | 0.676 | 0.417 | 106 |
+| `v1_baseline_weighted_ppg` | 0.672 | 0.417 | 106 |
+| `naive_prior_season_ppg` | 0.606 | 0.333 | 106 |
+| `position_mean_baseline` | -0.025 | 0.167 | 106 |
 
 ### RB (top-24)
 
 | Model | Spearman ρ | Top-N hit | N |
 | --- | --- | --- | --- |
-| `external_fantasypros_v1` | **0.829** | 0.667 | 100 |
-| `v11_team_context_v2` | 0.790 | 0.625 | 137 |
-| `v18_usage_level` | 0.789 | 0.625 | 137 |
-| `v19_usage_level_full` | 0.788 | 0.667 | 137 |
-| `v31_depth_chart` | 0.788 | 0.583 | 135 |
-| `v7_regression_to_mean` | 0.787 | 0.625 | 137 |
-| `v6_usage_share` | 0.787 | 0.625 | 137 |
-| `naive_prior_season_ppg` | 0.786 | 0.583 | 144 |
-| `v10_stat_efficiency_v2` | 0.785 | 0.583 | 137 |
-| `v16_snap_trend_full` | 0.783 | 0.583 | 137 |
-| `v3_stat_weighted` | 0.783 | 0.583 | 137 |
-| `v15_snap_trend` | 0.782 | 0.625 | 137 |
-| `v8_age_regression` | 0.782 | 0.583 | 137 |
-| `v9_pos_specific` | 0.782 | 0.583 | 137 |
-| `v12_no_qb_trajectory` | 0.782 | 0.583 | 137 |
-| `v13_qb_starter` | 0.782 | 0.583 | 137 |
-| `v14_qb_starter` | 0.782 | 0.583 | 137 |
-| `v5_team_context` | 0.782 | 0.583 | 137 |
-| `v2_age_adjusted` | 0.781 | 0.583 | 137 |
-| `v30_reliability_full_refit` | 0.779 | 0.625 | 135 |
-| `v4_availability_adjusted` | 0.776 | 0.583 | 137 |
-| `v17_rookie_growth` | 0.775 | 0.583 | 137 |
-| `v26_vegas_residual` | 0.775 | 0.667 | 135 |
-| `v1_baseline_weighted_ppg` | 0.770 | 0.667 | 137 |
-| `v21_tiered_regression` | 0.770 | 0.583 | 137 |
-| `v25_draft_capital_residual` | 0.769 | 0.625 | 135 |
-| `v29_reliability_residual` | 0.768 | 0.667 | 135 |
-| `v20_learned_usage` | 0.765 | 0.667 | 135 |
-| `v22_advanced_receiving` | 0.764 | 0.667 | 135 |
-| `v28_reliability_weighting` | 0.763 | 0.667 | 135 |
-| `v27_vegas_full_refit` | 0.756 | 0.542 | 135 |
-| `v23_draft_capital` | 0.748 | 0.542 | 135 |
-| `position_mean_baseline` | 0.300 | 0.375 | 144 |
+| `external_fantasypros_v1` | **0.842** | 0.667 | 104 |
+| `v4_availability_adjusted` | 0.834 | 0.583 | 194 |
+| `v6_usage_share` | 0.833 | 0.625 | 194 |
+| `v5_team_context` | 0.832 | 0.583 | 194 |
+| `v3_stat_weighted` | 0.831 | 0.625 | 194 |
+| `v15_snap_trend` | 0.831 | 0.625 | 194 |
+| `v18_usage_level` | 0.830 | 0.625 | 194 |
+| `v16_snap_trend_full` | 0.830 | 0.625 | 194 |
+| `v19_usage_level_full` | 0.830 | 0.583 | 194 |
+| `v7_regression_to_mean` | 0.830 | 0.583 | 194 |
+| `v2_age_adjusted` | 0.829 | 0.625 | 194 |
+| `v8_age_regression` | 0.829 | 0.625 | 194 |
+| `v9_pos_specific` | 0.829 | 0.625 | 194 |
+| `v12_no_qb_trajectory` | 0.829 | 0.625 | 194 |
+| `v13_qb_starter` | 0.829 | 0.625 | 194 |
+| `v14_qb_starter` | 0.829 | 0.625 | 194 |
+| `v10_stat_efficiency_v2` | 0.829 | 0.583 | 194 |
+| `v11_team_context_v2` | 0.827 | 0.625 | 194 |
+| `naive_prior_season_ppg` | 0.825 | 0.583 | 197 |
+| `v1_baseline_weighted_ppg` | 0.823 | 0.667 | 194 |
+| `v21_tiered_regression` | 0.823 | 0.583 | 194 |
+| `v17_rookie_growth` | 0.819 | 0.625 | 194 |
+| `v25_draft_capital_residual` | 0.807 | 0.667 | 184 |
+| `v29_reliability_residual` | 0.806 | 0.625 | 184 |
+| `v26_vegas_residual` | 0.805 | 0.667 | 184 |
+| `v22_advanced_receiving` | 0.803 | 0.667 | 184 |
+| `v20_learned_usage` | 0.799 | 0.667 | 184 |
+| `v28_reliability_weighting` | 0.798 | 0.667 | 184 |
+| `v27_vegas_full_refit` | 0.797 | 0.542 | 184 |
+| `v30_reliability_full_refit` | 0.796 | 0.583 | 184 |
+| `v23_draft_capital` | 0.795 | 0.542 | 184 |
+| `v31_depth_chart` | 0.782 | 0.542 | 184 |
+| `position_mean_baseline` | 0.012 | 0.208 | 197 |
 
 ### WR (top-24)
 
 | Model | Spearman ρ | Top-N hit | N |
 | --- | --- | --- | --- |
-| `v30_reliability_full_refit` | **0.791** | 0.542 | 196 |
-| `v26_vegas_residual` | 0.783 | 0.542 | 196 |
-| `v27_vegas_full_refit` | 0.781 | 0.500 | 196 |
-| `v19_usage_level_full` | 0.780 | 0.417 | 200 |
-| `v29_reliability_residual` | 0.779 | 0.500 | 196 |
-| `v18_usage_level` | 0.777 | 0.417 | 200 |
-| `v15_snap_trend` | 0.775 | 0.417 | 200 |
-| `v16_snap_trend_full` | 0.775 | 0.458 | 200 |
-| `v3_stat_weighted` | 0.774 | 0.417 | 200 |
-| `v10_stat_efficiency_v2` | 0.774 | 0.417 | 200 |
-| `v8_age_regression` | 0.773 | 0.417 | 200 |
-| `v9_pos_specific` | 0.773 | 0.417 | 200 |
-| `v12_no_qb_trajectory` | 0.773 | 0.417 | 200 |
-| `v13_qb_starter` | 0.773 | 0.417 | 200 |
-| `v14_qb_starter` | 0.773 | 0.417 | 200 |
-| `v2_age_adjusted` | 0.772 | 0.417 | 200 |
-| `v7_regression_to_mean` | 0.769 | 0.417 | 200 |
-| `v6_usage_share` | 0.768 | 0.417 | 200 |
-| `v11_team_context_v2` | 0.768 | 0.417 | 200 |
-| `v25_draft_capital_residual` | 0.766 | 0.458 | 196 |
-| `v21_tiered_regression` | 0.765 | 0.458 | 200 |
-| `naive_prior_season_ppg` | 0.765 | 0.458 | 207 |
-| `v4_availability_adjusted` | 0.763 | 0.417 | 200 |
-| `v5_team_context` | 0.762 | 0.417 | 200 |
-| `v28_reliability_weighting` | 0.762 | 0.500 | 196 |
-| `v17_rookie_growth` | 0.762 | 0.417 | 200 |
-| `v23_draft_capital` | 0.761 | 0.375 | 196 |
-| `v22_advanced_receiving` | 0.760 | 0.500 | 196 |
-| `v1_baseline_weighted_ppg` | 0.756 | 0.500 | 200 |
-| `v31_depth_chart` | 0.751 | 0.500 | 196 |
-| `external_fantasypros_v1` | 0.749 | 0.500 | 131 |
-| `v20_learned_usage` | 0.748 | 0.542 | 196 |
-| `position_mean_baseline` | 0.345 | 0.125 | 207 |
+| `v4_availability_adjusted` | **0.802** | 0.417 | 299 |
+| `v6_usage_share` | **0.802** | 0.417 | 299 |
+| `v7_regression_to_mean` | 0.801 | 0.417 | 299 |
+| `v18_usage_level` | 0.801 | 0.417 | 299 |
+| `v19_usage_level_full` | 0.801 | 0.417 | 299 |
+| `v15_snap_trend` | 0.800 | 0.417 | 299 |
+| `v5_team_context` | 0.800 | 0.417 | 299 |
+| `v17_rookie_growth` | 0.800 | 0.417 | 299 |
+| `v25_draft_capital_residual` | 0.800 | 0.417 | 286 |
+| `v2_age_adjusted` | 0.799 | 0.417 | 299 |
+| `v3_stat_weighted` | 0.799 | 0.417 | 299 |
+| `v16_snap_trend_full` | 0.799 | 0.458 | 299 |
+| `v10_stat_efficiency_v2` | 0.798 | 0.417 | 299 |
+| `v8_age_regression` | 0.798 | 0.417 | 299 |
+| `v9_pos_specific` | 0.798 | 0.417 | 299 |
+| `v12_no_qb_trajectory` | 0.798 | 0.417 | 299 |
+| `v13_qb_starter` | 0.798 | 0.417 | 299 |
+| `v14_qb_starter` | 0.798 | 0.417 | 299 |
+| `v21_tiered_regression` | 0.797 | 0.500 | 299 |
+| `v29_reliability_residual` | 0.797 | 0.458 | 286 |
+| `v11_team_context_v2` | 0.797 | 0.417 | 299 |
+| `v23_draft_capital` | 0.796 | 0.333 | 286 |
+| `v1_baseline_weighted_ppg` | 0.793 | 0.500 | 299 |
+| `v26_vegas_residual` | 0.792 | 0.583 | 286 |
+| `v31_depth_chart` | 0.792 | 0.458 | 286 |
+| `naive_prior_season_ppg` | 0.788 | 0.458 | 304 |
+| `v30_reliability_full_refit` | 0.785 | 0.458 | 286 |
+| `v22_advanced_receiving` | 0.784 | 0.417 | 286 |
+| `external_fantasypros_v1` | 0.784 | 0.500 | 140 |
+| `v28_reliability_weighting` | 0.783 | 0.458 | 286 |
+| `v27_vegas_full_refit` | 0.782 | 0.375 | 286 |
+| `v20_learned_usage` | 0.777 | 0.500 | 286 |
+| `position_mean_baseline` | 0.007 | 0.042 | 304 |
 
 ### TE (top-12)
 
 | Model | Spearman ρ | Top-N hit | N |
 | --- | --- | --- | --- |
-| `external_fantasypros_v1` | **0.788** | 0.750 | 111 |
-| `v1_baseline_weighted_ppg` | 0.758 | 0.333 | 144 |
-| `v20_learned_usage` | 0.758 | 0.333 | 142 |
-| `v31_depth_chart` | 0.756 | 0.333 | 142 |
-| `v19_usage_level_full` | 0.755 | 0.417 | 144 |
-| `v10_stat_efficiency_v2` | 0.752 | 0.417 | 144 |
-| `v30_reliability_full_refit` | 0.752 | 0.417 | 142 |
-| `v18_usage_level` | 0.752 | 0.417 | 144 |
-| `v3_stat_weighted` | 0.751 | 0.417 | 144 |
-| `v11_team_context_v2` | 0.751 | 0.417 | 144 |
-| `v2_age_adjusted` | 0.751 | 0.417 | 144 |
-| `v8_age_regression` | 0.751 | 0.417 | 144 |
-| `v9_pos_specific` | 0.751 | 0.417 | 144 |
-| `v12_no_qb_trajectory` | 0.751 | 0.417 | 144 |
-| `v13_qb_starter` | 0.751 | 0.417 | 144 |
-| `v14_qb_starter` | 0.751 | 0.417 | 144 |
-| `v15_snap_trend` | 0.748 | 0.500 | 144 |
-| `v21_tiered_regression` | 0.747 | 0.417 | 144 |
-| `v29_reliability_residual` | 0.747 | 0.417 | 142 |
-| `v16_snap_trend_full` | 0.746 | 0.500 | 144 |
-| `v6_usage_share` | 0.745 | 0.417 | 144 |
-| `v7_regression_to_mean` | 0.745 | 0.417 | 144 |
-| `v5_team_context` | 0.744 | 0.417 | 144 |
-| `v28_reliability_weighting` | 0.742 | 0.333 | 142 |
-| `v23_draft_capital` | 0.740 | 0.333 | 142 |
-| `v22_advanced_receiving` | 0.740 | 0.333 | 142 |
-| `v26_vegas_residual` | 0.740 | 0.417 | 142 |
-| `v4_availability_adjusted` | 0.740 | 0.417 | 144 |
-| `v27_vegas_full_refit` | 0.739 | 0.417 | 142 |
-| `v17_rookie_growth` | 0.737 | 0.417 | 144 |
-| `v25_draft_capital_residual` | 0.734 | 0.417 | 142 |
-| `naive_prior_season_ppg` | 0.726 | 0.417 | 150 |
-| `position_mean_baseline` | 0.185 | 0.167 | 150 |
+| `external_fantasypros_v1` | **0.791** | 0.750 | 113 |
+| `v31_depth_chart` | 0.748 | 0.417 | 171 |
+| `v23_draft_capital` | 0.743 | 0.333 | 171 |
+| `v25_draft_capital_residual` | 0.740 | 0.333 | 171 |
+| `v27_vegas_full_refit` | 0.739 | 0.417 | 171 |
+| `v26_vegas_residual` | 0.735 | 0.417 | 171 |
+| `v7_regression_to_mean` | 0.734 | 0.417 | 176 |
+| `v22_advanced_receiving` | 0.733 | 0.333 | 171 |
+| `v1_baseline_weighted_ppg` | 0.733 | 0.333 | 176 |
+| `v29_reliability_residual` | 0.733 | 0.417 | 171 |
+| `v5_team_context` | 0.732 | 0.417 | 176 |
+| `v30_reliability_full_refit` | 0.731 | 0.417 | 171 |
+| `v6_usage_share` | 0.730 | 0.417 | 176 |
+| `naive_prior_season_ppg` | 0.728 | 0.417 | 181 |
+| `v20_learned_usage` | 0.727 | 0.333 | 171 |
+| `v28_reliability_weighting` | 0.726 | 0.417 | 171 |
+| `v4_availability_adjusted` | 0.725 | 0.417 | 176 |
+| `v3_stat_weighted` | 0.721 | 0.417 | 176 |
+| `v2_age_adjusted` | 0.720 | 0.417 | 176 |
+| `v18_usage_level` | 0.719 | 0.417 | 176 |
+| `v11_team_context_v2` | 0.719 | 0.417 | 176 |
+| `v10_stat_efficiency_v2` | 0.719 | 0.417 | 176 |
+| `v19_usage_level_full` | 0.718 | 0.417 | 176 |
+| `v8_age_regression` | 0.717 | 0.417 | 176 |
+| `v9_pos_specific` | 0.717 | 0.417 | 176 |
+| `v12_no_qb_trajectory` | 0.717 | 0.417 | 176 |
+| `v13_qb_starter` | 0.717 | 0.417 | 176 |
+| `v14_qb_starter` | 0.717 | 0.417 | 176 |
+| `v17_rookie_growth` | 0.714 | 0.417 | 176 |
+| `v15_snap_trend` | 0.714 | 0.500 | 176 |
+| `v16_snap_trend_full` | 0.712 | 0.500 | 176 |
+| `v21_tiered_regression` | 0.709 | 0.417 | 176 |
+| `position_mean_baseline` | 0.057 | 0.083 | 181 |
 
 ## Season 2024 — ALL (held-out)
 
 | Model | MAE | Bias | R² | RMSE | N |
 | --- | --- | --- | --- | --- | --- |
-| `v31_depth_chart` | 2.636 | -0.928 | 0.566 | 3.345 | 271 |
-| `v19_usage_level_full` | 2.660 | +0.011 | 0.552 | 3.440 | 274 |
-| `v14_qb_starter` | 2.660 | +0.168 | 0.549 | 3.449 | 274 |
-| `v12_no_qb_trajectory` | 2.663 | +0.106 | 0.537 | 3.495 | 274 |
-| `v16_snap_trend_full` | 2.669 | +0.152 | 0.543 | 3.471 | 274 |
-| `external_fantasypros_v1` | 2.671 | +1.449 | 0.579 | 3.509 | 187 |
-| `v13_qb_starter` | 2.675 | +0.082 | 0.525 | 3.540 | 274 |
-| `v11_team_context_v2` | 2.676 | +0.063 | 0.523 | 3.546 | 274 |
-| `v17_rookie_growth` | 2.676 | +0.135 | 0.544 | 3.468 | 274 |
-| `v8_age_regression` | 2.682 | +0.089 | 0.524 | 3.544 | 274 |
-| `v9_pos_specific` | 2.682 | +0.089 | 0.524 | 3.544 | 274 |
-| `v10_stat_efficiency_v2` | 2.690 | +0.090 | 0.524 | 3.542 | 274 |
-| `v22_advanced_receiving` | 2.691 | -0.675 | 0.535 | 3.462 | 271 |
-| `v27_vegas_full_refit` | 2.695 | -0.661 | 0.528 | 3.490 | 271 |
-| `v28_reliability_weighting` | 2.700 | -0.679 | 0.533 | 3.472 | 271 |
-| `v20_learned_usage` | 2.712 | -0.796 | 0.531 | 3.477 | 271 |
-| `v23_draft_capital` | 2.725 | -0.697 | 0.516 | 3.533 | 271 |
-| `v26_vegas_residual` | 2.728 | -0.842 | 0.526 | 3.498 | 271 |
-| `v2_age_adjusted` | 2.731 | -0.043 | 0.505 | 3.612 | 274 |
-| `v3_stat_weighted` | 2.732 | -0.026 | 0.507 | 3.606 | 274 |
-| `v21_tiered_regression` | 2.739 | +0.406 | 0.510 | 3.597 | 274 |
-| `v25_draft_capital_residual` | 2.746 | -0.830 | 0.518 | 3.527 | 271 |
-| `v29_reliability_residual` | 2.748 | -0.814 | 0.518 | 3.528 | 271 |
-| `v30_reliability_full_refit` | 2.754 | -0.994 | 0.510 | 3.556 | 271 |
-| `v1_baseline_weighted_ppg` | 2.755 | -0.289 | 0.482 | 3.698 | 274 |
-| `v18_usage_level` | 2.757 | -0.199 | 0.500 | 3.631 | 274 |
-| `v15_snap_trend` | 2.764 | -0.059 | 0.497 | 3.642 | 274 |
-| `v7_regression_to_mean` | 2.796 | +0.362 | 0.497 | 3.643 | 274 |
-| `v4_availability_adjusted` | 2.838 | +0.413 | 0.475 | 3.722 | 274 |
-| `v5_team_context` | 2.843 | +0.387 | 0.471 | 3.735 | 274 |
-| `v6_usage_share` | 2.850 | +0.231 | 0.471 | 3.737 | 274 |
-| `naive_prior_season_ppg` | 2.963 | +0.039 | 0.369 | 4.112 | 278 |
-| `position_mean_baseline` | 3.650 | +0.702 | 0.174 | 4.704 | 278 |
+| `v31_depth_chart` | 2.265 | +0.064 | 0.668 | 2.975 | 427 |
+| `v19_usage_level_full` | 2.299 | -0.228 | 0.661 | 3.043 | 443 |
+| `v14_qb_starter` | 2.301 | -0.122 | 0.661 | 3.042 | 443 |
+| `v12_no_qb_trajectory` | 2.303 | -0.161 | 0.654 | 3.072 | 443 |
+| `v16_snap_trend_full` | 2.309 | -0.140 | 0.655 | 3.068 | 443 |
+| `v17_rookie_growth` | 2.314 | -0.157 | 0.659 | 3.049 | 443 |
+| `v13_qb_starter` | 2.314 | -0.175 | 0.647 | 3.102 | 443 |
+| `v8_age_regression` | 2.316 | -0.171 | 0.646 | 3.106 | 443 |
+| `v9_pos_specific` | 2.316 | -0.171 | 0.646 | 3.106 | 443 |
+| `v10_stat_efficiency_v2` | 2.320 | -0.162 | 0.647 | 3.103 | 443 |
+| `v26_vegas_residual` | 2.328 | -0.078 | 0.654 | 3.038 | 427 |
+| `v11_team_context_v2` | 2.333 | -0.189 | 0.642 | 3.123 | 443 |
+| `v25_draft_capital_residual` | 2.336 | -0.049 | 0.656 | 3.028 | 427 |
+| `v20_learned_usage` | 2.339 | +0.139 | 0.648 | 3.061 | 427 |
+| `v2_age_adjusted` | 2.342 | -0.333 | 0.634 | 3.161 | 443 |
+| `v23_draft_capital` | 2.343 | +0.072 | 0.647 | 3.066 | 427 |
+| `v4_availability_adjusted` | 2.343 | +0.086 | 0.632 | 3.170 | 443 |
+| `v3_stat_weighted` | 2.345 | -0.333 | 0.634 | 3.160 | 443 |
+| `v22_advanced_receiving` | 2.350 | +0.143 | 0.649 | 3.059 | 427 |
+| `v1_baseline_weighted_ppg` | 2.356 | -0.486 | 0.620 | 3.221 | 443 |
+| `v7_regression_to_mean` | 2.364 | +0.102 | 0.629 | 3.180 | 443 |
+| `v29_reliability_residual` | 2.364 | -0.044 | 0.644 | 3.078 | 427 |
+| `v18_usage_level` | 2.366 | -0.439 | 0.626 | 3.193 | 443 |
+| `v5_team_context` | 2.367 | +0.058 | 0.622 | 3.213 | 443 |
+| `v6_usage_share` | 2.368 | -0.033 | 0.622 | 3.210 | 443 |
+| `v15_snap_trend` | 2.371 | -0.352 | 0.626 | 3.193 | 443 |
+| `v30_reliability_full_refit` | 2.372 | +0.068 | 0.641 | 3.092 | 427 |
+| `v27_vegas_full_refit` | 2.374 | +0.068 | 0.644 | 3.080 | 427 |
+| `v28_reliability_weighting` | 2.379 | +0.131 | 0.636 | 3.113 | 427 |
+| `v21_tiered_regression` | 2.387 | -0.064 | 0.626 | 3.196 | 443 |
+| `naive_prior_season_ppg` | 2.441 | -0.127 | 0.556 | 3.490 | 450 |
+| `external_fantasypros_v1` | 2.597 | +1.367 | 0.620 | 3.443 | 200 |
+| `position_mean_baseline` | 3.698 | +0.787 | 0.173 | 4.760 | 450 |
 
 ## Season 2025 — ALL (held-out)
 
 | Model | MAE | Bias | R² | RMSE | N |
 | --- | --- | --- | --- | --- | --- |
-| `v14_qb_starter` | 2.296 | -0.381 | 0.656 | 3.097 | 373 |
-| `external_fantasypros_v1` | 2.301 | +0.637 | 0.675 | 3.241 | 243 |
-| `v19_usage_level_full` | 2.306 | -0.493 | 0.655 | 3.102 | 373 |
-| `v16_snap_trend_full` | 2.320 | -0.428 | 0.650 | 3.128 | 373 |
-| `v21_tiered_regression` | 2.320 | -0.262 | 0.638 | 3.178 | 373 |
-| `v12_no_qb_trajectory` | 2.330 | -0.437 | 0.629 | 3.220 | 373 |
-| `v10_stat_efficiency_v2` | 2.333 | -0.466 | 0.627 | 3.227 | 373 |
-| `v7_regression_to_mean` | 2.333 | -0.235 | 0.637 | 3.182 | 373 |
-| `v8_age_regression` | 2.340 | -0.473 | 0.625 | 3.236 | 373 |
-| `v9_pos_specific` | 2.340 | -0.473 | 0.625 | 3.236 | 373 |
-| `v13_qb_starter` | 2.344 | -0.465 | 0.623 | 3.247 | 373 |
-| `v11_team_context_v2` | 2.353 | -0.493 | 0.619 | 3.263 | 373 |
-| `v17_rookie_growth` | 2.362 | -0.460 | 0.647 | 3.139 | 373 |
-| `v5_team_context` | 2.363 | -0.295 | 0.615 | 3.279 | 373 |
-| `v4_availability_adjusted` | 2.364 | -0.278 | 0.618 | 3.266 | 373 |
-| `v3_stat_weighted` | 2.379 | -0.631 | 0.604 | 3.328 | 373 |
-| `v2_age_adjusted` | 2.385 | -0.643 | 0.602 | 3.334 | 373 |
-| `v6_usage_share` | 2.386 | -0.407 | 0.609 | 3.305 | 373 |
-| `v15_snap_trend` | 2.409 | -0.691 | 0.593 | 3.370 | 373 |
-| `v18_usage_level` | 2.421 | -0.756 | 0.593 | 3.372 | 373 |
-| `v1_baseline_weighted_ppg` | 2.543 | -0.919 | 0.560 | 3.505 | 373 |
-| `naive_prior_season_ppg` | 2.603 | -0.761 | 0.522 | 3.671 | 389 |
-| `v30_reliability_full_refit` | 2.636 | -1.356 | 0.602 | 3.305 | 364 |
-| `v31_depth_chart` | 2.654 | -1.170 | 0.575 | 3.415 | 364 |
-| `v20_learned_usage` | 2.661 | -1.256 | 0.603 | 3.301 | 364 |
-| `v26_vegas_residual` | 2.706 | -1.463 | 0.587 | 3.364 | 364 |
-| `v27_vegas_full_refit` | 2.716 | -1.368 | 0.580 | 3.394 | 364 |
-| `v28_reliability_weighting` | 2.723 | -1.324 | 0.588 | 3.360 | 364 |
-| `v29_reliability_residual` | 2.730 | -1.443 | 0.587 | 3.368 | 364 |
-| `v22_advanced_receiving` | 2.731 | -1.318 | 0.587 | 3.366 | 364 |
-| `v25_draft_capital_residual` | 2.777 | -1.476 | 0.577 | 3.404 | 364 |
-| `v23_draft_capital` | 2.793 | -1.408 | 0.566 | 3.451 | 364 |
-| `position_mean_baseline` | 3.753 | +0.283 | 0.192 | 4.774 | 389 |
+| `v26_vegas_residual` | 2.258 | -0.452 | 0.678 | 2.976 | 383 |
+| `v31_depth_chart` | 2.273 | -0.298 | 0.666 | 3.031 | 383 |
+| `v29_reliability_residual` | 2.278 | -0.446 | 0.672 | 3.003 | 383 |
+| `v25_draft_capital_residual` | 2.283 | -0.456 | 0.674 | 2.993 | 383 |
+| `external_fantasypros_v1` | 2.283 | +0.632 | 0.680 | 3.228 | 245 |
+| `v30_reliability_full_refit` | 2.284 | -0.395 | 0.665 | 3.037 | 383 |
+| `v28_reliability_weighting` | 2.291 | -0.245 | 0.663 | 3.044 | 383 |
+| `v14_qb_starter` | 2.293 | -0.451 | 0.661 | 3.090 | 399 |
+| `v7_regression_to_mean` | 2.297 | -0.206 | 0.650 | 3.140 | 399 |
+| `v21_tiered_regression` | 2.300 | -0.446 | 0.645 | 3.162 | 399 |
+| `v16_snap_trend_full` | 2.301 | -0.484 | 0.657 | 3.107 | 399 |
+| `v19_usage_level_full` | 2.302 | -0.556 | 0.660 | 3.092 | 399 |
+| `v22_advanced_receiving` | 2.307 | -0.234 | 0.663 | 3.043 | 383 |
+| `v20_learned_usage` | 2.310 | -0.222 | 0.657 | 3.070 | 383 |
+| `v23_draft_capital` | 2.311 | -0.407 | 0.656 | 3.075 | 383 |
+| `v27_vegas_full_refit` | 2.313 | -0.402 | 0.657 | 3.070 | 383 |
+| `v17_rookie_growth` | 2.326 | -0.490 | 0.658 | 3.103 | 399 |
+| `v4_availability_adjusted` | 2.326 | -0.304 | 0.629 | 3.231 | 399 |
+| `v12_no_qb_trajectory` | 2.327 | -0.505 | 0.635 | 3.205 | 399 |
+| `v5_team_context` | 2.330 | -0.318 | 0.627 | 3.241 | 399 |
+| `v10_stat_efficiency_v2` | 2.332 | -0.528 | 0.633 | 3.215 | 399 |
+| `v8_age_regression` | 2.334 | -0.539 | 0.632 | 3.218 | 399 |
+| `v9_pos_specific` | 2.334 | -0.539 | 0.632 | 3.218 | 399 |
+| `v13_qb_starter` | 2.341 | -0.532 | 0.629 | 3.233 | 399 |
+| `v11_team_context_v2` | 2.342 | -0.550 | 0.630 | 3.228 | 399 |
+| `v6_usage_share` | 2.348 | -0.425 | 0.622 | 3.262 | 399 |
+| `v3_stat_weighted` | 2.366 | -0.748 | 0.611 | 3.311 | 399 |
+| `v2_age_adjusted` | 2.376 | -0.754 | 0.609 | 3.320 | 399 |
+| `v15_snap_trend` | 2.385 | -0.787 | 0.603 | 3.343 | 399 |
+| `v18_usage_level` | 2.410 | -0.860 | 0.600 | 3.356 | 399 |
+| `v1_baseline_weighted_ppg` | 2.524 | -1.012 | 0.570 | 3.480 | 399 |
+| `naive_prior_season_ppg` | 2.615 | -0.785 | 0.521 | 3.677 | 405 |
+| `position_mean_baseline` | 3.757 | +0.691 | 0.169 | 4.842 | 405 |
