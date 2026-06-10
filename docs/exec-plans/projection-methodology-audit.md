@@ -312,6 +312,51 @@ mix-driven illusion visible at a glance.
 
 ---
 
+## 🔬 Modeling follow-up (#579): recalibration ties `v14` but doesn't beat it — NEGATIVE RESULT
+
+Finding 1b left a 🔴 follow-up: the learned models over-project out-of-sample
+(bias −1.0 to −1.3) — recalibrate before re-promoting. A diagnostic settled it,
+and the answer is a **negative result**: recalibration alone cannot make a
+learned model beat the additive production model.
+
+**Why they over-project.** The eval population's mean PPG swings from ~9.7 in the
+training seasons (2021–2023) to ~7.0 in the held-out seasons (2024–2025) —
+partly scoring environment, largely coverage (the qualifying N nearly tripled,
+2022 N=154 → 2025 N=398, as more marginal players are tracked). A Ridge with a
+global intercept (≈ mean training PPG) plus an amplified `regression_to_mean`
+coefficient (1.46) pulling toward stale, high positional means **bakes in the
+training-season scoring level**, which doesn't transfer to the lower-mean eval
+population. The additive `v14` avoids this by anchoring each prediction to the
+player's own recency-weighted PPG (which adapts per-season) and using small fixed
+adjustment factors.
+
+**The deficit is almost entirely correctable bias — but the ceiling is a tie.**
+Held-out (train 2021–2023, eval 2024–2025):
+
+| Model | Raw MAE | Raw bias | MAE after oracle de-bias |
+|---|---|---|---|
+| `v14_qb_starter` (additive, production) | 2.450 | −0.149 | 2.437 |
+| `v20_learned_usage` | 2.683 | −1.060 | **2.465** |
+| `v27_vegas_full_refit` (all features) | 2.707 | −1.066 | 2.512 |
+
+Removing the systematic bias collapses `v20`'s gap to `v14` from 0.233 to **0.015
+— a tie**, confirming the *ranking* is fine and only the *level* was wrong. But
+even with an **oracle** de-bias (not achievable in practice), the learned models
+only **match** `v14`; they never beat it. And `v27`, with the full
+receiving/draft/Vegas feature set, de-biases *worse* than the minimal `v20`
+(2.512 vs 2.465) — extra features add no out-of-sample value.
+
+**Decision.** Keep `v14_qb_starter` in production. Pure recalibration is not
+worth shipping (best case = parity with a simpler, already-deployed model).
+Beating `v14` requires **better ranking signal or an orthogonal axis
+(availability), not calibration** — which reframes the whole projection backlog
+(see [the new experiment plan](projection-accuracy-improvement.md#experiment-backlog-post-audit-2026-06-10)).
+The leakage-free tooling built for Findings 1b/2/3/6 (`just holdout-eval`,
+`just significance`, `just availability-backtest`, `--matched`, balanced MAE) is
+now the harness every new experiment must clear.
+
+---
+
 ## What the audit found to be sound (keep doing)
 
 - **Two-stage residual design (`v25`)** — freezing the base, `fit_intercept=False`
@@ -334,7 +379,7 @@ mix-driven illusion visible at a glance.
 | 1 — train/test leakage (report honesty) | 🔴 | [#571](https://github.com/alex-monroe/ottoneu-db/issues/571) | shipped in this PR |
 | 1b — held-out evaluation window | 🔴 | [#572](https://github.com/alex-monroe/ottoneu-db/issues/572) | shipped (`just holdout-eval`); ranking inverts — see above |
 | 2 — bootstrap significance on MAE deltas | 🟠 | [#573](https://github.com/alex-monroe/ottoneu-db/issues/573) | shipped (`just significance`); see Finding 2 result |
-| (rec) recalibrate learned models before re-promotion | 🔴 | [#579](https://github.com/alex-monroe/ottoneu-db/issues/579) | open |
+| (rec) recalibrate learned models before re-promotion | 🔴 | [#579](https://github.com/alex-monroe/ottoneu-db/issues/579) | closed — NEGATIVE RESULT (recalibration ties but can't beat `v14`); backlog re-planned |
 | 3 — availability-inclusive evaluation | 🟠 | [#574](https://github.com/alex-monroe/ottoneu-db/issues/574) | shipped (`just availability-backtest`); see Finding 3 result |
 | 4 — naïve baselines + matched-sample FP | 🟠 | [#575](https://github.com/alex-monroe/ottoneu-db/issues/575) | shipped (2 baseline models + `--matched`); see Finding 4 result |
 | 5 — R² aggregation discipline | 🟡 | [#576](https://github.com/alex-monroe/ottoneu-db/issues/576) | shipped (pooled R² where possible, omitted where not) |
