@@ -51,10 +51,33 @@ budget +0.589 → −0.130 (below even FantasyPros's −0.124) and the −1.95
 over-projection bias collapses to −0.24, with the rate projection unchanged. The
 same effect holds on `v8_age_regression` (budget +0.625 → −0.138), so it is not a
 v14 quirk. **Guardrail:** the haircut *hurts* already-availability-aware projections
-(FantasyPros budget −0.124 → +0.084) — apply it to pure-rate models only. Next
-increments: (b) age/position/depth-role expected-games model, then productionise as
-a separate `projected_games` output column so the live VORP/auction consumers get
-availability-inclusive projections without disturbing the rate gate.
+(FantasyPros budget −0.124 → +0.084) — apply it to pure-rate models only.
+
+**Stage (b) — structural expected-games model: NEGATIVE.** Age/position/depth-role
+features (linear) tie plain history on games-MAE (3.59→3.58); a nonlinear GBM gets
+a fragile ~4% that is hyperparameter-sensitive and burns confirmation looks. Plain
+history is the robust production estimator; no trained model. (Matches the issue's
+own staging — injury/structural features only if (b) leaves budget; it doesn't.)
+
+**Stage (c) — productionised** as the `projected_games` column (PR #613) and
+availability-inclusive value in VORP/surplus/arbitration (PR #614).
+
+**Thin-history guard (c2 review).** The before/after review showed plain history
+over-penalises *ascending young players* (thin/partial history reflects a rising
+role, not injury — e.g. Penix, Skattebo, Daniels). Empirically, any guard that
+lifts them costs games-MAE because the thin-history cohort genuinely under-plays on
+average (a blunt "young ⇒ full 17 games" gate worsens games-MAE 3.59→4.74). The
+chosen guard floors only players with <3 prior played seasons at 12 games
+(`YOUNG_PLAYER_GAMES_FLOOR`): vets keep the full discount, young players aren't
+read as injury risks. Cost: v14 availability budget −0.130 → **−0.042** (still well
+below the +0.589 no-modeling baseline; avail MAE 2.986 → 2.356, −21%; bias −1.95 →
+−0.46) — a deliberate accuracy-for-fairness trade on the young cohort.
+
+| Mode | Avail MAE | Budget | Avail bias |
+|------|-----------|--------|------------|
+| none (raw rate) | 2.986 | +0.589 | −1.946 |
+| history (unguarded) | 2.268 | −0.130 | −0.236 |
+| **history + thin-history guard (production)** | **2.356** | **−0.042** | **−0.464** |
 
 ## Historical (in-sample) log — pre-audit, deltas not reliable
 

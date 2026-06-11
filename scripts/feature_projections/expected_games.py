@@ -31,6 +31,22 @@ FULL_SEASON_GAMES = 17
 # Most-recent-first recency weights for the player-history mode (up to 3 seasons).
 RECENCY_WEIGHTS = [0.6, 0.3, 0.1]
 
+# Thin-history guard (#587 c2 review). A player's own recency-weighted games are
+# the best *average* availability predictor, but for players without an
+# established multi-season track record a low value usually reflects a *role
+# ramp* (rookies/sophomores easing into a starting job) rather than injury
+# proneness — so a pure-history haircut over-penalises ascending young players
+# (e.g. a 2nd-year QB who started 9 games as a rookie is not a 9-game injury
+# risk). We therefore floor the estimate for players with fewer than
+# YOUNG_PLAYER_MAX_PRIOR_SEASONS prior *played* seasons at YOUNG_PLAYER_GAMES_FLOOR
+# (≈70% of a season): they can still be discounted, just not below a reasonable
+# starter floor until they've accrued a durability record. Established players
+# (≥ the threshold) keep the full history discount, so chronic-injury vets are
+# unaffected. This costs a little games-MAE accuracy (+~0.3) on the thin-history
+# cohort in exchange for not mis-valuing ascending players.
+YOUNG_PLAYER_MAX_PRIOR_SEASONS = 3
+YOUNG_PLAYER_GAMES_FLOOR = 12.0
+
 MODES = ("none", "constant", "history")
 
 
@@ -127,7 +143,19 @@ def build_expected_games(
             if mode == "constant":
                 eg = constant
             else:  # history
-                player_eg = _player_recency_games(by_player.get(pid, []))
-                eg = player_eg if player_eg is not None else constant
+                player_rows = by_player.get(pid, [])
+                player_eg = _player_recency_games(player_rows)
+                if player_eg is None:
+                    eg = constant
+                else:
+                    eg = player_eg
+                    # Thin-history guard: floor ascending young players (few prior
+                    # played seasons) so a role-ramp history isn't read as injury
+                    # risk. Established players keep the full history discount.
+                    n_played = sum(
+                        1 for r in player_rows if int(r.get("games_played", 0) or 0) >= 1
+                    )
+                    if n_played < YOUNG_PLAYER_MAX_PRIOR_SEASONS:
+                        eg = max(eg, YOUNG_PLAYER_GAMES_FLOOR)
             out[(pid, int(target_season))] = min(eg, float(full_season))
     return out
