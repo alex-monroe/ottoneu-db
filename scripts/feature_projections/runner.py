@@ -18,6 +18,7 @@ from scripts.feature_projections.learned_combiner import (
     load_model_params,
 )
 from scripts.feature_projections.qb_starters import get_all_starter_ids, is_qb_starter
+from scripts.feature_projections.expected_games import build_expected_games
 
 
 def _ensure_model_in_db(supabase, model_def: ModelDefinition) -> str:
@@ -494,6 +495,16 @@ def run_model(
     # Fetch opening-day depth-chart tiers once (used across all target seasons)
     depth_charts_lookup = _build_depth_charts_lookup(supabase)
 
+    # Leakage-free expected-games per (player, target season) — the #587 stage-c
+    # availability haircut. Built from each player's prior-season games_played
+    # (recency-weighted "history" mode); seasons strictly before the target only.
+    # Stored as projected_games so consumers can compute availability-inclusive
+    # production without disturbing the rate projection (or its significance gate).
+    pos_map = dict(zip(players_df["player_id_ref"], players_df["position"]))
+    games_stats = fetch_all_rows(supabase, "player_stats", "player_id, games_played, season")
+    expected_games = build_expected_games(games_stats, pos_map, seasons, "history")
+    print(f"Expected-games (history) estimates: {len(expected_games)} (player, season)")
+
     total_records = 0
 
     for target_season in seasons:
@@ -609,11 +620,13 @@ def run_model(
                 )
 
             if projected_ppg is not None:
+                eg = expected_games.get((player_id_str, target_season))
                 records.append({
                     "model_id": model_id,
                     "player_id": player_id_str,
                     "season": target_season,
                     "projected_ppg": round(float(projected_ppg), 4),
+                    "projected_games": round(float(eg), 2) if eg is not None else None,
                     "feature_values": json.dumps(
                         {k: round(v, 4) if v is not None else None for k, v in feature_values.items()}
                     ),

@@ -447,6 +447,7 @@ export type Database = {
           id: string
           model_id: string
           player_id: string
+          projected_games: number | null
           projected_ppg: number
           season: number
         }
@@ -456,6 +457,7 @@ export type Database = {
           id?: string
           model_id: string
           player_id: string
+          projected_games?: number | null
           projected_ppg: number
           season: number
         }
@@ -465,6 +467,7 @@ export type Database = {
           id?: string
           model_id?: string
           player_id?: string
+          projected_games?: number | null
           projected_ppg?: number
           season?: number
         }
@@ -609,6 +612,7 @@ export type Database = {
           created_at: string
           id: string
           player_id: string
+          projected_games: number | null
           projected_ppg: number
           projection_method: string
           season: number
@@ -618,6 +622,7 @@ export type Database = {
           created_at?: string
           id?: string
           player_id: string
+          projected_games?: number | null
           projected_ppg: number
           projection_method: string
           season: number
@@ -627,6 +632,7 @@ export type Database = {
           created_at?: string
           id?: string
           player_id?: string
+          projected_games?: number | null
           projected_ppg?: number
           projection_method?: string
           season?: number
