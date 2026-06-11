@@ -189,21 +189,25 @@ export async function fetchModelBacktestData(
  */
 async function buildProjectionMap(
   season: number
-): Promise<Map<string, { ppg: number; method: string }>> {
+): Promise<Map<string, { ppg: number; method: string; games: number | null }>> {
   // Paginate: a single season of player_projections (~1,289-1,458) exceeds the
   // 1000-row cap, so a plain select silently drops ~25% of projected players.
   const projectionsData = await fetchAllRows((from, to) =>
     supabase
       .from("player_projections")
-      .select("player_id, projected_ppg, projection_method")
+      .select("player_id, projected_ppg, projection_method, projected_games")
       .eq("season", season)
       .order("id").range(from, to),
   );
 
-  const projections = new Map<string, { ppg: number; method: string }>();
+  const projections = new Map<string, { ppg: number; method: string; games: number | null }>();
   if (projectionsData) {
     projectionsData.forEach(p => {
-      projections.set(p.player_id, { ppg: p.projected_ppg, method: p.projection_method });
+      projections.set(p.player_id, {
+        ppg: p.projected_ppg,
+        method: p.projection_method,
+        games: p.projected_games,
+      });
     });
   }
 
@@ -215,7 +219,7 @@ async function buildProjectionMap(
  */
 export async function fetchProjectionMap(
   season: number
-): Promise<Record<string, { ppg: number; method: string }>> {
+): Promise<Record<string, { ppg: number; method: string; games: number | null }>> {
   const map = await buildProjectionMap(season);
   return Object.fromEntries(map);
 }
@@ -226,7 +230,7 @@ export async function fetchProjectionMap(
  */
 export function buildHoverDataMap(
   players: Player[],
-  projMap: Record<string, { ppg: number; method: string }> | null = null,
+  projMap: Record<string, { ppg: number; method: string; games?: number | null }> | null = null,
   dsMap: Record<string, DraftSharksValue> | null = null
 ): Record<string, PlayerHoverData> {
   return Object.fromEntries(
@@ -310,7 +314,9 @@ export async function fetchPlayersWithProjectedPpg(
   return currentPlayers.map((player) => {
     const projEntry = projectionMap.get(player.player_id);
     if (projEntry === undefined) return player; // no projection: use observed PPG
-    return { ...player, ppg: projEntry.ppg };
+    // ppg = raw projected rate (for display); projected_games lets the value
+    // math (calculateVorp) availability-discount it without changing the rate.
+    return { ...player, ppg: projEntry.ppg, projected_games: projEntry.games };
   });
 }
 
@@ -421,6 +427,7 @@ export async function fetchAndMergeProjectedData(
       ...player,
       observed_ppg: player.ppg,
       ppg: projEntry.ppg,
+      projected_games: projEntry.games,
       projection_method: projEntry.method,
     });
   }
