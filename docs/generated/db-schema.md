@@ -57,7 +57,8 @@ The Supabase project (`OttoneuDB`, ref `rbinbcwinchphipvcfqk`) is **shared with 
 - `model_id` UUID FK -> `projection_models`
 - `player_id` UUID FK -> `players`
 - `season` int
-- `projected_ppg` float
+- `projected_ppg` float — pure-rate per-game projection
+- `projected_games` numeric — expected games played (0–17), leakage-free recency-weighted mean of the player's prior-season `games_played` (#587 stage c). `NULL` = no estimate / full availability. Availability-inclusive PPG = `projected_ppg × min(projected_games,17)/17`.
 - `feature_values` jsonb — per-feature computed values for audit/debug
 
 **`backtest_results`**
