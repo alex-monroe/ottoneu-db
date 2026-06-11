@@ -2,6 +2,7 @@
 
 from scripts.feature_projections.expected_games import (
     FULL_SEASON_GAMES,
+    YOUNG_PLAYER_GAMES_FLOOR,
     build_expected_games,
 )
 
@@ -28,8 +29,10 @@ def test_mode_none_returns_empty():
 def test_leakage_free_only_uses_prior_seasons():
     # Target 2023 may only see 2022 rows; rb1's 2023 (17) must not leak in.
     eg = build_expected_games(_stats(), POS_MAP, [2023], "history")
-    assert eg[("rb1", 2023)] == 16  # only 2022 season available
-    assert eg[("rb2", 2023)] == 4
+    assert eg[("rb1", 2023)] == 16  # only 2022 season available (16 > young floor)
+    # rb2 has 1 prior played season (2022=4) → thin-history guard floors it at 12,
+    # not 4. (The leakage check is rb1==16: 2023's 17 did not leak in.)
+    assert eg[("rb2", 2023)] == 12
 
 
 def test_history_is_per_player_recency_weighted():
@@ -63,3 +66,28 @@ def test_history_falls_back_to_position_constant():
     eg = build_expected_games(stats, POS_MAP, [2024], "history")
     # rb2 fell back to the RB constant (only rb1's 17 counts; rb2's 0 excluded).
     assert eg[("rb2", 2024)] == 17
+
+
+def test_thin_history_young_player_is_floored():
+    # An ascending young RB with two low (role-ramp) seasons — k=2 < 3 prior
+    # played seasons — is floored at YOUNG_PLAYER_GAMES_FLOOR, not its
+    # recency-weighted ~6 games.
+    stats = [
+        {"player_id": "young", "season": 2023, "games_played": 5},
+        {"player_id": "young", "season": 2024, "games_played": 7},
+    ]
+    eg = build_expected_games(stats, {"young": "RB"}, [2025], "history")
+    assert eg[("young", 2025)] == YOUNG_PLAYER_GAMES_FLOOR
+
+
+def test_established_chronic_player_is_not_floored():
+    # A vet with 3+ played seasons all below the floor keeps the full history
+    # discount — the guard only protects thin-history (young) players.
+    stats = [
+        {"player_id": "vet", "season": 2022, "games_played": 6},
+        {"player_id": "vet", "season": 2023, "games_played": 6},
+        {"player_id": "vet", "season": 2024, "games_played": 7},
+    ]
+    eg = build_expected_games(stats, {"vet": "RB"}, [2025], "history")
+    # Recency-weighted ~6.4 games, well below the 12 floor, and NOT floored.
+    assert eg[("vet", 2025)] < YOUNG_PLAYER_GAMES_FLOOR
