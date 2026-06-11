@@ -35,6 +35,12 @@ export interface StatsPlayer extends RosteredPlayer {
   snaps: number;
   ppg: number;
   pps: number;
+  // Expected games played (0–17) for the projection that set `ppg`, from
+  // player_projections.projected_games (#587). Only populated on the projection
+  // value paths (arbitration/projected modes); undefined on observed-PPG pages.
+  // Value math (calculateVorp) uses it to availability-discount projected PPG;
+  // `ppg` itself stays the raw rate for display.
+  projected_games?: number | null;
 }
 
 /** Full player with stats — used by analysis pages (VORP, surplus, arb, etc.). */

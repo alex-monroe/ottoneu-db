@@ -117,3 +117,36 @@ describe("calculateVorp — edge cases", () => {
         }
     });
 });
+
+describe("calculateVorp — availability adjustment (#587 c2)", () => {
+    test("projected_games discounts VORP but leaves displayed ppg untouched", () => {
+        // Two identical 18-PPG RBs; one is projected for only 9 games.
+        const players = [
+            makePlayer({ player_id: "durable", position: "RB", ppg: 18, projected_games: 17 }),
+            makePlayer({ player_id: "fragile", position: "RB", ppg: 18, projected_games: 9 }),
+            // Replacement-tier filler so the fixed-rank fallback has a baseline.
+            makePlayer({ player_id: "repl", position: "RB", ppg: 6, projected_games: 17 }),
+        ];
+        const { players: result } = calculateVorp(players);
+        const durable = result.find((p) => p.player_id === "durable")!;
+        const fragile = result.find((p) => p.player_id === "fragile")!;
+
+        // Displayed rate (ppg) is the raw projection for both.
+        expect(durable.ppg).toBe(18);
+        expect(fragile.ppg).toBe(18);
+        // But the fragile player's availability-adjusted value is lower.
+        expect(fragile.vorp_per_game).toBeLessThan(durable.vorp_per_game);
+        // Fragile per-game value ≈ 18×9/17 − replacement; durable ≈ 18 − replacement.
+        expect(durable.vorp_per_game - fragile.vorp_per_game).toBeCloseTo(18 - (18 * 9) / 17, 1);
+    });
+
+    test("absent projected_games is a no-op (observed-PPG pages unaffected)", () => {
+        const withGames = makePlayer({ player_id: "g", position: "WR", ppg: 14, projected_games: 17 });
+        const without = makePlayer({ player_id: "n", position: "WR", ppg: 14 });
+        const { players: a } = calculateVorp([withGames, makePlayer({ player_id: "r1", position: "WR", ppg: 5 })]);
+        const { players: b } = calculateVorp([without, makePlayer({ player_id: "r2", position: "WR", ppg: 5 })]);
+        // projected_games == 17 (full) and projected_games == undefined behave identically.
+        expect(a.find((p) => p.player_id === "g")!.vorp_per_game)
+            .toBeCloseTo(b.find((p) => p.player_id === "n")!.vorp_per_game, 5);
+    });
+});
