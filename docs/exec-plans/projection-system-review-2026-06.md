@@ -262,7 +262,14 @@ in production" is stale and contradicts the held-out doc.
    expected-games output** (new `model_projections` column) that multiplies the
    rate projection only for the availability target — real schema + pipeline
    work, the largest single build in the wave.
-2. **#588** honest ablation vs `v31` (re-framed; cheap — no new model code).
+2. **#588** honest ablation vs `v31` — **DONE (2026-06-11).** Three of eight
+   feature groups are load-bearing (regression_to_mean Δ+0.075 p=0.0006;
+   depth_chart Δ+0.066 p=0.0026; advanced receiving WR-only Δ+0.072 p=0.031);
+   age_curve / usage_share / draft_capital / vegas / qb_backup_penalty are
+   statistically deadweight (all CIs span 0, ordering within ±0.01 ρ). The
+   combined pruned candidate `v32_pruned` (13→8 features) ties v31
+   (Δ+0.020, CI [−0.027, +0.065]) but is no *win*, so **v31 stays active**.
+   Full table in the [experiment log](../generated/experiment-log.md).
 3. **#589** tune base `weighted_ppg` vs `v31` (now unblocked).
 4. **#592** QB-specific bounded bet vs `v31` (per-position significance).
 5. ~~#590 delta-anchored~~ — shelved (premise reversed).
