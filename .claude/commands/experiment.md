@@ -22,28 +22,32 @@ point-estimate delta.
      `holdout-eval` sandbox automatically — no pre-training or pre-projection
      needed (and never train on the eval seasons yourself).
 
-3. **Run the held-out re-rank** against production (`v31_depth_chart`) and the
-   naïve baselines (`naive_prior_season_ppg`, `position_mean_baseline`). Prefer
-   the rolling-origin protocol (#594); the cache (#597) makes re-runs fast:
+3. **Run the held-out re-rank** against the **active model** (check
+   `projection_models.is_active` — `v33_tuned_base` as of 2026-06; do not assume
+   a hardcoded name) and the naïve baselines (`naive_prior_season_ppg`,
+   `position_mean_baseline`). Prefer the rolling-origin protocol (#594); the
+   cache (#597) makes re-runs fast:
    ```bash
    just holdout-eval --protocol rolling --eval-seasons 2023,2024,2025 --min-train-season 2021 \
-     --models MODEL_NAME,v31_depth_chart,naive_prior_season_ppg,position_mean_baseline
+     --models MODEL_NAME,ACTIVE_MODEL,naive_prior_season_ppg,position_mean_baseline
    ```
    Read the **Ranking quality** section too (per-position Spearman ρ + top-N hit
    rate, #598) — the projections feed VORP/auction/keepers, which consume
-   *ordering*, not just PPG level.
+   *ordering*, not just PPG level. You will need these numbers for the
+   experiment-log row (step 7), so capture the per-position ρ and top-N deltas
+   vs the active model now.
 
-4. **Test significance vs the production model** (player-clustered paired
+4. **Test significance vs the active model** (player-clustered paired
    bootstrap, #594). This is the gate:
    ```bash
-   just significance MODEL_NAME v31_depth_chart --protocol rolling \
+   just significance MODEL_NAME ACTIVE_MODEL --protocol rolling \
      --eval-seasons 2023,2024,2025 --min-train-season 2021
    ```
 
 5. **If the model touches availability / expected games**, additionally report
    the availability budget (rate vs availability MAE, #574):
    ```bash
-   just availability-backtest --models MODEL_NAME,v31_depth_chart
+   just availability-backtest --models MODEL_NAME,ACTIVE_MODEL
    ```
 
 6. **State the verdict** from the significance test, not an MAE band:
@@ -52,13 +56,15 @@ point-estimate delta.
    - **NOT SIGNIFICANT** — CI spans 0. The gap is sampling noise; do not promote
      on it, regardless of the point estimate.
    - **SIGNIFICANT REGRESSION** — CI lies entirely above 0.
-   Also note whether the model out-*ranks* `v14` (Spearman/top-N) even at MAE
-   parity — that can justify a ranking-motivated bet (#590/#592).
+   Also note whether the model out-*ranks* the active model (Spearman/top-N)
+   even at MAE parity — that can justify a ranking-motivated bet (#590/#592).
 
 7. **Append to the experiment log** (`docs/generated/experiment-log.md`) using the
    held-out columns: date, model, change, **held-out ALL MAE**, **Δ vs
-   v31_depth_chart**, **95% CI**, **significant? (Y/N)**, protocol, PR. The
-   in-sample `accuracy-report` is a secondary diagnostic only.
+   comparator**, **95% CI**, **significant? (Y/N)**, **Rank Δ (per-position
+   Spearman ρ + top-N hit vs the comparator — required, not a footnote;
+   "≈" if within ±0.01 ρ)**, protocol, PR. The in-sample `accuracy-report` is a
+   secondary diagnostic only.
 
 8. **In the PR description**, lead with the held-out + significance result; the
    in-sample accuracy table, if included, must be labelled "in-sample diagnostic".
