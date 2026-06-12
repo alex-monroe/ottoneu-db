@@ -107,6 +107,7 @@ just check-db           # Verify database contents
 just check-arch         # Architectural/structural tests (includes check-migrations)
 just check-migrations   # Lint migrations/ naming + sequence (offline; see migrations/README.md)
 just check-docs         # Documentation freshness check
+just permission-report [--days N] [--check]  # Permission-prompt rate + top families; --check exits 2 on 7d-vs-28d regression (see docs/references/autonomous-operation.md)
 just ci                 # Full CI suite (lint + typecheck + tests + doc checks)
 just roster-context [season]  # Build the roster-question context pack (live league data); season defaults to 2026
 
