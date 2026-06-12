@@ -1,0 +1,36 @@
+# Egress allowlist for init-firewall.sh — one domain per line, comments with '#'.
+# The firewall resolves each domain at container start and allows only those IPs.
+# Wildcards are NOT supported: list the concrete host (e.g. your Supabase project
+# host, found in SUPABASE_URL in .env — looks like abcdefgh.supabase.co).
+
+# Claude Code / Anthropic
+api.anthropic.com
+statsig.anthropic.com
+console.anthropic.com
+sentry.io
+o1158394.ingest.sentry.io
+
+# Package registries
+registry.npmjs.org
+pypi.org
+files.pythonhosted.org
+
+# GitHub (clone/push, gh CLI, nflverse release downloads)
+github.com
+api.github.com
+raw.githubusercontent.com
+objects.githubusercontent.com
+codeload.github.com
+release-assets.githubusercontent.com
+
+# Playwright browser download (post-create)
+cdn.playwright.dev
+playwright.azureedge.net
+
+# Project data sources (scrapers)
+ottoneu.fangraphs.com
+www.draftsharks.com
+www.fantasypros.com
+
+# Supabase — REPLACE with your project host from SUPABASE_URL in .env
+# <project-ref>.supabase.co

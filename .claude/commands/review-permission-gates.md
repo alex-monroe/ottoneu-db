@@ -70,3 +70,4 @@ Display the table from Step 3, then list concrete proposed changes:
 - This output feeds directly into the retro Step 2 table — surface impactful items as `approval-gate` friction points.
 - Do not flag commands that are already in the allowlist — only flag ones that actually needed manual approval.
 - Prefer `just` targets over raw allowlist entries for anything that wraps a complex or project-specific command. Prefer raw allowlist entries for simple, safe system utilities (e.g. `which`, `mkdir`).
+- **Cross-session data:** this skill scans only the current session. For the historical view (weekly prompt rate, top prompted families across all sessions, regression check), run `just permission-report` — permission prompts are logged by the Notification hook to `~/.claude/metrics/ottoneu_db/permission_prompts.jsonl`. See [docs/references/autonomous-operation.md](../../docs/references/autonomous-operation.md).

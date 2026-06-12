@@ -98,7 +98,37 @@
       "mcp__supabase__list_tables",
       "mcp__puppeteer__puppeteer_click",
       "mcp__puppeteer__puppeteer_evaluate",
-      "mcp__puppeteer__puppeteer_screenshot"
+      "mcp__puppeteer__puppeteer_screenshot",
+      "Read(//Users/alexmonroe/.claude/**)",
+      "Bash(cd:*)",
+      "Bash(echo:*)",
+      "Bash(printf:*)",
+      "Bash(sed -n:*)",
+      "Bash(pgrep:*)",
+      "Bash(ps:*)",
+      "Bash(time:*)",
+      "Bash(timeout:*)",
+      "Bash(touch:*)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(tr:*)",
+      "Bash(cut:*)",
+      "Bash(date:*)",
+      "Bash(basename:*)",
+      "Bash(dirname:*)",
+      "Bash(true)",
+      "Bash(node:*)",
+      "Bash(python3:*)",
+      "Bash(venv/bin/python:*)",
+      "Bash(/Users/alexmonroe/dev/ottoneu_db/venv/bin/python:*)",
+      "Bash(/Users/alexmonroe/dev/ottoneu_db/venv/bin/pytest:*)",
+      "Bash(venv/bin/pip install:*)",
+      "Bash(/Users/alexmonroe/dev/ottoneu_db/venv/bin/pip install:*)"
+    ],
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(sudo:*)"
     ]
   },
   "enabledMcpjsonServers": [
@@ -108,6 +138,17 @@
     "github"
   ],
   "hooks": {
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/log_permission_prompt.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "hooks": [
