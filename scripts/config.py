@@ -85,16 +85,29 @@ def get_supabase_client() -> Client:
 
 
 def fetch_all_rows(supabase, table: str, select: str = "*",
-                   page_size: int = 1000) -> list[dict]:
+                   filters=None, page_size: int = 1000) -> list[dict]:
     """Fetch all rows from a Supabase table, paginating past the PostgREST limit.
 
     PostgREST defaults to returning at most 1000 rows. This helper pages
-    through all results transparently.
+    through all results transparently, so callers never need to write a manual
+    ``.range()`` loop. It is the canonical way to read a query that may exceed
+    1000 rows (see the "Supabase pagination" guidance in CLAUDE.md) and is
+    enforced by ``scripts/tests/test_architecture.py::TestSupabasePagination``.
 
     Args:
         supabase: Supabase client instance.
         table: Table name to query.
         select: Column selection string (default "*").
+        filters: Optional iterable of ``(op, column, value)`` tuples applied to
+            the query before paging, where ``op`` is a PostgREST filter method
+            name such as ``"eq"``, ``"in_"``, ``"lt"``, ``"gte"``, ``"lte"``.
+            Examples::
+
+                fetch_all_rows(sb, "player_stats", "ppg",
+                               filters=[("eq", "season", 2025)])
+                fetch_all_rows(sb, "model_projections", "player_id",
+                               filters=[("eq", "model_id", mid), ("eq", "season", s)])
+
         page_size: Rows per page (default 1000).
 
     Returns:
@@ -103,8 +116,11 @@ def fetch_all_rows(supabase, table: str, select: str = "*",
     all_data: list[dict] = []
     offset = 0
     while True:
+        query = supabase.table(table).select(select)
+        for op, column, value in (filters or []):
+            query = getattr(query, op)(column, value)
         batch = (
-            supabase.table(table).select(select)
+            query
             .range(offset, offset + page_size - 1)
             .execute()
             .data or []

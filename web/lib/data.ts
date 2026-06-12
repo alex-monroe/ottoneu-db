@@ -100,21 +100,16 @@ async function buildSalaryMapAtDate(
 export async function fetchPlayersAtDate(salaryDate: string): Promise<Player[]> {
   const statsSeason = await getStatsSeason();
   // Paginate players (~1,252 with ottoneu_id>0 now exceeds the 1000-row cap).
-  const [players, statsRes, salaryMap] = await Promise.all([
+  const [players, stats, salaryMap] = await Promise.all([
     fetchAllRows((from, to) =>
       supabase.from("players").select("*").gt("ottoneu_id", 0).order("id").range(from, to),
     ),
-    supabase.from("player_stats").select("*").eq("season", statsSeason),
+    // Paginate player_stats — a single season exceeds the 1000-row cap.
+    fetchAllRows((from, to) =>
+      supabase.from("player_stats").select("*").eq("season", statsSeason).order("player_id").range(from, to),
+    ),
     buildSalaryMapAtDate(salaryDate),
   ]);
-
-  if (statsRes.error) throw new Error(`Failed to fetch player stats: ${statsRes.error.message}`);
-
-  const stats = statsRes.data;
-
-  if (!stats) {
-    throw new Error("Failed to fetch data: returned null from Supabase");
-  }
 
   const statsMap = new Map(stats.map((s) => [String(s.player_id), s]));
 
@@ -169,23 +164,18 @@ export async function fetchPlayersPreArb(): Promise<Player[]> {
 export async function fetchPlayers(): Promise<Player[]> {
   const statsSeason = await getStatsSeason();
   // Paginate players (~1,252) and league_prices (~1,252) past the 1000-row cap.
-  const [players, statsRes, prices] = await Promise.all([
+  const [players, stats, prices] = await Promise.all([
     fetchAllRows((from, to) =>
       supabase.from("players").select("*").gt("ottoneu_id", 0).order("id").range(from, to),
     ),
-    supabase.from("player_stats").select("*").eq("season", statsSeason),
+    // Paginate player_stats — a single season exceeds the 1000-row cap.
+    fetchAllRows((from, to) =>
+      supabase.from("player_stats").select("*").eq("season", statsSeason).order("player_id").range(from, to),
+    ),
     fetchAllRows((from, to) =>
       supabase.from("league_prices").select("*").eq("league_id", LEAGUE_ID).order("id").range(from, to),
     ),
   ]);
-
-  if (statsRes.error) throw new Error(`Failed to fetch player stats: ${statsRes.error.message}`);
-
-  const stats = statsRes.data;
-
-  if (!stats) {
-    throw new Error("Failed to fetch data: returned null from Supabase");
-  }
 
   const statsMap = new Map(stats.map((s) => [String(s.player_id), s]));
   const pricesMap = new Map(prices.map((p) => [String(p.player_id), p]));
@@ -229,7 +219,7 @@ export async function fetchPlayerList(): Promise<PlayerListItem[]> {
   const statsSeason = await getStatsSeason();
   // Paginate players (~1,252) and league_prices (~1,252) past the 1000-row cap
   // so the directory isn't silently missing ~20% of players.
-  const [players, statsRes, prices] = await Promise.all([
+  const [players, stats, prices] = await Promise.all([
     fetchAllRows((from, to) =>
       supabase
         .from("players")
@@ -238,10 +228,14 @@ export async function fetchPlayerList(): Promise<PlayerListItem[]> {
         .order("name")
         .order("id").range(from, to),
     ),
-    supabase
-      .from("player_stats")
-      .select("player_id, total_points, games_played, ppg")
-      .eq("season", statsSeason),
+    // Paginate player_stats — a single season exceeds the 1000-row cap.
+    fetchAllRows((from, to) =>
+      supabase
+        .from("player_stats")
+        .select("player_id, total_points, games_played, ppg")
+        .eq("season", statsSeason)
+        .order("player_id").range(from, to),
+    ),
     fetchAllRows((from, to) =>
       supabase
         .from("league_prices")
@@ -253,7 +247,7 @@ export async function fetchPlayerList(): Promise<PlayerListItem[]> {
 
   if (!players) return [];
 
-  const statsMap = new Map((statsRes.data ?? []).map((s) => [s.player_id, s]));
+  const statsMap = new Map(stats.map((s) => [s.player_id, s]));
   const priceMap = new Map(prices.map((p) => [p.player_id, p]));
 
   return players.map((p) => {
@@ -291,6 +285,8 @@ export async function fetchPlayerDetail(
   if (!player) return null;
 
   const [statsRes, priceRes, txnRes] = await Promise.all([
+    // pagination-safe: filtered to a single player_id — at most one row per
+    // season (~10 rows), well under the 1000-row cap.
     supabase
       .from("player_stats")
       .select("season, total_points, games_played, snaps, ppg, pps")

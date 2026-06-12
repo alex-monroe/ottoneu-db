@@ -77,7 +77,7 @@ export async function fetchRosterData(): Promise<RosterData> {
   ]);
   // Paginate the league-wide reads (players ~1,252, league_prices ~1,252, and
   // transactions which can approach the cap) past PostgREST's 1000-row default.
-  const [transactions, players, statsRes, leaguePrices] = await Promise.all([
+  const [transactions, players, stats, leaguePrices] = await Promise.all([
     fetchAllRows((from, to) =>
       supabase
         .from("transactions")
@@ -90,10 +90,14 @@ export async function fetchRosterData(): Promise<RosterData> {
     fetchAllRows((from, to) =>
       supabase.from("players").select("id, ottoneu_id, name, position, nfl_team").gt("ottoneu_id", 0).order("id").range(from, to),
     ),
-    supabase
-      .from("player_stats")
-      .select("player_id, ppg, pps, games_played, snaps")
-      .eq("season", statsSeason),
+    // Paginate player_stats — a single season exceeds the 1000-row cap.
+    fetchAllRows((from, to) =>
+      supabase
+        .from("player_stats")
+        .select("player_id, ppg, pps, games_played, snaps")
+        .eq("season", statsSeason)
+        .order("player_id").range(from, to),
+    ),
     fetchAllRows((from, to) =>
       supabase
         .from("league_prices")
@@ -106,7 +110,7 @@ export async function fetchRosterData(): Promise<RosterData> {
   return {
     transactions: transactions as RawTransaction[],
     players: players as RawPlayer[],
-    stats: (statsRes.data as RawStats[]) ?? [],
+    stats: stats as RawStats[],
     leaguePrices: leaguePrices as RawLeaguePrice[],
   };
 }

@@ -89,24 +89,24 @@ async function buildModelProjectionMap(
   modelId: string,
   season: number
 ): Promise<Map<string, { ppg: number; featureValues: Record<string, number | null> | null }>> {
-  const { data, error } = await supabase
-    .from("model_projections")
-    .select("player_id, projected_ppg, feature_values")
-    .eq("model_id", modelId)
-    .eq("season", season);
-
-  if (error) throw new Error(`Failed to fetch model projections: ${error.message}`);
+  // Paginate model_projections — a single model+season can exceed the 1000-row cap.
+  const data = await fetchAllRows((from, to) =>
+    supabase
+      .from("model_projections")
+      .select("player_id, projected_ppg, feature_values")
+      .eq("model_id", modelId)
+      .eq("season", season)
+      .order("player_id").range(from, to),
+  );
 
   const map = new Map<string, { ppg: number; featureValues: Record<string, number | null> | null }>();
-  if (data) {
-    for (const row of data) {
-      const fv = row.feature_values
-        ? typeof row.feature_values === "string"
-          ? JSON.parse(row.feature_values)
-          : row.feature_values
-        : null;
-      map.set(row.player_id, { ppg: row.projected_ppg, featureValues: fv });
-    }
+  for (const row of data) {
+    const fv = row.feature_values
+      ? typeof row.feature_values === "string"
+        ? JSON.parse(row.feature_values)
+        : row.feature_values
+      : null;
+    map.set(row.player_id, { ppg: row.projected_ppg, featureValues: fv });
   }
   return map;
 }
@@ -119,14 +119,18 @@ export async function fetchModelBacktestData(
   modelId: string
 ): Promise<BacktestPlayer[]> {
   // Paginate players (~1,252) and league_prices (~1,252) past the 1000-row cap.
-  const [players, targetStatsRes, prices] = await Promise.all([
+  const [players, targetStats, prices] = await Promise.all([
     fetchAllRows((from, to) =>
       supabase.from("players").select("id, name, position, nfl_team").gt("ottoneu_id", 0).order("id").range(from, to),
     ),
-    supabase
-      .from("player_stats")
-      .select("player_id, ppg, games_played")
-      .eq("season", targetSeason),
+    // Paginate player_stats — a single season exceeds the 1000-row cap.
+    fetchAllRows((from, to) =>
+      supabase
+        .from("player_stats")
+        .select("player_id, ppg, games_played")
+        .eq("season", targetSeason)
+        .order("player_id").range(from, to),
+    ),
     fetchAllRows((from, to) =>
       supabase
         .from("league_prices")
@@ -136,14 +140,8 @@ export async function fetchModelBacktestData(
     ),
   ]);
 
-  if (targetStatsRes.error) throw new Error(`Failed to fetch target season stats: ${targetStatsRes.error.message}`);
-
-  if (!targetStatsRes.data) {
-    throw new Error("Failed to fetch data: returned null from Supabase");
-  }
-
   const playerMap = new Map(players.map((p) => [String(p.id), p]));
-  const targetStatsMap = new Map(targetStatsRes.data.map((s) => [String(s.player_id), s]));
+  const targetStatsMap = new Map(targetStats.map((s) => [String(s.player_id), s]));
   const pricesMap = new Map(prices.map((p) => [String(p.player_id), p]));
 
   const projectionMap = await buildModelProjectionMap(modelId, targetSeason);
@@ -327,15 +325,19 @@ export async function fetchBacktestData(
   targetSeason: number
 ): Promise<BacktestPlayer[]> {
   // Paginate players (~1,252) and league_prices (~1,252) past the 1000-row cap.
-  const [players, targetStatsRes, prices] =
+  const [players, targetStats, prices] =
     await Promise.all([
       fetchAllRows((from, to) =>
         supabase.from("players").select("id, name, position, nfl_team").gt("ottoneu_id", 0).order("id").range(from, to),
       ),
-      supabase
-        .from("player_stats")
-        .select("player_id, ppg, games_played")
-        .eq("season", targetSeason),
+      // Paginate player_stats — a single season exceeds the 1000-row cap.
+      fetchAllRows((from, to) =>
+        supabase
+          .from("player_stats")
+          .select("player_id, ppg, games_played")
+          .eq("season", targetSeason)
+          .order("player_id").range(from, to),
+      ),
       fetchAllRows((from, to) =>
         supabase
           .from("league_prices")
@@ -345,17 +347,11 @@ export async function fetchBacktestData(
       ),
     ]);
 
-  if (targetStatsRes.error) throw new Error(`Failed to fetch target season stats: ${targetStatsRes.error.message}`);
-
-  if (!targetStatsRes.data) {
-    throw new Error("Failed to fetch data: returned null from Supabase");
-  }
-
   const playerMap = new Map(
     players.map((p) => [String(p.id), p])
   );
   const targetStatsMap = new Map(
-    targetStatsRes.data.map((s) => [String(s.player_id), s])
+    targetStats.map((s) => [String(s.player_id), s])
   );
   const pricesMap = new Map(
     prices.map((p) => [String(p.player_id), p])
@@ -500,7 +496,7 @@ export async function fetchProjectionBoard(
   projectionYear: number,
   statsSeason: number
 ): Promise<ProjectionBoardRow[]> {
-  const [players, statsRes, prices, projMap] = await Promise.all([
+  const [players, stats, prices, projMap] = await Promise.all([
     fetchAllRows((from, to) =>
       supabase
         .from("players")
@@ -508,10 +504,14 @@ export async function fetchProjectionBoard(
         .gt("ottoneu_id", 0)
         .order("id").range(from, to),
     ),
-    supabase
-      .from("player_stats")
-      .select("player_id, ppg, games_played")
-      .eq("season", statsSeason),
+    // Paginate player_stats — a single season exceeds the 1000-row cap.
+    fetchAllRows((from, to) =>
+      supabase
+        .from("player_stats")
+        .select("player_id, ppg, games_played")
+        .eq("season", statsSeason)
+        .order("player_id").range(from, to),
+    ),
     fetchAllRows((from, to) =>
       supabase
         .from("league_prices")
@@ -522,12 +522,9 @@ export async function fetchProjectionBoard(
     buildProjectionMap(projectionYear),
   ]);
 
-  if (statsRes.error)
-    throw new Error(`Failed to fetch player stats: ${statsRes.error.message}`);
-
   const playerMap = new Map(players.map((p) => [String(p.id), p]));
   const statsMap = new Map(
-    (statsRes.data ?? []).map((s) => [String(s.player_id), s])
+    stats.map((s) => [String(s.player_id), s])
   );
   const pricesMap = new Map(prices.map((p) => [String(p.player_id), p]));
 

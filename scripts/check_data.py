@@ -31,7 +31,9 @@ def check_data():
             print("No prices found to sample.")
             return
 
-        # Fetch stats and players in bulk
+        # Fetch stats and players in bulk. player_ids comes from a .limit(5)
+        # price sample above, so this returns at most 5 rows.
+        # pagination-safe: bounded by the 5-id sample, well under the 1000-row cap.
         stat_res = supabase.table('player_stats').select('*').in_('player_id', player_ids).execute()
         player_res = supabase.table('players').select('*').in_('id', player_ids).execute()
 

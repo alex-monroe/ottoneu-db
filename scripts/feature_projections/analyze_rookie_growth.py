@@ -40,12 +40,11 @@ def compute_rookie_growth_ratios(
     all_seasons = list(range(min(seasons) - 1, max(seasons) + 1))
     print(f"Fetching player_stats for seasons {all_seasons[0]}-{all_seasons[-1]}...")
 
-    stats_res = (
-        supabase.table("player_stats")
-        .select("player_id, season, ppg, games_played")
-        .gte("season", all_seasons[0])
-        .lte("season", all_seasons[-1])
-        .execute()
+    # Paginated — a multi-season player_stats window exceeds the 1000-row
+    # PostgREST cap.
+    stats_rows = fetch_all_rows(
+        supabase, "player_stats", "player_id, season, ppg, games_played",
+        filters=[("in_", "season", all_seasons)],
     )
 
     # Fetch player positions
@@ -54,7 +53,7 @@ def compute_rookie_growth_ratios(
 
     # Organize stats by player
     player_seasons: dict[str, dict[int, dict]] = defaultdict(dict)
-    for row in (stats_res.data or []):
+    for row in stats_rows:
         pid = row["player_id"]
         season = int(row["season"])
         player_seasons[pid][season] = row

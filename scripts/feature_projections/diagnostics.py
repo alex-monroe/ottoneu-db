@@ -100,19 +100,17 @@ def run_diagnostics(
 
     model_id = model_res.data[0]["id"]
 
-    # Fetch projections with feature values
-    proj_res = (
-        supabase.table("model_projections")
-        .select("player_id, projected_ppg, feature_values")
-        .eq("model_id", model_id)
-        .eq("season", season)
-        .execute()
+    # Fetch projections with feature values (paginated — a model+season can
+    # exceed the 1000-row PostgREST cap).
+    proj_rows = fetch_all_rows(
+        supabase, "model_projections", "player_id, projected_ppg, feature_values",
+        filters=[("eq", "model_id", model_id), ("eq", "season", season)],
     )
-    if not proj_res.data:
+    if not proj_rows:
         raise ValueError(f"No projections found for model '{model_name}', season {season}")
 
     proj_map = {}
-    for row in proj_res.data:
+    for row in proj_rows:
         fv = row.get("feature_values") or {}
         if isinstance(fv, str):
             fv = json.loads(fv)
@@ -121,14 +119,13 @@ def run_diagnostics(
             "feature_values": fv,
         }
 
-    # Fetch actuals
-    actuals_res = (
-        supabase.table("player_stats")
-        .select("player_id, ppg, games_played")
-        .eq("season", season)
-        .execute()
+    # Fetch actuals (paginated — a single season of player_stats can exceed
+    # the 1000-row PostgREST cap).
+    actuals_rows = fetch_all_rows(
+        supabase, "player_stats", "player_id, ppg, games_played",
+        filters=[("eq", "season", season)],
     )
-    if not actuals_res.data:
+    if not actuals_rows:
         raise ValueError(f"No actual stats found for season {season}")
 
     actual_map = {
@@ -136,22 +133,21 @@ def run_diagnostics(
             "ppg": float(row["ppg"]),
             "games_played": int(row.get("games_played", 0) or 0),
         }
-        for row in actuals_res.data
+        for row in actuals_rows
     }
 
     # Fetch player info
     players_data = fetch_all_rows(supabase, "players", "id, name, position, nfl_team")
     player_info = {row["id"]: row for row in players_data}
 
-    # Count seasons of data per player (for rookie detection)
-    stats_res = (
-        supabase.table("player_stats")
-        .select("player_id, season")
-        .lt("season", season)
-        .execute()
+    # Count seasons of data per player (for rookie detection); multi-season read
+    # — paginate past the 1000-row cap.
+    prior_stats_rows = fetch_all_rows(
+        supabase, "player_stats", "player_id, season",
+        filters=[("lt", "season", season)],
     )
     seasons_count: dict[str, int] = {}
-    for row in (stats_res.data or []):
+    for row in prior_stats_rows:
         pid = row["player_id"]
         seasons_count[pid] = seasons_count.get(pid, 0) + 1
 
