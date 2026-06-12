@@ -730,6 +730,52 @@ MODELS: dict[str, ModelDefinition] = {
             "regression_to_mean*position",
         ],
     ),
+    "v37_qb_volume": ModelDefinition(
+        name="v37_qb_volume",
+        version=1,
+        description=(
+            "QB volume signal (GH #640) — the genuinely-new QB signal the "
+            "#592 postmortem asked for: v33_tuned_base's feature set plus "
+            "qb_rush_volume_raw (recency-weighted rushing attempts/game; "
+            "designed-run roles persist and rushing points are less "
+            "TD-variance-driven than passing) and qb_pass_volume_raw "
+            "(recency-weighted pass attempts/game; separates full-time "
+            "starters from committee/partial-season QBs). Both are QB-only "
+            "(None elsewhere), so each global coefficient is effectively a "
+            "QB coefficient — no *position interaction needed. Full Ridge "
+            "refit; if non-QB drift appears, fall back to the #592 residual "
+            "machinery with these features."
+        ),
+        features=[
+            "weighted_ppg_tuned_no_qb",
+            "age_curve",
+            "regression_to_mean",
+            "qb_backup_penalty",
+            "usage_share_raw",
+            "target_share_raw",
+            "air_yards_share_raw",
+            "wopr_raw",
+            "racr_raw",
+            "draft_capital_raw",
+            "implied_team_total_raw",
+            "depth_chart_position_raw",
+            "role_change_raw",
+            "qb_rush_volume_raw",
+            "qb_pass_volume_raw",
+        ],
+        combiner_type="learned",
+        interaction_terms=[
+            "usage_share_raw*position",
+            "usage_share_raw*base_ppg",
+            "usage_share_raw^2",
+            "target_share_raw*position",
+            "wopr_raw*base_ppg",
+            "wopr_raw^2",
+            "draft_capital_raw*position",
+            "implied_team_total_raw*position",
+            "depth_chart_position_raw*position",
+        ],
+    ),
     "naive_prior_season_ppg": ModelDefinition(
         name="naive_prior_season_ppg",
         version=1,

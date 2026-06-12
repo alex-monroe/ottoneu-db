@@ -28,6 +28,10 @@ from scripts.feature_projections.features.regression_to_mean import (
 )
 from scripts.feature_projections.features.snap_trend import SnapTrendFeature
 from scripts.feature_projections.features.qb_starter_usage import QBStarterUsageFeature, QBStarterBackupPenaltyFeature
+from scripts.feature_projections.features.qb_volume import (
+    QBPassVolumeRawFeature,
+    QBRushVolumeRawFeature,
+)
 from scripts.feature_projections.features.naive_prior_ppg import NaivePriorSeasonPPGFeature
 from scripts.feature_projections.features.position_mean import PositionMeanFeature
 from scripts.feature_projections.combiner import combine_features
@@ -252,6 +256,70 @@ class TestWeightedPPGPerPositionTunedFeature:
                 "windows longer than 3 require max_history plumbing in the "
                 "runner/backtest/holdout pipeline — see GH #639"
             )
+
+
+# ---------------------------------------------------------------------------
+# QB volume features (#640)
+# ---------------------------------------------------------------------------
+
+class TestQBVolumeFeatures:
+    """Tests for qb_rush_volume_raw / qb_pass_volume_raw (GH #640)."""
+
+    def setup_method(self):
+        self.rush = QBRushVolumeRawFeature()
+        self.pass_ = QBPassVolumeRawFeature()
+
+    def test_names(self):
+        assert self.rush.name == "qb_rush_volume_raw"
+        assert self.pass_.name == "qb_pass_volume_raw"
+        assert self.rush.is_base is False
+        assert self.pass_.is_base is False
+
+    def test_non_qb_returns_none(self):
+        nfl_df = make_nfl_stats_df([{
+            "season": 2024, "games_played": 17,
+            "rushing_attempts": 100, "passing_attempts": 500,
+        }])
+        for pos in ["RB", "WR", "TE", "K"]:
+            assert self.rush.compute("p1", pos, pd.DataFrame(), nfl_df, {}) is None
+            assert self.pass_.compute("p1", pos, pd.DataFrame(), nfl_df, {}) is None
+
+    def test_empty_nfl_stats_returns_none(self):
+        assert self.rush.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), {}) is None
+        assert self.pass_.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), {}) is None
+
+    def test_single_season_per_game_rate(self):
+        nfl_df = make_nfl_stats_df([{
+            "season": 2024, "games_played": 16,
+            "rushing_attempts": 96, "passing_attempts": 544,
+        }])
+        assert self.rush.compute("p1", "QB", pd.DataFrame(), nfl_df, {}) == pytest.approx(6.0)
+        assert self.pass_.compute("p1", "QB", pd.DataFrame(), nfl_df, {}) == pytest.approx(34.0)
+
+    def test_recency_weighted_multi_season(self):
+        nfl_df = make_nfl_stats_df([
+            {"season": 2022, "games_played": 17, "rushing_attempts": 34},   # 2.0/g
+            {"season": 2023, "games_played": 17, "rushing_attempts": 68},   # 4.0/g
+            {"season": 2024, "games_played": 17, "rushing_attempts": 102},  # 6.0/g
+        ])
+        # weights [0.60, 0.30, 0.10] newest→oldest: 6*0.6 + 4*0.3 + 2*0.1 = 5.0
+        result = self.rush.compute("p1", "QB", pd.DataFrame(), nfl_df, {})
+        assert result == pytest.approx(5.0)
+
+    def test_low_games_season_filtered(self):
+        """Seasons under MIN_GAMES are dropped, not blended."""
+        nfl_df = make_nfl_stats_df([
+            {"season": 2023, "games_played": 17, "passing_attempts": 510},  # 30/g
+            {"season": 2024, "games_played": 2, "passing_attempts": 90},    # 45/g — injury year
+        ])
+        result = self.pass_.compute("p1", "QB", pd.DataFrame(), nfl_df, {})
+        assert result == pytest.approx(30.0)
+
+    def test_all_seasons_low_games_returns_none(self):
+        nfl_df = make_nfl_stats_df([
+            {"season": 2024, "games_played": 3, "passing_attempts": 100},
+        ])
+        assert self.pass_.compute("p1", "QB", pd.DataFrame(), nfl_df, {}) is None
 
 
 # ---------------------------------------------------------------------------
