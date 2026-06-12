@@ -4,8 +4,14 @@ set -euo pipefail
 
 npm install -g @anthropic-ai/claude-code
 
+# venv/ and web/node_modules are backed by named volumes (see devcontainer.json)
+# so the host's macOS binaries (bind-mounted via the workspace) don't leak into
+# this Linux container. Fresh volumes mount root-owned, so claim them before use.
+sudo chown vscode:vscode venv web/node_modules
+
 # Mirror `just install` (Justfile) — venv lives inside the container workspace.
-python3 -m venv venv
+# --clear recreates cleanly if the volume carries a stale venv from a prior build.
+python3 -m venv --clear venv
 venv/bin/pip install --upgrade pip
 venv/bin/pip install -r requirements.txt
 venv/bin/pip install -e .
