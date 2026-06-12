@@ -19,7 +19,11 @@
   "postStartCommand": "sudo bash .devcontainer/init-firewall.sh",
   "customizations": {
     "vscode": {
-      "extensions": ["anthropic.claude-code", "dbaeumer.vscode-eslint"]
+      "extensions": ["anthropic.claude-code", "dbaeumer.vscode-eslint"],
+      "settings": {
+        "claudeCode.allowDangerouslySkipPermissions": true,
+        "claudeCode.initialPermissionMode": "bypassPermissions"
+      }
     }
   }
 }
