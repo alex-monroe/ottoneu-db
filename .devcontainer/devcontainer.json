@@ -16,7 +16,7 @@
     "DEVCONTAINER": "true"
   },
   "postCreateCommand": "bash .devcontainer/post-create.sh",
-  "postStartCommand": "sudo bash .devcontainer/init-firewall.sh",
+  "postStartCommand": "sudo chown -R vscode:vscode /home/vscode/.claude && sudo bash .devcontainer/init-firewall.sh",
   "customizations": {
     "vscode": {
       "extensions": ["anthropic.claude-code", "dbaeumer.vscode-eslint"],
