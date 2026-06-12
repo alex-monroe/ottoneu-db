@@ -124,18 +124,17 @@ def _run_combo(
         team_aggregates = _compute_team_aggregates(nfl_stats_all, players_df)
         positional_means = _compute_positional_mean_ppg(history_df, players_df)
 
-        # Fetch actuals for target season
-        actuals_res = (
-            supabase.table("player_stats")
-            .select("player_id, ppg, games_played")
-            .eq("season", target_season)
-            .execute()
+        # Fetch actuals for target season (paginated — a single season of
+        # player_stats can exceed the 1000-row PostgREST cap).
+        actuals_rows = fetch_all_rows(
+            supabase, "player_stats", "player_id, ppg, games_played",
+            filters=[("eq", "season", target_season)],
         )
-        if not actuals_res.data:
+        if not actuals_rows:
             continue
 
         actual_map = {}
-        for row in actuals_res.data:
+        for row in actuals_rows:
             games = int(row.get("games_played", 0) or 0)
             if games >= MIN_GAMES:
                 actual_map[row["player_id"]] = float(row["ppg"])

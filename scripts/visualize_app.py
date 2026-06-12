@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-from scripts.config import get_supabase_client, LEAGUE_ID
+from scripts.config import get_supabase_client, fetch_all_rows, LEAGUE_ID
 from scripts.season import stats_season
 
 
@@ -22,9 +22,12 @@ def load_data(league_id=LEAGUE_ID, season=DEFAULT_SEASON):
     players_resp = supabase.table('players').select('*').execute()
     players_df = pd.DataFrame(players_resp.data)
 
-    # Fetch Stats
-    stats_resp = supabase.table('player_stats').select('*').eq('season', season).execute()
-    stats_df = pd.DataFrame(stats_resp.data)
+    # Fetch Stats (paginated — a single season of player_stats can exceed the
+    # 1000-row PostgREST cap).
+    stats_rows = fetch_all_rows(
+        supabase, 'player_stats', '*', filters=[('eq', 'season', season)]
+    )
+    stats_df = pd.DataFrame(stats_rows)
 
     # Fetch Prices
     prices_resp = supabase.table('league_prices').select('*').eq('league_id', league_id).execute()

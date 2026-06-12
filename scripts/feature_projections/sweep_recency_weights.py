@@ -107,14 +107,14 @@ def _fetch_season_data(
             continue
         history_by_season[target_season] = history_df
 
-        actuals_res = (
-            supabase.table("player_stats")
-            .select("player_id, ppg, games_played")
-            .eq("season", target_season)
-            .execute()
+        # Paginated — a single season of player_stats can exceed the 1000-row
+        # PostgREST cap.
+        actuals_rows = fetch_all_rows(
+            supabase, "player_stats", "player_id, ppg, games_played",
+            filters=[("eq", "season", target_season)],
         )
         actual_map = {}
-        for row in actuals_res.data or []:
+        for row in actuals_rows:
             games = int(row.get("games_played", 0) or 0)
             if games >= MIN_GAMES:
                 actual_map[row["player_id"]] = float(row["ppg"])

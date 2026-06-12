@@ -102,18 +102,17 @@ def _precompute_base_projections(
         if history_df.empty:
             continue
 
-        # Fetch actuals
-        actuals_res = (
-            supabase.table("player_stats")
-            .select("player_id, ppg, games_played")
-            .eq("season", target_season)
-            .execute()
+        # Fetch actuals (paginated — a single season of player_stats can exceed
+        # the 1000-row PostgREST cap).
+        actuals_rows = fetch_all_rows(
+            supabase, "player_stats", "player_id, ppg, games_played",
+            filters=[("eq", "season", target_season)],
         )
-        if not actuals_res.data:
+        if not actuals_rows:
             continue
 
         actual_map = {}
-        for row in actuals_res.data:
+        for row in actuals_rows:
             games = int(row.get("games_played", 0) or 0)
             if games >= MIN_GAMES:
                 actual_map[row["player_id"]] = float(row["ppg"])

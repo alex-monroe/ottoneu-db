@@ -107,16 +107,14 @@ def collect_residuals(
 
     rows = []
     for season in seasons:
-        # Fetch projections
-        proj_res = (
-            supabase.table("model_projections")
-            .select("player_id, projected_ppg, feature_values")
-            .eq("model_id", model_id)
-            .eq("season", season)
-            .execute()
+        # Fetch projections (paginated — a model+season can exceed the
+        # 1000-row PostgREST cap).
+        proj_rows = fetch_all_rows(
+            supabase, "model_projections", "player_id, projected_ppg, feature_values",
+            filters=[("eq", "model_id", model_id), ("eq", "season", season)],
         )
         proj_map = {}
-        for row in (proj_res.data or []):
+        for row in proj_rows:
             fv = row.get("feature_values") or {}
             if isinstance(fv, str):
                 fv = json.loads(fv)
@@ -125,15 +123,14 @@ def collect_residuals(
                 "feature_values": fv,
             }
 
-        # Fetch actuals
-        actuals_res = (
-            supabase.table("player_stats")
-            .select("player_id, ppg, games_played")
-            .eq("season", season)
-            .execute()
+        # Fetch actuals (paginated — a single season of player_stats can exceed
+        # the 1000-row PostgREST cap).
+        actuals_rows = fetch_all_rows(
+            supabase, "player_stats", "player_id, ppg, games_played",
+            filters=[("eq", "season", season)],
         )
 
-        for row in (actuals_res.data or []):
+        for row in actuals_rows:
             pid = row["player_id"]
             games = int(row.get("games_played", 0) or 0)
             if games < min_games or pid not in proj_map:

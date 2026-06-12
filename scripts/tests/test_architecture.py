@@ -361,3 +361,136 @@ class TestFrontendLayerBoundaries:
             "Move shared logic to lib/ and have components import from there.\n"
             "Violations:\n" + "\n".join(violations)
         )
+
+
+# ===========================================================================
+# Rule 8: Supabase pagination — no raw .execute() on large tables
+# ===========================================================================
+
+# Tables that routinely exceed PostgREST's 1000-row default cap. A plain
+# `.execute()` against any of these silently truncates to the first 1000 rows.
+# This bug has recurred repeatedly (promote.py, analysis_utils, backtest.py,
+# the /depth-charts season selector) — see the "Supabase pagination" section
+# of CLAUDE.md. Keep this list in sync with the TypeScript equivalent in
+# web/__tests__/lib/architecture.test.ts (LARGE_TABLES).
+LARGE_TABLES = ["player_stats", "nfl_stats", "depth_charts", "model_projections"]
+
+
+class TestSupabasePagination:
+    """Reads against large tables must paginate past the 1000-row cap.
+
+    WHY: PostgREST returns at most 1000 rows from a plain `.execute()`. A single
+    recent season of `player_stats` already exceeds that, and a single model+season
+    of `model_projections` can too. Silent truncation randomly drops player-season
+    rows, corrupting weighted-PPG bases, team aggregates, backtests and the UI.
+
+    FIX: Read through the paginated helper instead of a bare `.table(...).execute()`:
+        from scripts.config import fetch_all_rows
+        rows = fetch_all_rows(supabase, "player_stats", "player_id, ppg",
+                              filters=[("eq", "season", season)])
+    (or `_fetch_seasons_paginated` / `fetch_multi_season_stats` in analysis_utils.)
+
+    A query is accepted without pagination only when it is provably bounded:
+      - a write (`.upsert(`/`.insert(`/`.update(`/`.delete(`)
+      - already paginated (`.range(`)
+      - `.single()` / `.maybe_single()` (returns at most one row)
+      - a head-only count (`count=...`)
+      - `.limit(n)` with n < 1000
+      - explicitly annotated with a `# pagination-safe: <reason>` comment.
+    """
+
+    _TABLE_RE = re.compile(
+        r"""\.table\(\s*["'](""" + "|".join(LARGE_TABLES) + r""")["']\s*\)"""
+    )
+    _LIMIT_RE = re.compile(r"\.limit\(\s*(\d+)")
+    _WRITES = (".upsert(", ".insert(", ".update(", ".delete(")
+
+    @classmethod
+    def _statement_is_safe(cls, stmt: str, preceding: str) -> bool:
+        if any(w in stmt for w in cls._WRITES):
+            return True
+        if ".range(" in stmt:
+            return True
+        if ".single(" in stmt or ".maybe_single(" in stmt:
+            return True
+        if "count=" in stmt:
+            return True
+        if any(int(n) < 1000 for n in cls._LIMIT_RE.findall(stmt)):
+            return True
+        if "pagination-safe" in stmt or "pagination-safe" in preceding:
+            return True
+        return False
+
+    @classmethod
+    def _large_table_statements(cls, source: str):
+        """Yield (lineno, table, statement_text, preceding_line) for each
+        `.table("<large>")...execute()` chain in `source`."""
+        lines = source.splitlines()
+        n = len(lines)
+        i = 0
+        while i < n:
+            match = cls._TABLE_RE.search(lines[i])
+            if not match:
+                i += 1
+                continue
+            # Gather the chained statement up to and including `.execute(`.
+            j = i
+            while ".execute(" not in lines[j] and j + 1 < n and j < i + 20:
+                j += 1
+            stmt = "\n".join(lines[i:j + 1])
+            # Look a few lines back for a `# pagination-safe` annotation — the
+            # `.table(` call is sometimes a continuation line of a chain that
+            # starts (and is annotated) a line or two earlier.
+            preceding = "\n".join(lines[max(0, i - 3):i])
+            yield (i + 1, match.group(1), stmt, preceding)
+            i = j + 1
+
+    def test_no_unpaginated_reads_on_large_tables(self):
+        violations = []
+        for pyfile in _python_files(SCRIPTS_DIR):
+            if "/tests/" in str(pyfile) or "\\tests\\" in str(pyfile):
+                continue
+            source = pyfile.read_text()
+            for lineno, table, stmt, preceding in self._large_table_statements(source):
+                if not self._statement_is_safe(stmt, preceding):
+                    rel = pyfile.relative_to(PROJECT_ROOT)
+                    first_line = stmt.splitlines()[0].strip()
+                    violations.append(f"  {rel}:{lineno} ({table}): {first_line}")
+
+        assert not violations, (
+            "Unpaginated `.execute()` read against a large table found.\n"
+            "These tables exceed PostgREST's 1000-row cap, so a plain `.execute()`\n"
+            "silently truncates the result and corrupts downstream analysis.\n"
+            "FIX: Read through `fetch_all_rows(supabase, table, select, filters=[...])`\n"
+            "from scripts.config (or `_fetch_seasons_paginated` in analysis_utils).\n"
+            "If the query is provably bounded (e.g. `.eq()` on a key with `.maybe_single()`,\n"
+            "or an `.in_()` over a tiny id list), add a `# pagination-safe: <reason>` comment.\n"
+            f"Large tables: {', '.join(LARGE_TABLES)}\n"
+            "Violations:\n" + "\n".join(violations)
+        )
+
+    def test_detection_recognizes_offender_and_safe_patterns(self):
+        """Guard against the scanner silently passing due to a broken regex."""
+        offender = (
+            'res = (\n'
+            '    supabase.table("player_stats")\n'
+            '    .select("player_id, ppg")\n'
+            '    .eq("season", season)\n'
+            '    .execute()\n'
+            ')'
+        )
+        stmts = list(self._large_table_statements(offender))
+        assert len(stmts) == 1 and stmts[0][1] == "player_stats"
+        assert not self._statement_is_safe(stmts[0][2], stmts[0][3])
+
+        safe_variants = [
+            'supabase.table("player_stats").select("*").range(0, 999).execute()',
+            'supabase.table("model_projections").upsert(rows).execute()',
+            'supabase.table("player_stats").select("c", count="exact").execute()',
+            'supabase.table("player_stats").select("*").limit(5).execute()',
+            'supabase.table("player_stats").select("*").eq("id", x).maybe_single().execute()',
+        ]
+        for src in safe_variants:
+            stmts = list(self._large_table_statements(src))
+            assert len(stmts) == 1, src
+            assert self._statement_is_safe(stmts[0][2], stmts[0][3]), src

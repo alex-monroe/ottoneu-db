@@ -156,43 +156,38 @@ def run_segment_analysis(
     }
 
     for season in seasons:
-        # Fetch actuals for this season
-        actuals_res = (
-            supabase.table("player_stats")
-            .select("player_id, ppg, games_played")
-            .eq("season", season)
-            .execute()
+        # Fetch actuals for this season (paginated — a single season of
+        # player_stats can exceed the 1000-row PostgREST cap).
+        actuals_rows = fetch_all_rows(
+            supabase, "player_stats", "player_id, ppg, games_played",
+            filters=[("eq", "season", season)],
         )
         actual_map = {
             row["player_id"]: {
                 "ppg": float(row["ppg"]),
                 "games_played": int(row.get("games_played", 0) or 0),
             }
-            for row in (actuals_res.data or [])
+            for row in actuals_rows
         }
 
-        # Count prior seasons per player
-        prior_stats_res = (
-            supabase.table("player_stats")
-            .select("player_id, season")
-            .lt("season", season)
-            .execute()
+        # Count prior seasons per player (multi-season read — paginate).
+        prior_stats_rows = fetch_all_rows(
+            supabase, "player_stats", "player_id, season",
+            filters=[("lt", "season", season)],
         )
         prior_seasons_count: dict[str, int] = {}
-        for row in (prior_stats_res.data or []):
+        for row in prior_stats_rows:
             pid = row["player_id"]
             prior_seasons_count[pid] = prior_seasons_count.get(pid, 0) + 1
 
-        # Fetch prior season PPG for YoY change
-        prior_ppg_res = (
-            supabase.table("player_stats")
-            .select("player_id, ppg")
-            .eq("season", season - 1)
-            .execute()
+        # Fetch prior season PPG for YoY change (paginated single season).
+        prior_ppg_rows = fetch_all_rows(
+            supabase, "player_stats", "player_id, ppg",
+            filters=[("eq", "season", season - 1)],
         )
         prior_ppg_map = {
             row["player_id"]: float(row["ppg"])
-            for row in (prior_ppg_res.data or [])
+            for row in prior_ppg_rows
         }
 
         # Position ranks by actual PPG
@@ -201,17 +196,15 @@ def run_segment_analysis(
         for model_name in model_names:
             model_id = model_id_map[model_name]
 
-            # Fetch projections
-            proj_res = (
-                supabase.table("model_projections")
-                .select("player_id, projected_ppg")
-                .eq("model_id", model_id)
-                .eq("season", season)
-                .execute()
+            # Fetch projections (paginated — a model+season can exceed the
+            # 1000-row PostgREST cap).
+            proj_rows = fetch_all_rows(
+                supabase, "model_projections", "player_id, projected_ppg",
+                filters=[("eq", "model_id", model_id), ("eq", "season", season)],
             )
             proj_map = {
                 row["player_id"]: float(row["projected_ppg"])
-                for row in (proj_res.data or [])
+                for row in proj_rows
             }
 
             # Match projected to actual

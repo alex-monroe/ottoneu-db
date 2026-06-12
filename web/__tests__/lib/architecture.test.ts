@@ -351,3 +351,144 @@ describe("Documentation Exists", () => {
     expect(content.length).toBeGreaterThan(10);
   });
 });
+
+// ===========================================================================
+// Rule 6: Supabase pagination — no raw reads on large tables
+// ===========================================================================
+
+/**
+ * Tables that routinely exceed PostgREST's 1000-row default cap. A plain
+ * `.from(table).select(...)` without pagination silently truncates to the first
+ * 1000 rows — this broke the /depth-charts season selector and silently drops
+ * ~20% of players/player-seasons from analysis pages. See the "Supabase
+ * pagination" section of CLAUDE.md. Keep this list in sync with the Python
+ * equivalent in scripts/tests/test_architecture.py (LARGE_TABLES).
+ */
+const LARGE_TABLES = [
+  "player_stats",
+  "nfl_stats",
+  "depth_charts",
+  "model_projections",
+];
+
+/**
+ * Reconstruct the method-chain statement that begins at the `.from("<table>")`
+ * line by walking forward across continuation lines (those whose trimmed text
+ * starts with `.`). Returns the statement text plus the few preceding lines (so
+ * a `// pagination-safe` annotation on the chain's first line is visible).
+ */
+function chainStatements(
+  source: string,
+  table: string,
+): { lineno: number; statement: string; preceding: string }[] {
+  const lines = source.split("\n");
+  const fromRe = new RegExp(`\\.from\\(\\s*["']${table}["']\\s*\\)`);
+  const out: { lineno: number; statement: string; preceding: string }[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (!fromRe.test(lines[i])) continue;
+    let j = i;
+    while (j + 1 < lines.length && lines[j + 1].trim().startsWith(".")) j++;
+    out.push({
+      lineno: i + 1,
+      statement: lines.slice(i, j + 1).join("\n"),
+      preceding: lines.slice(Math.max(0, i - 3), i).join("\n"),
+    });
+    i = j;
+  }
+  return out;
+}
+
+function isPaginatedOrBounded(statement: string, preceding: string): boolean {
+  const writes = [".insert(", ".update(", ".upsert(", ".delete("];
+  if (writes.some((w) => statement.includes(w))) return true;
+  if (statement.includes(".range(")) return true;
+  if (statement.includes(".single(") || statement.includes(".maybeSingle(")) return true;
+  // Head-only count request: `.select("c", { count: "exact", head: true })`
+  if (/count\s*:/.test(statement) || /head\s*:/.test(statement)) return true;
+  // .limit(n) with n < 1000
+  const limit = statement.match(/\.limit\(\s*(\d+)/);
+  if (limit && Number(limit[1]) < 1000) return true;
+  if (statement.includes("pagination-safe") || preceding.includes("pagination-safe"))
+    return true;
+  return false;
+}
+
+describe("Supabase Pagination", () => {
+  /**
+   * WHY: PostgREST returns at most 1000 rows from a plain `.select()`. A single
+   * recent season of player_stats / depth_charts / model_projections already
+   * exceeds that, so a non-paginated read silently truncates and corrupts the
+   * analysis pages.
+   *
+   * FIX: Page through with `fetchAllRows` from web/lib/supabase.ts:
+   *   const stats = await fetchAllRows((from, to) =>
+   *     supabase.from("player_stats").select("*").eq("season", s).order("player_id").range(from, to));
+   *
+   * A read is accepted without pagination only when provably bounded: a write,
+   * `.single()` / `.maybeSingle()`, a head-only `count`, `.limit(n)` with
+   * n < 1000, or an explicit `// pagination-safe: <reason>` comment.
+   */
+  test("no unpaginated reads against large tables in web/lib", () => {
+    const libDir = path.join(WEB_ROOT, "lib");
+    const libFiles = [
+      ...getFilesRecursive(libDir, ".ts"),
+      ...getFilesRecursive(path.join(WEB_ROOT, "app"), ".ts"),
+      ...getFilesRecursive(path.join(WEB_ROOT, "app"), ".tsx"),
+    ];
+    const violations: string[] = [];
+
+    for (const file of libFiles) {
+      const source = fs.readFileSync(file, "utf-8");
+      for (const table of LARGE_TABLES) {
+        for (const { lineno, statement, preceding } of chainStatements(source, table)) {
+          if (!isPaginatedOrBounded(statement, preceding)) {
+            violations.push(
+              `  ${relativeTo(file, REPO_ROOT)}:${lineno} (${table}): ${statement.split("\n")[0].trim()}`,
+            );
+          }
+        }
+      }
+    }
+
+    if (violations.length > 0) {
+      fail(
+        "Unpaginated Supabase read against a large table found.\n" +
+          "These tables exceed PostgREST's 1000-row cap, so a plain `.select()`\n" +
+          "silently truncates the result and corrupts the analysis pages.\n" +
+          "FIX: Page through with `fetchAllRows((from, to) => ...order(...).range(from, to))`\n" +
+          "from web/lib/supabase.ts. If the query is provably bounded (e.g. filtered\n" +
+          "to a single player_id, or `.maybeSingle()`), add a `// pagination-safe: <reason>` comment.\n" +
+          `Large tables: ${LARGE_TABLES.join(", ")}\n` +
+          "Violations:\n" +
+          violations.join("\n"),
+      );
+    }
+  });
+
+  // Guard against the scanner silently passing due to a broken regex.
+  test("detection recognizes offender and safe patterns", () => {
+    const offender = [
+      "supabase",
+      '  .from("player_stats")',
+      '  .select("player_id, ppg")',
+      '  .eq("season", season),',
+      "fetchAllRows(() => {});",
+    ].join("\n");
+    const stmts = chainStatements(offender, "player_stats");
+    expect(stmts.length).toBe(1);
+    expect(isPaginatedOrBounded(stmts[0].statement, stmts[0].preceding)).toBe(false);
+
+    const safe = [
+      'supabase.from("player_stats").select("*").eq("season", s).order("id").range(from, to)',
+      'supabase.from("model_projections").upsert(rows)',
+      'supabase.from("player_stats").select("*").eq("id", x).maybeSingle()',
+      'supabase.from("player_stats").select("c", { count: "exact", head: true })',
+      'supabase.from("player_stats").select("*").limit(5)',
+    ];
+    for (const src of safe) {
+      const s = chainStatements(src, src.includes("model_projections") ? "model_projections" : "player_stats");
+      expect(s.length).toBe(1);
+      expect(isPaginatedOrBounded(s[0].statement, s[0].preceding)).toBe(true);
+    }
+  });
+});

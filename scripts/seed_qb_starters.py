@@ -32,13 +32,13 @@ def _seed_from_nfl_stats(
     Returns {season_key: {team: {player_name, confidence, notes}}}.
     Also returns set of seasons that had data.
     """
-    nfl_stats_res = (
-        supabase.table("nfl_stats")
-        .select("player_id, season, passing_attempts, games_played, recent_team")
-        .in_("season", seasons)
-        .execute()
+    # Paginated — a multi-season nfl_stats window exceeds the 1000-row cap.
+    nfl_rows = fetch_all_rows(
+        supabase, "nfl_stats",
+        "player_id, season, passing_attempts, games_played, recent_team",
+        filters=[("in_", "season", seasons)],
     )
-    nfl_df = pd.DataFrame(nfl_stats_res.data or [])
+    nfl_df = pd.DataFrame(nfl_rows)
     if nfl_df.empty:
         return {}, set()
 
@@ -107,13 +107,13 @@ def _seed_from_player_stats(
 
     Returns {season_key: {team: {player_name, confidence, notes}}}.
     """
-    ps_res = (
-        supabase.table("player_stats")
-        .select("player_id, season, total_points, games_played")
-        .in_("season", seasons)
-        .execute()
+    # Paginated — a multi-season player_stats window exceeds the 1000-row cap.
+    ps_rows = fetch_all_rows(
+        supabase, "player_stats",
+        "player_id, season, total_points, games_played",
+        filters=[("in_", "season", seasons)],
     )
-    ps_df = pd.DataFrame(ps_res.data or [])
+    ps_df = pd.DataFrame(ps_rows)
     if ps_df.empty:
         return {}
 

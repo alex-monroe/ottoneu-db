@@ -6,7 +6,7 @@
  * `depth_chart_position_raw` / `role_change_raw` projection features.
  */
 
-import { supabase } from "./supabase";
+import { supabase, fetchAllRows } from "./supabase";
 
 export interface DepthChartEntry {
   player_id: string;
@@ -60,21 +60,29 @@ function playerName(players: DepthRow["players"]): string {
 export async function fetchDepthChartsForSeason(
   season: number,
 ): Promise<DepthChartEntry[]> {
-  const [{ data: rows, error }, prevByPlayer, ppgByPlayer] = await Promise.all([
-    supabase
-      .from("depth_charts")
-      .select("player_id, team, position, depth_team, players(name)")
-      .eq("season", season),
-    fetchPriorDepthByPlayer(season - 1),
-    fetchProjectedPpgByPlayer(season),
-  ]);
-
-  if (error) {
+  let rows: DepthRow[];
+  let prevByPlayer: Map<string, number>;
+  let ppgByPlayer: Map<string, number>;
+  try {
+    // Paginate depth_charts — a single season can approach/exceed the
+    // 1000-row cap (every skill player on every team).
+    [rows, prevByPlayer, ppgByPlayer] = await Promise.all([
+      fetchAllRows<DepthRow>((from, to) =>
+        supabase
+          .from("depth_charts")
+          .select("player_id, team, position, depth_team, players(name)")
+          .eq("season", season)
+          .order("player_id").range(from, to),
+      ),
+      fetchPriorDepthByPlayer(season - 1),
+      fetchProjectedPpgByPlayer(season),
+    ]);
+  } catch (error) {
     console.error(`fetchDepthChartsForSeason(${season}) error`, error);
     return [];
   }
 
-  return (rows ?? []).map((r) => {
+  return rows.map((r) => {
     const row = r as DepthRow;
     return {
       player_id: row.player_id,
@@ -92,15 +100,21 @@ async function fetchPriorDepthByPlayer(
   season: number,
 ): Promise<Map<string, number>> {
   const map = new Map<string, number>();
-  const { data, error } = await supabase
-    .from("depth_charts")
-    .select("player_id, depth_team")
-    .eq("season", season);
-  if (error) {
+  let data: { player_id: string; depth_team: number }[];
+  try {
+    // Paginate depth_charts — a single season can approach/exceed the 1000-row cap.
+    data = await fetchAllRows((from, to) =>
+      supabase
+        .from("depth_charts")
+        .select("player_id, depth_team")
+        .eq("season", season)
+        .order("player_id").range(from, to),
+    );
+  } catch (error) {
     console.error(`fetchPriorDepthByPlayer(${season}) error`, error);
     return map;
   }
-  for (const row of data ?? []) map.set(row.player_id, row.depth_team);
+  for (const row of data) map.set(row.player_id, row.depth_team);
   return map;
 }
 
