@@ -10,7 +10,9 @@
   "runArgs": ["--cap-add=NET_ADMIN", "--cap-add=NET_RAW"],
   "remoteUser": "vscode",
   "mounts": [
-    "source=ottoneu-claude-config,target=/home/vscode/.claude,type=volume"
+    "source=ottoneu-claude-config,target=/home/vscode/.claude,type=volume",
+    "source=ottoneu-venv,target=${containerWorkspaceFolder}/venv,type=volume",
+    "source=ottoneu-web-node-modules,target=${containerWorkspaceFolder}/web/node_modules,type=volume"
   ],
   "containerEnv": {
     "DEVCONTAINER": "true"
