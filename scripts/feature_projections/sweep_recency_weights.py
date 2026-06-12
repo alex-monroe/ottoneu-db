@@ -1,13 +1,25 @@
-"""Sweep the WeightedPPG base feature's hyperparameters (GH #271, #589).
+"""Sweep the WeightedPPG base feature's hyperparameters (GH #271, #589, #639).
 
-Grid-searches the two real knobs of the production base feature
+Grid-searches the real knobs of the production base feature
 (``weighted_ppg_no_qb_trajectory`` — every model since v12 uses the no-QB/K
 trajectory base):
 
-- **Recency weights** — the 3-season blend, most recent first.
+- **Recency weights** — the recency blend, most recent first. The vector's
+  length is also the per-player history window (compute() uses the
+  len(weights) most-recent seasons), so 2- and 4-weight variants sweep the
+  window-length axis (#639). 4-weight cells answer "would a 4th season help?"
+  — adopting one in production additionally requires plumbing ``max_history``
+  through the pipeline (the runner fetches 3 seasons).
 - **Games-reliability exponent** — the per-season reliability factor is
   ``(games_played / 17) ** exponent``; >1.0 down-weights partial seasons
   harder (v28 tried 1.5 at the model level, judged on leaked data).
+
+``--per-position`` (#639) additionally prints, for each of QB/RB/WR/TE, the
+cells ranked by that position's MAE with per-fold values — positions plausibly
+differ in signal decay, and the #589 global tune won at RB/WR while QB/TE
+moved slightly the wrong way. Cells are scored on a common qualifier
+population (players with a season in the production 3-year window) so
+different window lengths stay comparable.
 
 Each (weights, exponent) cell scores the *isolated* base feature against
 next-season actuals. Tuning runs on the **inner folds** (default
@@ -54,13 +66,33 @@ WEIGHT_VARIANTS = [
     [0.50, 0.30, 0.20],
     [0.55, 0.30, 0.15],
     [0.60, 0.25, 0.15],
-    [0.65, 0.20, 0.15],
+    [0.65, 0.20, 0.15],  # #589 tuned production value
     [0.60, 0.30, 0.10],
     [0.70, 0.20, 0.10],
+    [0.75, 0.15, 0.10],
     [0.80, 0.15, 0.05],  # near prior-season-only
 ]
 
+# Window-length axis (#639). A 2-weight vector uses only the player's two
+# most-recent seasons; a 4-weight vector reaches back four (sweep-only until
+# max_history is plumbed — see module docstring).
+WINDOW_VARIANTS = [
+    [0.60, 0.40],
+    [0.65, 0.35],
+    [0.70, 0.30],
+    [0.75, 0.25],
+    [0.80, 0.20],
+    [0.50, 0.25, 0.15, 0.10],
+    [0.55, 0.20, 0.15, 0.10],
+    [0.60, 0.20, 0.12, 0.08],
+    [0.45, 0.25, 0.20, 0.10],
+]
+
 DEFAULT_EXPONENTS = [1.0, 1.25, 1.5, 2.0]
+
+# Positions reported individually in --per-position mode. K is excluded —
+# essentially random year-over-year and not the target of base tuning.
+SWEEP_POSITIONS = ["QB", "RB", "WR", "TE"]
 
 
 def _compute_metrics(projected: list[float], actual: list[float]) -> dict:
@@ -86,9 +118,13 @@ def _compute_metrics(projected: list[float], actual: list[float]) -> dict:
 
 def _fetch_season_data(
     seasons: list[int],
-    max_history: int = 3,
+    max_history: int = 4,
 ) -> tuple[dict[str, str], dict[int, pd.DataFrame], dict[int, dict[str, float]]]:
     """Fetch everything the sweep needs once, so the grid loop is in-memory only.
+
+    Fetches one season beyond the production 3-year window so 4-weight cells
+    can be scored; ≤3-weight cells slice back down to the production window
+    per player in _run_projections.
 
     Returns (position map, {season: history_df}, {season: {player_id: actual_ppg}}).
     """
@@ -140,6 +176,14 @@ def _run_projections(
     WeightedPPGFeature.GAMES_RELIABILITY_EXPONENT = exponent
     feature = WeightedPPGNoQBTrajectoryFeature()
 
+    # Production-faithful window: ≤3-weight cells only see the 3-year fetch
+    # window; 4-weight cells reach one season further back. Either way the
+    # qualifier population is fixed to players with a season inside the
+    # production 3-year window, so cells with different window lengths score
+    # the same players (a window-4 cell must not "win" by adding stale-history
+    # players the others never see).
+    window = max(len(weights), 3)
+
     all_results: dict[int, dict[str, dict]] = {}
 
     for target_season in seasons:
@@ -163,9 +207,15 @@ def _run_projections(
             if not position:
                 continue
 
+            if not (player_history["season"] >= target_season - 3).any():
+                continue  # outside the common qualifier population
+            window_history = player_history[
+                player_history["season"] >= target_season - window
+            ]
+
             # Compute base feature only (no nfl_stats needed for weighted_ppg)
             projected = feature.compute(
-                player_id_str, position, player_history, pd.DataFrame(), {}
+                player_id_str, position, window_history, pd.DataFrame(), {}
             )
             if projected is None:
                 continue
@@ -205,6 +255,69 @@ def _weighted_avg(results: dict[int, dict[str, dict]], pos: str, metric: str) ->
     return sum(v * w for v, w in pairs) / sum(w for _, w in pairs)
 
 
+def _print_per_position_tables(
+    grid_results: list[tuple[list[float], float, dict[int, dict[str, dict]]]],
+    seasons: list[int],
+    top_n: int = 12,
+) -> None:
+    """Per-position cell ranking with per-fold MAEs (#639).
+
+    The 'vs tuned' column counts inner folds where the cell's position MAE is
+    <= the #589 tuned production cell ([0.65, 0.20, 0.15] exp 1.0) — the #589
+    guardrail prefers a cell that never loses a fold over the absolute-best
+    mean (grid-overfit protection).
+    """
+    ref = next(
+        (r for w, e, r in grid_results if w == [0.65, 0.20, 0.15] and e == 1.0),
+        None,
+    )
+
+    for pos in SWEEP_POSITIONS:
+        rows = []
+        for weights, exponent, results in grid_results:
+            mae = _weighted_avg(results, pos, "mae")
+            if mae is None:
+                continue
+            fold_maes = [
+                results.get(s, {}).get(pos, {}).get("mae") for s in seasons
+            ]
+            folds_won = None
+            if ref is not None:
+                won, total = 0, 0
+                for s in seasons:
+                    cell_m = results.get(s, {}).get(pos, {}).get("mae")
+                    ref_m = ref.get(s, {}).get(pos, {}).get("mae")
+                    if cell_m is not None and ref_m is not None:
+                        total += 1
+                        if cell_m <= ref_m:
+                            won += 1
+                folds_won = f"{won}/{total}"
+            n = sum(
+                results.get(s, {}).get(pos, {}).get("n", 0) or 0 for s in seasons
+            )
+            rows.append((mae, weights, exponent, fold_maes, folds_won, n))
+
+        rows.sort(key=lambda r: r[0])
+
+        print(f"\n--- {pos} — top {top_n} cells by weighted MAE ---")
+        fold_hdr = " ".join(f"{s:>8}" for s in seasons)
+        print(f"{'Weights':<28} {'Exp':>5} {'MAE':>8} {fold_hdr} {'vs tuned':>9} {'N':>5}")
+        for mae, weights, exponent, fold_maes, folds_won, n in rows[:top_n]:
+            label = f"[{', '.join(f'{w:.2f}' for w in weights)}]"
+            marker = ""
+            if weights == CURRENT_WEIGHTS and exponent == CURRENT_EXPONENT:
+                marker = " (prod default)"
+            elif weights == [0.65, 0.20, 0.15] and exponent == 1.0:
+                marker = " (#589 tuned)"
+            folds = " ".join(
+                f"{m:>8.4f}" if m is not None else f"{'—':>8}" for m in fold_maes
+            )
+            print(
+                f"{label:<28} {exponent:>5.2f} {mae:>8.4f} {folds} "
+                f"{folds_won or '—':>9} {n:>5}{marker}"
+            )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Sweep WeightedPPG base hyperparameters (recency weights × reliability exponent)"
@@ -221,13 +334,28 @@ def main() -> None:
         help="Comma-separated games-reliability exponents to grid over "
              f"(default: {','.join(str(e) for e in DEFAULT_EXPONENTS)})",
     )
+    parser.add_argument(
+        "--per-position",
+        action="store_true",
+        help="Print per-position (QB/RB/WR/TE) cell rankings with per-fold MAEs (#639)",
+    )
+    parser.add_argument(
+        "--windows",
+        action="store_true",
+        help="Include 2- and 4-season window variants in the grid (#639). "
+             "4-weight cells are sweep-only until max_history is plumbed.",
+    )
     args = parser.parse_args()
     seasons = [int(s.strip()) for s in args.seasons.split(",")]
     exponents = [float(e.strip()) for e in args.exponents.split(",")]
     warn_on_confirmation_overlap(seasons)
 
+    weight_variants = list(WEIGHT_VARIANTS)
+    if args.windows:
+        weight_variants += WINDOW_VARIANTS
+
     print(
-        f"Grid: {len(WEIGHT_VARIANTS)} weight variants × {len(exponents)} exponents "
+        f"Grid: {len(weight_variants)} weight variants × {len(exponents)} exponents "
         f"across seasons {seasons} (base: weighted_ppg_no_qb_trajectory)\n"
     )
 
@@ -236,7 +364,7 @@ def main() -> None:
 
     grid_results: list[tuple[list[float], float, dict[int, dict[str, dict]]]] = []
 
-    for weights in WEIGHT_VARIANTS:
+    for weights in weight_variants:
         for exponent in exponents:
             results = _run_projections(
                 weights, exponent, seasons, pos_map, history_by_season, actuals_by_season
@@ -298,6 +426,12 @@ def main() -> None:
             rmse = _weighted_avg(best_results, pos, "rmse")
             if mae is not None:
                 print(f"{pos:<10} {mae:>8.4f} {bias:>+8.4f} {r_sq:>8.4f} {rmse:>8.4f}")
+
+    if args.per_position:
+        print(f"\n{'='*88}")
+        print("PER-POSITION RANKINGS (#639)")
+        print(f"{'='*88}")
+        _print_per_position_tables(grid_results, seasons)
 
     # Restore the production values patched during the sweep
     WeightedPPGFeature.RECENCY_WEIGHTS = CURRENT_WEIGHTS

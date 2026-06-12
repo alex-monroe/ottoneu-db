@@ -638,6 +638,89 @@ MODELS: dict[str, ModelDefinition] = {
         interaction_terms=["depth_chart_position_raw^2"],
         training_filter={"positions": ["QB"]},
     ),
+    "v35_pos_tuned_base": ModelDefinition(
+        name="v35_pos_tuned_base",
+        version=1,
+        description=(
+            "Per-position base tuning (GH #639): v33_tuned_base with the base "
+            "feature swapped to weighted_ppg_pos_tuned_no_qb, which uses a "
+            "per-position recency-weight vector (and per-position history "
+            "window via vector length) chosen on the inner tuning folds "
+            "(2022-2024, honest protocol GH #595) instead of #589's single "
+            "global vector. Motivated by #589's win concentrating at RB/WR "
+            "while QB/TE moved slightly the wrong way. Everything else "
+            "identical to v33."
+        ),
+        features=[
+            "weighted_ppg_pos_tuned_no_qb",
+            "age_curve",
+            "regression_to_mean",
+            "qb_backup_penalty",
+            "usage_share_raw",
+            "target_share_raw",
+            "air_yards_share_raw",
+            "wopr_raw",
+            "racr_raw",
+            "draft_capital_raw",
+            "implied_team_total_raw",
+            "depth_chart_position_raw",
+            "role_change_raw",
+        ],
+        combiner_type="learned",
+        interaction_terms=[
+            "usage_share_raw*position",
+            "usage_share_raw*base_ppg",
+            "usage_share_raw^2",
+            "target_share_raw*position",
+            "wopr_raw*base_ppg",
+            "wopr_raw^2",
+            "draft_capital_raw*position",
+            "implied_team_total_raw*position",
+            "depth_chart_position_raw*position",
+        ],
+    ),
+    "v36_pos_regression": ModelDefinition(
+        name="v36_pos_regression",
+        version=1,
+        description=(
+            "Per-position regression strength (GH #639): v33_tuned_base plus a "
+            "regression_to_mean*position interaction. In a learned combiner a "
+            "per-position REGRESSION_FACTOR is exactly a per-position "
+            "coefficient on the regression delta, so the ridge learns each "
+            "position's mean-reversion strength directly instead of a "
+            "hand-swept factor. regression_to_mean is the most load-bearing "
+            "feature in the #588 ablation (Δ +0.075 when removed) and its "
+            "strength has never varied by position."
+        ),
+        features=[
+            "weighted_ppg_tuned_no_qb",
+            "age_curve",
+            "regression_to_mean",
+            "qb_backup_penalty",
+            "usage_share_raw",
+            "target_share_raw",
+            "air_yards_share_raw",
+            "wopr_raw",
+            "racr_raw",
+            "draft_capital_raw",
+            "implied_team_total_raw",
+            "depth_chart_position_raw",
+            "role_change_raw",
+        ],
+        combiner_type="learned",
+        interaction_terms=[
+            "usage_share_raw*position",
+            "usage_share_raw*base_ppg",
+            "usage_share_raw^2",
+            "target_share_raw*position",
+            "wopr_raw*base_ppg",
+            "wopr_raw^2",
+            "draft_capital_raw*position",
+            "implied_team_total_raw*position",
+            "depth_chart_position_raw*position",
+            "regression_to_mean*position",
+        ],
+    ),
     "naive_prior_season_ppg": ModelDefinition(
         name="naive_prior_season_ppg",
         version=1,
