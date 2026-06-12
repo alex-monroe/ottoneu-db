@@ -20,13 +20,15 @@ New experiments are logged here with **leakage-free held-out** numbers, the gate
 being a *significant* win over the active model. Generate the row with
 `/experiment`: `just holdout-eval --protocol rolling …` for the MAE/CI and
 `just significance NEW v31_depth_chart --protocol rolling …` for the verdict. Δ
-and CI are for `MAE(model) − MAE(v31_depth_chart)` (negative ⇒ model better).
+and CI are for `MAE(model) − MAE(comparator)` — the comparator is named in the
+row (the active model at the time of the experiment; negative ⇒ model better).
 Iterate on the rolling folds; the final window is confirmation-only (one look).
 
-| Date | Model | Change | Held-out ALL MAE | Δ vs v14 | 95% CI | Significant? | Protocol | PR |
+| Date | Model | Change | Held-out ALL MAE | Δ vs comparator | 95% CI | Significant? | Protocol | PR |
 |------|-------|--------|------------------|----------|--------|--------------|----------|-----|
-| 2026-06-10 | v31_depth_chart | #599 backfill of 2021–2023 player_stats (coverage 29–40%→82–84%); all models re-projected/retrained on the corrected population | 2.232 | **−0.091** | [−0.163, −0.020] | **Y** (p=0.014, 617 clusters) | rolling 2023–2025 | #599 backfill |
-| 2026-06-10 | v31_depth_chart | same — fixed window (3-season train handicap) | 2.269 | −0.020 | [−0.113, +0.078] | N (p=0.68) | fixed 2021–23→24–25 | #599 backfill |
+| 2026-06-11 | v32_pruned | #588 ablation: v31 minus age_curve, usage_share, draft_capital, vegas, qb_backup_penalty (13→8 features) | 2.252 | +0.020 vs **v31** | [−0.027, +0.065] | N (p=0.40) — no worse, not better; **v31 stays active**. See #588 section below | rolling 2023–2025 | #588 |
+| 2026-06-10 | v31_depth_chart | #599 backfill of 2021–2023 player_stats (coverage 29–40%→82–84%); all models re-projected/retrained on the corrected population | 2.232 | **−0.091** vs v14 | [−0.163, −0.020] | **Y** (p=0.014, 617 clusters) | rolling 2023–2025 | #599 backfill |
+| 2026-06-10 | v31_depth_chart | same — fixed window (3-season train handicap) | 2.269 | −0.020 vs v14 | [−0.113, +0.078] | N (p=0.68) | fixed 2021–23→24–25 | #599 backfill |
 | 2026-06-10 | v20_learned_usage | same backfill — over-projection bias check | 2.325 | — | bias −1.060→**−0.032** | bias artifact removed | fixed | #599 backfill |
 
 ### Availability / expected-games (#587) — measured on `availability-backtest`, not rate MAE
@@ -78,6 +80,51 @@ below the +0.589 no-modeling baseline; avail MAE 2.986 → 2.356, −21%; bias �
 | none (raw rate) | 2.986 | +0.589 | −1.946 |
 | history (unguarded) | 2.268 | −0.130 | −0.236 |
 | **history + thin-history guard (production)** | **2.356** | **−0.042** | **−0.464** |
+
+### Honest feature ablation of v31_depth_chart (#588) — rolling held-out, 2026-06-11
+
+One signal group removed at a time from `v31_depth_chart` (retrained per fold);
+paired player-clustered bootstrap vs the full model. Δ = MAE(ablated) − MAE(v31),
+so **positive Δ ⇒ the feature is load-bearing**. Rolling 2023–2025,
+min-train 2021, 1216 paired player-seasons / 617 clusters. The no-depth-chart
+ablation is `v27_vegas_full_refit` (identical feature set).
+
+| Feature group removed | Held-out ALL MAE | Δ | 95% CI | p | Verdict |
+|---|---|---|---|---|---|
+| regression_to_mean | 2.307 | **+0.075** | [+0.038, +0.111] | 0.0006 | **KEEP — load-bearing** |
+| depth_chart (2 feats + 1 int ≡ v27) | 2.298 | **+0.066** | [+0.023, +0.110] | 0.0026 | **KEEP — load-bearing** |
+| advanced receiving (4 feats + 3 int) | 2.255 | +0.023 | [−0.004, +0.050] | 0.093 | **KEEP — WR-load-bearing**: WR-only Δ **+0.072**, CI [+0.007, +0.137], p=0.031 |
+| qb_backup_penalty | 2.253 | +0.021 | [−0.007, +0.047] | 0.13 | prune candidate (QB-only Δ +0.085 but CI [−0.115, +0.282], p=0.40) |
+| vegas implied_team_total (+1 int) | 2.238 | +0.006 | [−0.014, +0.025] | 0.55 | prune candidate |
+| age_curve | 2.229 | −0.003 | [−0.023, +0.017] | 0.76 | prune candidate |
+| usage_share_raw (+3 int) | 2.231 | −0.001 | [−0.005, +0.004] | 0.78 | prune candidate |
+| draft_capital_raw (+1 int) | 2.232 | −0.000 | [−0.030, +0.029] | 0.99 | prune candidate¹ |
+
+¹ The held-out population is non-rookie qualifiers, so this says nothing about
+draft capital's value in the **rookie fallback** path (`rookie-backtest`), which
+is unaffected.
+
+**Rank-quality lens (#598/Finding D):** no prune candidate is rescued by
+ordering — every ablation's per-position Spearman ρ is within ±0.01 of the full
+model (e.g. RB 0.784–0.791 vs v31 0.787), and the load-bearing features also
+have the worst rank-quality losses when removed (TE ρ 0.760 → 0.743 without
+regression_to_mean).
+
+**Combined pruned candidate `v32_pruned`** (base + regression_to_mean +
+advanced receiving + depth_chart; 13→8 features, 9→4 interactions — drops all
+five prune candidates jointly): ALL MAE 2.252, Δ +0.020, CI [−0.027, +0.065],
+p=0.40 (QB-only Δ −0.008, p=0.96) — statistically **no worse** than v31, with
+~tied ordering (QB ρ +0.003, RB −0.001, WR −0.002, TE −0.010) but a worse WR
+top-24 hit (0.333 → 0.250). **Decision: v31 stays active** — v32 is not a
+significant win (the promotion gate) and slightly degrades the WR top tier; it
+is kept in `model_config.py` as the documented leaner fallback. Practical
+takeaways: (a) age_curve / usage_share / draft_capital / vegas / qb_backup_penalty
+carry no measurable OOS weight inside v31 — don't defend them in future
+experiments (#589 base tuning can ignore them); (b) regression_to_mean,
+depth_chart, and advanced receiving are the features that earn the learned
+stack its win; (c) the original #588 premise ("most features will be pruned as
+worthless") was half-right — five of eight groups are deadweight, but the
+remaining three are strongly load-bearing, so wholesale pruning is wrong.
 
 ## Historical (in-sample) log — pre-audit, deltas not reliable
 

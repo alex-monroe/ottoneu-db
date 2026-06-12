@@ -540,6 +540,36 @@ MODELS: dict[str, ModelDefinition] = {
             "depth_chart_position_raw*position",
         ],
     ),
+    "v32_pruned": ModelDefinition(
+        name="v32_pruned",
+        version=1,
+        description=(
+            "#588 honest feature ablation result: v31_depth_chart minus the five "
+            "feature groups whose removal was not significant on the rolling "
+            "held-out harness (age_curve, qb_backup_penalty, usage_share_raw, "
+            "draft_capital_raw, implied_team_total_raw). Keeps the base, "
+            "regression_to_mean, advanced receiving (significantly load-bearing "
+            "at WR), and the depth-chart group (significantly load-bearing "
+            "overall). 13→8 features, 9→4 interactions."
+        ),
+        features=[
+            "weighted_ppg_no_qb_trajectory",
+            "regression_to_mean",
+            "target_share_raw",
+            "air_yards_share_raw",
+            "wopr_raw",
+            "racr_raw",
+            "depth_chart_position_raw",
+            "role_change_raw",
+        ],
+        combiner_type="learned",
+        interaction_terms=[
+            "target_share_raw*position",
+            "wopr_raw*base_ppg",
+            "wopr_raw^2",
+            "depth_chart_position_raw*position",
+        ],
+    ),
     "naive_prior_season_ppg": ModelDefinition(
         name="naive_prior_season_ppg",
         version=1,
