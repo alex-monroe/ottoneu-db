@@ -21,19 +21,28 @@ _Tracks every model iteration attempt to prevent re-trying failed approaches._
 New experiments are logged here with **leakage-free held-out** numbers, the gate
 being a *significant* win over the active model. Generate the row with
 `/experiment`: `just holdout-eval --protocol rolling …` for the MAE/CI and
-`just significance NEW v31_depth_chart --protocol rolling …` for the verdict. Δ
+`just significance NEW <active-model> --protocol rolling …` for the verdict. Δ
 and CI are for `MAE(model) − MAE(comparator)` — the comparator is named in the
 row (the active model at the time of the experiment; negative ⇒ model better).
 Iterate on the rolling folds; the final window is confirmation-only (one look).
 
-| Date | Model | Change | Held-out ALL MAE | Δ vs comparator | 95% CI | Significant? | Protocol | PR |
-|------|-------|--------|------------------|----------|--------|--------------|----------|-----|
-| 2026-06-11 | v34_qb_residual | #592 QB-only residual on v33 (depth_chart, qb_backup_penalty, implied_team_total; non-QB byte-identical to v33 by construction) | QB 3.846 (ALL 2.239) | QB **+0.015** vs **v33** | [−0.016, +0.049] | **N** (p=0.36) — **NEGATIVE, bounded bet stopped on tie**; residual coefficients ≈0. See #592 section below | rolling 2023–24 (iteration look; confirmation window not burned) | #592 |
-| 2026-06-11 | v33_tuned_base | #589 base tuning: recency weights [0.55,0.25,0.20]→[0.65,0.20,0.15] (inner-fold sweep; exponent grid confirmed 1.0); v31 otherwise unchanged | **2.241** | **−0.011** vs **v31** | [−0.022, −0.001] | **Y** (p=0.038; iteration look 2023–24: −0.016, CI [−0.027, −0.004], p=0.007) — **clears the promotion gate**. See #589 section below | rolling 2023–2025 | #589 |
-| 2026-06-11 | v32_pruned | #588 ablation: v31 minus age_curve, usage_share, draft_capital, vegas, qb_backup_penalty (13→8 features) | 2.252 | +0.020 vs **v31** | [−0.027, +0.065] | N (p=0.40) — no worse, not better; **v31 stays active**. See #588 section below | rolling 2023–2025 | #588 |
-| 2026-06-10 | v31_depth_chart | #599 backfill of 2021–2023 player_stats (coverage 29–40%→82–84%); all models re-projected/retrained on the corrected population | 2.232 | **−0.091** vs v14 | [−0.163, −0.020] | **Y** (p=0.014, 617 clusters) | rolling 2023–2025 | #599 backfill |
-| 2026-06-10 | v31_depth_chart | same — fixed window (3-season train handicap) | 2.269 | −0.020 vs v14 | [−0.113, +0.078] | N (p=0.68) | fixed 2021–23→24–25 | #599 backfill |
-| 2026-06-10 | v20_learned_usage | same backfill — over-projection bias check | 2.325 | — | bias −1.060→**−0.032** | bias artifact removed | fixed | #599 backfill |
+**Rank Δ is a required column** (#598 made ranking quality first-class): the
+projections feed VORP, auction values, and keeper calls, which consume
+within-position *ordering*, not PPG level — a model can win MAE while losing the
+ordering that downstream decisions actually use. Fill it from the "Ranking
+quality" section of the holdout-eval report: per-position Spearman ρ delta and
+top-N hit delta vs the comparator (QB/TE top-12, RB/WR top-24). Use "≈" for
+within-noise (±0.01 ρ), and call out any position where ordering moves against
+the MAE verdict. "—" only for rows predating the column.
+
+| Date | Model | Change | Held-out ALL MAE | Δ vs comparator | 95% CI | Significant? | Rank Δ (ρ / top-N vs comparator) | Protocol | PR |
+|------|-------|--------|------------------|----------|--------|--------------|----------------------------------|----------|-----|
+| 2026-06-11 | v34_qb_residual | #592 QB-only residual on v33 (depth_chart, qb_backup_penalty, implied_team_total; non-QB byte-identical to v33 by construction) | QB 3.846 (ALL 2.239) | QB **+0.015** vs **v33** | [−0.016, +0.049] | **N** (p=0.36) — **NEGATIVE, bounded bet stopped on tie**; residual coefficients ≈0. See #592 section below | ≈ (non-QB identical by construction; QB ρ within noise) | rolling 2023–24 (iteration look; confirmation window not burned) | #592 |
+| 2026-06-11 | v33_tuned_base | #589 base tuning: recency weights [0.55,0.25,0.20]→[0.65,0.20,0.15] (inner-fold sweep; exponent grid confirmed 1.0); v31 otherwise unchanged | **2.241** | **−0.011** vs **v31** | [−0.022, −0.001] | **Y** (p=0.038; iteration look 2023–24: −0.016, CI [−0.027, −0.004], p=0.007) — **clears the promotion gate**. See #589 section below | ρ ≈ everywhere except QB −0.003; WR top-24 0.250→0.292, TE top-12 0.500→0.583 | rolling 2023–2025 | #589 |
+| 2026-06-11 | v32_pruned | #588 ablation: v31 minus age_curve, usage_share, draft_capital, vegas, qb_backup_penalty (13→8 features) | 2.252 | +0.020 vs **v31** | [−0.027, +0.065] | N (p=0.40) — no worse, not better; **v31 stays active**. See #588 section below | ρ ≈ (QB +0.003 … TE −0.010); WR top-24 0.333→0.250 — top-tier loss drove the no-promote call | rolling 2023–2025 | #588 |
+| 2026-06-10 | v31_depth_chart | #599 backfill of 2021–2023 player_stats (coverage 29–40%→82–84%); all models re-projected/retrained on the corrected population | 2.232 | **−0.091** vs v14 | [−0.163, −0.020] | **Y** (p=0.014, 617 clusters) | — (predates column; see #598 tables in holdout report) | rolling 2023–2025 | #599 backfill |
+| 2026-06-10 | v31_depth_chart | same — fixed window (3-season train handicap) | 2.269 | −0.020 vs v14 | [−0.113, +0.078] | N (p=0.68) | — | fixed 2021–23→24–25 | #599 backfill |
+| 2026-06-10 | v20_learned_usage | same backfill — over-projection bias check | 2.325 | — | bias −1.060→**−0.032** | bias artifact removed | — | fixed | #599 backfill |
 
 ### Availability / expected-games (#587) — measured on `availability-backtest`, not rate MAE
 
