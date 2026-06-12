@@ -6,9 +6,16 @@
 # Claude Code / Anthropic
 api.anthropic.com
 statsig.anthropic.com
+statsig.com
 console.anthropic.com
+claude.ai
 sentry.io
 o1158394.ingest.sentry.io
+
+# VS Code in-container services (server updates, extension marketplace)
+update.code.visualstudio.com
+marketplace.visualstudio.com
+vscode.blob.core.windows.net
 
 # Package registries
 registry.npmjs.org
