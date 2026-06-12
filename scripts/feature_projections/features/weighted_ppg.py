@@ -70,19 +70,34 @@ class WeightedPPGFeature(ProjectionFeature):
         if history_df.empty:
             return None
 
+        weights = self._recency_weights(position)
         sorted_df = history_df.sort_values("season")
-        recent = sorted_df.tail(3)
+        recent = sorted_df.tail(len(weights))
         n = len(recent)
 
         if n == 1:
             return self._rookie_trajectory(recent.iloc[0], position)
         else:
-            return self._weighted_average(recent)
+            return self._weighted_average(recent, weights)
 
-    def _weighted_average(self, recent: pd.DataFrame) -> Optional[float]:
+    def _recency_weights(self, position: str) -> list[float]:
+        """Recency weights for this player's position (most recent season first).
+
+        The vector's length is also the per-player history window: compute()
+        uses the player's len(weights) most-recent seasons. Subclasses can
+        override to vary weights (and window) by position — see
+        WeightedPPGPerPositionTunedFeature (GH #639).
+        """
+        return self.RECENCY_WEIGHTS
+
+    def _weighted_average(
+        self, recent: pd.DataFrame, weights: Optional[list[float]] = None
+    ) -> Optional[float]:
         """Veteran projection: recency-weighted, games-scaled average."""
+        if weights is None:
+            weights = self.RECENCY_WEIGHTS
         n = len(recent)
-        weights = self.RECENCY_WEIGHTS[:n]
+        weights = weights[:n]
 
         numerator = 0.0
         denominator = 0.0
@@ -200,6 +215,55 @@ class WeightedPPGTunedNoQBFeature(WeightedPPGNoQBTrajectoryFeature):
     @property
     def is_base(self) -> bool:
         return True
+
+
+class WeightedPPGPerPositionTunedFeature(WeightedPPGNoQBTrajectoryFeature):
+    """WeightedPPG (no QB/K trajectory) with per-position recency weights.
+
+    GH #639: the #589 global tune ([0.65, 0.20, 0.15]) won at RB/WR while QB/TE
+    moved slightly the wrong way, suggesting positions differ in how fast their
+    signal decays. This variant gives each position its own weight vector,
+    chosen by the per-position inner-fold sweep
+    (``sweep_recency_weights.py --per-position``, honest protocol GH #595);
+    positions without an entry fall back to the #589 global tuned weights.
+
+    A vector's length is also that position's per-player history window
+    (compute() uses the len(weights) most-recent seasons), so a 2-weight
+    entry means "use only the player's two most recent seasons". Windows
+    longer than 3 require plumbing ``max_history`` through the pipeline —
+    don't add a 4-weight entry without that (the runner only fetches 3
+    seasons of history).
+    """
+
+    # Per-position sweep winners (GH #639, inner folds 2022-2024, exponent
+    # 1.0), picked with the #589 guardrail: prefer the cell that never loses
+    # an inner fold to the #589 tuned weights over the absolute-best mean.
+    # QB/WR: no cell beat the tuned weights in >=2 folds (QB's best-mean cell,
+    # the old prod default, loses 2/3 folds) — keep the global tune. RB:
+    # [0.70, 0.20, 0.10] never loses a fold (2.4006 vs 2.4034). TE: the only
+    # dominating cell is a 4-season window ([0.60, 0.20, 0.12, 0.08], 1.4927
+    # vs 1.5006, never loses) — sweep-only until max_history is plumbed, so
+    # TE keeps the global tune here.
+    POSITION_RECENCY_WEIGHTS: dict[str, list[float]] = {
+        "QB": [0.65, 0.20, 0.15],
+        "RB": [0.70, 0.20, 0.10],
+        "WR": [0.65, 0.20, 0.15],
+        "TE": [0.65, 0.20, 0.15],
+    }
+
+    # Fallback for K / unknown positions: the #589 global tuned weights.
+    RECENCY_WEIGHTS = [0.65, 0.20, 0.15]
+
+    @property
+    def name(self) -> str:
+        return "weighted_ppg_pos_tuned_no_qb"
+
+    @property
+    def is_base(self) -> bool:
+        return True
+
+    def _recency_weights(self, position: str) -> list[float]:
+        return self.POSITION_RECENCY_WEIGHTS.get(position, self.RECENCY_WEIGHTS)
 
 
 class WeightedPPGRookieGrowthFeature(WeightedPPGFeature):

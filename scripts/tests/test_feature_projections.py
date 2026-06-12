@@ -10,6 +10,7 @@ import pandas as pd
 
 from scripts.feature_projections.features.weighted_ppg import (
     WeightedPPGFeature,
+    WeightedPPGPerPositionTunedFeature,
     WeightedPPGRookieGrowthFeature,
     WeightedPPGRookieGrowthNoQBFeature,
     WeightedPPGTunedNoQBFeature,
@@ -174,6 +175,83 @@ class TestWeightedPPGTunedNoQBFeature:
         """The tuned subclass overrides, not mutates, the parent's weights."""
         assert WeightedPPGFeature.RECENCY_WEIGHTS == [0.55, 0.25, 0.20]
         assert WeightedPPGTunedNoQBFeature.RECENCY_WEIGHTS == [0.65, 0.20, 0.15]
+
+
+# ---------------------------------------------------------------------------
+# WeightedPPGPerPositionTunedFeature (#639)
+# ---------------------------------------------------------------------------
+
+class TestWeightedPPGPerPositionTunedFeature:
+    """Tests for the per-position tuned base feature (GH #639)."""
+
+    def setup_method(self):
+        self.feature = WeightedPPGPerPositionTunedFeature()
+
+    def test_name(self):
+        assert self.feature.name == "weighted_ppg_pos_tuned_no_qb"
+        assert self.feature.is_base is True
+
+    def test_uses_position_weights(self):
+        """Each position blends with its own weight vector."""
+        df = make_history_df([
+            {"season": 2022, "ppg": 10.0, "games_played": 17},
+            {"season": 2023, "ppg": 15.0, "games_played": 17},
+            {"season": 2024, "ppg": 20.0, "games_played": 17},
+        ])
+        for pos in ["QB", "RB", "WR", "TE"]:
+            weights = self.feature.POSITION_RECENCY_WEIGHTS[pos]
+            recent = [20.0, 15.0, 10.0][: len(weights)]
+            expected = sum(p * w for p, w in zip(recent, weights)) / sum(weights)
+            result = self.feature.compute("p1", pos, df, pd.DataFrame(), {})
+            assert result == pytest.approx(expected), pos
+
+    def test_fallback_for_unmapped_position(self):
+        """K (no per-position entry) falls back to the #589 global tuned weights."""
+        df = make_history_df([
+            {"season": 2022, "ppg": 10.0, "games_played": 17},
+            {"season": 2023, "ppg": 15.0, "games_played": 17},
+            {"season": 2024, "ppg": 20.0, "games_played": 17},
+        ])
+        result = self.feature.compute("p1", "K", df, pd.DataFrame(), {})
+        w = self.feature.RECENCY_WEIGHTS
+        expected = (20.0 * w[0] + 15.0 * w[1] + 10.0 * w[2]) / sum(w)
+        assert result == pytest.approx(expected)
+
+    def test_two_weight_vector_uses_two_season_window(self):
+        """A 2-weight entry must ignore the third-most-recent season entirely."""
+        df = make_history_df([
+            {"season": 2022, "ppg": 100.0, "games_played": 17},  # would dominate if leaked in
+            {"season": 2023, "ppg": 15.0, "games_played": 17},
+            {"season": 2024, "ppg": 20.0, "games_played": 17},
+        ])
+        original = WeightedPPGPerPositionTunedFeature.POSITION_RECENCY_WEIGHTS
+        try:
+            WeightedPPGPerPositionTunedFeature.POSITION_RECENCY_WEIGHTS = {
+                **original, "RB": [0.70, 0.30],
+            }
+            result = self.feature.compute("p1", "RB", df, pd.DataFrame(), {})
+            assert result == pytest.approx(20.0 * 0.70 + 15.0 * 0.30)
+        finally:
+            WeightedPPGPerPositionTunedFeature.POSITION_RECENCY_WEIGHTS = original
+
+    def test_no_qb_trajectory_inherited(self):
+        """QB single-season keeps plain PPG (no H2/H1 snap multiplier)."""
+        df = make_history_df([{
+            "season": 2024, "ppg": 12.0, "games_played": 17,
+            "h1_snaps": 200, "h1_games": 8,
+            "h2_snaps": 360, "h2_games": 9,
+        }])
+        result = self.feature.compute("p1", "QB", df, pd.DataFrame(), {})
+        assert result == pytest.approx(12.0)
+
+    def test_does_not_mutate_parents(self):
+        assert WeightedPPGFeature.RECENCY_WEIGHTS == [0.55, 0.25, 0.20]
+        assert WeightedPPGTunedNoQBFeature.RECENCY_WEIGHTS == [0.65, 0.20, 0.15]
+        for weights in WeightedPPGPerPositionTunedFeature.POSITION_RECENCY_WEIGHTS.values():
+            assert len(weights) <= 3, (
+                "windows longer than 3 require max_history plumbing in the "
+                "runner/backtest/holdout pipeline — see GH #639"
+            )
 
 
 # ---------------------------------------------------------------------------

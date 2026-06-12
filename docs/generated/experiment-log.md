@@ -37,6 +37,8 @@ the MAE verdict. "—" only for rows predating the column.
 
 | Date | Model | Change | Held-out ALL MAE | Δ vs comparator | 95% CI | Significant? | Rank Δ (ρ / top-N vs comparator) | Protocol | PR |
 |------|-------|--------|------------------|----------|--------|--------------|----------------------------------|----------|-----|
+| 2026-06-12 | v36_pos_regression | #639 per-position regression strength: v33 + regression_to_mean*position interaction (learned per-position mean-reversion) | 2.251 | +0.021 vs **v33** | [−0.009, +0.053] | **N** (p=0.18) — **NEGATIVE, stopped on iteration look**; the extra interaction columns add variance, not signal. See #639 section below | ρ ≈ (QB −0.015, RB +0.002, WR −0.005, TE −0.001); top-N unchanged | rolling 2023–24 (iteration look; confirmation window not burned) | #639 |
+| 2026-06-12 | v35_pos_tuned_base | #639 per-position base recency weights: inner-fold sweep changed only RB ([0.65,0.20,0.15]→[0.70,0.20,0.10]); QB/WR/TE kept the #589 tune | 2.245 | +0.015 vs **v33** | [−0.001, +0.032] | **N** (p=0.066, trending *worse*) — **NEGATIVE, stopped on iteration look**; RB-only Δ −0.005 (CI [−0.018, +0.008], p=0.46) — the swept RB gain is noise OOS while full-refit coefficient drift hurts elsewhere. See #639 section below | ρ ≈ (TE +0.001, RB +0.001, QB −0.003, WR −0.003); WR top-24 hit 0.458→0.417 | rolling 2023–24 (iteration look; confirmation window not burned) | #639 |
 | 2026-06-11 | v34_qb_residual | #592 QB-only residual on v33 (depth_chart, qb_backup_penalty, implied_team_total; non-QB byte-identical to v33 by construction) | QB 3.846 (ALL 2.239) | QB **+0.015** vs **v33** | [−0.016, +0.049] | **N** (p=0.36) — **NEGATIVE, bounded bet stopped on tie**; residual coefficients ≈0. See #592 section below | ≈ (non-QB identical by construction; QB ρ within noise) | rolling 2023–24 (iteration look; confirmation window not burned) | #592 |
 | 2026-06-11 | v33_tuned_base | #589 base tuning: recency weights [0.55,0.25,0.20]→[0.65,0.20,0.15] (inner-fold sweep; exponent grid confirmed 1.0); v31 otherwise unchanged | **2.241** | **−0.011** vs **v31** | [−0.022, −0.001] | **Y** (p=0.038; iteration look 2023–24: −0.016, CI [−0.027, −0.004], p=0.007) — **clears the promotion gate**. See #589 section below | ρ ≈ everywhere except QB −0.003; WR top-24 0.250→0.292, TE top-12 0.500→0.583 | rolling 2023–2025 | #589 |
 | 2026-06-11 | v32_pruned | #588 ablation: v31 minus age_curve, usage_share, draft_capital, vegas, qb_backup_penalty (13→8 features) | 2.252 | +0.020 vs **v31** | [−0.027, +0.065] | N (p=0.40) — no worse, not better; **v31 stays active**. See #588 section below | ρ ≈ (QB +0.003 … TE −0.010); WR top-24 0.333→0.250 — top-tier loss drove the no-promote call | rolling 2023–2025 | #588 |
@@ -170,6 +172,40 @@ Caveat for future base work: the win is small and concentrated at RB/WR; the
 isolated-base sweep still over-projects (bias −0.57 at the chosen cell) — the
 learned intercept absorbs level, so isolated-base bias is not a gate. The
 3-season window length and per-position weights were not swept (follow-ups).
+
+### Per-position base tuning (#639) — NEGATIVE, 2026-06-12
+
+The #589 follow-ups, swept honestly on the inner folds (2022–2024, exponent
+fixed at 1.0 per #589) with the extended `sweep_recency_weights.py`
+(`--per-position` fold-level rankings, `--windows` 2-/4-season vectors scored
+on a fixed common qualifier population):
+
+- **Per-position recency weights: the global tune is already right.** Picking
+  with the #589 guardrail (never lose an inner fold to the tuned cell), QB and
+  WR produced no dominating cell — QB's best-mean cell (the old prod default
+  [0.55, 0.25, 0.20]) loses 2/3 folds; WR's 2-season cells are competitive but
+  never dominate. Only RB ([0.70, 0.20, 0.10], −0.003) dominated, and that
+  gain is noise out-of-sample (above). **Don't re-sweep per-position weights
+  without new signal** — the position-decay hypothesis is answered: decay
+  differences between positions are smaller than fold noise.
+- **Window length: 3 seasons confirmed for QB/RB/WR.** 2-season windows lose
+  decisively everywhere (recency weighting already down-weights old seasons
+  smoothly; truncating loses information). **TE is the one open thread**: the
+  4-season cell [0.60, 0.20, 0.12, 0.08] *never loses a fold* (1.4927 vs
+  1.5006) — but adopting it requires plumbing `max_history` through
+  runner/backtest/holdout (the pipeline fetches 3 seasons), so it was not
+  wired into v35. Logged as the residual #639 follow-up; only worth the
+  plumbing as part of a TE-focused experiment.
+- **Per-position regression strength (v36): the global coefficient was
+  already right.** Expressed as `regression_to_mean*position` (in a learned
+  combiner a per-position factor ≡ a per-position coefficient); the 4 extra
+  columns only added variance (ALL +0.021, QB ρ −0.015).
+
+Both variants stopped on the iteration look (rolling 2023–24); the
+confirmation window was not burned. `v33_tuned_base` stays active. Combined
+with #589's exponent grid and #592, the base + global regression is now a
+well-defended local optimum: further base tuning is not the path — new signal
+(#640–#642) or a different objective (#643) is.
 
 ### QB-specific bounded bet (#592) — NEGATIVE, 2026-06-11
 
