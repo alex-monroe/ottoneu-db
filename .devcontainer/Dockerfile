@@ -1,6 +1,10 @@
 # Python 3.9 to match the project's target version (CLAUDE.md: no 3.10+ syntax).
 FROM mcr.microsoft.com/devcontainers/python:3.9-bookworm
 
+# The base image ships a yarn apt repo whose GPG key has rotated, which breaks
+# every apt-get update (NO_PUBKEY 62D54FD4003F6525). We're npm-only — drop it.
+RUN rm -f /etc/apt/sources.list.d/yarn.list
+
 # Firewall tooling + just (build runner used by every project recipe)
 RUN apt-get update \
     && apt-get install -y --no-install-recommends iptables ipset dnsutils \
