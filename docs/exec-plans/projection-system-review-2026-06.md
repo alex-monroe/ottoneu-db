@@ -278,7 +278,21 @@ in production" is stale and contradicts the held-out doc.
    (Δ −0.0113, CI [−0.0221, −0.0006], p=0.038; rank quality equal-or-better
    at RB/WR/TE) — clears the promotion gate. Details in the
    [experiment log](../generated/experiment-log.md).
-4. **#592** QB-specific bounded bet vs `v31` (per-position significance).
+4. **#592** QB-specific bounded bet — **DONE, NEGATIVE (2026-06-11).**
+   `v34_qb_residual` (QB-only residual on the now-active `v33_tuned_base`;
+   non-QB byte-identical by construction via the new `positions`
+   training-filter + predict-time gating): QB Δ +0.015, CI [−0.016, +0.049],
+   p=0.36 on the iteration look — stopped on tie, confirmation window not
+   burned. Residual coefficients ≈0: the global model's QB interactions
+   already capture the QB signals. Details in the
+   [experiment log](../generated/experiment-log.md).
+
+**Wave 3 complete (2026-06-11).** Outcomes: #587 productionised
+(`projected_games` + availability-inclusive value), #588 keep/prune list
+(v31 kept, `v32_pruned` documented fallback), #589 tuned base promoted
+(**`v33_tuned_base` is the active model**), #590/#591 shelved (premises
+reversed/resolved by #599), #592 negative (stopped on tie). All gates ran on
+the rolling-origin held-out harness with player-clustered significance.
 5. ~~#590 delta-anchored~~ — shelved (premise reversed).
 6. ~~#591 level-matched window~~ — shelved (premise resolved by #599).
 
