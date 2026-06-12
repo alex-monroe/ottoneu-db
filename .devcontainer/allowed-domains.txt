@@ -32,5 +32,5 @@ ottoneu.fangraphs.com
 www.draftsharks.com
 www.fantasypros.com
 
-# Supabase — REPLACE with your project host from SUPABASE_URL in .env
-# <project-ref>.supabase.co
+# Supabase (project ref rbinbcwinchphipvcfqk)
+rbinbcwinchphipvcfqk.supabase.co
