@@ -99,6 +99,10 @@ check-migrations:
 check-docs:
     {{python}} scripts/check_docs_freshness.py
 
+# Permission-friction report: prompt rate trend + regression check (see docs/references/autonomous-operation.md)
+permission-report *args:
+    python3 .claude/hooks/permission_report.py {{args}}
+
 # Full CI suite (lint + typecheck + tests + doc checks)
 ci: lint typecheck test check-docs
 
