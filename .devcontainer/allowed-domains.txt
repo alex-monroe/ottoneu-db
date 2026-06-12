@@ -23,8 +23,14 @@ pypi.org
 files.pythonhosted.org
 
 # GitHub (clone/push, gh CLI, nflverse release downloads)
-github.com
-api.github.com
+# github.com / api.github.com are served from a rotating pool of IPs, so a
+# single resolved A record goes stale ("no route to host"). Pin GitHub's
+# published CIDR blocks (https://api.github.com/meta) instead — the firewall's
+# hash:net ipset accepts CIDR entries directly.
+192.30.252.0/22
+185.199.108.0/22
+140.82.112.0/20
+143.55.64.0/20
 raw.githubusercontent.com
 objects.githubusercontent.com
 codeload.github.com

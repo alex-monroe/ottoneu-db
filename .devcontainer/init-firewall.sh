@@ -13,14 +13,22 @@ DOMAINS_FILE="$(dirname "$0")/allowed-domains.txt"
 iptables -F OUTPUT
 iptables -F INPUT
 ipset destroy allowed-out 2>/dev/null || true
-ipset create allowed-out hash:ip
+# hash:net stores both CIDR ranges and single IPs (added as /32), so the
+# allowlist can pin a whole published range (e.g. GitHub's rotating IP pool)
+# instead of one snapshot IP that goes stale on the next DNS rotation.
+ipset create allowed-out hash:net
 
-# Resolve every allowlisted domain to IPs (re-run this script to refresh).
+# Resolve every allowlist entry. A line with a '/' is a literal CIDR/IP range
+# (added directly); otherwise it's a hostname resolved to its current A records.
 while IFS= read -r line; do
-    domain="${line%%#*}"
-    domain="$(echo "$domain" | tr -d '[:space:]')"
-    [ -z "$domain" ] && continue
-    for ip in $(dig +short A "$domain" | grep -E '^[0-9.]+$' || true); do
+    entry="${line%%#*}"
+    entry="$(echo "$entry" | tr -d '[:space:]')"
+    [ -z "$entry" ] && continue
+    if [[ "$entry" == */* ]]; then
+        ipset add allowed-out "$entry" 2>/dev/null || true
+        continue
+    fi
+    for ip in $(dig +short A "$entry" | grep -E '^[0-9.]+$' || true); do
         ipset add allowed-out "$ip" 2>/dev/null || true
     done
 done < "$DOMAINS_FILE"
