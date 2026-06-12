@@ -133,6 +133,12 @@ Usage (VS Code: "Reopen in Container", or `devcontainer up` CLI):
 claude --dangerously-skip-permissions
 ```
 
+The **VS Code extension panel** works too: `devcontainer.json` sets
+`claudeCode.allowDangerouslySkipPermissions` (adds "Bypass permissions" to the
+extension's mode selector) and `claudeCode.initialPermissionMode:
+"bypassPermissions"` (starts every conversation in it) — scoped via
+devcontainer customizations, so host VS Code keeps normal prompting.
+
 Inside the container that flag is reasonable: worst case is scoped to the
 workspace copy, the container, and the allowlisted endpoints. **The remaining
 real risk is the production Supabase database** (the container legitimately
