@@ -744,7 +744,14 @@ MODELS: dict[str, ModelDefinition] = {
             "(None elsewhere), so each global coefficient is effectively a "
             "QB coefficient — no *position interaction needed. Full Ridge "
             "refit; if non-QB drift appears, fall back to the #592 residual "
-            "machinery with these features."
+            "machinery with these features. VERDICT: NEGATIVE (bounded bet, "
+            "stopped on tie; confirmation window not burned) — held-out "
+            "rolling 2023-24: ALL Δ +0.003 vs v33 (p=0.83, dead tie); QB Δ "
+            "−0.027 in the right direction but unresolvable at N=62 QB "
+            "clusters (CI [−0.245, +0.186], p=0.82); QB ρ +0.011. The "
+            "in-sample fit assigns the new features ≈0 coefficients — rush "
+            "volume is already priced into PPG history + depth chart. QB "
+            "volume *levels* are not the missing QB signal."
         ),
         features=[
             "weighted_ppg_tuned_no_qb",

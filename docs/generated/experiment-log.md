@@ -37,6 +37,7 @@ the MAE verdict. "—" only for rows predating the column.
 
 | Date | Model | Change | Held-out ALL MAE | Δ vs comparator | 95% CI | Significant? | Rank Δ (ρ / top-N vs comparator) | Protocol | PR |
 |------|-------|--------|------------------|----------|--------|--------------|----------------------------------|----------|-----|
+| 2026-06-12 | v37_qb_volume | #640 QB volume signal: v33 + qb_rush_volume_raw + qb_pass_volume_raw (recency-weighted attempts/game from nfl_stats, QB-only) | 2.239 | +0.003 vs **v33** | [−0.030, +0.035] | **N** (p=0.83) — **NEGATIVE, bounded bet stopped on tie**; QB-only Δ −0.027 (CI [−0.245, +0.186], p=0.82 — right direction, unresolvable at 62 QB clusters); in-sample coefficients ≈0. See #640 section below | QB ρ **+0.011** (0.629→0.640), top-12 hit unchanged; others ≈ | rolling 2023–24 (iteration look; confirmation window not burned) | #640 |
 | 2026-06-12 | v36_pos_regression | #639 per-position regression strength: v33 + regression_to_mean*position interaction (learned per-position mean-reversion) | 2.251 | +0.021 vs **v33** | [−0.009, +0.053] | **N** (p=0.18) — **NEGATIVE, stopped on iteration look**; the extra interaction columns add variance, not signal. See #639 section below | ρ ≈ (QB −0.015, RB +0.002, WR −0.005, TE −0.001); top-N unchanged | rolling 2023–24 (iteration look; confirmation window not burned) | #639 |
 | 2026-06-12 | v35_pos_tuned_base | #639 per-position base recency weights: inner-fold sweep changed only RB ([0.65,0.20,0.15]→[0.70,0.20,0.10]); QB/WR/TE kept the #589 tune | 2.245 | +0.015 vs **v33** | [−0.001, +0.032] | **N** (p=0.066, trending *worse*) — **NEGATIVE, stopped on iteration look**; RB-only Δ −0.005 (CI [−0.018, +0.008], p=0.46) — the swept RB gain is noise OOS while full-refit coefficient drift hurts elsewhere. See #639 section below | ρ ≈ (TE +0.001, RB +0.001, QB −0.003, WR −0.003); WR top-24 hit 0.458→0.417 | rolling 2023–24 (iteration look; confirmation window not burned) | #639 |
 | 2026-06-11 | v34_qb_residual | #592 QB-only residual on v33 (depth_chart, qb_backup_penalty, implied_team_total; non-QB byte-identical to v33 by construction) | QB 3.846 (ALL 2.239) | QB **+0.015** vs **v33** | [−0.016, +0.049] | **N** (p=0.36) — **NEGATIVE, bounded bet stopped on tie**; residual coefficients ≈0. See #592 section below | ≈ (non-QB identical by construction; QB ρ within noise) | rolling 2023–24 (iteration look; confirmation window not burned) | #592 |
@@ -172,6 +173,33 @@ Caveat for future base work: the win is small and concentrated at RB/WR; the
 isolated-base sweep still over-projects (bias −0.57 at the chosen cell) — the
 learned intercept absorbs level, so isolated-base bias is not a gate. The
 3-season window length and per-position weights were not swept (follow-ups).
+
+### QB volume signal (#640) — NEGATIVE, 2026-06-12
+
+The "genuinely new QB signal" the #592 postmortem asked for — pass/rush
+volume composition — turns out to also be priced in. `v37_qb_volume` added
+`qb_rush_volume_raw` and `qb_pass_volume_raw` (recency-weighted attempts per
+game from `nfl_stats`, QB-only so the global coefficients are QB
+coefficients) to v33's feature set as a full refit.
+
+**Result (iteration look, rolling 2023–24; confirmation window not burned):**
+ALL Δ +0.003 (p=0.83, dead tie); QB MAE 3.792 vs 3.820 (Δ −0.027 — right
+direction, but CI [−0.245, +0.186] at 62 QB clusters); QB Spearman ρ
+0.629→0.640. The in-sample fit assigns both features ≈0 coefficients.
+Stopped on tie per the bounded-bet discipline — no rush-yards/attempt-share
+variant fishing.
+
+**Interpretation for future QB work:** weighted PPG history + depth-chart
+tier + backup penalty already encode what stable volume levels add — a
+Konami-code QB's rushing edge is *in his PPG*. What the stack cannot see is
+*change*: a new starter's volume, a role redesign, a coordinator change.
+With #592 (QB-specific fit) and #640 (volume levels) both dead, the
+remaining QB hypotheses are about target-season role change, not history
+composition — closest open bets are #642 (personnel identity) and #643
+(rank-aware objective; QB top-12 ordering is where the FP gap is biggest).
+The QB cluster count (~60–100 per look) also means only large effects
+(≳0.2 MAE) are resolvable — micro-improvements at QB are untestable, so
+don't spend looks on them.
 
 ### Per-position base tuning (#639) — NEGATIVE, 2026-06-12
 

@@ -151,7 +151,7 @@ projections/ADP exist. FP remains an eval-time comparator only.
 | # | Experiment | Status |
 |---|---|---|
 | [#639](https://github.com/alex-monroe/ottoneu-db/issues/639) | Per-position base tuning (weights, window, regression strength) | **NEGATIVE** (2026-06-12, iteration look; see experiment log). Residual thread: TE 4-season window, needs `max_history` plumbing. |
-| [#640](https://github.com/alex-monroe/ottoneu-db/issues/640) | QB rushing & pass-volume features — the new QB signal #592 asked for | open — highest-leverage new-feature bet (QB is worst-MAE position) |
+| [#640](https://github.com/alex-monroe/ottoneu-db/issues/640) | QB rushing & pass-volume features — the new QB signal #592 asked for | **NEGATIVE** (2026-06-12, bounded bet stopped on tie; see experiment log). Volume *levels* are priced into PPG history; QB effects below ~0.2 MAE are unresolvable at ~62 clusters. |
 | [#641](https://github.com/alex-monroe/ottoneu-db/issues/641) | Opportunity/efficiency decomposition of the base signal | open |
 | [#642](https://github.com/alex-monroe/ottoneu-db/issues/642) | Pass-catcher ecosystem quality ("who is my QB?") from depth charts | open |
 | [#643](https://github.com/alex-monroe/ottoneu-db/issues/643) | Rank-aware training: relevance-weighted samples | open — targets the FP ordering gap (the metric downstream actually consumes) |
