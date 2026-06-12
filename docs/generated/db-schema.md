@@ -25,7 +25,7 @@ The Supabase project (`OttoneuDB`, ref `rbinbcwinchphipvcfqk`) is **shared with 
 | `league_prices` | Current salaries (FK -> `players`) | `(player_id, league_id)` |
 | `transactions` | Event log of all roster moves (adds, cuts, trades, auctions) | -- |
 | `surplus_adjustments` | Manual value overrides per player per league per user (FK -> `players`, `users`) | `(player_id, league_id, user_id)` |
-| `player_projections` | Active projection outputs promoted from `model_projections` (FK -> `players`) | `(player_id, season)` |
+| `player_projections` | Active projection outputs promoted from `model_projections` (FK -> `players`). Columns: `projected_ppg`, `projection_method`, `projected_games` (migration 030; promoted from `model_projections.projected_games`, NULL = no estimate / full availability). | `(player_id, season)` |
 | `arbitration_plans` | Named arbitration budget allocation plans per user (FK -> `users`) | `(league_id, name, user_id)` |
 | `arbitration_plan_allocations` | Per-player dollar allocations within a plan (FK -> `arbitration_plans`, `players`) | `(plan_id, player_id)` |
 | `scraper_jobs` | Persistent job queue with status tracking, dependencies, and retry logic | -- |

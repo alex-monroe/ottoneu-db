@@ -27,8 +27,10 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 - **Season cycle:** See [docs/exec-plans/season-cycle.md](docs/exec-plans/season-cycle.md) — the site rolls between Ottoneu seasons from the `league_calendar` table; the current season is resolved at runtime via `scripts/season.py` and `web/lib/season.ts`, not from static config
 - **Projection Accuracy Plan:** See [docs/exec-plans/projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md) for the 4-phase accuracy improvement roadmap (Issues #271-#285)
 - **Projection Accuracy:** The gate for any projection change is the **leakage-free held-out harness** — `just holdout-eval` (#572/#594) + `just significance` (#573/#594), not the in-sample `just accuracy-report` (which is a secondary diagnostic only). See Projection Model Update Requirements below.
+- **Projection Iteration:** Use `/experiment` to run a full experiment loop (train → project → backtest → verdict). Use `/ablation` for feature ablation studies, `/feature-importance` for learned model inspection, `/compare-models` for side-by-side comparisons, `/diagnose-segment` for segment deep-dives.
 - **Market Projections:** See [docs/exec-plans/market-projections.md](docs/exec-plans/market-projections.md) for the market-based projection system (DEFERRED)
 - **Experiment Log:** See [docs/generated/experiment-log.md](docs/generated/experiment-log.md) for history of all model iteration attempts.
+- **Retrospective:** Use `/retro` skill after completing a task to surface friction points and open a PR with doc/skill improvements.
 - **Build System Spec:** See [docs/superpowers/specs/2026-04-19-build-system-design.md](docs/superpowers/specs/2026-04-19-build-system-design.md) for the transition specification to `just` build runner
 - **Build System Plan:** See [docs/superpowers/plans/2026-04-19-build-system-just.md](docs/superpowers/plans/2026-04-19-build-system-just.md) for the build system migration step-by-step plan
 
@@ -48,14 +50,21 @@ docs/
 │   ├── [feature-projections.md](docs/exec-plans/feature-projections.md)         # Feature-based player projection system
 │   ├── [market-projections.md](docs/exec-plans/market-projections.md)          # Market-based projection system (DEFERRED)
 │   ├── [projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md)  # 4-phase accuracy improvement roadmap
+│   ├── [projection-methodology-audit.md](docs/exec-plans/projection-methodology-audit.md)  # ML-quality audit: train/test leakage + eval findings (#571–#577)
+│   ├── [projection-system-review.md](docs/exec-plans/projection-system-review-2026-06.md)  # 2026-06 expert review + implementation plan (#594–#599, waves for #587–#592)
 │   ├── [qb-usage-share.md](docs/exec-plans/qb-usage-share.md)              # QB Usage Share findings and next steps
 │   └── [season-cycle.md](docs/exec-plans/season-cycle.md)                # Cross-season data & UI scheme (date-driven season-cycle resolver)
 ├── generated/
 │   ├── [db-schema.md](docs/generated/db-schema.md)                   # Database tables, keys, relationships
 │   ├── [experiment-log.md](docs/generated/experiment-log.md)              # History of all model iteration attempts
 │   ├── [player-diagnostics.md](docs/generated/player-diagnostics.md)          # Per-player backtest diagnostics
-│   ├── [projection-accuracy.md](docs/generated/projection-accuracy.md)         # Projection model accuracy report
-│   ├── [coverage-analysis.md](docs/generated/coverage-analysis.md)            # Qualifying-population coverage: player_stats vs nflverse (#599)
+│   ├── [projection-accuracy.md](docs/generated/projection-accuracy.md)         # Projection model accuracy report (in-sample; see audit caveat)
+│   ├── [projection-holdout-eval.md](docs/generated/projection-holdout-eval.md)     # Held-out (leakage-free) model re-ranking — `just holdout-eval` (#572); naïve baselines (#575)
+│   ├── [projection-holdout-eval-matched.md](docs/generated/projection-holdout-eval-matched.md) # Held-out re-ranking on the common player set — apples-to-apples FantasyPros — `just holdout-eval --matched` (#575)
+│   ├── [projection-holdout-eval-rolling.md](docs/generated/projection-holdout-eval-rolling.md) # Held-out re-ranking, rolling-origin protocol — `just holdout-eval --protocol rolling` (#594)
+│   ├── [projection-availability-eval.md](docs/generated/projection-availability-eval.md) # Availability-inclusive backtest — rate vs availability budget — `just availability-backtest` (#574)
+│   ├── [coverage-analysis.md](docs/generated/coverage-analysis.md)            # Qualifying-population coverage: player_stats vs nflverse — `just coverage-report` (#599)
+│   ├── [rookie-backtest.md](docs/generated/rookie-backtest.md)             # Rookie (0-history) projection backtest — draft_capital vs baselines
 │   └── [segment-analysis.md](docs/generated/segment-analysis.md)            # Segmented projection accuracy analysis
 ├── references/
 │   ├── environment-variables.md       # .env and .env.local variable reference
@@ -105,7 +114,7 @@ Run `just check-arch` to validate these rules locally.
 
 ## Critical Rules
 
-- **Always use `just <recipe>`** instead of invoking Python, pytest, or npm scripts directly. This ensures the correct venv and flags are used, and keeps the agent allowlist minimal. Run `just --list` to see available recipes. Common ones: `just typecheck`, `just lint`, `just test-web`, `just test-python`, `just train MODEL`, `just project MODEL`, `just backtest MODEL`, `just promote MODEL`, `just accuracy-report`, `just diagnostics`, `just segment-analysis`, `just backfill-nfl-stats`, `just backfill-draft-capital`, `just backfill-vegas`, `just seed-win-totals`, `just scrape-draft-sharks`. For ad-hoc DB inspection use `just py "<snippet>"`.
+- **Always use `just <recipe>`** instead of invoking Python, pytest, or npm scripts directly. This ensures the correct venv and flags are used, and keeps the agent allowlist minimal. Run `just --list` to see available recipes. Common ones: `just typecheck`, `just lint`, `just test-web`, `just test-python`, `just train MODEL`, `just project MODEL`, `just backtest MODEL`, `just promote MODEL`, `just accuracy-report`, `just diagnostics`, `just segment-analysis`, `just analyze` (runs `update_projections.py` — re-projects the active model + promotes to `player_projections` + rookie fallback), `just backfill-nfl-stats`, `just backfill-draft-capital`, `just backfill-vegas`, `just backfill-depth-charts`, `just seed-win-totals`, `just scrape-draft-sharks`, `just dev` / `just dev-stop` (start/stop the Next.js dev server — use `dev-stop` instead of raw `pkill`). For ad-hoc DB inspection use `just py "<snippet>"`.
 - **Editable install can run stale `scripts/` code.** If a `scripts/*.py` edit doesn't take effect via `venv/bin/python scripts/foo.py` (but works via `python -c`), the editable install is likely pinned to a stale `.claude/worktrees/` path — run `venv/bin/pip install -e .` from the project root. See [docs/TESTING.md](docs/TESTING.md#gotcha-editable-install-can-pin-scripts-to-a-stale-worktree).
 - **New DB tables need a TS type + the config contract is enforced.** After adding a table (e.g. via `mcp__supabase__apply_migration` or Supabase dashboard), hand-add its `Row`/`Insert`/`Update` block to `web/types/supabase.ts` or `npx tsc` fails — hand-add rather than fully regenerating to avoid churning the `fp_*` tables. Separately, every key in `config.json` must be consumed by **both** `scripts/config.py` and `web/lib/config.ts` (and vice versa); this bidirectional contract is enforced by `scripts/tests/test_architecture.py`, so add/remove keys in all three places.
 - **Do not touch `fp_*` tables.** The Supabase project is shared with the `fantasy-pulse` app. Tables whose names start with `fp_` (currently `fp_notes`, `fp_user_integrations`, `fp_leagues`, `fp_teams`, but the prefix is the rule, not the list) are owned by that other codebase. Do not read from, write to, alter, drop, or migrate them from this repo. They will appear in `list_tables` output and in regenerated Supabase TS types — ignore them. See [docs/generated/db-schema.md](docs/generated/db-schema.md#shared-database--hands-off-fp_).
@@ -120,20 +129,20 @@ Run `just check-arch` to validate these rules locally.
 
 When any task modifies the projection system — including `scripts/feature_projections/`, `scripts/projection_methods.py`, `scripts/update_projections.py`, or `model_config.py` — you MUST validate it on the **leakage-free held-out harness**. The in-sample `accuracy-report` scores learned models on the seasons they trained on (methodology audit, Findings 1 & 2); it is a **secondary diagnostic only** and must never be the gate or the basis for a promote decision. Use `/experiment` to run this flow.
 
-1. **Run the held-out re-rank** against production (`v14_qb_starter`) and the naïve baselines, on the rolling-origin protocol (#594). Learned models retrain out-of-sample inside the sandbox; additive/external models need their held-out projections generated first (`just project <name> 2023,2024,2025`). The cache (#597) makes re-runs fast.
+1. **Run the held-out re-rank** against production (`v31_depth_chart`) and the naïve baselines, on the rolling-origin protocol (#594). Learned models retrain out-of-sample inside the sandbox; additive/external models need their held-out projections generated first (`just project <name> 2023,2024,2025`). The cache (#597) makes re-runs fast.
    ```
    just holdout-eval --protocol rolling --eval-seasons 2023,2024,2025 --min-train-season 2021 \
-     --models <name>,v14_qb_starter,naive_prior_season_ppg,position_mean_baseline
+     --models <name>,v31_depth_chart,naive_prior_season_ppg,position_mean_baseline
    ```
 2. **Test significance vs the active model** (player-clustered paired bootstrap). This is the gate — a point-estimate MAE delta is **not** a result:
    ```
-   just significance <name> v14_qb_starter --protocol rolling --eval-seasons 2023,2024,2025 --min-train-season 2021
+   just significance <name> v31_depth_chart --protocol rolling --eval-seasons 2023,2024,2025 --min-train-season 2021
    ```
    Availability-touching changes additionally run `just availability-backtest` and report **both** rate and availability MAE (#574).
 3. **In the PR description**, lead with the held-out ranking + significance verdict (and the per-position Ranking-quality rows, #598). Include the in-sample `accuracy-report` table only if labelled "in-sample diagnostic — not the ranking".
 4. **Promotion requires a *significant* held-out win over the active model** (CI excludes 0), never a point-estimate delta. Promote via `just promote <model>` (or `cli.py promote --model <name>`) — `update_projections.py` reads `projection_models.is_active` dynamically (no hardcoded `ACTIVE_MODEL`). Methodology copy on `/projections`, `/arbitration` (projected mode), and `/projection-accuracy` is rendered live by `<ActiveModelCard>` (`web/components/ActiveModelCard.tsx`) from `fetchActiveProjectionModel()`, so do **not** hardcode model names or feature lists in page copy.
 
-**Confirmation discipline (#594):** iterate against the rolling folds; the final window (2025, then 2026 actuals) is confirmation-only — one look per experiment. This ensures every projection change is empirically validated, out-of-sample, before merge.
+**Confirmation discipline (#594):** iterate against the rolling folds; the final window (2025, then 2026 actuals) is confirmation-only — one look per experiment. See [docs/exec-plans/projection-methodology-audit.md](docs/exec-plans/projection-methodology-audit.md) for the protocol. This ensures every projection change is empirically validated, out-of-sample, before merge.
 
 ### Feature changes require test updates
 
@@ -162,4 +171,6 @@ Skipping step 2 will cause TypeScript errors like `Argument of type '"new_table"
 
 ### Supabase pagination
 
-Supabase's Python client defaults to a **1000-row limit** on `.execute()` calls. Any query that may return more than 1000 rows must use paginated `.range(offset, offset + page_size - 1)` fetching in a loop. This has already caused a silent bug in `promote.py` (now fixed). Apply the same pattern in any new bulk-fetch code.
+Supabase's Python client defaults to a **1000-row limit** on `.execute()` calls. Any query that may return more than 1000 rows must use paginated `.range(offset, offset + page_size - 1)` fetching in a loop. This has caused silent bugs in `promote.py`, `analysis_utils.fetch_multi_season_stats` (a 3-season history fetch is ~2k rows — truncation silently dropped player-season rows, corrupting weighted-PPG bases and projections), and `feature_projections/backtest.py` (a single recent season of `player_stats` now exceeds 1000 rows) — all now fixed. A single recent NFL season of `player_stats` is already >1000 rows, so even single-season fetches need pagination now. Apply the same pattern in any new bulk-fetch code.
+
+**The web JS/TS client (`web/lib/`) has the same 1000-row default cap.** This silently broke the `/depth-charts` season selector — `depth_charts` has thousands of rows, so a plain `.select("season")` returned only the most recent ~1000 and dropped older seasons (fixed in `web/lib/depth-charts.ts` by looping `.range()`). Watch for it on any web query against a large table (`depth_charts`, `nfl_stats`, `player_stats`, `model_projections`) — distinct-value or full-table reads must paginate, and a query meant for one model/season should filter (`.eq("model_id", …)`/`.eq("season", …)`) rather than fetch-all-then-filter, or it will both truncate and mix in other rows.
