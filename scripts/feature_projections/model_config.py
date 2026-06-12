@@ -38,9 +38,10 @@ class ModelDefinition:
     # receive a residual contribution of exactly zero — and therefore the
     # base model's prediction byte-for-byte. `training_filter` restricts the
     # residual training set; max_seasons_since_draft=3 keeps the residual
-    # focused on rookies/sophs/3rd-year players.
+    # focused on rookies/sophs/3rd-year players, and positions=["QB"] fits
+    # (and applies) the residual only for those positions (GH #592).
     base_model_name: str | None = None
-    training_filter: dict[str, int] = field(default_factory=dict)
+    training_filter: dict = field(default_factory=dict)
 
 
 # === Model Definitions ===
@@ -608,6 +609,34 @@ MODELS: dict[str, ModelDefinition] = {
             "implied_team_total_raw*position",
             "depth_chart_position_raw*position",
         ],
+    ),
+    "v34_qb_residual": ModelDefinition(
+        name="v34_qb_residual",
+        version=1,
+        description=(
+            "QB-specific bounded bet (GH #592): v33_tuned_base frozen as the "
+            "base, plus a tiny QB-only residual Ridge on the strongest "
+            "QB signals — depth_chart_position_raw (the largest learned QB "
+            "interaction), qb_backup_penalty (manual starter designations) "
+            "and implied_team_total_raw (team scoring environment) — fit to "
+            "v33 residuals on QB samples only (training_filter positions=QB, "
+            "fit_intercept=False). predict_residual gates application by the "
+            "same filter, so RB/WR/TE/K predictions are byte-identical to "
+            "v33: 'neutral elsewhere' holds by construction. VERDICT: "
+            "NEGATIVE (bounded bet, stopped on tie) — held-out QB MAE "
+            "3.846 vs v33's 3.830 (Δ+0.015, CI [−0.016, +0.049], p=0.36, "
+            "rolling 2023–24); residual coefficients ≈0. The global model's "
+            "QB interactions already capture these signals."
+        ),
+        features=[
+            "depth_chart_position_raw",
+            "qb_backup_penalty",
+            "implied_team_total_raw",
+        ],
+        combiner_type="residual",
+        base_model_name="v33_tuned_base",
+        interaction_terms=["depth_chart_position_raw^2"],
+        training_filter={"positions": ["QB"]},
     ),
     "naive_prior_season_ppg": ModelDefinition(
         name="naive_prior_season_ppg",

@@ -280,6 +280,12 @@ def predict_residual(
     if base_pred is None:
         return None
 
+    # Position-restricted residual (GH #592): when the residual was trained on
+    # a position subset, players outside it get the base prediction unchanged.
+    allowed_positions = (model_params.get("training_filter") or {}).get("positions")
+    if allowed_positions and position not in allowed_positions:
+        return max(0.0, base_pred)
+
     residual_features = model_params.get("feature_names") or []
     interaction_terms = model_params.get("interaction_terms") or []
 

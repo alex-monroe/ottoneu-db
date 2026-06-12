@@ -1714,6 +1714,24 @@ class TestV25DraftCapitalResidualModel:
         assert "draft_capital_raw*position" in model.interaction_terms
 
 
+class TestV34QBResidualModel:
+    """Tests for the v34_qb_residual model definition (GH #592)."""
+
+    def test_model_exists(self):
+        model = get_model("v34_qb_residual")
+        assert model.combiner_type == "residual"
+        assert model.base_model_name == "v33_tuned_base"
+        assert model.features == [
+            "depth_chart_position_raw",
+            "qb_backup_penalty",
+            "implied_team_total_raw",
+        ]
+
+    def test_qb_only_training_filter(self):
+        model = get_model("v34_qb_residual")
+        assert model.training_filter == {"positions": ["QB"]}
+
+
 class TestPredictResidual:
     """Tests for the residual prediction path."""
 
@@ -1789,6 +1807,23 @@ class TestPredictResidual:
         assert result_wr == pytest.approx(8.0)  # 5 + 3
         result_qb = predict_residual(fv, "QB", params)
         assert result_qb == pytest.approx(6.0)  # 5 + 1
+
+    def test_position_filter_gates_application(self):
+        """A positions training_filter applies the residual only to those positions (GH #592)."""
+        params = {
+            "base_model_params": self._base_params(),
+            "coefficients": [3.0],
+            "intercept": 0.0,
+            "feature_names": ["feat_b"],
+            "interaction_terms": [],
+            "training_filter": {"positions": ["QB"]},
+        }
+        # base = 2*1 + 5 = 7; residual would be 3*2 = 6.
+        fv = {"feat_a": 1.0, "feat_b": 2.0}
+        assert predict_residual(fv, "QB", params) == pytest.approx(13.0)
+        # Non-QB: residual gated off — base prediction unchanged.
+        assert predict_residual(fv, "WR", params) == pytest.approx(7.0)
+        assert predict_residual(fv, "RB", params) == pytest.approx(7.0)
 
     def test_floor_at_zero(self):
         """Negative residual + small base still floors at 0."""

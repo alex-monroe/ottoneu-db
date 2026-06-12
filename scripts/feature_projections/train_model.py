@@ -336,7 +336,7 @@ def train_ridge_residual(
     base_model_name: str,
     residual_features: list[str],
     interaction_terms: list[str],
-    training_filter: dict[str, int],
+    training_filter: dict[str, Any],
     alpha_candidates: list[float] | None = None,
 ) -> dict[str, Any]:
     """Train a Ridge residual on top of a frozen base model.
@@ -370,6 +370,12 @@ def train_ridge_residual(
             & (filtered["seasons_since_draft"] <= max_ssd)
             & (filtered["seasons_since_draft"] >= 0)
         ]
+    # Position-restricted residual (GH #592): fit only on the listed positions.
+    # predict_residual gates application by the same filter, so other positions
+    # receive the base model's prediction unchanged.
+    positions = training_filter.get("positions")
+    if positions:
+        filtered = filtered[filtered["position"].isin(positions)]
     print(f"\nResidual training set: {len(filtered)} samples "
           f"(filtered from {len(training_data)} via {training_filter})")
     if filtered.empty:
