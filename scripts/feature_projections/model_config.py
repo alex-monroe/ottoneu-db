@@ -649,7 +649,12 @@ MODELS: dict[str, ModelDefinition] = {
             "(2022-2024, honest protocol GH #595) instead of #589's single "
             "global vector. Motivated by #589's win concentrating at RB/WR "
             "while QB/TE moved slightly the wrong way. Everything else "
-            "identical to v33."
+            "identical to v33. VERDICT: NEGATIVE (stopped on iteration look, "
+            "confirmation window not burned) — the sweep only changed RB "
+            "([0.70, 0.20, 0.10], inner-fold gain −0.003), and held-out "
+            "rolling 2023-24 the RB gain is noise (Δ −0.005, p=0.46) while "
+            "full-refit coefficient drift nets ALL Δ +0.015 vs v33 "
+            "(CI [−0.001, +0.032], p=0.066 — trending worse)."
         ),
         features=[
             "weighted_ppg_pos_tuned_no_qb",
@@ -690,7 +695,11 @@ MODELS: dict[str, ModelDefinition] = {
             "position's mean-reversion strength directly instead of a "
             "hand-swept factor. regression_to_mean is the most load-bearing "
             "feature in the #588 ablation (Δ +0.075 when removed) and its "
-            "strength has never varied by position."
+            "strength has never varied by position. VERDICT: NEGATIVE "
+            "(stopped on iteration look) — held-out rolling 2023-24 ALL Δ "
+            "+0.021 vs v33 (CI [−0.009, +0.053], p=0.18) with QB ρ −0.015; "
+            "the 4 extra interaction columns add variance, not signal — the "
+            "global regression coefficient was already right."
         ),
         features=[
             "weighted_ppg_tuned_no_qb",

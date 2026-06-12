@@ -140,6 +140,24 @@ New data sources and learned models. Expected: MAE < 2.3, R² > 0.60.
 
 Deferred (not in the accuracy plan): uncertainty-aware/Bayesian intervals (a separate decision-quality value prop, not point-MAE).
 
+### Backlog refresh (2026-06-12) — post-#589/#592, active model `v33_tuned_base`
+
+New experiment wave filed after #588/#589/#592 closed out the base-tuning and
+QB-separation axes. **Hard constraint on all of these: no FantasyPros or other
+market data as model input** — the system's value prop is generating
+upcoming-season projections early in the offseason, long before external
+projections/ADP exist. FP remains an eval-time comparator only.
+
+| # | Experiment | Status |
+|---|---|---|
+| [#639](https://github.com/alex-monroe/ottoneu-db/issues/639) | Per-position base tuning (weights, window, regression strength) | **NEGATIVE** (2026-06-12, iteration look; see experiment log). Residual thread: TE 4-season window, needs `max_history` plumbing. |
+| [#640](https://github.com/alex-monroe/ottoneu-db/issues/640) | QB rushing & pass-volume features — the new QB signal #592 asked for | open — highest-leverage new-feature bet (QB is worst-MAE position) |
+| [#641](https://github.com/alex-monroe/ottoneu-db/issues/641) | Opportunity/efficiency decomposition of the base signal | open |
+| [#642](https://github.com/alex-monroe/ottoneu-db/issues/642) | Pass-catcher ecosystem quality ("who is my QB?") from depth charts | open |
+| [#643](https://github.com/alex-monroe/ottoneu-db/issues/643) | Rank-aware training: relevance-weighted samples | open — targets the FP ordering gap (the metric downstream actually consumes) |
+| [#644](https://github.com/alex-monroe/ottoneu-db/issues/644) | Bounded bet: GBM with monotone constraints on the 8 load-bearing features | open — lottery ticket, #592-style discipline |
+| [#645](https://github.com/alex-monroe/ottoneu-db/issues/645) | Micro: Huber loss in the learned combiner | open — cheap filler between larger experiments |
+
 ---
 
 ## Pre-audit backlog (2026-05-05) — SUPERSEDED, kept for history
