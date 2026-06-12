@@ -26,6 +26,7 @@ Iterate on the rolling folds; the final window is confirmation-only (one look).
 
 | Date | Model | Change | Held-out ALL MAE | Δ vs comparator | 95% CI | Significant? | Protocol | PR |
 |------|-------|--------|------------------|----------|--------|--------------|----------|-----|
+| 2026-06-11 | v33_tuned_base | #589 base tuning: recency weights [0.55,0.25,0.20]→[0.65,0.20,0.15] (inner-fold sweep; exponent grid confirmed 1.0); v31 otherwise unchanged | **2.241** | **−0.011** vs **v31** | [−0.022, −0.001] | **Y** (p=0.038; iteration look 2023–24: −0.016, CI [−0.027, −0.004], p=0.007) — **clears the promotion gate**. See #589 section below | rolling 2023–2025 | #589 |
 | 2026-06-11 | v32_pruned | #588 ablation: v31 minus age_curve, usage_share, draft_capital, vegas, qb_backup_penalty (13→8 features) | 2.252 | +0.020 vs **v31** | [−0.027, +0.065] | N (p=0.40) — no worse, not better; **v31 stays active**. See #588 section below | rolling 2023–2025 | #588 |
 | 2026-06-10 | v31_depth_chart | #599 backfill of 2021–2023 player_stats (coverage 29–40%→82–84%); all models re-projected/retrained on the corrected population | 2.232 | **−0.091** vs v14 | [−0.163, −0.020] | **Y** (p=0.014, 617 clusters) | rolling 2023–2025 | #599 backfill |
 | 2026-06-10 | v31_depth_chart | same — fixed window (3-season train handicap) | 2.269 | −0.020 vs v14 | [−0.113, +0.078] | N (p=0.68) | fixed 2021–23→24–25 | #599 backfill |
@@ -125,6 +126,38 @@ depth_chart, and advanced receiving are the features that earn the learned
 stack its win; (c) the original #588 premise ("most features will be pruned as
 worthless") was half-right — five of eight groups are deadweight, but the
 remaining three are strongly load-bearing, so wholesale pruning is wrong.
+
+### Base weighted_ppg tuning (#589) — honest inner-fold sweep, 2026-06-11
+
+Grid search over recency weights × games-reliability exponent on the **inner
+tuning folds** (2022–2024, GH #595 protocol; the extended
+`sweep_recency_weights.py` scores the isolated `weighted_ppg_no_qb_trajectory`
+base against next-season actuals, fetching data once for the whole grid).
+
+- **Exponent: linear (1.0) confirmed optimal** — 1.25/1.5/2.0 are monotonically
+  worse at *every* weight setting (e.g. current weights: 2.310 → 2.321 → 2.333
+  → 2.355). v28's exponent-1.5 idea, judged on leaked data, is dead.
+- **Recency weights: heavier on the most recent season wins.** Coarse + fine
+  grids put the plateau at 0.65–0.70 recent-season weight. **[0.65, 0.20, 0.15]**
+  chosen — best coarse-grid cell (2.2993 vs current 2.3101) and the only
+  fine-grid leader that never loses an inner fold (2022 −0.008, 2023 −0.025,
+  2024 +0.0003); [0.70, 0.15, 0.15] scored 2.2958 but trades a 2024 loss for a
+  bigger 2023 win (grid-overfit risk).
+
+Wired as `weighted_ppg_tuned_no_qb` + `v33_tuned_base` (v31 with the base
+swapped, all else identical). **Iteration look** (rolling folds 2023–24,
+confirmation window unburned): Δ −0.016, CI [−0.027, −0.004], p=0.007.
+**Confirmation look** (one look, rolling 2023–25): ALL MAE **2.241** vs v31
+2.252, Δ **−0.0113**, CI [−0.0221, −0.0006], **p=0.038 — significant**, bias
+−0.130 vs −0.151. Per-position: RB −0.024, WR −0.031 MAE; QB +0.020, TE +0.007
+(noise); rank quality equal-or-better everywhere except QB ρ −0.003 (WR top-24
+hit 0.250→0.292, TE top-12 hit 0.500→0.583). **Clears the promotion gate**
+(significant held-out win over the active model).
+
+Caveat for future base work: the win is small and concentrated at RB/WR; the
+isolated-base sweep still over-projects (bias −0.57 at the chosen cell) — the
+learned intercept absorbs level, so isolated-base bias is not a gate. The
+3-season window length and per-position weights were not swept (follow-ups).
 
 ## Historical (in-sample) log — pre-audit, deltas not reliable
 

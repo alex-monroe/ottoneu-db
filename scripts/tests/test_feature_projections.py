@@ -12,6 +12,7 @@ from scripts.feature_projections.features.weighted_ppg import (
     WeightedPPGFeature,
     WeightedPPGRookieGrowthFeature,
     WeightedPPGRookieGrowthNoQBFeature,
+    WeightedPPGTunedNoQBFeature,
     ROOKIE_GROWTH_CURVES,
     ROOKIE_MIN_GAMES_FULL_WEIGHT,
 )
@@ -118,6 +119,61 @@ class TestWeightedPPGFeature:
         }])
         result = self.feature.compute("p1", "WR", df, pd.DataFrame(), {})
         assert result == pytest.approx(15.0)
+
+
+# ---------------------------------------------------------------------------
+# WeightedPPGTunedNoQBFeature (#589)
+# ---------------------------------------------------------------------------
+
+class TestWeightedPPGTunedNoQBFeature:
+    """Tests for the inner-fold-tuned base feature (GH #589)."""
+
+    def setup_method(self):
+        self.feature = WeightedPPGTunedNoQBFeature()
+
+    def test_name(self):
+        assert self.feature.name == "weighted_ppg_tuned_no_qb"
+        assert self.feature.is_base is True
+
+    def test_tuned_recency_weights(self):
+        """Three full seasons blend with the tuned [0.65, 0.20, 0.15] weights."""
+        df = make_history_df([
+            {"season": 2022, "ppg": 10.0, "games_played": 17},
+            {"season": 2023, "ppg": 15.0, "games_played": 17},
+            {"season": 2024, "ppg": 20.0, "games_played": 17},
+        ])
+        result = self.feature.compute("p1", "WR", df, pd.DataFrame(), {})
+        # w=[0.65, 0.20, 0.15] → 20*0.65 + 15*0.20 + 10*0.15 = 17.5
+        assert result == pytest.approx(17.5)
+
+    def test_linear_games_reliability(self):
+        """The exponent grid confirmed linear (1.0) — a partial season scales by games/17."""
+        assert self.feature.GAMES_RELIABILITY_EXPONENT == 1.0
+        df = make_history_df([
+            {"season": 2023, "ppg": 10.0, "games_played": 17},
+            {"season": 2024, "ppg": 20.0, "games_played": 4},
+        ])
+        result = self.feature.compute("p1", "WR", df, pd.DataFrame(), {})
+        # recent: 0.65*(4/17), older: 0.20*1.0
+        w_recent = 0.65 * (4 / 17)
+        w_older = 0.20
+        expected = (20.0 * w_recent + 10.0 * w_older) / (w_recent + w_older)
+        assert result == pytest.approx(expected)
+
+    def test_no_qb_trajectory(self):
+        """QB single-season keeps plain PPG (no H2/H1 snap multiplier)."""
+        df = make_history_df([{
+            "season": 2024, "ppg": 12.0, "games_played": 17,
+            "h1_snaps": 200, "h1_games": 8,
+            "h2_snaps": 360, "h2_games": 9,
+        }])
+        result = self.feature.compute("p1", "QB", df, pd.DataFrame(), {})
+        assert result == pytest.approx(12.0)
+
+    def test_does_not_mutate_parent_weights(self):
+        """The tuned subclass overrides, not mutates, the parent's weights."""
+        assert WeightedPPGFeature.RECENCY_WEIGHTS == [0.55, 0.25, 0.20]
+        assert WeightedPPGTunedNoQBFeature.RECENCY_WEIGHTS == [0.65, 0.20, 0.15]
 
 
 # ---------------------------------------------------------------------------
