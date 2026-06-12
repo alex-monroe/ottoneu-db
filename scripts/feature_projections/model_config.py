@@ -570,6 +570,45 @@ MODELS: dict[str, ModelDefinition] = {
             "depth_chart_position_raw*position",
         ],
     ),
+    "v33_tuned_base": ModelDefinition(
+        name="v33_tuned_base",
+        version=1,
+        description=(
+            "v31_depth_chart with the base feature swapped to "
+            "weighted_ppg_tuned_no_qb: recency weights tuned on the inner "
+            "folds (GH #589/#595) from [0.55, 0.25, 0.20] to "
+            "[0.65, 0.20, 0.15] — heavier on the most recent season. The "
+            "games-reliability exponent grid confirmed linear (1.0) is "
+            "optimal. Everything else identical to v31."
+        ),
+        features=[
+            "weighted_ppg_tuned_no_qb",
+            "age_curve",
+            "regression_to_mean",
+            "qb_backup_penalty",
+            "usage_share_raw",
+            "target_share_raw",
+            "air_yards_share_raw",
+            "wopr_raw",
+            "racr_raw",
+            "draft_capital_raw",
+            "implied_team_total_raw",
+            "depth_chart_position_raw",
+            "role_change_raw",
+        ],
+        combiner_type="learned",
+        interaction_terms=[
+            "usage_share_raw*position",
+            "usage_share_raw*base_ppg",
+            "usage_share_raw^2",
+            "target_share_raw*position",
+            "wopr_raw*base_ppg",
+            "wopr_raw^2",
+            "draft_capital_raw*position",
+            "implied_team_total_raw*position",
+            "depth_chart_position_raw*position",
+        ],
+    ),
     "naive_prior_season_ppg": ModelDefinition(
         name="naive_prior_season_ppg",
         version=1,

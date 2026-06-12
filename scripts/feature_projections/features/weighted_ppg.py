@@ -179,6 +179,29 @@ class WeightedPPGReliabilityNoQBFeature(WeightedPPGNoQBTrajectoryFeature):
         return True
 
 
+class WeightedPPGTunedNoQBFeature(WeightedPPGNoQBTrajectoryFeature):
+    """WeightedPPG (no QB/K trajectory) with inner-fold-tuned recency weights.
+
+    GH #589: grid search over recency weights × games-reliability exponent on
+    the inner tuning folds (2022-2024, honest protocol GH #595, isolated base
+    scored against next-season actuals) found [0.65, 0.20, 0.15] best —
+    heavier on the most recent season than the historical [0.55, 0.25, 0.20]
+    — winning or tying every inner fold (2022 -0.008, 2023 -0.025, 2024
+    +0.0003 MAE). The exponent grid (1.0/1.25/1.5/2.0) was monotone worse
+    above 1.0 at every weight setting, so linear games-reliability stays.
+    """
+
+    RECENCY_WEIGHTS = [0.65, 0.20, 0.15]
+
+    @property
+    def name(self) -> str:
+        return "weighted_ppg_tuned_no_qb"
+
+    @property
+    def is_base(self) -> bool:
+        return True
+
+
 class WeightedPPGRookieGrowthFeature(WeightedPPGFeature):
     """WeightedPPG with position-specific rookie growth curves and small-sample blending.
 

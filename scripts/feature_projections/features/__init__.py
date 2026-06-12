@@ -9,6 +9,7 @@ from scripts.feature_projections.features.weighted_ppg import (
     WeightedPPGReliabilityNoQBFeature,
     WeightedPPGRookieGrowthFeature,
     WeightedPPGRookieGrowthNoQBFeature,
+    WeightedPPGTunedNoQBFeature,
 )
 from scripts.feature_projections.features.age_curve import AgeCurveFeature
 from scripts.feature_projections.features.stat_efficiency import StatEfficiencyFeature
@@ -48,6 +49,7 @@ FEATURE_REGISTRY: dict[str, type] = {
     "weighted_ppg": WeightedPPGFeature,
     "weighted_ppg_no_qb_trajectory": WeightedPPGNoQBTrajectoryFeature,
     "weighted_ppg_reliability_no_qb": WeightedPPGReliabilityNoQBFeature,
+    "weighted_ppg_tuned_no_qb": WeightedPPGTunedNoQBFeature,
     "age_curve": AgeCurveFeature,
     "stat_efficiency": StatEfficiencyFeature,
     "games_played": GamesPlayedFeature,

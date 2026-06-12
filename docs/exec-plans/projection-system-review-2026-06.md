@@ -270,7 +270,14 @@ in production" is stale and contradicts the held-out doc.
    combined pruned candidate `v32_pruned` (13→8 features) ties v31
    (Δ+0.020, CI [−0.027, +0.065]) but is no *win*, so **v31 stays active**.
    Full table in the [experiment log](../generated/experiment-log.md).
-3. **#589** tune base `weighted_ppg` vs `v31` (now unblocked).
+3. **#589** tune base `weighted_ppg` vs `v31` — **DONE (2026-06-11).** Honest
+   inner-fold sweep (2022–2024): games-reliability exponent 1.0 confirmed
+   (higher is monotonically worse — v28's idea is dead); recency weights
+   [0.55, 0.25, 0.20] → **[0.65, 0.20, 0.15]**. `v33_tuned_base` (v31 with the
+   tuned base) **significantly beats v31** on the confirmation look
+   (Δ −0.0113, CI [−0.0221, −0.0006], p=0.038; rank quality equal-or-better
+   at RB/WR/TE) — clears the promotion gate. Details in the
+   [experiment log](../generated/experiment-log.md).
 4. **#592** QB-specific bounded bet vs `v31` (per-position significance).
 5. ~~#590 delta-anchored~~ — shelved (premise reversed).
 6. ~~#591 level-matched window~~ — shelved (premise resolved by #599).
