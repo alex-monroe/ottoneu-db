@@ -146,11 +146,11 @@ needs credentials for it). Mitigations: prefer read-only keys for exploratory
 work, rely on PR review for migrations, and remember `fp_*` tables are
 off-limits (see CLAUDE.md).
 
-Host caveats: the venv is created inside the container (Linux) — it coexists
-with the macOS `venv/` only if the container uses its own checkout/volume;
-with a bind mount, re-run `venv/bin/pip install -e .` when switching sides.
-Production promotion actions should still run from the host main repo per
-CLAUDE.md worktree notes.
+Host caveats: `venv/` and `web/node_modules/` are backed by named volumes
+(`ottoneu-venv`, `ottoneu-web-node-modules` — see `.devcontainer/devcontainer.json`,
+#637), so the container builds its own Linux copies without colliding with the
+host's macOS `venv/`. Production promotion actions should still run from the
+host main repo per CLAUDE.md worktree notes.
 
 ## Is the metric worth it? (decision record)
 
