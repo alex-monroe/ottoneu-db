@@ -113,7 +113,7 @@ check the effect with `just permission-report`.
 
 `.devcontainer/` gives an isolated Linux container with:
 
-- Python 3.9 (matches the project floor), Node 20, `gh`, `just`, Playwright
+- Python 3.12 (matches the project floor), Node 20, `gh`, `just`, Playwright
   Chromium deps;
 - a **default-deny egress firewall** (`init-firewall.sh`, adapted from
   Anthropic's reference devcontainer) allowing only the domains in

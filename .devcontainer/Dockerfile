@@ -1,5 +1,5 @@
-# Python 3.9 to match the project's target version (CLAUDE.md: no 3.10+ syntax).
-FROM mcr.microsoft.com/devcontainers/python:3.9-bookworm
+# Python 3.12 to match the project's target version (CLAUDE.md; upgraded in #627).
+FROM mcr.microsoft.com/devcontainers/python:3.12-bookworm
 
 # The base image ships a yarn apt repo whose GPG key has rotated, which breaks
 # every apt-get update (NO_PUBKEY 62D54FD4003F6525). We're npm-only — drop it.

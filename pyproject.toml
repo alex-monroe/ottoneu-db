@@ -6,14 +6,16 @@ build-backend = "setuptools.build_meta"
 name = "ottoneu-db"
 version = "0.1.0"
 description = "Database and analytics platform for Ottoneu Fantasy Football League 309"
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 dependencies = [
     "playwright==1.57.0",
     "supabase==2.27.2",
     "python-dotenv==1.2.1",
-    "nfl_data_py==0.3.3",
-    "pandas==1.5.3",
-    "numpy==1.26.4",
+    # nfl_data_py 0.3.3 hard-pins pandas==1.5.3 (no Python 3.12 wheels); 0.3.2 has
+    # the same import_* API and allows modern pandas. See #627 spike.
+    "nfl_data_py==0.3.2",
+    "pandas>=2.2,<3",
+    "numpy>=2.0,<3",
     "scikit-learn==1.6.1",
     "requests==2.32.5",
     "beautifulsoup4==4.15.0",
