@@ -911,7 +911,16 @@ for _name, _spec, _blurb in [
             f"concentrates on the rosterable tier — {_blurb}. Same features, "
             "interactions, and base as v33; only sample_weight_spec differs. "
             "Co-primary gate: per-position Spearman ρ / top-N hit (the point) "
-            "and MAE non-inferiority."
+            "and MAE non-inferiority. VERDICT: NEGATIVE (held-out rolling "
+            "2023-24) — all three schemes REGRESS ALL MAE (best, v39c, "
+            "+0.026 vs v33, CI [+0.005, +0.047], p=0.015 — a *significant* "
+            "regression) and DO NOT improve ranking where it matters (WR ρ "
+            "0.758 vs 0.762, TE ρ ≤0.738 vs 0.748). Only a tiny QB ρ bump "
+            "(+0.009, 99 samples, unresolvable). Downweighting the bench "
+            "removes the samples that anchor the regression slope; top-tier "
+            "ordering is signal-limited, not fit-capacity-limited. The FP "
+            "ordering edge is an information gap, not an objective-function "
+            "gap. v33 stays active."
         ),
         sample_weight_spec=_spec,
     )

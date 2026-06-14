@@ -37,6 +37,7 @@ the MAE verdict. "—" only for rows predating the column.
 
 | Date | Model | Change | Held-out ALL MAE | Δ vs comparator | 95% CI | Significant? | Rank Δ (ρ / top-N vs comparator) | Protocol | PR |
 |------|-------|--------|------------------|----------|--------|--------------|----------------------------------|----------|-----|
+| 2026-06-14 | v39_relevance_step / v39b / v39c | #643 rank-aware training: Ridge fit weighted by prior-season relevance (topn_step k=1/k=2; ppg_within_pos). 3 schemes, best = v39c | 2.259 (v39c) | **+0.026** vs **v33** | [+0.005, +0.047] | **SIGNIFICANT REGRESSION** (p=0.015) — **NEGATIVE, all 3 schemes worse**; ranking *not* improved where it matters (WR/TE ρ down). See #643 section below | WR ρ 0.762→0.758, TE ρ 0.748→0.724–0.738 (worse); QB ρ +0.009 / top-12 0.417→0.500 (99 samples, unresolvable) | rolling 2023–24 (iteration look; confirmation window not burned) | #643 |
 | 2026-06-14 | v38_qb_ecosystem | #642 pass-catcher ecosystem: v33 + team_qb_quality_raw (projected QB1's centered prior PPG) + team_qb_changed_raw (QB1 changed YoY), WR/TE-only from depth charts | 2.247 | +0.001 vs **v33** | [−0.011, +0.013] | **N** (p=0.86) — **NEGATIVE, stopped on tie**; WR +0.010 (p=0.52), TE −0.010 (p=0.37) — both noise. Signal subsumed by implied_team_total + own target_share/wopr; team_qb_changed has a big in-sample coef that doesn't generalize. See #642 section below | TE ρ +0.004 (0.747→0.751), WR ρ −0.002; top-N unchanged | rolling 2023–24 (iteration look; confirmation window not burned) | #642 |
 | 2026-06-12 | v37_qb_volume | #640 QB volume signal: v33 + qb_rush_volume_raw + qb_pass_volume_raw (recency-weighted attempts/game from nfl_stats, QB-only) | 2.239 | +0.003 vs **v33** | [−0.030, +0.035] | **N** (p=0.83) — **NEGATIVE, bounded bet stopped on tie**; QB-only Δ −0.027 (CI [−0.245, +0.186], p=0.82 — right direction, unresolvable at 62 QB clusters); in-sample coefficients ≈0. See #640 section below | QB ρ **+0.011** (0.629→0.640), top-12 hit unchanged; others ≈ | rolling 2023–24 (iteration look; confirmation window not burned) | #640 |
 | 2026-06-12 | v36_pos_regression | #639 per-position regression strength: v33 + regression_to_mean*position interaction (learned per-position mean-reversion) | 2.251 | +0.021 vs **v33** | [−0.009, +0.053] | **N** (p=0.18) — **NEGATIVE, stopped on iteration look**; the extra interaction columns add variance, not signal. See #639 section below | ρ ≈ (QB −0.015, RB +0.002, WR −0.005, TE −0.001); top-N unchanged | rolling 2023–24 (iteration look; confirmation window not burned) | #639 |
@@ -174,6 +175,46 @@ Caveat for future base work: the win is small and concentrated at RB/WR; the
 isolated-base sweep still over-projects (bias −0.57 at the chosen cell) — the
 learned intercept absorbs level, so isolated-base bias is not a gate. The
 3-season window length and per-position weights were not swept (follow-ups).
+
+### Rank-aware / relevance-weighted training (#643) — NEGATIVE, 2026-06-14
+
+The "objective, not features" bet: weight the Ridge fit by each sample's
+leakage-free prior-season relevance (base feature value) so capacity
+concentrates on the rosterable tier whose *ordering* the projections feed,
+directly attacking the FantasyPros ordering gap. Three schemes on v33's exact
+feature set (only `sample_weight_spec` differs): `topn_step` k=1 (top-2N at
+position weighted 2×), k=2 (3×), and `ppg_within_pos` (base_ppg / pos-season
+mean, clipped). Co-primary gate: per-position Spearman ρ / top-N **and** MAE
+non-inferiority.
+
+**Result (iteration look, rolling 2023–24; confirmation window not burned):**
+all three REGRESS. Best is `v39c_relevance_ppg`: ALL MAE 2.259 vs v33 2.233,
+Δ **+0.026**, CI **[+0.005, +0.047]**, p=0.015 — a *significant regression*,
+not a tie. And ranking quality, the entire point, **does not improve where it
+matters**: WR ρ 0.758 vs v33 0.762, TE ρ 0.724–0.738 vs 0.748 (all worse).
+The only positive is a trivial QB bump (ρ +0.009, top-12 hit 0.417→0.500) at
+99 QB samples — unresolvable per the #640 lesson, and bought with worse MAE.
+
+**Why it fails (the useful finding):** two compounding reasons. (1) The
+bench/replacement-level samples aren't noise to discard — they *anchor the
+regression slope* (the prior-PPG→next-PPG relationship is estimated across the
+whole range); downweighting them biases the fit and costs MAE everywhere. (2)
+Top-tier ordering is **signal-limited, not fit-capacity-limited** — the model
+already orders the top as well as the features allow; reallocating loss weight
+there adds no information. The corollary is the strategic headline: **the
+FantasyPros ordering edge is an information gap, not an objective-function
+gap.** FP has camp/beat-reporter/manual signal our feature set lacks; no loss
+reweighting on the same features can close it.
+
+This wave's four NEGATIVEs (#639 base tuning, #640 QB volume, #642 ecosystem,
+#643 objective) now triangulate one conclusion: **on the current feature set,
+v33_tuned_base sits at the achievable frontier for both MAE and ranking.**
+Further gains require genuinely new *information* not derivable from
+nflverse / depth charts / Vegas — which, given the no-market-inputs constraint
+([[no-market-inputs-in-projections]]), is a data-acquisition question, not a
+modeling one. The remaining low-cost probe is #645 (Huber loss, a robustness
+tweak, not an information add); #644 (monotone GBM) is the last "more model on
+the same features" bet and the wave's evidence predicts it ties too.
 
 ### Pass-catcher ecosystem / "who is my QB?" (#642) — NEGATIVE, 2026-06-14
 
