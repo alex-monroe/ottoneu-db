@@ -126,6 +126,7 @@ Run `just check-arch` to validate these rules locally.
 - **Update documentation:** Always try to update the agent documentation after completing a task. Update existing documents or add new documents and sections as needed to reflect architectural or contextual changes.
 - **Never commit directly to `main`.** All changes go through pull requests.
 - **Always create a PR.** Every task must end with `gh pr create --fill`.
+- **Run `just preflight` before pushing.** It mirrors CI's pass/fail (lint + typecheck + both test suites without coverage + doc checks) in ~9s, so failures surface locally instead of in a multi-minute CI round-trip. `just install-hooks` installs it as an opt-in pre-push hook (`git push --no-verify` to skip a WIP push).
 - **Start from updated main:** `git checkout main && git pull origin main` before branching.
 - **Bash cwd persists between calls.** A `cd web && …` leaves the shell in `web/`, so a later repo-root-relative path (e.g. `git add web/next.config.ts`) silently fails. Prefer absolute paths, `git -C <repo-root>`, or re-`cd` explicitly rather than assuming the working directory.
 - See [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) for full details.

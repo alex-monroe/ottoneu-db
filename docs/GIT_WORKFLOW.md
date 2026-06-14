@@ -27,7 +27,15 @@ Before beginning ANY new task or change, always follow this workflow:
    git commit -m "Clear description of changes"
    ```
 
-4. **Push the branch and create a pull request:**
+4. **Run `just preflight` before pushing:**
+   ```bash
+   just preflight   # lint + typecheck + both test suites (no coverage) + doc checks, ~9s
+   ```
+   This mirrors CI's pass/fail locally so failures are caught here instead of in a
+   multi-minute CI round-trip. Optionally install it as a pre-push hook once with
+   `just install-hooks` (opt-in; skip a WIP push with `git push --no-verify`).
+
+5. **Push the branch and create a pull request:**
    ```bash
    git push -u origin descriptive-branch-name
    gh pr create --fill
