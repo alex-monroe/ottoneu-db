@@ -783,6 +783,61 @@ MODELS: dict[str, ModelDefinition] = {
             "depth_chart_position_raw*position",
         ],
     ),
+    "v38_qb_ecosystem": ModelDefinition(
+        name="v38_qb_ecosystem",
+        version=1,
+        description=(
+            "Pass-catcher ecosystem signal (GH #642) — v33_tuned_base's "
+            "feature set plus two WR/TE-only depth-chart features: "
+            "team_qb_quality_raw (the player's projected QB1's centered prior "
+            "weighted PPG — who is throwing to them) and team_qb_changed_raw "
+            "(1 if the team's projected QB1 differs from last season). "
+            "Forward-looking personnel identity from the opening-day depth "
+            "chart, the role-change signal #640's postmortem pointed to — and "
+            "the proper version of the failed historical team_context (#391). "
+            "Both are None for QB/RB/K, so each global coefficient is a WR/TE "
+            "coefficient. A team_qb_quality_raw*position interaction lets WR "
+            "and TE weight ecosystem differently. Full Ridge refit. VERDICT: "
+            "NEGATIVE (stopped on tie, confirmation window unburned) — "
+            "held-out rolling 2023-24: ALL Δ +0.001 vs v33 (p=0.86, dead "
+            "tie); WR +0.010 (p=0.52), TE −0.010 (p=0.37) — both noise. The "
+            "QB-ecosystem signal is already subsumed by implied_team_total "
+            "(offensive environment) + the WR's own target_share/wopr "
+            "(opportunity reflects QB quality). team_qb_changed_raw earns a "
+            "large in-sample coefficient that does not generalize — a clean "
+            "in-sample-vs-held-out overfit example."
+        ),
+        features=[
+            "weighted_ppg_tuned_no_qb",
+            "age_curve",
+            "regression_to_mean",
+            "qb_backup_penalty",
+            "usage_share_raw",
+            "target_share_raw",
+            "air_yards_share_raw",
+            "wopr_raw",
+            "racr_raw",
+            "draft_capital_raw",
+            "implied_team_total_raw",
+            "depth_chart_position_raw",
+            "role_change_raw",
+            "team_qb_quality_raw",
+            "team_qb_changed_raw",
+        ],
+        combiner_type="learned",
+        interaction_terms=[
+            "usage_share_raw*position",
+            "usage_share_raw*base_ppg",
+            "usage_share_raw^2",
+            "target_share_raw*position",
+            "wopr_raw*base_ppg",
+            "wopr_raw^2",
+            "draft_capital_raw*position",
+            "implied_team_total_raw*position",
+            "depth_chart_position_raw*position",
+            "team_qb_quality_raw*position",
+        ],
+    ),
     "naive_prior_season_ppg": ModelDefinition(
         name="naive_prior_season_ppg",
         version=1,

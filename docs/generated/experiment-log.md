@@ -37,6 +37,7 @@ the MAE verdict. "—" only for rows predating the column.
 
 | Date | Model | Change | Held-out ALL MAE | Δ vs comparator | 95% CI | Significant? | Rank Δ (ρ / top-N vs comparator) | Protocol | PR |
 |------|-------|--------|------------------|----------|--------|--------------|----------------------------------|----------|-----|
+| 2026-06-14 | v38_qb_ecosystem | #642 pass-catcher ecosystem: v33 + team_qb_quality_raw (projected QB1's centered prior PPG) + team_qb_changed_raw (QB1 changed YoY), WR/TE-only from depth charts | 2.247 | +0.001 vs **v33** | [−0.011, +0.013] | **N** (p=0.86) — **NEGATIVE, stopped on tie**; WR +0.010 (p=0.52), TE −0.010 (p=0.37) — both noise. Signal subsumed by implied_team_total + own target_share/wopr; team_qb_changed has a big in-sample coef that doesn't generalize. See #642 section below | TE ρ +0.004 (0.747→0.751), WR ρ −0.002; top-N unchanged | rolling 2023–24 (iteration look; confirmation window not burned) | #642 |
 | 2026-06-12 | v37_qb_volume | #640 QB volume signal: v33 + qb_rush_volume_raw + qb_pass_volume_raw (recency-weighted attempts/game from nfl_stats, QB-only) | 2.239 | +0.003 vs **v33** | [−0.030, +0.035] | **N** (p=0.83) — **NEGATIVE, bounded bet stopped on tie**; QB-only Δ −0.027 (CI [−0.245, +0.186], p=0.82 — right direction, unresolvable at 62 QB clusters); in-sample coefficients ≈0. See #640 section below | QB ρ **+0.011** (0.629→0.640), top-12 hit unchanged; others ≈ | rolling 2023–24 (iteration look; confirmation window not burned) | #640 |
 | 2026-06-12 | v36_pos_regression | #639 per-position regression strength: v33 + regression_to_mean*position interaction (learned per-position mean-reversion) | 2.251 | +0.021 vs **v33** | [−0.009, +0.053] | **N** (p=0.18) — **NEGATIVE, stopped on iteration look**; the extra interaction columns add variance, not signal. See #639 section below | ρ ≈ (QB −0.015, RB +0.002, WR −0.005, TE −0.001); top-N unchanged | rolling 2023–24 (iteration look; confirmation window not burned) | #639 |
 | 2026-06-12 | v35_pos_tuned_base | #639 per-position base recency weights: inner-fold sweep changed only RB ([0.65,0.20,0.15]→[0.70,0.20,0.10]); QB/WR/TE kept the #589 tune | 2.245 | +0.015 vs **v33** | [−0.001, +0.032] | **N** (p=0.066, trending *worse*) — **NEGATIVE, stopped on iteration look**; RB-only Δ −0.005 (CI [−0.018, +0.008], p=0.46) — the swept RB gain is noise OOS while full-refit coefficient drift hurts elsewhere. See #639 section below | ρ ≈ (TE +0.001, RB +0.001, QB −0.003, WR −0.003); WR top-24 hit 0.458→0.417 | rolling 2023–24 (iteration look; confirmation window not burned) | #639 |
@@ -173,6 +174,37 @@ Caveat for future base work: the win is small and concentrated at RB/WR; the
 isolated-base sweep still over-projects (bias −0.57 at the chosen cell) — the
 learned intercept absorbs level, so isolated-base bias is not a gate. The
 3-season window length and per-position weights were not swept (follow-ups).
+
+### Pass-catcher ecosystem / "who is my QB?" (#642) — NEGATIVE, 2026-06-14
+
+The role-change-shaped bet #640's postmortem pointed to: a WR/TE's projection
+should depend on *who throws to them*. `v38_qb_ecosystem` added, WR/TE-only
+from the opening-day depth chart, `team_qb_quality_raw` (the projected QB1's
+centered prior weighted PPG) and `team_qb_changed_raw` (1 if the QB1 differs
+from last season), as a full refit on v33's feature set. Built leakage-free:
+QB1 identity from the target-season depth chart (set before games, like the
+existing depth_chart feature), QB quality from seasons strictly prior.
+
+**Result (iteration look, rolling 2023–24; confirmation window not burned):**
+ALL Δ +0.001 (p=0.86, dead tie); WR Δ +0.010 (p=0.52), TE Δ −0.010 (p=0.37) —
+both noise. TE rank ρ 0.747→0.751 (negligible). **Stopped on tie.**
+
+**Why it's subsumed (the useful finding):** the QB-ecosystem signal is already
+in the feature set twice over — `implied_team_total_raw` carries the offensive
+environment (a good QB lifts the team total), and a WR/TE's own
+`target_share_raw`/`wopr_raw` already reflect the quality of targets they get.
+Adding QB identity on top is redundant. This is the *forward-looking* version
+of the failed `team_context` (#391), built right — and it still doesn't help,
+because the value it would add is already captured. Notably,
+`team_qb_changed_raw` earns a large **in-sample** coefficient (~+5 PPG/WR-TE
+in the full refit) that **completely fails to generalize** out-of-sample — a
+clean, citable example of why the in-sample `accuracy-report` is not the gate.
+
+Combined with #640, both QB-centric bets this wave are dead: stable QB
+production is priced into PPG history (#640) and QB-ecosystem context is priced
+into Vegas + own opportunity (#642). The remaining open axis is the *training
+objective*, not new features — #643 (rank-aware/relevance-weighted training),
+which attacks the ordering gap directly rather than adding subsumed signal.
 
 ### QB volume signal (#640) — NEGATIVE, 2026-06-12
 

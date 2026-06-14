@@ -32,9 +32,11 @@ from scripts.feature_projections.runner import (
     _build_context,
     _build_depth_charts_lookup,
     _build_draft_capital_lookup,
+    _build_qb_ecosystem_lookups,
     _build_vegas_lines_lookup,
     _collect_feature_names_recursive,
     _compute_positional_mean_ppg,
+    _compute_qb_quality_by_team,
     _compute_team_aggregates,
     _resolve_features_for_position,
     _resolve_residual_base_features,
@@ -80,6 +82,10 @@ def collect_training_data(
     # Fetch opening-day depth-chart tiers once (used across all training seasons)
     depth_charts_lookup = _build_depth_charts_lookup(supabase)
 
+    # QB-ecosystem lookups for team_qb_quality_raw / team_qb_changed_raw (#642);
+    # per-season centered QB1 PPG computed in the loop from that season's history.
+    qb1_by_team, player_team_by_season = _build_qb_ecosystem_lookups(supabase)
+
     # Instantiate features. Residual stacks pull in features from every
     # nested base so the trainer can compute the base prediction per sample.
     all_feature_names = _collect_feature_names_recursive(model_def)
@@ -116,6 +122,9 @@ def collect_training_data(
         # Team aggregates and positional means
         team_aggregates = _compute_team_aggregates(nfl_stats_all, players_df)
         positional_means = _compute_positional_mean_ppg(history_df, players_df)
+
+        # Centered QB1 prior PPG per team for this target season (#642).
+        qb_quality = _compute_qb_quality_by_team(history_df, qb1_by_team, target_season)
 
         # QB starters
         qb_starters = get_all_starter_ids(historical_seasons + [target_season], players_df)
@@ -159,6 +168,9 @@ def collect_training_data(
                 vegas_lines=vegas_lookup,
                 vegas_league_means=vegas_league_means,
                 depth_charts=depth_charts_lookup,
+                qb1_by_team=qb1_by_team,
+                player_team_by_season=player_team_by_season,
+                qb_quality=qb_quality,
             )
 
             effective_features, effective_weights = _resolve_features_for_position(model_def, position)
