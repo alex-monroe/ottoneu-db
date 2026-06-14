@@ -895,7 +895,11 @@ for _name, _eps in [
             "injury/role-collapse outlier seasons pull the coefficients less. "
             "Same features, interactions, and base as v33; only regressor_spec "
             "differs (linear params predict identically). Bounded probe to "
-            "close the training-objective axis after #643."
+            "close the training-objective axis after #643. VERDICT: NEGATIVE "
+            "(held-out rolling 2023-24) — only e200 (≈Ridge) ties v33 (Δ "
+            "−0.008 ALL MAE, CI [−0.020, +0.005], p=0.23, not significant); "
+            "the genuinely-robust e110/e135 REGRESS (+0.018/+0.007). Robustness "
+            "is the wrong direction; squared loss is right. v33 stays active."
         ),
         regressor_spec={"type": "huber", "epsilon": _eps},
     )
