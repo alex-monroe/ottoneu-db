@@ -21,7 +21,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import Ridge
+from sklearn.linear_model import HuberRegressor, Ridge
 from sklearn.preprocessing import StandardScaler
 
 from scripts.config import get_supabase_client, MIN_GAMES, fetch_all_rows
@@ -50,6 +50,29 @@ from scripts.feature_projections.learned_combiner import (
 )
 
 ALPHA_CANDIDATES = [0.01, 0.1, 1.0, 10.0, 100.0]
+
+# HuberRegressor regularises on a different scale than Ridge (its objective is
+# Huber loss + alpha·‖w‖², not squared loss), so it needs its own, smaller grid
+# centered on the sklearn default (0.0001). GH #645.
+HUBER_ALPHA_CANDIDATES = [0.0001, 0.001, 0.01, 0.1, 1.0]
+
+
+def _make_linear_estimator(alpha: float, regressor_spec: dict | None, fit_intercept: bool = True):
+    """Build the per-fold linear estimator (Ridge by default; Huber if specified).
+
+    ``regressor_spec={"type": "huber", "epsilon": e}`` selects a robust Huber
+    fit (#645) — squared loss for residuals within ``epsilon`` standard
+    deviations, linear beyond, so injury-wrecked / role-collapse outlier seasons
+    pull the coefficients less. Empty/None → Ridge, byte-identical to before.
+    """
+    if regressor_spec and regressor_spec.get("type") == "huber":
+        return HuberRegressor(
+            alpha=alpha,
+            epsilon=float(regressor_spec.get("epsilon", 1.35)),
+            fit_intercept=fit_intercept,
+            max_iter=2000,
+        )
+    return Ridge(alpha=alpha, fit_intercept=fit_intercept)
 
 
 def collect_training_data(
@@ -224,13 +247,21 @@ def train_ridge_loso(
     training_data: pd.DataFrame,
     interaction_terms: list[str],
     alpha_candidates: list[float] | None = None,
+    regressor_spec: dict | None = None,
 ) -> dict[str, Any]:
-    """Train Ridge regression with leave-one-season-out cross-validation.
+    """Train a linear model with leave-one-season-out CV for alpha selection.
 
-    Returns the trained model parameters as a dict suitable for JSON serialization.
+    Ridge by default; ``regressor_spec={"type": "huber", "epsilon": e}`` swaps in
+    a robust Huber loss (#645). The saved params (coefficients/intercept/scaler)
+    have the same shape either way, so prediction is unchanged. Returns the
+    trained model parameters as a dict suitable for JSON serialization.
     """
     if alpha_candidates is None:
-        alpha_candidates = ALPHA_CANDIDATES
+        alpha_candidates = (
+            HUBER_ALPHA_CANDIDATES
+            if regressor_spec and regressor_spec.get("type") == "huber"
+            else ALPHA_CANDIDATES
+        )
 
     seasons = sorted(training_data["season"].unique())
     print(f"\nTraining with LOSO CV across seasons: {seasons}")
@@ -286,7 +317,7 @@ def train_ridge_loso(
             X_train_scaled = scaler.fit_transform(X_train)
             X_test_scaled = scaler.transform(X_test)
 
-            model = Ridge(alpha=alpha)
+            model = _make_linear_estimator(alpha, regressor_spec)
             model.fit(X_train_scaled, y_train)
             preds = model.predict(X_test_scaled)
             preds = np.maximum(preds, 0.0)
@@ -307,7 +338,7 @@ def train_ridge_loso(
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
-    model = Ridge(alpha=best_alpha)
+    model = _make_linear_estimator(best_alpha, regressor_spec)
     model.fit(X_scaled, y)
 
     # Report coefficients
@@ -331,6 +362,9 @@ def train_ridge_loso(
         "interaction_terms": interaction_terms,
         "scaler_mean": scaler.mean_.tolist(),
         "scaler_scale": scaler.scale_.tolist(),
+        # Documented for reproducibility; prediction is loss-agnostic (a linear
+        # model either way), so this does not affect inference. GH #645.
+        "regressor_spec": regressor_spec or {},
         "training_metadata": {
             "seasons": [int(s) for s in seasons],
             "n_samples": int(X.shape[0]),
@@ -538,7 +572,11 @@ def main():
             training_filter=model_def.training_filter,
         )
     else:
-        model_params = train_ridge_loso(training_data, model_def.interaction_terms)
+        model_params = train_ridge_loso(
+            training_data,
+            model_def.interaction_terms,
+            regressor_spec=model_def.regressor_spec,
+        )
 
     # Save
     TRAINED_MODELS_DIR.mkdir(parents=True, exist_ok=True)

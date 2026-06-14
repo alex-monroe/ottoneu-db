@@ -175,7 +175,11 @@ def _learned_preds_for_eval(
             training_filter=model_def.training_filter,
         )
     else:
-        params = train_ridge_loso(train_df, model_def.interaction_terms)
+        params = train_ridge_loso(
+            train_df,
+            model_def.interaction_terms,
+            regressor_spec=model_def.regressor_spec,
+        )
 
     # Persist so a dependent residual can use this held-out model as its base.
     (temp_dir / f"{model_name}.json").write_text(json.dumps(params))

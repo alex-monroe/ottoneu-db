@@ -43,6 +43,12 @@ class ModelDefinition:
     base_model_name: str | None = None
     training_filter: dict = field(default_factory=dict)
 
+    # Robust-loss training (GH #645). Empty (default) → Ridge (squared loss).
+    # {"type": "huber", "epsilon": <float>} swaps in a Huber loss for learned
+    # models so outlier seasons (injury/role-collapse) pull the fit less. Only
+    # affects training; the saved linear params predict identically.
+    regressor_spec: dict = field(default_factory=dict)
+
 
 # === Model Definitions ===
 
@@ -866,6 +872,33 @@ MODELS: dict[str, ModelDefinition] = {
         is_baseline=False,
     ),
 }
+
+
+# === Robust-loss variants (GH #645) ===
+# Identical to v33_tuned_base except the Ridge squared loss is swapped for a
+# Huber loss at three epsilon settings — derived via `replace` so the feature
+# set never drifts. Bounded completeness probe for the "objective, not features"
+# axis after the rank-aware (#643) regression; the wave evidence predicts a tie.
+from dataclasses import replace as _replace  # local: keep import near use
+
+for _name, _eps in [
+    ("v40_huber_e110", 1.10),
+    ("v40_huber_e135", 1.35),
+    ("v40_huber_e200", 2.00),
+]:
+    MODELS[_name] = _replace(
+        MODELS["v33_tuned_base"],
+        name=_name,
+        description=(
+            "Robust-loss probe (GH #645): v33_tuned_base trained with a Huber "
+            f"loss (epsilon={_eps}) instead of Ridge squared loss, so "
+            "injury/role-collapse outlier seasons pull the coefficients less. "
+            "Same features, interactions, and base as v33; only regressor_spec "
+            "differs (linear params predict identically). Bounded probe to "
+            "close the training-objective axis after #643."
+        ),
+        regressor_spec={"type": "huber", "epsilon": _eps},
+    )
 
 
 def get_model(name: str) -> ModelDefinition:
