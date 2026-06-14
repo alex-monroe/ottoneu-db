@@ -25,13 +25,60 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import subprocess
 from pathlib import Path
 from typing import Optional
 
 from scripts.feature_projections.model_config import get_model
 
 _repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-CACHE_DIR = Path(_repo_root) / ".cache" / "holdout"
+
+
+def _resolve_cache_dir(repo_root: str = _repo_root) -> Path:
+    """Resolve a holdout-cache dir shared across git worktrees.
+
+    Retraining learned models per rolling-origin fold is the single most
+    expensive recurring agent runtime in the repo. Experiment agents run in
+    ``.claude/worktrees/`` checkouts, so a per-checkout cache means every
+    worktree recomputes folds the main checkout already has. Point all
+    worktrees at the **main checkout's** ``.cache/holdout`` (the venv already
+    follows this single-location pattern). Resolution order (GH #629):
+
+    1. ``OTTONEU_HOLDOUT_CACHE`` env override (absolute path to the cache dir).
+    2. The main worktree's ``.cache/holdout`` — derived from
+       ``git rev-parse --git-common-dir`` (a worktree's common dir is the main
+       repo's ``.git``), so all worktrees converge on one location.
+    3. Local fallback: ``<repo_root>/.cache/holdout`` (non-git or git failure).
+
+    Cross-worktree correctness holds because cache keys embed
+    :func:`feature_code_version` — a worktree that edits feature/model code gets
+    a different fingerprint and writes under new keys, so it can never poison
+    entries the main checkout trusts.
+    """
+    env = os.environ.get("OTTONEU_HOLDOUT_CACHE")
+    if env:
+        return Path(env).expanduser()
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--git-common-dir"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            common = Path(result.stdout.strip())
+            if not common.is_absolute():
+                common = (Path(repo_root) / common).resolve()
+            # The common dir is the main repo's `.git`; its parent is the main
+            # working tree root.
+            return common.parent / ".cache" / "holdout"
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return Path(repo_root) / ".cache" / "holdout"
+
+
+CACHE_DIR = _resolve_cache_dir()
 
 # Source files whose contents define how a learned model is trained / how its
 # features are computed. Any edit here conservatively invalidates the whole
@@ -129,3 +176,24 @@ def store(
     tmp = path.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(payload))
     tmp.replace(path)
+
+
+if __name__ == "__main__":
+    import argparse
+    import shutil
+
+    parser = argparse.ArgumentParser(
+        description="Inspect or clear the (worktree-shared) holdout-eval cache."
+    )
+    parser.add_argument(
+        "--clear",
+        action="store_true",
+        help="Delete the cache dir (run after any stats backfill).",
+    )
+    args = parser.parse_args()
+    if args.clear:
+        n = len(list(CACHE_DIR.glob("*.json"))) if CACHE_DIR.exists() else 0
+        shutil.rmtree(CACHE_DIR, ignore_errors=True)
+        print(f"Cleared holdout cache ({n} fold file(s)): {CACHE_DIR}")
+    else:
+        print(CACHE_DIR)

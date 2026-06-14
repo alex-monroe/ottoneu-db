@@ -219,7 +219,7 @@ def check_holdout_cache() -> Result:
         f"{len(entries)} cached fold(s), newest {age_h:.0f}h old. "
         f"Cache is keyed by config, NOT by DB contents — a stats backfill "
         f"silently invalidates it.",
-        "rm -rf .cache/holdout   (after any stats backfill, before holdout-eval)",
+        "just clear-holdout-cache   (after any stats backfill, before holdout-eval)",
     )
 
 

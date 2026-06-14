@@ -8,6 +8,7 @@
 | `SUPABASE_KEY` | Supabase key used by `scripts/config.get_supabase_client()`. **Must be the service/secret key**, not the anon key: scrapers and the projection pipeline write to RLS-protected tables (e.g. `players`, `player_projections`, `draft_sharks_values`) that have only anon `SELECT` policies, so writes require a key that bypasses RLS. CI workflows source this from the `SUPABASE_SECRET_KEY` GitHub Actions secret. |
 | `FANGRAPHS_USERNAME` | FanGraphs login username (for arbitration progress scraper) |
 | `FANGRAPHS_PASSWORD` | FanGraphs login password (for arbitration progress scraper) |
+| `OTTONEU_HOLDOUT_CACHE` | **Optional.** Absolute path to the holdout-eval cache dir (GH #629). Default: the main checkout's `.cache/holdout`, resolved via `git rev-parse --git-common-dir` so all worktrees share one cache. Set to override the location. |
 
 ## `web/.env.local` (for Next.js)
 
