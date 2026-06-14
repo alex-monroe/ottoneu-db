@@ -1,6 +1,17 @@
 # Spike #651 — Data-acquisition plan for the next projection-accuracy lever
 
-## Status: Complete (2026-06-14)
+## Status: Complete (2026-06-14) · Source #1 built + tested → TIE (2026-06-14)
+
+> **Update (2026-06-14):** Recommended first acquisition (**coaching change**)
+> was built and run through the full held-out gate. New `team_coaching` table
+> (nflverse `games.csv`), `coaching_change_raw`/`coach_tenure_raw` features, and
+> `v41_coaching_residual` (two-stage residual on v33). **Verdict: NEGATIVE / TIE**
+> — ALL MAE 2.2292 vs v33 2.2278 (Δ+0.0014, CI [−0.0003, +0.0033], p=0.106);
+> QB hypothesis a dead tie (3.698 vs 3.697). Not promoted. Exactly the
+> small-cohort tie this spike anticipated. **Per the branch plan below, the next
+> acquisition is source #3 (FA/contract movement)** — now unblocked by the
+> OverTheCap/Spotrac allowlist. See the #651 section in
+> [experiment-log.md](../generated/experiment-log.md).
 
 > **Verdict:** Of seven candidate sources, only three clear the leakage-free,
 > early-offseason, historical-availability bar well enough to validate on the

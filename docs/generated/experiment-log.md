@@ -37,6 +37,7 @@ the MAE verdict. "—" only for rows predating the column.
 
 | Date | Model | Change | Held-out ALL MAE | Δ vs comparator | 95% CI | Significant? | Rank Δ (ρ / top-N vs comparator) | Protocol | PR |
 |------|-------|--------|------------------|----------|--------|--------------|----------------------------------|----------|-----|
+| 2026-06-14 | v41_coaching_residual | #651 spike acquisition #1: two-stage residual on v33 + `coaching_change_raw` (offseason head-coach change, new `team_coaching` table from nflverse `games.csv`) + `coaching_change_raw*position`; coach-stable players byte-identical to v33 | 2.229 | +0.0014 vs **v33** | [−0.0003, +0.0033] | **N** (p=0.106) — **NEGATIVE / TIE**; the *new-information* acquisition the wave's modeling NEGATIVEs called for, but the small coach-changed cohort (~5–10 teams/yr) carries too little signal. Residual α=100 shrinks coefs ≈0. QB hypothesis a dead tie (MAE 3.698 vs 3.697). Per spike plan → next is source #3 (FA/contract). See #651 section below | QB ρ 0.671→0.670, WR ρ 0.780→0.780, TE 0.760→0.759 (all ≈); top-N unchanged | rolling 2023–2025 (full window; tie, nothing to confirm) | #651 |
 | 2026-06-14 | v40_huber_e110 / e135 / e200 | #645 robust loss: Huber instead of Ridge squared loss (epsilon 1.10/1.35/2.00), v33 features. Best = e200 | 2.225 (e200) | −0.008 vs **v33** | [−0.020, +0.005] | **N** (p=0.23) — **NEGATIVE, tie at best**; only e200 (≈Ridge) ties, robust e110/e135 *regress* (+0.018/+0.007). Robustness is the wrong direction. See #645 section below | e200: WR ρ +0.002, QB +0.004, TE −0.002 (≈); top-N ≈ | rolling 2023–24 (iteration look; confirmation window not burned) | #645 |
 | 2026-06-14 | v39_relevance_step / v39b / v39c | #643 rank-aware training: Ridge fit weighted by prior-season relevance (topn_step k=1/k=2; ppg_within_pos). 3 schemes, best = v39c | 2.259 (v39c) | **+0.026** vs **v33** | [+0.005, +0.047] | **SIGNIFICANT REGRESSION** (p=0.015) — **NEGATIVE, all 3 schemes worse**; ranking *not* improved where it matters (WR/TE ρ down). See #643 section below | WR ρ 0.762→0.758, TE ρ 0.748→0.724–0.738 (worse); QB ρ +0.009 / top-12 0.417→0.500 (99 samples, unresolvable) | rolling 2023–24 (iteration look; confirmation window not burned) | #643 |
 | 2026-06-14 | v38_qb_ecosystem | #642 pass-catcher ecosystem: v33 + team_qb_quality_raw (projected QB1's centered prior PPG) + team_qb_changed_raw (QB1 changed YoY), WR/TE-only from depth charts | 2.247 | +0.001 vs **v33** | [−0.011, +0.013] | **N** (p=0.86) — **NEGATIVE, stopped on tie**; WR +0.010 (p=0.52), TE −0.010 (p=0.37) — both noise. Signal subsumed by implied_team_total + own target_share/wopr; team_qb_changed has a big in-sample coef that doesn't generalize. See #642 section below | TE ρ +0.004 (0.747→0.751), WR ρ −0.002; top-N unchanged | rolling 2023–24 (iteration look; confirmation window not burned) | #642 |
@@ -176,6 +177,44 @@ Caveat for future base work: the win is small and concentrated at RB/WR; the
 isolated-base sweep still over-projects (bias −0.57 at the chosen cell) — the
 learned intercept absorbs level, so isolated-base bias is not a gate. The
 3-season window length and per-position weights were not swept (follow-ups).
+
+### Coaching-change acquisition (#651, spike source #1) — NEGATIVE / TIE, 2026-06-14
+
+The first *new-information* acquisition from the [data-acquisition spike](../exec-plans/data-acquisition-spike-651.md),
+addressing the wave conclusion that v33 is at the achievable frontier on the
+current feature set — the residual gap to FantasyPros is an **information gap**,
+not a modeling gap. A new head coach changes scheme/pace/pass-rate (the classic
+QB/WR breakout-or-bust driver a player's own stale PPG can't see), and hires
+complete by Jan–Feb so the signal is leakage-free for the offseason run.
+
+**Acquisition:** new `team_coaching` table (`scripts/backfill_team_coaching.py`),
+derived purely from nflverse `games.csv` `home_coach`/`away_coach` — the season-
+opening coach per (team, season), a `head_coach_changed` flag vs the prior
+season, and `coach_tenure_years`. No allowlist change needed (GitHub-hosted, as
+the spike predicted). **Feature:** `coaching_change_raw` (1.0 only for players on
+a team that changed its opening HC, exactly 0.0 otherwise → residual-safe) +
+`coach_tenure_raw`. **Model:** `v41_coaching_residual`, a two-stage residual on
+`v33_tuned_base` (fit_intercept=False), so the ~90% of coach-stable player-
+seasons get byte-identical v33 predictions (mirrors draft_capital #376).
+
+**Result (rolling held-out 2023–2025, full window):** TIE — ALL MAE 2.2292 vs
+v33's 2.2278 (Δ+0.0014, 95% CI [−0.0003, +0.0033], p=0.106, player-clustered
+bootstrap over 617 players). The QB hypothesis — the spike's primary target,
+since QB ordering is FP's single largest edge — is a **dead tie** (MAE 3.698 vs
+3.697; Spearman ρ 0.670 vs 0.671; top-12 hit unchanged). The residual Ridge
+chose α=100 (max of the grid), shrinking every coefficient to ≈0 (coaching_change
+−0.03; *QB −0.09, *WR +0.11, *RB/*TE ≈0) and the LOSO residual MAE barely moved
+across the alpha grid (2.0935→2.0924).
+
+**Read:** exactly the outcome the spike anticipated — the coach-changed cohort is
+small (~5–10 teams/season, so only a minority of player-seasons fire) and what
+signal it carries is already proxied by the depth-chart / Vegas / usage features
+v33 refits on. A new HC's *effect* shows up in those downstream signals (new
+depth chart, shifted team total) faster than the binary "coach changed" flag can
+add. Not promoted; v33 stays active. Per the spike's branch plan ("if #1 ties,
+proceed to source #3"), the next acquisition is **FA/contract movement** — the
+cheapest genuinely-new, non-market information, now unblocked by the
+OverTheCap/Spotrac allowlist entries merged with the spike.
 
 ### Robust loss / Huber training (#645) — NEGATIVE, 2026-06-14
 

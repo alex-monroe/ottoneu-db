@@ -29,6 +29,7 @@ from scripts.analysis_utils import fetch_multi_season_stats, fetch_multi_season_
 from scripts.feature_projections.features import FEATURE_REGISTRY
 from scripts.feature_projections.model_config import get_model
 from scripts.feature_projections.runner import (
+    _build_coaching_lookup,
     _build_context,
     _build_depth_charts_lookup,
     _build_draft_capital_lookup,
@@ -108,6 +109,9 @@ def collect_training_data(
     # QB-ecosystem lookups for team_qb_quality_raw / team_qb_changed_raw (#642);
     # per-season centered QB1 PPG computed in the loop from that season's history.
     qb1_by_team, player_team_by_season = _build_qb_ecosystem_lookups(supabase)
+
+    # Per-team-season coaching-change signal once (spike #651).
+    coaching_lookup = _build_coaching_lookup(supabase)
 
     # Instantiate features. Residual stacks pull in features from every
     # nested base so the trainer can compute the base prediction per sample.
@@ -194,6 +198,7 @@ def collect_training_data(
                 qb1_by_team=qb1_by_team,
                 player_team_by_season=player_team_by_season,
                 qb_quality=qb_quality,
+                team_coaching=coaching_lookup,
             )
 
             effective_features, effective_weights = _resolve_features_for_position(model_def, position)

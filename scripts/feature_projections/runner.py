@@ -253,6 +253,32 @@ def _build_depth_charts_lookup(supabase) -> dict[tuple[str, int], int]:
     return lookup
 
 
+def _build_coaching_lookup(supabase) -> dict[tuple[str, int], dict[str, Any]]:
+    """Fetch team_coaching and return (team, season) -> {changed, tenure}.
+
+    Powers the coaching_change_raw / coach_tenure_raw features (spike #651).
+    Keyed by the target season: a coaching hire completes by Jan–Feb, before
+    the offseason projection run, so reading the target season's record is a
+    forward-looking signal set before the season's games — not leakage.
+    """
+    rows = fetch_all_rows(
+        supabase,
+        "team_coaching",
+        "team, season, head_coach_changed, coach_tenure_years",
+    )
+    lookup: dict[tuple[str, int], dict[str, Any]] = {}
+    for r in rows:
+        team = r.get("team")
+        season = r.get("season")
+        if not team or season is None:
+            continue
+        lookup[(str(team), int(season))] = {
+            "head_coach_changed": r.get("head_coach_changed"),
+            "coach_tenure_years": r.get("coach_tenure_years"),
+        }
+    return lookup
+
+
 def _build_qb_ecosystem_lookups(
     supabase,
 ) -> tuple[dict[tuple[str, int], str], dict[tuple[str, int], str]]:
@@ -369,6 +395,7 @@ def _build_context(
     qb1_by_team: dict[tuple[str, int], str] | None = None,
     player_team_by_season: dict[tuple[str, int], str] | None = None,
     qb_quality: dict[tuple[str, int], float] | None = None,
+    team_coaching: dict[tuple[str, int], dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Build the context dict for a player's feature computation."""
     context: dict[str, Any] = {"target_season": target_season}
@@ -436,6 +463,12 @@ def _build_context(
         context["player_team_by_season"] = player_team_by_season
     if qb_quality is not None:
         context["qb_quality"] = qb_quality
+
+    # Per-team-season coaching-change signal for the coaching_change_raw /
+    # coach_tenure_raw features (spike #651). The feature joins via the player's
+    # depth-chart team (player_team_by_season) for team-changer safety.
+    if team_coaching is not None:
+        context["team_coaching"] = team_coaching
 
     # QB starter designation
     if qb_starters and position == "QB":
@@ -587,6 +620,9 @@ def run_model(
     # the loop from that season's history window.
     qb1_by_team, player_team_by_season = _build_qb_ecosystem_lookups(supabase)
 
+    # Per-team-season coaching-change signal once (spike #651).
+    coaching_lookup = _build_coaching_lookup(supabase)
+
     # Leakage-free expected-games per (player, target season) — the #587 stage-c
     # availability haircut. Built from each player's prior-season games_played
     # (recency-weighted "history" mode); seasons strictly before the target only.
@@ -666,6 +702,7 @@ def run_model(
                 qb1_by_team=qb1_by_team,
                 player_team_by_season=player_team_by_season,
                 qb_quality=qb_quality,
+                team_coaching=coaching_lookup,
             )
 
             # Resolve position-specific features. For residual models, the

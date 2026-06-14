@@ -883,6 +883,39 @@ export type Database = {
           },
         ]
       }
+      team_coaching: {
+        Row: {
+          coach_tenure_years: number
+          created_at: string
+          head_coach: string
+          head_coach_changed: boolean | null
+          id: string
+          season: number
+          team: string
+          updated_at: string
+        }
+        Insert: {
+          coach_tenure_years: number
+          created_at?: string
+          head_coach: string
+          head_coach_changed?: boolean | null
+          id?: string
+          season: number
+          team: string
+          updated_at?: string
+        }
+        Update: {
+          coach_tenure_years?: number
+          created_at?: string
+          head_coach?: string
+          head_coach_changed?: boolean | null
+          id?: string
+          season?: number
+          team?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       team_vegas_lines: {
         Row: {
           created_at: string
