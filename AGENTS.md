@@ -6,7 +6,7 @@ Universal instructions for AI coding agents working on this repository.
 
 Comprehensive database and analytics platform for Ottoneu Fantasy Football League 309 (12-team Superflex Half PPR). Python scripts scrape player data and NFL stats into a Supabase PostgreSQL database. A Next.js frontend provides interactive analytics and visualizations for player efficiency (PPG/PPS), VORP, surplus value, projected salaries, and arbitration targets.
 
-**Tech stack:** Python 3.9+ · Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Supabase (PostgreSQL) · Playwright · pandas · Recharts
+**Tech stack:** Python 3.12 · Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Supabase (PostgreSQL) · Playwright · pandas · Recharts
 
 **Package Manager:** Always use `npm` for frontend dependencies and scripts. Do not use `pnpm`, `yarn`, or `bun`.
 
@@ -97,9 +97,8 @@ Note: The local directory is `ottoneu_db` (underscore) but the GitHub repo name 
 
 ## Python Style
 
-- **Target version: Python 3.9.** Do not use syntax that requires 3.10+.
-- **Type annotations:** Use `Optional[X]` or `Union[X, Y]` from `typing`, not the `X | Y` union shorthand (requires 3.10+). `from __future__ import annotations` defers evaluation but does not make `|` safe in runtime positions (e.g. function bodies, `isinstance` calls).
-- **Existing files** that already import `from __future__ import annotations` may use `X | Y` in *annotation* positions only — do not use it elsewhere.
+- **Target version: Python 3.12** (upgraded from 3.9 in #627). Modern syntax is fine — `X | Y` unions, built-in generics (`list[int]`, `dict[str, X]`), etc.
+- **Exception:** `.claude/hooks/*.py` run under the host's *system* `python3` (which may be older, e.g. macOS 3.9), so keep those hook scripts stdlib-only and conservative.
 
 ## Architectural Rules (Enforced by Tests)
 

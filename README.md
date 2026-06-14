@@ -35,7 +35,7 @@ This platform maintains a full database for Ottoneu League 309 (12-team Superfle
 
 ## Prerequisites
 
-- **Python 3.9+** with pip and venv
+- **Python 3.12** with pip and venv
 - **Node.js 18+** with npm
 - **Supabase account** (PostgreSQL database)
 - **Playwright browser dependencies** (installed automatically)
@@ -301,7 +301,7 @@ Each team has a **$60 allocation budget** to distribute across opponents' roster
 - Supabase JS client
 
 ### Backend
-- Python 3.9+
+- Python 3.12
 - Playwright (web scraping)
 - pandas (data analysis)
 - nfl_data_py (NFL statistics)

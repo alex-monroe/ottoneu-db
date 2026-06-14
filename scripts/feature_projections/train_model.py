@@ -15,7 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -461,7 +461,7 @@ def train_ridge_loso(
             "loso_mae": best_mae,
             "train_mae": train_mae,
             "train_r2": train_r2,
-            "trained_at": datetime.utcnow().isoformat(),
+            "trained_at": datetime.now(timezone.utc).isoformat(),
         },
     }
 
@@ -615,7 +615,7 @@ def train_ridge_residual(
             "n_samples": int(X.shape[0]),
             "n_features": int(X.shape[1]),
             "loso_residual_mae": best_mae,
-            "trained_at": datetime.utcnow().isoformat(),
+            "trained_at": datetime.now(timezone.utc).isoformat(),
         },
     }
 

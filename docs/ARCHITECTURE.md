@@ -15,7 +15,7 @@ Python Scripts (scripts/)
 ## Tech Stack
 
 - **Frontend:** Next.js 16, React 19, TypeScript, Tailwind CSS 4, Recharts
-- **Backend:** Python 3.9+, Playwright (scraping), pandas, nfl_data_py
+- **Backend:** Python 3.12, Playwright (scraping), pandas, nfl_data_py
 - **Database:** Supabase (PostgreSQL) — **shared with the `fantasy-pulse` app.** Tables prefixed `fp_` are owned by fantasy-pulse and must not be touched by this project. See [docs/generated/db-schema.md](generated/db-schema.md#shared-database--hands-off-fp_) for the full rule.
 - **Environment:** `.env` (root, for Python) and `web/.env.local` (for Next.js) hold Supabase credentials
 

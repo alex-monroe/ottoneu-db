@@ -1,7 +1,10 @@
 # Spike: Python 3.9 → 3.12 + pandas 1.5 → 2.x (GH #627)
 
-**Status:** Spike complete (2026-06-14). **Verdict: GO**, conditional on replacing the
-`nfl_data_py==0.3.3` pin. The follow-up upgrade PR is not yet done.
+**Status:** Spike complete **and upgrade shipped** (2026-06-14, #627). Verdict was GO;
+the upgrade (Python 3.12 + pandas 2.3.3, `nfl_data_py==0.3.2`) landed in the same issue.
+Numerical equivalence confirmed: the rolling holdout MAE/bias/R²/RMSE/ranking tables for
+`v33_tuned_base` + baselines were **byte-identical** on 3.9/pandas 1.5.3 vs 3.12/pandas
+2.3.3 (eval 2024+2025, `--no-cache`). This document is retained as the rationale record.
 
 ## Method
 

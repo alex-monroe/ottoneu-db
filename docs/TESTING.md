@@ -14,11 +14,11 @@ When a `scripts/` change isn't behaving, or anything about the environment seems
 
 ### Gotcha: editable install can pin `scripts` to a stale worktree
 
-The repo is installed as an editable package (`pip install -e .`). The import finder at `venv/lib/python3.9/site-packages/__editable___ottoneu_db_0_1_0_finder.py` hard-codes a `MAPPING` dict with the on-disk path of the `scripts` package. If `pip install -e .` was last run from inside a git worktree (e.g. `.claude/worktrees/agent-*/`), that mapping points at the **worktree**, not your main checkout.
+The repo is installed as an editable package (`pip install -e .`). The import finder at `venv/lib/python3.12/site-packages/__editable___ottoneu_db_0_1_0_finder.py` hard-codes a `MAPPING` dict with the on-disk path of the `scripts` package. If `pip install -e .` was last run from inside a git worktree (e.g. `.claude/worktrees/agent-*/`), that mapping points at the **worktree**, not your main checkout.
 
 **Symptom:** edits to `scripts/*.py` silently don't take effect when run via `venv/bin/python scripts/foo.py` (it imports the stale worktree copy). Confusingly, `venv/bin/python -c "from scripts.x import ..."` *does* pick up your edit, because `-c` puts the project root first on `sys.path`, shadowing the editable finder. So isolated tests pass while the real script runs old code.
 
-**Diagnose:** `just doctor` (reports the editable mapping target), or `grep MAPPING venv/lib/python3.9/site-packages/__editable___ottoneu_db_0_1_0_finder.py` — if it points at a worktree path, that's the bug.
+**Diagnose:** `just doctor` (reports the editable mapping target), or `grep MAPPING venv/lib/python3.12/site-packages/__editable___ottoneu_db_0_1_0_finder.py` — if it points at a worktree path, that's the bug.
 
 **Fix:** run `venv/bin/pip install -e .` from the project root to repoint the mapping.
 
