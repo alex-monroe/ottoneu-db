@@ -55,6 +55,12 @@ class ModelDefinition:
     # Empty (default) → unweighted, byte-identical to the prior trainer.
     sample_weight_spec: dict = field(default_factory=dict)
 
+    # Robust-loss training (GH #645). Empty (default) → Ridge (squared loss).
+    # {"type": "huber", "epsilon": <float>} swaps in a Huber loss for learned
+    # models so outlier seasons (injury/role-collapse) pull the fit less. Only
+    # affects training; the saved linear params predict identically.
+    regressor_spec: dict = field(default_factory=dict)
+
 
 # === Model Definitions ===
 
@@ -923,6 +929,35 @@ for _name, _spec, _blurb in [
             "gap. v33 stays active."
         ),
         sample_weight_spec=_spec,
+    )
+
+
+# === Robust-loss variants (GH #645) ===
+# Identical to v33_tuned_base except the Ridge squared loss is swapped for a
+# Huber loss at three epsilon settings — derived via `replace` so the feature
+# set never drifts. Bounded completeness probe for the "objective, not features"
+# axis after the rank-aware (#643) regression; the wave evidence predicts a tie.
+for _name, _eps in [
+    ("v40_huber_e110", 1.10),
+    ("v40_huber_e135", 1.35),
+    ("v40_huber_e200", 2.00),
+]:
+    MODELS[_name] = replace(
+        _V33,
+        name=_name,
+        description=(
+            "Robust-loss probe (GH #645): v33_tuned_base trained with a Huber "
+            f"loss (epsilon={_eps}) instead of Ridge squared loss, so "
+            "injury/role-collapse outlier seasons pull the coefficients less. "
+            "Same features, interactions, and base as v33; only regressor_spec "
+            "differs (linear params predict identically). Bounded probe to "
+            "close the training-objective axis after #643. VERDICT: NEGATIVE "
+            "(held-out rolling 2023-24) — only e200 (≈Ridge) ties v33 (Δ "
+            "−0.008 ALL MAE, CI [−0.020, +0.005], p=0.23, not significant); "
+            "the genuinely-robust e110/e135 REGRESS (+0.018/+0.007). Robustness "
+            "is the wrong direction; squared loss is right. v33 stays active."
+        ),
+        regressor_spec={"type": "huber", "epsilon": _eps},
     )
 
 

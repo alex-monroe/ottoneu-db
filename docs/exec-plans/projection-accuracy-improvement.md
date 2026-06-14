@@ -156,22 +156,23 @@ projections/ADP exist. FP remains an eval-time comparator only.
 > objective on the same features, tied or regressed. The remaining FantasyPros
 > ordering edge is an *information* gap (camp/beat-reporter/injury signal), not
 > a modeling gap. Under the no-market-inputs constraint, the next real lever is
-> **new data acquisition**, not more modeling: the open feature ideas (#641
-> opportunity/efficiency decomposition) and bounded modeling probes (#644
-> monotone GBM, #645 Huber) are worth finishing for completeness, but the
-> evidence predicts they tie. Prioritize sourcing a leakage-free,
-> early-offseason information signal (e.g. beat-writer/role news, snap-share
-> projections, coaching-change encodings) over further learned-model variants.
+> **new data acquisition**, not more modeling. Confirming this, the remaining
+> same-data items were closed out: #645 (Huber loss) ran and tied at best, while
+> #641 (opportunity/efficiency) and #644 (monotone GBM) were closed not-pursued —
+> all three are same-data bets the wave evidence predicts will tie. Next:
+> prioritize sourcing a leakage-free, early-offseason information signal (e.g.
+> beat-writer/role news, snap-share projections, coaching-change encodings) over
+> further learned-model variants — scoped in **data-acquisition spike #651**.
 
 | # | Experiment | Status |
 |---|---|---|
 | [#639](https://github.com/alex-monroe/ottoneu-db/issues/639) | Per-position base tuning (weights, window, regression strength) | **NEGATIVE** (2026-06-12, iteration look; see experiment log). Residual thread: TE 4-season window, needs `max_history` plumbing. |
 | [#640](https://github.com/alex-monroe/ottoneu-db/issues/640) | QB rushing & pass-volume features — the new QB signal #592 asked for | **NEGATIVE** (2026-06-12, bounded bet stopped on tie; see experiment log). Volume *levels* are priced into PPG history; QB effects below ~0.2 MAE are unresolvable at ~62 clusters. |
-| [#641](https://github.com/alex-monroe/ottoneu-db/issues/641) | Opportunity/efficiency decomposition of the base signal | open |
+| [#641](https://github.com/alex-monroe/ottoneu-db/issues/641) | Opportunity/efficiency decomposition of the base signal | **CLOSED — not pursued** (2026-06-14). Same-data feature; the wave shows volume/opportunity is already priced into the base + advanced-receiving features (#640/#642). The evidence predicts a tie; not worth the loop. Reopen only with a new data source (spike #651). |
 | [#642](https://github.com/alex-monroe/ottoneu-db/issues/642) | Pass-catcher ecosystem quality ("who is my QB?") from depth charts | **NEGATIVE** (2026-06-14, stopped on tie; see experiment log). QB-ecosystem signal already subsumed by implied_team_total + own target_share/wopr; team_qb_changed overfit in-sample. |
 | [#643](https://github.com/alex-monroe/ottoneu-db/issues/643) | Rank-aware training: relevance-weighted samples | **NEGATIVE** (2026-06-14; see experiment log). All 3 schemes regress MAE (best v39c +0.026, p=0.015 — *significant*) and don't improve WR/TE ordering. The FP ordering edge is an information gap, not an objective gap. |
-| [#644](https://github.com/alex-monroe/ottoneu-db/issues/644) | Bounded bet: GBM with monotone constraints on the 8 load-bearing features | open — lottery ticket, #592-style discipline |
-| [#645](https://github.com/alex-monroe/ottoneu-db/issues/645) | Micro: Huber loss in the learned combiner | open — cheap filler between larger experiments |
+| [#644](https://github.com/alex-monroe/ottoneu-db/issues/644) | Bounded bet: GBM with monotone constraints on the 8 load-bearing features | **CLOSED — not pursued** (2026-06-14). Same-data, more-model bet; with #643 + #645 showing the objective/loss axis can't beat Ridge on these features, a GBM (overfit-prone at ~1.2k rows) is the lowest-probability "same data" bet left. Reopen only with new data. |
+| [#645](https://github.com/alex-monroe/ottoneu-db/issues/645) | Robust Huber loss in the learned combiner | **NEGATIVE** (2026-06-14; see experiment log). Only e200 (≈Ridge) ties v33 (p=0.23); robust e110/e135 regress. Squared loss is already the right objective — outlier seasons are informative, not noise. |
 
 ---
 

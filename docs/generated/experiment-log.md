@@ -37,6 +37,7 @@ the MAE verdict. "—" only for rows predating the column.
 
 | Date | Model | Change | Held-out ALL MAE | Δ vs comparator | 95% CI | Significant? | Rank Δ (ρ / top-N vs comparator) | Protocol | PR |
 |------|-------|--------|------------------|----------|--------|--------------|----------------------------------|----------|-----|
+| 2026-06-14 | v40_huber_e110 / e135 / e200 | #645 robust loss: Huber instead of Ridge squared loss (epsilon 1.10/1.35/2.00), v33 features. Best = e200 | 2.225 (e200) | −0.008 vs **v33** | [−0.020, +0.005] | **N** (p=0.23) — **NEGATIVE, tie at best**; only e200 (≈Ridge) ties, robust e110/e135 *regress* (+0.018/+0.007). Robustness is the wrong direction. See #645 section below | e200: WR ρ +0.002, QB +0.004, TE −0.002 (≈); top-N ≈ | rolling 2023–24 (iteration look; confirmation window not burned) | #645 |
 | 2026-06-14 | v39_relevance_step / v39b / v39c | #643 rank-aware training: Ridge fit weighted by prior-season relevance (topn_step k=1/k=2; ppg_within_pos). 3 schemes, best = v39c | 2.259 (v39c) | **+0.026** vs **v33** | [+0.005, +0.047] | **SIGNIFICANT REGRESSION** (p=0.015) — **NEGATIVE, all 3 schemes worse**; ranking *not* improved where it matters (WR/TE ρ down). See #643 section below | WR ρ 0.762→0.758, TE ρ 0.748→0.724–0.738 (worse); QB ρ +0.009 / top-12 0.417→0.500 (99 samples, unresolvable) | rolling 2023–24 (iteration look; confirmation window not burned) | #643 |
 | 2026-06-14 | v38_qb_ecosystem | #642 pass-catcher ecosystem: v33 + team_qb_quality_raw (projected QB1's centered prior PPG) + team_qb_changed_raw (QB1 changed YoY), WR/TE-only from depth charts | 2.247 | +0.001 vs **v33** | [−0.011, +0.013] | **N** (p=0.86) — **NEGATIVE, stopped on tie**; WR +0.010 (p=0.52), TE −0.010 (p=0.37) — both noise. Signal subsumed by implied_team_total + own target_share/wopr; team_qb_changed has a big in-sample coef that doesn't generalize. See #642 section below | TE ρ +0.004 (0.747→0.751), WR ρ −0.002; top-N unchanged | rolling 2023–24 (iteration look; confirmation window not burned) | #642 |
 | 2026-06-12 | v37_qb_volume | #640 QB volume signal: v33 + qb_rush_volume_raw + qb_pass_volume_raw (recency-weighted attempts/game from nfl_stats, QB-only) | 2.239 | +0.003 vs **v33** | [−0.030, +0.035] | **N** (p=0.83) — **NEGATIVE, bounded bet stopped on tie**; QB-only Δ −0.027 (CI [−0.245, +0.186], p=0.82 — right direction, unresolvable at 62 QB clusters); in-sample coefficients ≈0. See #640 section below | QB ρ **+0.011** (0.629→0.640), top-12 hit unchanged; others ≈ | rolling 2023–24 (iteration look; confirmation window not burned) | #640 |
@@ -176,6 +177,38 @@ isolated-base sweep still over-projects (bias −0.57 at the chosen cell) — th
 learned intercept absorbs level, so isolated-base bias is not a gate. The
 3-season window length and per-position weights were not swept (follow-ups).
 
+### Robust loss / Huber training (#645) — NEGATIVE, 2026-06-14
+
+The second "objective, not features" probe, closing the axis after #643: swap
+Ridge squared loss for a Huber loss so injury / role-collapse outlier seasons
+pull the coefficients less. Three epsilon settings on v33's exact feature set
+(only `regressor_spec` differs): 1.10 (most robust), 1.35 (sklearn default),
+2.00 (≈squared loss, only >2σ residuals clipped).
+
+**Result (iteration look, rolling 2023–24; confirmation window not burned):**
+the only non-regressing variant is **e200**, which merely *ties* v33 — ALL MAE
+2.225 vs 2.233, Δ −0.008, CI [−0.020, +0.005], p=0.23 (not significant), with
+≈-tied rank quality (WR ρ 0.764 vs 0.762, QB 0.642 vs 0.638, TE 0.746 vs
+0.748). The genuinely-robust settings **regress**: e135 +0.007, e110 +0.018.
+
+**Why it fails (the useful finding):** the result is *monotone in the wrong
+direction* — the closer Huber gets to squared loss (higher epsilon), the better
+it does; the more it down-weights outliers, the worse. So squared loss is
+already the right objective: the "outlier" seasons Huber discounts are real,
+informative variance (a genuinely down year predicts a down year), not noise to
+be robustified away. e200's −0.008 is the residual of a near-identical model,
+not a robustness gain. Note e200 does de-bias nicely (−0.092 → −0.008) — if a
+future model has a bias problem, a touch of Huber is a calibration lever, but
+it is not an accuracy lever here.
+
+This closes the training-objective axis: neither rank-aware weighting (#643,
+significant regression) nor robust loss (#645, tie at best) beats Ridge squared
+loss on the current features. Combined with #639/#640/#642, **v33_tuned_base is
+confirmed at the achievable frontier** — see the wave conclusion in
+[projection-accuracy-improvement.md](../exec-plans/projection-accuracy-improvement.md).
+Same-data modeling is exhausted; the next lever is new early-offseason
+information (spike #651).
+
 ### Rank-aware / relevance-weighted training (#643) — NEGATIVE, 2026-06-14
 
 The "objective, not features" bet: weight the Ridge fit by each sample's
@@ -212,9 +245,9 @@ v33_tuned_base sits at the achievable frontier for both MAE and ranking.**
 Further gains require genuinely new *information* not derivable from
 nflverse / depth charts / Vegas — which, given the no-market-inputs constraint
 ([[no-market-inputs-in-projections]]), is a data-acquisition question, not a
-modeling one. The remaining low-cost probe is #645 (Huber loss, a robustness
-tweak, not an information add); #644 (monotone GBM) is the last "more model on
-the same features" bet and the wave's evidence predicts it ties too.
+modeling one. (Update: #645 Huber loss subsequently ran — tie at best — and
+#644 monotone GBM was closed not-pursued, both confirming this; see the #645
+section above and the wave conclusion in the exec plan.)
 
 ### Pass-catcher ecosystem / "who is my QB?" (#642) — NEGATIVE, 2026-06-14
 
