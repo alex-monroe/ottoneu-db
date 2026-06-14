@@ -26,6 +26,10 @@ lock:
     {{uv}} lock
     {{uv}} export --extra dev --no-hashes -o requirements.txt
 
+# Regenerate the league-constant blocks in scripts/config.py + web/lib/config.ts from config.json
+gen-config:
+    {{python}} scripts/gen_config.py
+
 # Diagnose known environment traps (offline, ~1s) — run this first when something is off
 doctor:
     {{python}} scripts/doctor.py

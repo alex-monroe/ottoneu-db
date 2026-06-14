@@ -26,45 +26,35 @@ except FileNotFoundError:
 except json.JSONDecodeError as e:
     raise ValueError(f"Invalid JSON in config file at {CONFIG_PATH}: {e}")
 
-# === League Configuration ===
-# The current season is no longer static config — it is resolved from the
-# league_calendar table. See scripts/season.py (league_season / projection_season
-# / stats_season / arbitration_season).
+# League constants are GENERATED from config.json by scripts/gen_config.py
+# (`just gen-config`). Do not hand-edit the block between the markers below —
+# edit config.json and regenerate. Notes:
+#   - The current season is NOT static config — it is resolved from the
+#     league_calendar table (scripts/season.py: league_season / projection_season
+#     / stats_season / arbitration_season).
+#   - NFL_TEAM_CODES is converted to a set for O(1) college-player detection.
+#   - Database salaries already reflect the end-of-season $4/$1 bump, so no
+#     additional salary projection is needed.
+# --- BEGIN GENERATED CONFIG (do not edit; run `just gen-config`) ---
 LEAGUE_ID = _config["LEAGUE_ID"]
 MY_TEAM = _config["MY_TEAM"]
 HISTORICAL_SEASONS = _config["HISTORICAL_SEASONS"]
-
-# === Fantasy League Rules ===
 NUM_TEAMS = _config["NUM_TEAMS"]
 CAP_PER_TEAM = _config["CAP_PER_TEAM"]
 POSITIONS = _config["POSITIONS"]
 COLLEGE_POSITIONS = _config["COLLEGE_POSITIONS"]
 SCORING_SETTINGS = _config["SCORING_SETTINGS"]
-
-# === Analysis Configuration ===
 MIN_GAMES = _config["MIN_GAMES"]
-
-# Replacement level: approximate number of fantasy-relevant players per position
 REPLACEMENT_LEVEL = _config["REPLACEMENT_LEVEL"]
-
-# Salary-implied replacement level
 SALARY_REPLACEMENT_PERCENTILE = _config["SALARY_REPLACEMENT_PERCENTILE"]
 MIN_SALARY_PLAYERS = _config["MIN_SALARY_PLAYERS"]
-
-# NOTE: Database salaries already reflect the end-of-season $4/$1 bump.
-# No additional salary projection is needed.
-
-# === Arbitration Constants ===
 ARB_BUDGET_PER_TEAM = _config["ARB_BUDGET_PER_TEAM"]
 ARB_MIN_PER_TEAM = _config["ARB_MIN_PER_TEAM"]
 ARB_MAX_PER_TEAM = _config["ARB_MAX_PER_TEAM"]
 ARB_MAX_PER_PLAYER_PER_TEAM = _config["ARB_MAX_PER_PLAYER_PER_TEAM"]
 ARB_MAX_PER_PLAYER_LEAGUE = _config["ARB_MAX_PER_PLAYER_LEAGUE"]
-
-# === NFL Team Codes ===
-# Used to distinguish college players (whose nfl_team field contains a college name).
-# Convert list back to set for O(1) lookups
 NFL_TEAM_CODES = set(_config["NFL_TEAM_CODES"])
+# --- END GENERATED CONFIG ---
 
 
 def get_supabase_client() -> Client:

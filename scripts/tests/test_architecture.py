@@ -129,19 +129,39 @@ class TestConfigImportPattern:
 # Rule 3: Config sync — config.json keys must match Python & TypeScript
 # ===========================================================================
 
+class TestConfigCodegen:
+    """The generated config blocks must be freshly generated from config.json.
+
+    WHY: config.json is the single source of truth for league constants.
+    `scripts/gen_config.py` emits the Python and TypeScript constant
+    declarations into a marked block in `scripts/config.py` and
+    `web/lib/config.ts`, so adding a key is a one-file edit (config.json) plus
+    `just gen-config` — no manual three-way sync. This test fails if the
+    checked-in blocks drift from config.json.
+
+    FIX: run `just gen-config` and commit scripts/config.py + web/lib/config.ts.
+    """
+
+    def test_generated_blocks_are_fresh(self):
+        from scripts import gen_config
+
+        assert gen_config.regenerate(write=False), (
+            "Generated config blocks are stale relative to config.json.\n"
+            "FIX: run `just gen-config` and commit scripts/config.py + web/lib/config.ts."
+        )
+
+
 class TestConfigSync:
     """config.json, scripts/config.py, and web/lib/config.ts must stay in sync.
 
     WHY: This project uses a shared config.json as the single source of truth
-    for league constants. If a key is added to config.json but not consumed in
-    one of the language-specific config files, the value is dead. If a key is
-    consumed but doesn't exist in config.json, the application crashes at
-    runtime.
+    for league constants. The constant declarations in config.py / config.ts are
+    GENERATED from it (see TestConfigCodegen + `just gen-config`); these
+    invariants additionally guard that every key is consumed and that no
+    dangling key is referenced.
 
-    FIX: When adding a new config key, update all three files:
-      1. config.json — add the key/value
-      2. scripts/config.py — add `CONSTANT = _config["KEY"]`
-      3. web/lib/config.ts — add `export const CONSTANT = config.KEY`
+    FIX: edit config.json, then run `just gen-config` — do not hand-edit the
+    generated blocks.
     """
 
     def _get_json_keys(self) -> set:
