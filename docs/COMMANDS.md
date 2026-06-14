@@ -81,7 +81,6 @@ python scripts/feature_projections/residual_analysis.py --model v20_learned_usag
 
 # Utilities
 python scripts/check_db.py                           # Verify database contents
-streamlit run scripts/visualize_app.py               # Streamlit dashboard
 python -m pytest                                     # Run all Python tests
 ```
 

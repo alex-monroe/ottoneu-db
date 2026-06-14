@@ -125,7 +125,7 @@ automatic.
      2026 so they align with `arbitrationSeason`. Applied directly to the shared
      Supabase project (no local migrations dir).
    - `scripts/visualize_app.py` (local Streamlit dev tool) migrated off `SEASON`
-     in PR #5.
+     in PR #5. (The Streamlit tool was later removed entirely in #622.)
 5. **Cleanup (done):** removed static `SEASON` / `SEASON_END_DATE` /
    `PRE_ARB_DATE` from `config.json`, `config.py`, and `config.ts`.
    - The two salary-snapshot dates are now derived from the calendar by
