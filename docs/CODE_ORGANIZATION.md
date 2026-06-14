@@ -35,16 +35,18 @@ All scripts import from `scripts/config.py` to eliminate duplication and ensure 
 
 ## Shared Configuration (`config.json`)
 
-`config.json` at the repo root is the single source of truth for every constant shared between Python and TypeScript. Both `scripts/config.py` and `web/lib/config.ts` read from it — never hand-copy a value.
+`config.json` at the repo root is the single source of truth for every constant shared between Python and TypeScript. The constant declarations in both `scripts/config.py` and `web/lib/config.ts` are **generated** from it by `scripts/gen_config.py`.
 
-When adding a new shared key, update three places:
-1. `config.json` — add the key/value
-2. `scripts/config.py` — add `CONSTANT = _config["KEY"]`
-3. `web/lib/config.ts` — add `export const CONSTANT = config.KEY`
+To add or change a shared key:
+1. Edit `config.json`.
+2. Run `just gen-config` — it rewrites the marked block in `scripts/config.py` and `web/lib/config.ts`. Commit all three.
 
-Drift is caught mechanically by architecture tests:
-- `scripts/tests/test_architecture.py::TestConfigSync` — asserts every `config.json` key is consumed in both `config.py` and `config.ts`, and that neither references a nonexistent key.
-- `web/__tests__/lib/architecture.test.ts::Config JSON Sync` — asserts the TypeScript module's *exported values* match `config.json` (not just key presence).
+Do **not** hand-edit the region between the `BEGIN GENERATED CONFIG` / `END GENERATED CONFIG` markers. Hand-written logic (`get_supabase_client()`, `isCollegePlayer()`, simulation constants, position colors) lives outside the markers and is preserved. Per-key type transforms (e.g. `NFL_TEAM_CODES` → `set`/`Set`, `POSITIONS` tuple cast) are encoded in the `PY_OVERRIDES` / `TS_OVERRIDES` maps in `gen_config.py`.
+
+Freshness is enforced mechanically:
+- `scripts/tests/test_architecture.py::TestConfigCodegen` — regenerates both blocks in-memory and fails with "run `just gen-config`" if the checked-in output is stale.
+- `TestConfigSync` (Python) additionally asserts every `config.json` key is consumed and no dangling key is referenced.
+- `web/__tests__/lib/architecture.test.ts::Config JSON Sync` — asserts the TypeScript module's *exported values* match `config.json`.
 
 ## Imports in Python Scripts
 
