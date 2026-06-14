@@ -3,6 +3,7 @@
 
 python := "venv/bin/python"
 pytest  := "venv/bin/pytest"
+uv      := "venv/bin/uv"
 
 # Show all available recipes
 default:
@@ -12,12 +13,18 @@ default:
 # Setup
 # ──────────────────────────────────────────────
 
-# Install all dependencies (Python + Node)
+# Install all dependencies (Python + Node) from the pinned lock
 install:
     python3 -m venv venv
     venv/bin/pip install -r requirements.txt
     venv/bin/playwright install chromium
     cd web && npm install
+
+# Regenerate the dependency lock (uv.lock) + the pip-installable export (requirements.txt)
+# after editing dependencies in pyproject.toml. Requires uv (in the dev extras).
+lock:
+    {{uv}} lock
+    {{uv}} export --extra dev --no-hashes -o requirements.txt
 
 # Diagnose known environment traps (offline, ~1s) — run this first when something is off
 doctor:

@@ -90,7 +90,8 @@ Install `just` once with `brew install just`, then run any recipe from the repo 
 
 ```bash
 just                    # List all recipes
-just install            # Install all dependencies (Python + Node)
+just install            # Install all dependencies (Python + Node) from the pinned lock
+just lock               # Regenerate uv.lock + requirements.txt after editing pyproject.toml deps
 just doctor             # Diagnose known environment traps (offline, ~1s)
 just dev                # Start Next.js dev server on localhost:3000
 just dev-stop           # Kill the dev server + stray Turbopack/postcss workers

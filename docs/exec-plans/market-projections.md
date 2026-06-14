@@ -35,7 +35,7 @@ The existing simple projection system (`scripts/projection_methods.py` + `script
 
 5. **The Odds API free tier (500 req/month) is very tight.** Start with nflverse schedule data only. The Odds API can be added later as a `source='odds_api'` enhancement to the same `betting_game_lines` table.
 
-6. **scikit-learn is not currently installed.** It must be added to `pyproject.toml` and `requirements.txt` before the ML model issues begin.
+6. **scikit-learn is now installed** (declared in `pyproject.toml`, locked in `uv.lock` / `requirements.txt` as of #621 — it backs the learned feature-projection models). The dedicated deps task below is therefore already satisfied.
 
 7. **The ML model needs 3+ seasons of data to learn aging curves well.** With 2022-2024 (3 seasons), aging trends will be detectable but somewhat noisy. The system should be designed to improve as more seasons accumulate.
 
