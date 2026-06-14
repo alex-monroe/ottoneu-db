@@ -110,6 +110,8 @@ just check-migrations   # Lint migrations/ naming + sequence (offline; see migra
 just check-docs         # Documentation freshness check
 just check-schema       # DB schema drift: live DB vs types + db-schema.md (read-only; on-demand, post-migration)
 just permission-report [--days N] [--check]  # Permission-prompt rate + top families; --check exits 2 on 7d-vs-28d regression (see docs/references/autonomous-operation.md)
+just preflight          # Fast pre-PR gate (~9s): lint + typecheck + both test suites (no coverage) + doc checks
+just install-hooks      # Install the opt-in pre-push hook that runs `just preflight` (skip a push with --no-verify)
 just ci                 # Full CI suite (lint + typecheck + tests + doc checks)
 just roster-context [season]  # Build the roster-question context pack (live league data); season defaults to 2026
 

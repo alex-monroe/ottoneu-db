@@ -32,19 +32,14 @@ jobs:
     - name: Install dependencies (from pinned lock)
       run: time uv pip install --system -r requirements.txt
 
-    - name: Run pytest with coverage
-      run: |
-        python -m pytest --cov=. --cov-report=term-missing --cov-report=html:coverage-html
+    # Coverage was computed and uploaded but never gated on or read (#628), so
+    # it was pure runtime cost — dropped. Run coverage locally via
+    # `just test-python` when you want it.
+    - name: Run pytest
+      run: python -m pytest --no-cov
 
     - name: Check documentation freshness
       run: python scripts/check_docs_freshness.py
-
-    - name: Upload Python coverage report
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: python-coverage
-        path: coverage-html/
 
   web-tests:
     runs-on: ubuntu-latest
@@ -70,12 +65,7 @@ jobs:
     - name: ESLint
       run: npm run lint
       
-    - name: Run Jest tests with coverage
-      run: npx jest --coverage --ci
-
-    - name: Upload web coverage report
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: web-coverage
-        path: web/coverage/
+    # Coverage dropped from CI (#628) — never gated on or read. Run it locally
+    # with `just test-web` when needed.
+    - name: Run Jest tests
+      run: npx jest --ci

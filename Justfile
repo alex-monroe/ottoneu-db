@@ -118,6 +118,19 @@ check-schema:
 permission-report *args:
     python3 .claude/hooks/permission_report.py {{args}}
 
+# Fast pre-PR gate (<30s): lint + typecheck + both test suites (no coverage) + doc checks.
+# Mirrors CI's pass/fail so failures are caught locally, not in a multi-minute runner round-trip.
+preflight: lint typecheck
+    {{pytest}} --no-cov
+    cd web && npx jest --no-coverage --ci
+    {{python}} scripts/check_docs_freshness.py
+
+# Install the opt-in pre-push hook that runs `just preflight` (skip a push with --no-verify)
+install-hooks:
+    cp scripts/git-hooks/pre-push "$(git rev-parse --git-common-dir)/hooks/pre-push"
+    chmod +x "$(git rev-parse --git-common-dir)/hooks/pre-push"
+    @echo "Installed pre-push hook. Skip a push with: git push --no-verify  (or SKIP_PREFLIGHT=1 git push)"
+
 # Full CI suite (lint + typecheck + tests + doc checks)
 ci: lint typecheck test check-docs
 
