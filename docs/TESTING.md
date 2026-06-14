@@ -29,15 +29,20 @@ The repo is installed as an editable package (`pip install -e .`). The import fi
 - **Run all:** `just test-web` (runs the full suite with coverage)
 - **Run one file:** `just test-web-file <path>` — e.g. `just test-web-file __tests__/lib/session.test.ts`. Prefer this over raw `npx jest <file>` so the call is covered by the `Bash(just:*)` allowlist.
 
-### TypeScript type-checking
+### Web verification: `just typecheck` vs `just build`
 
-Use `tsc --noEmit` for local type-checking — **do not use `npm run build`** for this purpose:
+Two levels of local verification for web changes:
 
-```bash
-cd web && ./node_modules/.bin/tsc --noEmit
-```
+- **`just typecheck`** (`tsc --noEmit`) — fast, fully offline. The default check while iterating.
+  ```bash
+  just typecheck      # or: cd web && ./node_modules/.bin/tsc --noEmit
+  ```
+- **`just build`** (`next build`) — highest fidelity: full type check **plus** prerender of every route. Run this before pushing web changes. `config.json` is committed at the repo root (league constants only, no secrets), so the build resolves it without any manual copy step.
+  ```bash
+  just build
+  ```
 
-`npm run build` requires `config.json` (present in CI/production, absent in local dev) and will fail with a "Module not found" error unrelated to your changes.
+> **Offline caveat:** `next build` prerenders `app/layout.tsx`, which uses `next/font/google` (Geist) — that fetches the font from Google Fonts at build time, so the build needs network access. In a fully network-isolated sandbox `just build` fails on the font fetch (not on `config.json`); use `just typecheck` there instead.
 
 ## Key Test Files
 
