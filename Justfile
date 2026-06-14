@@ -19,6 +19,10 @@ install:
     venv/bin/playwright install chromium
     cd web && npm install
 
+# Diagnose known environment traps (offline, ~1s) — run this first when something is off
+doctor:
+    {{python}} scripts/doctor.py
+
 # ──────────────────────────────────────────────
 # Frontend
 # ──────────────────────────────────────────────

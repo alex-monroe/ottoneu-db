@@ -8,13 +8,17 @@
 - **Run:** `just test-python` (preferred) or `venv/bin/pytest` from project root
 - **Coverage flags:** `pyproject.toml` sets `addopts = "--cov=scripts --cov-report=term-missing"`. Do not pass `--cov` flags explicitly — they conflict with and override the configured scope.
 
+### First step: `just doctor`
+
+When a `scripts/` change isn't behaving, or anything about the environment seems off, run `just doctor` before deep-diving. It checks the known traps offline in ~1s — stale editable mapping, broken venv / `import scripts.config`, missing `.env` keys, stale `web/node_modules`, stale `.cache/holdout` — and prints the fix command for each. It exits nonzero only on hard failures (broken venv, stale/missing editable mapping). The stale-worktree gotcha below is the first thing it catches.
+
 ### Gotcha: editable install can pin `scripts` to a stale worktree
 
 The repo is installed as an editable package (`pip install -e .`). The import finder at `venv/lib/python3.9/site-packages/__editable___ottoneu_db_0_1_0_finder.py` hard-codes a `MAPPING` dict with the on-disk path of the `scripts` package. If `pip install -e .` was last run from inside a git worktree (e.g. `.claude/worktrees/agent-*/`), that mapping points at the **worktree**, not your main checkout.
 
 **Symptom:** edits to `scripts/*.py` silently don't take effect when run via `venv/bin/python scripts/foo.py` (it imports the stale worktree copy). Confusingly, `venv/bin/python -c "from scripts.x import ..."` *does* pick up your edit, because `-c` puts the project root first on `sys.path`, shadowing the editable finder. So isolated tests pass while the real script runs old code.
 
-**Diagnose:** `grep MAPPING venv/lib/python3.9/site-packages/__editable___ottoneu_db_0_1_0_finder.py` — if it points at a worktree path, that's the bug.
+**Diagnose:** `just doctor` (reports the editable mapping target), or `grep MAPPING venv/lib/python3.9/site-packages/__editable___ottoneu_db_0_1_0_finder.py` — if it points at a worktree path, that's the bug.
 
 **Fix:** run `venv/bin/pip install -e .` from the project root to repoint the mapping.
 
