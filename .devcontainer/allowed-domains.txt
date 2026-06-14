@@ -47,3 +47,13 @@ www.fantasypros.com
 
 # Supabase (project ref rbinbcwinchphipvcfqk)
 rbinbcwinchphipvcfqk.supabase.co
+
+# Projection data sources (spike #651) — contracts / coaching
+# nflverse sources (coaching via import_schedules, snap counts, combine, rosters,
+# nflreadr contracts mirror) need NO entry — they download from the GitHub hosts
+# already allowlisted above. These are only for the non-nflverse primary sources.
+overthecap.com
+www.overthecap.com
+www.spotrac.com
+en.wikipedia.org
+# www.pro-football-reference.com  # Cloudflare-walled; uncomment only if a scrape works
