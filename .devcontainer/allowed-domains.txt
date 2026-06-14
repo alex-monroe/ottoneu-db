@@ -56,4 +56,4 @@ overthecap.com
 www.overthecap.com
 www.spotrac.com
 en.wikipedia.org
-# www.pro-football-reference.com  # Cloudflare-walled; uncomment only if a scrape works
+www.pro-football-reference.com  # Cloudflare-walled
