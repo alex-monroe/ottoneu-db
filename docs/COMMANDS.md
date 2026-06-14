@@ -11,8 +11,8 @@ npm test             # Jest tests
 npm start            # Production server
 ```
 
-> **Worktree note:** Git worktrees share source files but not `node_modules/` or gitignored files.
-> Before building in a worktree, run `npm install` in `web/` and copy `config.json` from the main repo root.
+> **Worktree note:** Git worktrees check out tracked files (including `config.json`) but not `node_modules/` or other gitignored files.
+> Before building in a worktree, run `npm install` in `web/`. `config.json` is tracked, so no copy step is needed.
 
 ## Backend (run from project root, venv must be active)
 
