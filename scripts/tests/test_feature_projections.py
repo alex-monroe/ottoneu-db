@@ -32,6 +32,10 @@ from scripts.feature_projections.features.qb_volume import (
     QBPassVolumeRawFeature,
     QBRushVolumeRawFeature,
 )
+from scripts.feature_projections.features.team_qb_quality import (
+    TeamQBChangedFeature,
+    TeamQBQualityFeature,
+)
 from scripts.feature_projections.features.naive_prior_ppg import NaivePriorSeasonPPGFeature
 from scripts.feature_projections.features.position_mean import PositionMeanFeature
 from scripts.feature_projections.combiner import combine_features
@@ -2085,6 +2089,147 @@ class TestRoleChangeFeature:
     def test_kicker_excluded(self):
         ctx = {"target_season": 2025, "depth_charts": {("p1", 2024): 2, ("p1", 2025): 1}}
         assert self.feature.compute("p1", "K", pd.DataFrame(), pd.DataFrame(), ctx) is None
+
+
+# ---------------------------------------------------------------------------
+# QB-ecosystem features (#642)
+# ---------------------------------------------------------------------------
+
+class TestTeamQBQualityFeature:
+    """Tests for team_qb_quality_raw (who is my QB)."""
+
+    def setup_method(self):
+        self.feature = TeamQBQualityFeature()
+
+    def _ctx(self):
+        return {
+            "target_season": 2025,
+            "player_team_by_season": {("wr1", 2025): "KC", ("wr2", 2025): "NYJ"},
+            "qb_quality": {("KC", 2025): 4.5, ("NYJ", 2025): -3.0},
+        }
+
+    def test_name(self):
+        assert self.feature.name == "team_qb_quality_raw"
+        assert self.feature.is_base is False
+
+    def test_returns_centered_qb_ppg_for_team(self):
+        assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), self._ctx()) == 4.5
+        assert self.feature.compute("wr2", "TE", pd.DataFrame(), pd.DataFrame(), self._ctx()) == -3.0
+
+    def test_non_receiving_positions_return_none(self):
+        for pos in ["QB", "RB", "K"]:
+            assert self.feature.compute("wr1", pos, pd.DataFrame(), pd.DataFrame(), self._ctx()) is None
+
+    def test_unknown_team_returns_none(self):
+        ctx = self._ctx()
+        assert self.feature.compute("wr_unmapped", "WR", pd.DataFrame(), pd.DataFrame(), ctx) is None
+
+    def test_team_without_qb_quality_returns_none(self):
+        ctx = self._ctx()
+        ctx["player_team_by_season"][("wr3", 2025)] = "CHI"  # no QB quality entry
+        assert self.feature.compute("wr3", "WR", pd.DataFrame(), pd.DataFrame(), ctx) is None
+
+    def test_no_lookups_returns_none(self):
+        assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), {"target_season": 2025}) is None
+
+    def test_uses_target_season_team(self):
+        """Team-changer: the target-season depth-chart team drives the lookup."""
+        ctx = {
+            "target_season": 2025,
+            "player_team_by_season": {("wr1", 2024): "KC", ("wr1", 2025): "NYJ"},
+            "qb_quality": {("KC", 2025): 9.0, ("NYJ", 2025): -2.0},
+        }
+        assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) == -2.0
+
+
+class TestComputeQBQualityByTeam:
+    """Tests for the runner helper that centers each team's QB1 prior PPG (#642)."""
+
+    def test_centers_against_league_qb_mean(self):
+        from scripts.feature_projections.runner import _compute_qb_quality_by_team
+        # Two QB1s, each with one prior full season; recency weight on a single
+        # season is irrelevant, so weighted PPG == that season's PPG.
+        history = make_history_df([
+            {"player_id": "qb_kc", "season": 2024, "ppg": 24.0, "games_played": 17},
+            {"player_id": "qb_nyj", "season": 2024, "ppg": 16.0, "games_played": 17},
+        ])
+        qb1_by_team = {("KC", 2025): "qb_kc", ("NYJ", 2025): "qb_nyj"}
+        result = _compute_qb_quality_by_team(history, qb1_by_team, 2025)
+        # league mean = 20.0 → centered KC +4.0, NYJ −4.0
+        assert result[("KC", 2025)] == pytest.approx(4.0)
+        assert result[("NYJ", 2025)] == pytest.approx(-4.0)
+
+    def test_only_target_season_keys(self):
+        from scripts.feature_projections.runner import _compute_qb_quality_by_team
+        history = make_history_df([
+            {"player_id": "qb_kc", "season": 2024, "ppg": 20.0, "games_played": 17},
+        ])
+        qb1_by_team = {("KC", 2025): "qb_kc", ("KC", 2024): "qb_kc"}
+        result = _compute_qb_quality_by_team(history, qb1_by_team, 2025)
+        assert set(result.keys()) == {("KC", 2025)}
+
+    def test_qb_without_history_skipped(self):
+        from scripts.feature_projections.runner import _compute_qb_quality_by_team
+        history = make_history_df([
+            {"player_id": "qb_kc", "season": 2024, "ppg": 20.0, "games_played": 17},
+        ])
+        # qb_rookie has no prior rows → excluded from the lookup (and the mean).
+        qb1_by_team = {("KC", 2025): "qb_kc", ("CHI", 2025): "qb_rookie"}
+        result = _compute_qb_quality_by_team(history, qb1_by_team, 2025)
+        assert ("CHI", 2025) not in result
+        assert result[("KC", 2025)] == pytest.approx(0.0)  # only QB → mean = itself
+
+
+class TestTeamQBChangedFeature:
+    """Tests for team_qb_changed_raw (year-over-year QB1 change)."""
+
+    def setup_method(self):
+        self.feature = TeamQBChangedFeature()
+
+    def test_name(self):
+        assert self.feature.name == "team_qb_changed_raw"
+
+    def test_changed_qb_returns_one(self):
+        ctx = {
+            "target_season": 2025,
+            "player_team_by_season": {("wr1", 2025): "NYJ"},
+            "qb1_by_team": {("NYJ", 2024): "qb_old", ("NYJ", 2025): "qb_new"},
+        }
+        assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) == 1.0
+
+    def test_same_qb_returns_zero(self):
+        ctx = {
+            "target_season": 2025,
+            "player_team_by_season": {("wr1", 2025): "KC"},
+            "qb1_by_team": {("KC", 2024): "mahomes", ("KC", 2025): "mahomes"},
+        }
+        assert self.feature.compute("wr1", "TE", pd.DataFrame(), pd.DataFrame(), ctx) == 0.0
+
+    def test_missing_prior_qb_returns_neutral_zero(self):
+        """No prior-season QB1 (expansion/data gap) -> neutral 0, not None."""
+        ctx = {
+            "target_season": 2025,
+            "player_team_by_season": {("wr1", 2025): "KC"},
+            "qb1_by_team": {("KC", 2025): "mahomes"},
+        }
+        assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) == 0.0
+
+    def test_non_receiving_returns_none(self):
+        ctx = {
+            "target_season": 2025,
+            "player_team_by_season": {("p1", 2025): "KC"},
+            "qb1_by_team": {("KC", 2024): "a", ("KC", 2025): "b"},
+        }
+        for pos in ["QB", "RB", "K"]:
+            assert self.feature.compute("p1", pos, pd.DataFrame(), pd.DataFrame(), ctx) is None
+
+    def test_unknown_team_returns_none(self):
+        ctx = {
+            "target_season": 2025,
+            "player_team_by_season": {},
+            "qb1_by_team": {("KC", 2025): "b"},
+        }
+        assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) is None
 
 
 # ---------------------------------------------------------------------------

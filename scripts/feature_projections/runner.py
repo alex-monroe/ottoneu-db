@@ -253,6 +253,80 @@ def _build_depth_charts_lookup(supabase) -> dict[tuple[str, int], int]:
     return lookup
 
 
+def _build_qb_ecosystem_lookups(
+    supabase,
+) -> tuple[dict[tuple[str, int], str], dict[tuple[str, int], str]]:
+    """Build the depth-chart lookups powering the QB-ecosystem features (#642).
+
+    Returns:
+      - ``qb1_by_team``: ``(team, season) -> qb_player_id`` — each team's
+        projected QB1 (position QB, lowest depth tier). Opening-day snapshot,
+        set before the season's games, so reading the target season is
+        forward-looking, not leakage.
+      - ``player_team_by_season``: ``(player_id, season) -> team`` — the
+        player's depth-chart team for that season (correct for team-changers,
+        unlike ``players.nfl_team``).
+    """
+    rows = fetch_all_rows(
+        supabase, "depth_charts", "player_id, season, team, position, depth_team"
+    )
+    qb_best: dict[tuple[str, int], tuple[int, str]] = {}
+    player_team_by_season: dict[tuple[str, int], str] = {}
+    for r in rows:
+        pid = r.get("player_id")
+        season = r.get("season")
+        team = r.get("team")
+        if not pid or season is None or not team:
+            continue
+        season = int(season)
+        player_team_by_season[(str(pid), season)] = str(team)
+
+        if r.get("position") == "QB" and r.get("depth_team") is not None:
+            depth = int(r["depth_team"])
+            key = (str(team), season)
+            current = qb_best.get(key)
+            if current is None or depth < current[0]:
+                qb_best[key] = (depth, str(pid))
+
+    qb1_by_team = {key: pid for key, (_, pid) in qb_best.items()}
+    return qb1_by_team, player_team_by_season
+
+
+def _compute_qb_quality_by_team(
+    history_df: pd.DataFrame,
+    qb1_by_team: dict[tuple[str, int], str],
+    target_season: int,
+) -> dict[tuple[str, int], float]:
+    """Centered recency-weighted prior PPG of each team's projected QB1 (#642).
+
+    For ``target_season``, computes each QB1's weighted PPG from ``history_df``
+    (seasons strictly before the target — leakage-free) and centers against the
+    mean across all QB1s that season, so ~0 is an average starter. Returns
+    ``(team, target_season) -> centered_ppg``.
+    """
+    # Local import to avoid a module-level cycle through the feature registry.
+    from scripts.feature_projections.features.weighted_ppg import (
+        WeightedPPGNoQBTrajectoryFeature,
+    )
+
+    base = WeightedPPGNoQBTrajectoryFeature()
+    raw: dict[tuple[str, int], float] = {}
+    for (team, season), qb_id in qb1_by_team.items():
+        if season != int(target_season):
+            continue
+        qb_history = history_df[history_df["player_id"] == qb_id]
+        if qb_history.empty:
+            continue
+        ppg = base.compute(qb_id, "QB", qb_history, pd.DataFrame(), {})
+        if ppg is not None:
+            raw[(team, season)] = float(ppg)
+
+    if not raw:
+        return {}
+    league_mean = sum(raw.values()) / len(raw)
+    return {key: val - league_mean for key, val in raw.items()}
+
+
 def _build_player_team_history(
     player_id: str,
     nfl_stats_all: pd.DataFrame,
@@ -292,6 +366,9 @@ def _build_context(
     vegas_lines: dict[tuple[str, int], dict[str, float]] | None = None,
     vegas_league_means: dict[int, float] | None = None,
     depth_charts: dict[tuple[str, int], int] | None = None,
+    qb1_by_team: dict[tuple[str, int], str] | None = None,
+    player_team_by_season: dict[tuple[str, int], str] | None = None,
+    qb_quality: dict[tuple[str, int], float] | None = None,
 ) -> dict[str, Any]:
     """Build the context dict for a player's feature computation."""
     context: dict[str, Any] = {"target_season": target_season}
@@ -349,6 +426,16 @@ def _build_context(
     # depth_chart_position_raw and role_change_raw features.
     if depth_charts is not None:
         context["depth_charts"] = depth_charts
+
+    # QB-ecosystem lookups for the team_qb_quality_raw / team_qb_changed_raw
+    # features (#642): each team's projected QB1, the player's depth-chart team
+    # per season, and the centered QB1 prior PPG keyed by (team, target_season).
+    if qb1_by_team is not None:
+        context["qb1_by_team"] = qb1_by_team
+    if player_team_by_season is not None:
+        context["player_team_by_season"] = player_team_by_season
+    if qb_quality is not None:
+        context["qb_quality"] = qb_quality
 
     # QB starter designation
     if qb_starters and position == "QB":
@@ -495,6 +582,11 @@ def run_model(
     # Fetch opening-day depth-chart tiers once (used across all target seasons)
     depth_charts_lookup = _build_depth_charts_lookup(supabase)
 
+    # QB-ecosystem lookups for the team_qb_quality_raw / team_qb_changed_raw
+    # features (#642). Global; the per-season centered QB1 PPG is computed in
+    # the loop from that season's history window.
+    qb1_by_team, player_team_by_season = _build_qb_ecosystem_lookups(supabase)
+
     # Leakage-free expected-games per (player, target season) — the #587 stage-c
     # availability haircut. Built from each player's prior-season games_played
     # (recency-weighted "history" mode); seasons strictly before the target only.
@@ -538,6 +630,9 @@ def run_model(
         # Compute positional starter floors for tiered regression
         positional_starter_floors = _compute_positional_starter_floor(history_df, players_df)
 
+        # Centered QB1 prior PPG per team for this target season (#642).
+        qb_quality = _compute_qb_quality_by_team(history_df, qb1_by_team, target_season)
+
         # Load QB starter designations for historical + target seasons
         qb_starters = get_all_starter_ids(
             historical_seasons + [target_season], players_df
@@ -568,6 +663,9 @@ def run_model(
                 vegas_lines=vegas_lookup,
                 vegas_league_means=vegas_league_means,
                 depth_charts=depth_charts_lookup,
+                qb1_by_team=qb1_by_team,
+                player_team_by_season=player_team_by_season,
+                qb_quality=qb_quality,
             )
 
             # Resolve position-specific features. For residual models, the
