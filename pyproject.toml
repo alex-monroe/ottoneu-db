@@ -14,12 +14,17 @@ dependencies = [
     "nfl_data_py==0.3.3",
     "pandas==1.5.3",
     "numpy==1.26.4",
+    "scikit-learn==1.6.1",
+    "requests==2.32.5",
+    "beautifulsoup4==4.15.0",
+    "lxml==6.1.1",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest==8.4.2",
     "pytest-cov==7.0.0",
+    "uv==0.11.21",
 ]
 
 # Expose ``scripts`` (and its subpackages) as an importable package so modules

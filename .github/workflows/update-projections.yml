@@ -19,12 +19,16 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.9'
-        cache: 'pip'
-        
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+
+    - name: Set up uv (with cache)
+      uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+        cache-dependency-glob: "requirements.txt"
+
+    - name: Install dependencies (from pinned lock)
+      # requirements.txt already includes `-e .`, so `import scripts.*` resolves.
+      run: uv pip install --system -r requirements.txt
         
     - name: Run projections update script
       env:

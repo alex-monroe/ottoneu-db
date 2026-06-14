@@ -70,9 +70,27 @@ and when running a script directly (`python scripts/foo.py`) from any cwd:
   automatically.
 
 **CI note:** workflows that install an ad-hoc package subset instead of
-`requirements.txt` (e.g. the backfill/scrape jobs) must add
-`pip install -e . --no-deps` so `import scripts.*` resolves when they run
-scripts directly.
+`requirements.txt` must add `pip install -e . --no-deps` so `import scripts.*`
+resolves when they run scripts directly. (Workflows that install the full
+`requirements.txt` get `-e .` for free — it's the last entry of the export.)
 
 If you see `ModuleNotFoundError: No module named 'scripts'`, the editable
-install is missing — run `venv/bin/pip install -e .`.
+install is missing — run `venv/bin/pip install -e .` (or `just doctor` to
+confirm the editable mapping).
+
+## Python Dependencies
+
+`pyproject.toml` `[project.dependencies]` (+ the `dev` extra) is the **single
+source of truth** for direct Python dependencies. Two lockfiles derive from it,
+both checked in and kept in sync by `just lock`:
+
+- **`uv.lock`** — the canonical, fully-resolved lockfile (managed by `uv`).
+- **`requirements.txt`** — a pinned, marker-aware, pip-installable export of
+  `uv.lock` (`uv export`), ending in `-e .`. It is **generated, not
+  hand-edited** — it keeps the zero-extra-tooling `python -m venv venv && pip
+  install -r requirements.txt` workflow working and reproducible.
+
+To change a dependency: edit `pyproject.toml`, then run `just lock` (runs
+`uv lock` + `uv export`) and commit both lockfiles. `uv` itself is pinned in the
+`dev` extra so `just lock` always has it. CI installs from `requirements.txt`
+via `uv pip install` with caching.

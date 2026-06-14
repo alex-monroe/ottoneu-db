@@ -13,8 +13,9 @@ sudo chown vscode:vscode venv web/node_modules
 # --clear recreates cleanly if the volume carries a stale venv from a prior build.
 python3 -m venv --clear venv
 venv/bin/pip install --upgrade pip
+# requirements.txt is the pinned export of uv.lock and already includes `-e .`,
+# so this installs the locked deps + the editable project in one step.
 venv/bin/pip install -r requirements.txt
-venv/bin/pip install -e .
 venv/bin/playwright install chromium || echo "WARN: playwright chromium download blocked — add cdn.playwright.dev to allowed-domains.txt and re-run"
 (cd web && npm install)
 
