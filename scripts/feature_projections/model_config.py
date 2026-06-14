@@ -856,6 +856,39 @@ MODELS: dict[str, ModelDefinition] = {
             "team_qb_quality_raw*position",
         ],
     ),
+    "v41_coaching_residual": ModelDefinition(
+        name="v41_coaching_residual",
+        version=1,
+        description=(
+            "Coaching-change residual (spike #651): v33_tuned_base frozen as the "
+            "base, plus a tiny secondary Ridge on coaching_change_raw + "
+            "coaching_change_raw*position fit to v33 residuals across all "
+            "players (no training filter). coaching_change_raw is 1.0 only for "
+            "players on a team that changed its season-opening head coach this "
+            "offseason and exactly 0.0 otherwise, so with fit_intercept=False "
+            "the ~90% of player-seasons on a coach-stable team receive a "
+            "byte-identical v33 prediction (mirrors the draft_capital residual "
+            "#376). Injects the offseason scheme-shift signal a stats-only "
+            "model can't see — targets the QB ordering gap (new scheme = the "
+            "largest single-season QB swing). The *position interaction lets "
+            "the combiner learn a QB-specific coefficient. Source is leakage-"
+            "free: hires complete by Jan–Feb, before the offseason run. "
+            "VERDICT: NEGATIVE / TIE (held-out rolling 2023–25) — ALL MAE "
+            "2.2292 vs v33's 2.2278 (Δ+0.0014, 95% CI [−0.0003, +0.0033], "
+            "p=0.106, player-clustered bootstrap, 617 players); the QB "
+            "hypothesis is a dead tie (MAE 3.698 vs 3.697, ρ 0.670 vs 0.671). "
+            "Heavy regularization (best alpha=100) shrank the residual "
+            "coefficients to ≈0 — the small coach-changed cohort (~5–10 "
+            "teams/season) carries too little signal to move the gate, as the "
+            "spike anticipated. Not promoted; v33 stays active. Per the spike "
+            "plan, the next acquisition is source #3 (FA/contract movement)."
+        ),
+        features=["coaching_change_raw"],
+        combiner_type="residual",
+        base_model_name="v33_tuned_base",
+        interaction_terms=["coaching_change_raw*position"],
+        training_filter={},
+    ),
     "naive_prior_season_ppg": ModelDefinition(
         name="naive_prior_season_ppg",
         version=1,

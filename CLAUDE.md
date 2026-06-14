@@ -50,6 +50,7 @@ docs/
 ├── GIT_WORKFLOW.md                    # Branch strategy, PR requirements
 ├── TESTING.md                         # Python + web test setup and CI
 ├── exec-plans/
+│   ├── [data-acquisition-spike-651.md](docs/exec-plans/data-acquisition-spike-651.md)  # Spike #651: next data-acquisition lever — coaching change built→TIE, FA/contract next
 │   ├── [feature-projections.md](docs/exec-plans/feature-projections.md)         # Feature-based player projection system
 │   ├── [market-projections.md](docs/exec-plans/market-projections.md)          # Market-based projection system (DEFERRED)
 │   ├── [projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md)  # 4-phase accuracy improvement roadmap

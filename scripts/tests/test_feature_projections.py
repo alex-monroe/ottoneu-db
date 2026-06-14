@@ -38,6 +38,10 @@ from scripts.feature_projections.features.team_qb_quality import (
 )
 from scripts.feature_projections.features.naive_prior_ppg import NaivePriorSeasonPPGFeature
 from scripts.feature_projections.features.position_mean import PositionMeanFeature
+from scripts.feature_projections.features.coaching_change import (
+    CoachingChangeFeature,
+    CoachTenureFeature,
+)
 from scripts.feature_projections.combiner import combine_features
 from scripts.feature_projections.model_config import get_model, MODELS, ModelDefinition, PositionOverride
 from scripts.feature_projections.runner import _resolve_features_for_position
@@ -2230,6 +2234,106 @@ class TestTeamQBChangedFeature:
             "qb1_by_team": {("KC", 2025): "b"},
         }
         assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) is None
+
+
+# ---------------------------------------------------------------------------
+# Coaching-change features (spike #651)
+# ---------------------------------------------------------------------------
+
+class TestCoachingChangeFeature:
+    """Tests for coaching_change_raw (offseason head-coach change indicator)."""
+
+    def setup_method(self):
+        self.feature = CoachingChangeFeature()
+
+    def test_name(self):
+        assert self.feature.name == "coaching_change_raw"
+
+    def test_changed_coach_returns_one(self):
+        ctx = {
+            "target_season": 2025,
+            "player_team_by_season": {("qb1", 2025): "NYJ"},
+            "team_coaching": {("NYJ", 2025): {"head_coach_changed": True, "coach_tenure_years": 1}},
+        }
+        assert self.feature.compute("qb1", "QB", pd.DataFrame(), pd.DataFrame(), ctx) == 1.0
+
+    def test_stable_coach_returns_zero(self):
+        """Residual-safe: a coach-stable player gets exactly 0.0, not None."""
+        ctx = {
+            "target_season": 2025,
+            "player_team_by_season": {("wr1", 2025): "KC"},
+            "team_coaching": {("KC", 2025): {"head_coach_changed": False, "coach_tenure_years": 9}},
+        }
+        assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) == 0.0
+
+    def test_unknown_changed_flag_returns_none(self):
+        """NULL changed flag (earliest loaded season) -> None, not a false 0."""
+        ctx = {
+            "target_season": 2025,
+            "player_team_by_season": {("wr1", 2025): "KC"},
+            "team_coaching": {("KC", 2025): {"head_coach_changed": None, "coach_tenure_years": 1}},
+        }
+        assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) is None
+
+    def test_unknown_team_returns_none(self):
+        ctx = {
+            "target_season": 2025,
+            "player_team_by_season": {},
+            "team_coaching": {("KC", 2025): {"head_coach_changed": True, "coach_tenure_years": 1}},
+        }
+        assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) is None
+
+    def test_team_not_in_coaching_returns_none(self):
+        ctx = {
+            "target_season": 2025,
+            "player_team_by_season": {("wr1", 2025): "KC"},
+            "team_coaching": {("NYJ", 2025): {"head_coach_changed": True, "coach_tenure_years": 1}},
+        }
+        assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) is None
+
+    def test_missing_context_returns_none(self):
+        assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), {}) is None
+
+    def test_team_changer_uses_depth_chart_team(self):
+        """A player who switched teams is graded on his target-season team."""
+        ctx = {
+            "target_season": 2025,
+            "player_team_by_season": {("wr1", 2025): "NYJ"},  # moved to NYJ
+            "team_coaching": {
+                ("NYJ", 2025): {"head_coach_changed": True, "coach_tenure_years": 1},
+                ("KC", 2025): {"head_coach_changed": False, "coach_tenure_years": 9},
+            },
+        }
+        assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) == 1.0
+
+
+class TestCoachTenureFeature:
+    """Tests for coach_tenure_raw (consecutive seasons of the head coach)."""
+
+    def setup_method(self):
+        self.feature = CoachTenureFeature()
+
+    def test_name(self):
+        assert self.feature.name == "coach_tenure_raw"
+
+    def test_returns_tenure(self):
+        ctx = {
+            "target_season": 2025,
+            "player_team_by_season": {("wr1", 2025): "KC"},
+            "team_coaching": {("KC", 2025): {"head_coach_changed": False, "coach_tenure_years": 9}},
+        }
+        assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) == 9.0
+
+    def test_unknown_team_returns_none(self):
+        ctx = {
+            "target_season": 2025,
+            "player_team_by_season": {},
+            "team_coaching": {("KC", 2025): {"head_coach_changed": False, "coach_tenure_years": 9}},
+        }
+        assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) is None
+
+    def test_missing_context_returns_none(self):
+        assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), {}) is None
 
 
 # ---------------------------------------------------------------------------
