@@ -146,6 +146,10 @@ train model seasons="2021,2022,2023,2024,2025":
 holdout-eval *args:
     {{python}} scripts/feature_projections/holdout_eval.py {{args}}
 
+# Clear the (worktree-shared) holdout-eval cache — run after any stats backfill (GH #597, #629)
+clear-holdout-cache:
+    {{python}} -m scripts.feature_projections.holdout_cache --clear
+
 # Paired bootstrap (player-clustered): is the held-out MAE gap between two models significant? (GH #573, #594)
 #   e.g. just significance v14_qb_starter v31_depth_chart
 #   rolling: just significance NEW v14_qb_starter --protocol rolling --eval-seasons 2023,2024,2025 --min-train-season 2021

@@ -26,7 +26,11 @@ point-estimate delta.
    `projection_models.is_active` — `v33_tuned_base` as of 2026-06; do not assume
    a hardcoded name) and the naïve baselines (`naive_prior_season_ppg`,
    `position_mean_baseline`). Prefer the rolling-origin protocol (#594); the
-   cache (#597) makes re-runs fast:
+   cache (#597) makes re-runs fast — and it is **shared across worktrees** (#629:
+   resolves to the main checkout's `.cache/holdout`), so an experiment worktree
+   reuses folds the main checkout already computed. Editing feature/model code
+   re-keys the affected entries automatically, but after a **stats backfill** run
+   `just clear-holdout-cache` (the keys don't capture DB contents):
    ```bash
    just holdout-eval --protocol rolling --eval-seasons 2023,2024,2025 --min-train-season 2021 \
      --models MODEL_NAME,ACTIVE_MODEL,naive_prior_season_ppg,position_mean_baseline

@@ -135,8 +135,13 @@ just availability-backtest [...]                    # Availability-inclusive bac
 just coverage-report [--min-games N]                # Qualifying-population coverage: player_stats vs nflverse, per season (GH #599)
 # Held-out predictions are cached under .cache/holdout/, keyed on (model, train window, eval window,
 # model-definition fingerprint), so a second holdout-eval/significance run skips retraining (GH #597).
+# The cache is SHARED across git worktrees (GH #629): it resolves to the main checkout's
+# .cache/holdout (override with OTTONEU_HOLDOUT_CACHE), so experiment worktrees reuse the main
+# checkout's folds instead of recomputing them.
 # Editing a model's definition or any feature code invalidates the affected entries automatically;
-# pass --no-cache to force a full retrain.
+# pass --no-cache to force a full retrain. After a stats backfill the keys are stale (they don't
+# capture DB contents) — clear with `just clear-holdout-cache`.
+just clear-holdout-cache                            # Delete the (shared) holdout cache — run after a stats backfill (GH #597, #629)
 
 # Backfills / seeds
 just backfill-nfl-stats [--seasons ...] [--dry-run]    # Backfill nfl_stats from nflverse
