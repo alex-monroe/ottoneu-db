@@ -205,6 +205,10 @@ def collect_training_data(
                 "season": target_season,
                 "feature_values": feature_values,
                 "actual_ppg": actuals_lookup[player_id_str],
+                # Leakage-free relevance signal for rank-aware training (#643):
+                # the recency-weighted prior-season PPG, computed only from
+                # seasons before the target.
+                "base_ppg": feature_values.get(base_name) if base_name else None,
             }
             # Residual models filter on draft seasonality at fit time.
             dc = context.get("draft_capital")
@@ -220,14 +224,81 @@ def collect_training_data(
     return pd.DataFrame(rows)
 
 
+# Starter-pool sizes per position (mirrors backtest.TOP_N_BY_POSITION). The
+# rank-aware "top-2N" tier is the rosterable + near-rosterable band.
+_TOP_N_BY_POSITION = {"QB": 12, "RB": 24, "WR": 24, "TE": 12, "K": 12}
+
+
+def compute_sample_weights(
+    base_ppgs: "np.ndarray",
+    positions: list[str],
+    seasons: "np.ndarray",
+    spec: dict,
+) -> "np.ndarray":
+    """Per-sample Ridge weights from leakage-free prior-season relevance (#643).
+
+    ``base_ppgs`` is each kept sample's recency-weighted prior PPG (the base
+    feature value). Weights concentrate fit capacity on the rosterable tier so
+    the model orders starters better — the metric the projections actually feed.
+    Returns an array aligned with the inputs; all-ones when ``spec`` is empty.
+
+    Schemes:
+      - ``topn_step`` (param ``k``): samples whose base_ppg ranks in the top-2N
+        at their (position, season) get weight ``1 + k``; the rest ``1.0``.
+      - ``ppg_within_pos`` (param ``clip``=[lo, hi]): ``base_ppg`` divided by
+        the (position, season) mean base_ppg, clipped — a continuous relevance
+        weight that is comparable across positions (so QB scoring level doesn't
+        dominate).
+    """
+    n = len(base_ppgs)
+    weights = np.ones(n, dtype=np.float64)
+    if not spec:
+        return weights
+
+    scheme = spec.get("scheme")
+    # Group sample indices by (position, season) so relevance is judged within
+    # the pool a roster decision actually compares.
+    groups: dict[tuple, list[int]] = {}
+    for i in range(n):
+        groups.setdefault((positions[i], int(seasons[i])), []).append(i)
+
+    if scheme == "topn_step":
+        k = float(spec.get("k", 1.0))
+        for (pos, _season), idxs in groups.items():
+            top_n = _TOP_N_BY_POSITION.get(pos, 12)
+            cutoff = 2 * top_n
+            # Rank by base_ppg descending; the top-2N get the bump.
+            ordered = sorted(idxs, key=lambda i: base_ppgs[i], reverse=True)
+            for rank, i in enumerate(ordered):
+                if rank < cutoff:
+                    weights[i] = 1.0 + k
+    elif scheme == "ppg_within_pos":
+        lo, hi = spec.get("clip", [0.25, 4.0])
+        for (_pos, _season), idxs in groups.items():
+            vals = np.array([base_ppgs[i] for i in idxs], dtype=np.float64)
+            mean = float(np.mean(vals)) if len(vals) else 0.0
+            if mean <= 0:
+                continue
+            for i in idxs:
+                weights[i] = float(np.clip(base_ppgs[i] / mean, lo, hi))
+    else:
+        raise ValueError(f"Unknown sample_weight scheme: {scheme!r}")
+
+    return weights
+
+
 def train_ridge_loso(
     training_data: pd.DataFrame,
     interaction_terms: list[str],
     alpha_candidates: list[float] | None = None,
+    sample_weight_spec: dict | None = None,
 ) -> dict[str, Any]:
     """Train Ridge regression with leave-one-season-out cross-validation.
 
-    Returns the trained model parameters as a dict suitable for JSON serialization.
+    When ``sample_weight_spec`` is set, the Ridge fit (and every LOSO fold) is
+    weighted by prior-season relevance (#643) so the model concentrates on
+    ordering the rosterable tier. Returns the trained model parameters as a
+    dict suitable for JSON serialization.
     """
     if alpha_candidates is None:
         alpha_candidates = ALPHA_CANDIDATES
@@ -239,6 +310,8 @@ def train_ridge_loso(
     all_X = []
     all_y = []
     all_seasons_col = []
+    all_positions = []
+    all_base_ppg = []
 
     feature_names = None
 
@@ -256,13 +329,25 @@ def train_ridge_loso(
         all_X.append(vector)
         all_y.append(row["actual_ppg"])
         all_seasons_col.append(row["season"])
+        all_positions.append(position)
+        bp = row.get("base_ppg") if hasattr(row, "get") else None
+        all_base_ppg.append(float(bp) if bp is not None else 0.0)
 
     X = np.array(all_X, dtype=np.float64)
     y = np.array(all_y, dtype=np.float64)
     season_arr = np.array(all_seasons_col)
+    base_ppg_arr = np.array(all_base_ppg, dtype=np.float64)
+
+    # Rank-aware sample weights (#643); all-ones unless a spec is given.
+    sample_weights = compute_sample_weights(
+        base_ppg_arr, all_positions, season_arr, sample_weight_spec or {}
+    )
 
     print(f"Feature matrix: {X.shape[0]} samples × {X.shape[1]} features")
     print(f"Feature columns: {feature_names}")
+    if sample_weight_spec:
+        print(f"Rank-aware sample weights: {sample_weight_spec} "
+              f"(mean={sample_weights.mean():.3f}, max={sample_weights.max():.3f})")
 
     # LOSO cross-validation to select alpha
     best_alpha = alpha_candidates[0]
@@ -280,6 +365,7 @@ def train_ridge_loso(
 
             X_train, X_test = X[train_mask], X[test_mask]
             y_train, y_test = y[train_mask], y[test_mask]
+            w_train = sample_weights[train_mask]
 
             # Standardize
             scaler = StandardScaler()
@@ -287,10 +373,12 @@ def train_ridge_loso(
             X_test_scaled = scaler.transform(X_test)
 
             model = Ridge(alpha=alpha)
-            model.fit(X_train_scaled, y_train)
+            model.fit(X_train_scaled, y_train, sample_weight=w_train)
             preds = model.predict(X_test_scaled)
             preds = np.maximum(preds, 0.0)
 
+            # The held-out fold is scored unweighted — we tune for true MAE,
+            # not weighted MAE (the weights are a fitting device, not the goal).
             mae = float(np.mean(np.abs(preds - y_test)))
             fold_maes.append(mae)
 
@@ -308,7 +396,7 @@ def train_ridge_loso(
     X_scaled = scaler.fit_transform(X)
 
     model = Ridge(alpha=best_alpha)
-    model.fit(X_scaled, y)
+    model.fit(X_scaled, y, sample_weight=sample_weights)
 
     # Report coefficients
     print("\nLearned coefficients:")
@@ -331,6 +419,9 @@ def train_ridge_loso(
         "interaction_terms": interaction_terms,
         "scaler_mean": scaler.mean_.tolist(),
         "scaler_scale": scaler.scale_.tolist(),
+        # Documented for reproducibility; does not affect prediction (weights
+        # only shape the fit). Absent/empty for unweighted models.
+        "sample_weight_spec": sample_weight_spec or {},
         "training_metadata": {
             "seasons": [int(s) for s in seasons],
             "n_samples": int(X.shape[0]),
@@ -538,7 +629,11 @@ def main():
             training_filter=model_def.training_filter,
         )
     else:
-        model_params = train_ridge_loso(training_data, model_def.interaction_terms)
+        model_params = train_ridge_loso(
+            training_data,
+            model_def.interaction_terms,
+            sample_weight_spec=model_def.sample_weight_spec,
+        )
 
     # Save
     TRAINED_MODELS_DIR.mkdir(parents=True, exist_ok=True)
