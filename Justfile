@@ -110,6 +110,10 @@ check-migrations:
 check-docs:
     {{python}} scripts/check_docs_freshness.py
 
+# On-demand DB schema drift check: live DB vs web/types/supabase.ts + db-schema.md (read-only)
+check-schema:
+    {{python}} scripts/check_schema.py
+
 # Permission-friction report: prompt rate trend + regression check (see docs/references/autonomous-operation.md)
 permission-report *args:
     python3 .claude/hooks/permission_report.py {{args}}
