@@ -8,7 +8,7 @@ place, cross-check with held-out ablation (`/ablation`, #588), not these numbers
 
 // turbo
 
-1. **Identify the learned model** (default: the active model `v31_depth_chart`,
+1. **Identify the learned model** (default: the active model `v33_tuned_base`,
    itself a learned Ridge model whose coefficients are inspectable). Only the
    additive models — e.g. `v14_qb_starter` — have no learned coefficients to
    inspect; pick a learned model if the user names an additive one. Use the

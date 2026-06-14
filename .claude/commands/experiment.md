@@ -51,7 +51,7 @@ point-estimate delta.
    ```
 
 6. **State the verdict** from the significance test, not an MAE band:
-   - **SIGNIFICANT WIN** — the 95% CI for MAE(NEW) − MAE(v31_depth_chart) lies
+   - **SIGNIFICANT WIN** — the 95% CI for MAE(NEW) − MAE(ACTIVE_MODEL) lies
      entirely below 0. Only this clears the bar to consider promotion.
    - **NOT SIGNIFICANT** — CI spans 0. The gap is sampling noise; do not promote
      on it, regardless of the point estimate.

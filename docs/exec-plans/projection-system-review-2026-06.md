@@ -235,10 +235,11 @@ Every Wave 3 DoD, the `/experiment`, `/ablation`, `/compare-models`,
 experiment-log warning header all still name **`v14_qb_starter`** as the
 production/comparator model. That is now false. The active model is resolved
 dynamically from `projection_models.is_active`; the *docs* lag. Before running
-any experiment, the significance gate must compare against **`v31_depth_chart`**
-(or, better, against `fetchActiveProjectionModel()`'s answer at run time). The
-experiment-log header's "the additive `v14_qb_starter` is the honest best and is
-in production" is stale and contradicts the held-out doc.
+any experiment, the significance gate must compare against the active model
+(`v33_tuned_base` post-#618; `v31_depth_chart` when this section was first
+written) — or, better, against `fetchActiveProjectionModel()`'s answer at run
+time. The experiment-log header's "the additive `v14_qb_starter` is the honest
+best and is in production" is stale and contradicts the held-out doc.
 
 ### Per-issue disposition
 
@@ -296,4 +297,5 @@ the rolling-origin held-out harness with player-clustered significance.
 5. ~~#590 delta-anchored~~ — shelved (premise reversed).
 6. ~~#591 level-matched window~~ — shelved (premise resolved by #599).
 
-All gates compare against **`v31_depth_chart`** (the active model), not `v14`.
+All gates now compare against **`v33_tuned_base`** (the post-Wave-3 active model,
+promoted from `v31_depth_chart` in #618), not `v14`.

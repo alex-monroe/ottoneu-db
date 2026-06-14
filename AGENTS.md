@@ -129,14 +129,14 @@ Run `just check-arch` to validate these rules locally.
 
 When any task modifies the projection system — including `scripts/feature_projections/`, `scripts/projection_methods.py`, `scripts/update_projections.py`, or `model_config.py` — you MUST validate it on the **leakage-free held-out harness**. The in-sample `accuracy-report` scores learned models on the seasons they trained on (methodology audit, Findings 1 & 2); it is a **secondary diagnostic only** and must never be the gate or the basis for a promote decision. Use `/experiment` to run this flow.
 
-1. **Run the held-out re-rank** against production (`v31_depth_chart`) and the naïve baselines, on the rolling-origin protocol (#594). Learned models retrain out-of-sample inside the sandbox; additive/external models need their held-out projections generated first (`just project <name> 2023,2024,2025`). The cache (#597) makes re-runs fast.
+1. **Run the held-out re-rank** against production (`v33_tuned_base`) and the naïve baselines, on the rolling-origin protocol (#594). Learned models retrain out-of-sample inside the sandbox; additive/external models need their held-out projections generated first (`just project <name> 2023,2024,2025`). The cache (#597) makes re-runs fast.
    ```
    just holdout-eval --protocol rolling --eval-seasons 2023,2024,2025 --min-train-season 2021 \
-     --models <name>,v31_depth_chart,naive_prior_season_ppg,position_mean_baseline
+     --models <name>,v33_tuned_base,naive_prior_season_ppg,position_mean_baseline
    ```
 2. **Test significance vs the active model** (player-clustered paired bootstrap). This is the gate — a point-estimate MAE delta is **not** a result:
    ```
-   just significance <name> v31_depth_chart --protocol rolling --eval-seasons 2023,2024,2025 --min-train-season 2021
+   just significance <name> v33_tuned_base --protocol rolling --eval-seasons 2023,2024,2025 --min-train-season 2021
    ```
    Availability-touching changes additionally run `just availability-backtest` and report **both** rate and availability MAE (#574).
 3. **In the PR description**, lead with the held-out ranking + significance verdict (and the per-position Ranking-quality rows, #598). Include the in-sample `accuracy-report` table only if labelled "in-sample diagnostic — not the ranking".
