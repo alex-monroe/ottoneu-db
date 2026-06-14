@@ -2233,6 +2233,75 @@ class TestTeamQBChangedFeature:
 
 
 # ---------------------------------------------------------------------------
+# Rank-aware training sample weights (#643)
+# ---------------------------------------------------------------------------
+
+class TestComputeSampleWeights:
+    """Tests for compute_sample_weights (relevance-weighted Ridge training)."""
+
+    def _arrays(self, rows):
+        import numpy as np
+        base = np.array([r[0] for r in rows], dtype=float)
+        pos = [r[1] for r in rows]
+        seasons = np.array([r[2] for r in rows])
+        return base, pos, seasons
+
+    def test_empty_spec_returns_all_ones(self):
+        from scripts.feature_projections.train_model import compute_sample_weights
+        base, pos, seasons = self._arrays([(10.0, "WR", 2024), (5.0, "WR", 2024)])
+        w = compute_sample_weights(base, pos, seasons, {})
+        assert list(w) == [1.0, 1.0]
+
+    def test_topn_step_bumps_top_tier(self):
+        from scripts.feature_projections.train_model import compute_sample_weights
+        # 50 WRs in one season; top-48 (2×24) get the bump, bottom 2 stay 1.0.
+        rows = [(float(50 - i), "WR", 2024) for i in range(50)]
+        base, pos, seasons = self._arrays(rows)
+        w = compute_sample_weights(base, pos, seasons, {"scheme": "topn_step", "k": 1.0})
+        assert w[0] == 2.0 and w[47] == 2.0
+        assert w[48] == 1.0 and w[49] == 1.0
+
+    def test_topn_step_per_position_pool(self):
+        from scripts.feature_projections.train_model import compute_sample_weights
+        # QB pool top-2N = 24; with 13 QBs all qualify → all bumped.
+        rows = [(float(30 - i), "QB", 2024) for i in range(13)]
+        base, pos, seasons = self._arrays(rows)
+        w = compute_sample_weights(base, pos, seasons, {"scheme": "topn_step", "k": 1.0})
+        assert all(x == 2.0 for x in w)
+
+    def test_topn_step_groups_by_season(self):
+        from scripts.feature_projections.train_model import compute_sample_weights
+        rows = [(10.0, "QB", 2023), (9.0, "QB", 2024)]
+        base, pos, seasons = self._arrays(rows)
+        w = compute_sample_weights(base, pos, seasons, {"scheme": "topn_step", "k": 0.5})
+        assert list(w) == [1.5, 1.5]  # each is its season's QB1
+
+    def test_ppg_within_pos_centers_and_clips(self):
+        from scripts.feature_projections.train_model import compute_sample_weights
+        rows = [(20.0, "WR", 2024), (10.0, "WR", 2024)]  # mean 15
+        base, pos, seasons = self._arrays(rows)
+        w = compute_sample_weights(base, pos, seasons, {"scheme": "ppg_within_pos", "clip": [0.25, 4.0]})
+        assert w[0] == pytest.approx(20.0 / 15.0)
+        assert w[1] == pytest.approx(10.0 / 15.0)
+
+    def test_ppg_within_pos_respects_clip(self):
+        from scripts.feature_projections.train_model import compute_sample_weights
+        # mean = (100 + 9*1)/10 = 10.9 → top 100/10.9 ≈ 9.2 (clip hi 3.0),
+        # the 1.0s → 1/10.9 ≈ 0.09 (clip lo 0.5).
+        rows = [(100.0, "WR", 2024)] + [(1.0, "WR", 2024)] * 9
+        base, pos, seasons = self._arrays(rows)
+        w = compute_sample_weights(base, pos, seasons, {"scheme": "ppg_within_pos", "clip": [0.5, 3.0]})
+        assert w[0] == 3.0  # clipped hi
+        assert w[1] == 0.5  # clipped lo
+
+    def test_unknown_scheme_raises(self):
+        from scripts.feature_projections.train_model import compute_sample_weights
+        base, pos, seasons = self._arrays([(10.0, "WR", 2024)])
+        with pytest.raises(ValueError):
+            compute_sample_weights(base, pos, seasons, {"scheme": "bogus"})
+
+
+# ---------------------------------------------------------------------------
 # Naïve baselines (#575)
 # ---------------------------------------------------------------------------
 

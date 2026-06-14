@@ -148,13 +148,28 @@ market data as model input** — the system's value prop is generating
 upcoming-season projections early in the offseason, long before external
 projections/ADP exist. FP remains an eval-time comparator only.
 
+> **Wave conclusion (2026-06-14):** four NEGATIVEs in a row — base tuning
+> (#639), QB volume (#640), QB ecosystem (#642), and the training objective
+> (#643) — triangulate one finding: **on the current feature set,
+> `v33_tuned_base` is at the achievable frontier for both MAE and ranking.**
+> Every bet that added a feature derived from existing data, or changed the
+> objective on the same features, tied or regressed. The remaining FantasyPros
+> ordering edge is an *information* gap (camp/beat-reporter/injury signal), not
+> a modeling gap. Under the no-market-inputs constraint, the next real lever is
+> **new data acquisition**, not more modeling: the open feature ideas (#641
+> opportunity/efficiency decomposition) and bounded modeling probes (#644
+> monotone GBM, #645 Huber) are worth finishing for completeness, but the
+> evidence predicts they tie. Prioritize sourcing a leakage-free,
+> early-offseason information signal (e.g. beat-writer/role news, snap-share
+> projections, coaching-change encodings) over further learned-model variants.
+
 | # | Experiment | Status |
 |---|---|---|
 | [#639](https://github.com/alex-monroe/ottoneu-db/issues/639) | Per-position base tuning (weights, window, regression strength) | **NEGATIVE** (2026-06-12, iteration look; see experiment log). Residual thread: TE 4-season window, needs `max_history` plumbing. |
 | [#640](https://github.com/alex-monroe/ottoneu-db/issues/640) | QB rushing & pass-volume features — the new QB signal #592 asked for | **NEGATIVE** (2026-06-12, bounded bet stopped on tie; see experiment log). Volume *levels* are priced into PPG history; QB effects below ~0.2 MAE are unresolvable at ~62 clusters. |
 | [#641](https://github.com/alex-monroe/ottoneu-db/issues/641) | Opportunity/efficiency decomposition of the base signal | open |
 | [#642](https://github.com/alex-monroe/ottoneu-db/issues/642) | Pass-catcher ecosystem quality ("who is my QB?") from depth charts | **NEGATIVE** (2026-06-14, stopped on tie; see experiment log). QB-ecosystem signal already subsumed by implied_team_total + own target_share/wopr; team_qb_changed overfit in-sample. |
-| [#643](https://github.com/alex-monroe/ottoneu-db/issues/643) | Rank-aware training: relevance-weighted samples | open — targets the FP ordering gap (the metric downstream actually consumes) |
+| [#643](https://github.com/alex-monroe/ottoneu-db/issues/643) | Rank-aware training: relevance-weighted samples | **NEGATIVE** (2026-06-14; see experiment log). All 3 schemes regress MAE (best v39c +0.026, p=0.015 — *significant*) and don't improve WR/TE ordering. The FP ordering edge is an information gap, not an objective gap. |
 | [#644](https://github.com/alex-monroe/ottoneu-db/issues/644) | Bounded bet: GBM with monotone constraints on the 8 load-bearing features | open — lottery ticket, #592-style discipline |
 | [#645](https://github.com/alex-monroe/ottoneu-db/issues/645) | Micro: Huber loss in the learned combiner | open — cheap filler between larger experiments |
 
