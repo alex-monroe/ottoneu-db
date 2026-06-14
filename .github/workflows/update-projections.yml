@@ -1,13 +1,11 @@
 name: Update Projections
 
+# Projection promotion is a deliberate local action (`just promote`), so this
+# workflow is manual-only. The previous push trigger only watched legacy paths
+# (projection_methods.py / update_projections.py / config.py) and never fired
+# for the active feature-model code under scripts/feature_projections/ or
+# model_config.py — so it was removed rather than extended (#622).
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'scripts/projection_methods.py'
-      - 'scripts/update_projections.py'
-      - 'scripts/config.py'
   workflow_dispatch:
 
 jobs:

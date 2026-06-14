@@ -54,8 +54,7 @@ cd ottoneu_db
 Create a Supabase project and run the schema migration:
 
 ```sql
--- Run schema.sql to create tables
--- Run migrations/002_add_scraper_jobs.sql for job queue
+-- Apply the numbered migrations in migrations/ (in order) to create tables
 ```
 
 ### 3. Backend Setup
@@ -166,9 +165,6 @@ python scripts/update_projections.py
 
 # Verify database contents
 python scripts/check_db.py
-
-# Launch Streamlit dashboard
-streamlit run scripts/visualize_app.py
 ```
 
 ### Automated Daily Updates
@@ -224,7 +220,7 @@ Jobs support:
 **Job queue:**
 - `scraper_jobs`: Persistent job queue with status tracking, dependencies, and retry logic
 
-See `schema.sql` and `migrations/` for full schema.
+See `migrations/` and [docs/generated/db-schema.md](docs/generated/db-schema.md) for the full schema.
 
 ### Frontend Architecture
 
@@ -337,7 +333,6 @@ ottoneu_db/
 │   └── lib/             # TypeScript utilities
 ├── migrations/          # Database migrations
 ├── reports/            # Generated markdown reports (gitignored)
-├── schema.sql          # Database schema
 └── .env                # Environment variables (gitignored)
 ```
 

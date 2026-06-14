@@ -8,7 +8,6 @@ This script checks:
 1. Documentation files referenced in AGENTS.md actually exist
 2. No orphan docs exist that aren't referenced anywhere
 3. Key files mentioned in CODE_ORGANIZATION.md still exist at the stated paths
-4. Schema file (schema.sql) and generated docs haven't drifted too far apart
 
 Usage:
     python scripts/check_docs_freshness.py          # Check and report
