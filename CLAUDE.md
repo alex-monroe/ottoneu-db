@@ -171,6 +171,7 @@ After creating a new migration file in `migrations/` (numbered as the current hi
 1. **Regenerate TypeScript types** using `mcp__supabase__generate_typescript_types` (or `npx supabase gen types typescript`).
 2. **Update `web/types/supabase.ts`** with the regenerated output so the Supabase client recognizes the new table.
 3. **Update `docs/generated/db-schema.md`** — add the new table to the table list and increment the table count.
+4. **Verify with `just check-schema`** — a read-only, on-demand drift check that introspects the live DB and diffs it against `web/types/supabase.ts` and `docs/generated/db-schema.md` (ignoring `fp_*`). It catches a skipped step 2 or 3 (table or column missing from types/docs) immediately instead of as a later confusing `tsc` error, and exits nonzero on drift.
 
 Skipping step 2 will cause TypeScript errors like `Argument of type '"new_table"' is not assignable to parameter of type '...'` when querying the new table.
 
