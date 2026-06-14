@@ -178,6 +178,7 @@ def _learned_preds_for_eval(
         params = train_ridge_loso(
             train_df,
             model_def.interaction_terms,
+            sample_weight_spec=model_def.sample_weight_spec,
             regressor_spec=model_def.regressor_spec,
         )
 

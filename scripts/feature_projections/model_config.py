@@ -6,7 +6,7 @@ Models are defined here and registered in the database by the runner.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 
 @dataclass
@@ -42,6 +42,18 @@ class ModelDefinition:
     # (and applies) the residual only for those positions (GH #592).
     base_model_name: str | None = None
     training_filter: dict = field(default_factory=dict)
+
+    # Rank-aware training (GH #643). When set, learned models weight the Ridge
+    # fit by each sample's *prior-season relevance* so capacity concentrates on
+    # the rosterable tier (whose ordering the projections actually feed). The
+    # weight is derived from the leakage-free base feature value, never actuals.
+    # Schemes (see compute_sample_weights):
+    #   {"scheme": "topn_step", "k": <float>}      → top-2N at (position, season)
+    #                                                 weighted (1 + k), rest 1.0
+    #   {"scheme": "ppg_within_pos", "clip": [lo, hi]} → base_ppg / pos-season
+    #                                                 mean, clipped
+    # Empty (default) → unweighted, byte-identical to the prior trainer.
+    sample_weight_spec: dict = field(default_factory=dict)
 
     # Robust-loss training (GH #645). Empty (default) → Ridge (squared loss).
     # {"type": "huber", "epsilon": <float>} swaps in a Huber loss for learned
@@ -874,20 +886,64 @@ MODELS: dict[str, ModelDefinition] = {
 }
 
 
+# === Rank-aware training variants (GH #643) ===
+# Identical to v33_tuned_base except for the Ridge sample-weight scheme — the
+# only honest way to compare schemes is to vary that one knob. Derived via
+# `replace` so the feature set/interactions never drift from v33.
+_V33 = MODELS["v33_tuned_base"]
+for _name, _spec, _blurb in [
+    (
+        "v39_relevance_step",
+        {"scheme": "topn_step", "k": 1.0},
+        "top-2N players at each (position, season) weighted 2× in the Ridge fit",
+    ),
+    (
+        "v39b_relevance_step_strong",
+        {"scheme": "topn_step", "k": 2.0},
+        "top-2N players weighted 3× (stronger concentration than v39)",
+    ),
+    (
+        "v39c_relevance_ppg",
+        {"scheme": "ppg_within_pos", "clip": [0.25, 4.0]},
+        "continuous weight = base_ppg / (position, season) mean, clipped [0.25, 4]",
+    ),
+]:
+    MODELS[_name] = replace(
+        _V33,
+        name=_name,
+        description=(
+            "Rank-aware training (GH #643): v33_tuned_base with the Ridge fit "
+            "weighted by leakage-free prior-season relevance so capacity "
+            f"concentrates on the rosterable tier — {_blurb}. Same features, "
+            "interactions, and base as v33; only sample_weight_spec differs. "
+            "Co-primary gate: per-position Spearman ρ / top-N hit (the point) "
+            "and MAE non-inferiority. VERDICT: NEGATIVE (held-out rolling "
+            "2023-24) — all three schemes REGRESS ALL MAE (best, v39c, "
+            "+0.026 vs v33, CI [+0.005, +0.047], p=0.015 — a *significant* "
+            "regression) and DO NOT improve ranking where it matters (WR ρ "
+            "0.758 vs 0.762, TE ρ ≤0.738 vs 0.748). Only a tiny QB ρ bump "
+            "(+0.009, 99 samples, unresolvable). Downweighting the bench "
+            "removes the samples that anchor the regression slope; top-tier "
+            "ordering is signal-limited, not fit-capacity-limited. The FP "
+            "ordering edge is an information gap, not an objective-function "
+            "gap. v33 stays active."
+        ),
+        sample_weight_spec=_spec,
+    )
+
+
 # === Robust-loss variants (GH #645) ===
 # Identical to v33_tuned_base except the Ridge squared loss is swapped for a
 # Huber loss at three epsilon settings — derived via `replace` so the feature
 # set never drifts. Bounded completeness probe for the "objective, not features"
 # axis after the rank-aware (#643) regression; the wave evidence predicts a tie.
-from dataclasses import replace as _replace  # local: keep import near use
-
 for _name, _eps in [
     ("v40_huber_e110", 1.10),
     ("v40_huber_e135", 1.35),
     ("v40_huber_e200", 2.00),
 ]:
-    MODELS[_name] = _replace(
-        MODELS["v33_tuned_base"],
+    MODELS[_name] = replace(
+        _V33,
         name=_name,
         description=(
             "Robust-loss probe (GH #645): v33_tuned_base trained with a Huber "
