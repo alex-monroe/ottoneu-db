@@ -42,6 +42,10 @@ from scripts.feature_projections.features.coaching_change import (
     CoachingChangeFeature,
     CoachTenureFeature,
 )
+from scripts.feature_projections.features.contract_movement import (
+    NewContractValueFeature,
+    ContractSignedFeature,
+)
 from scripts.feature_projections.combiner import combine_features
 from scripts.feature_projections.model_config import get_model, MODELS, ModelDefinition, PositionOverride
 from scripts.feature_projections.runner import _resolve_features_for_position
@@ -2334,6 +2338,86 @@ class TestCoachTenureFeature:
 
     def test_missing_context_returns_none(self):
         assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), {}) is None
+
+
+# ---------------------------------------------------------------------------
+# Contract-movement features (spike #651, source #3)
+# ---------------------------------------------------------------------------
+
+class TestNewContractValueFeature:
+    """Tests for new_contract_value_raw (APY-% of a deal signed this offseason)."""
+
+    def setup_method(self):
+        self.feature = NewContractValueFeature()
+
+    def test_name(self):
+        assert self.feature.name == "new_contract_value_raw"
+
+    def test_new_deal_returns_apy_pct(self):
+        ctx = {
+            "target_season": 2025,
+            "contracts_by_player_year": {("qb1", 2025): {"apy_cap_pct": 19.7}},
+        }
+        assert self.feature.compute("qb1", "QB", pd.DataFrame(), pd.DataFrame(), ctx) == 19.7
+
+    def test_no_deal_this_offseason_returns_zero(self):
+        """Residual-safe: a player with no new deal this year gets exactly 0.0."""
+        ctx = {
+            "target_season": 2025,
+            "contracts_by_player_year": {("wr1", 2023): {"apy_cap_pct": 12.0}},
+        }
+        assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) == 0.0
+
+    def test_player_with_no_contract_returns_zero(self):
+        ctx = {
+            "target_season": 2025,
+            "contracts_by_player_year": {("other", 2025): {"apy_cap_pct": 5.0}},
+        }
+        assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) == 0.0
+
+    def test_null_apy_pct_returns_zero(self):
+        ctx = {
+            "target_season": 2025,
+            "contracts_by_player_year": {("wr1", 2025): {"apy_cap_pct": None}},
+        }
+        assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) == 0.0
+
+    def test_missing_lookup_returns_none(self):
+        """No contract data loaded at all -> None (don't fabricate a 0 signal)."""
+        ctx = {"target_season": 2025}
+        assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) is None
+
+    def test_missing_target_season_returns_none(self):
+        ctx = {"contracts_by_player_year": {("wr1", 2025): {"apy_cap_pct": 19.7}}}
+        assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) is None
+
+
+class TestContractSignedFeature:
+    """Tests for contract_signed_raw (binary new-deal-this-offseason)."""
+
+    def setup_method(self):
+        self.feature = ContractSignedFeature()
+
+    def test_name(self):
+        assert self.feature.name == "contract_signed_raw"
+
+    def test_signed_returns_one(self):
+        ctx = {
+            "target_season": 2025,
+            "contracts_by_player_year": {("wr1", 2025): {"apy_cap_pct": 8.0}},
+        }
+        assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) == 1.0
+
+    def test_not_signed_returns_zero(self):
+        ctx = {
+            "target_season": 2025,
+            "contracts_by_player_year": {("wr1", 2022): {"apy_cap_pct": 8.0}},
+        }
+        assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) == 0.0
+
+    def test_missing_lookup_returns_none(self):
+        ctx = {"target_season": 2025}
+        assert self.feature.compute("wr1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) is None
 
 
 # ---------------------------------------------------------------------------

@@ -31,6 +31,7 @@ from scripts.feature_projections.model_config import get_model
 from scripts.feature_projections.runner import (
     _build_coaching_lookup,
     _build_context,
+    _build_contracts_lookup,
     _build_depth_charts_lookup,
     _build_draft_capital_lookup,
     _build_qb_ecosystem_lookups,
@@ -112,6 +113,9 @@ def collect_training_data(
 
     # Per-team-season coaching-change signal once (spike #651).
     coaching_lookup = _build_coaching_lookup(supabase)
+
+    # Per-player offseason contract signings once (spike #651, source #3).
+    contracts_lookup = _build_contracts_lookup(supabase)
 
     # Instantiate features. Residual stacks pull in features from every
     # nested base so the trainer can compute the base prediction per sample.
@@ -199,6 +203,7 @@ def collect_training_data(
                 player_team_by_season=player_team_by_season,
                 qb_quality=qb_quality,
                 team_coaching=coaching_lookup,
+                contracts_by_player_year=contracts_lookup,
             )
 
             effective_features, effective_weights = _resolve_features_for_position(model_def, position)

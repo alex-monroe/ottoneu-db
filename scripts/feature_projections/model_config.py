@@ -889,6 +889,43 @@ MODELS: dict[str, ModelDefinition] = {
         interaction_terms=["coaching_change_raw*position"],
         training_filter={},
     ),
+    "v42_contract_residual": ModelDefinition(
+        name="v42_contract_residual",
+        version=1,
+        description=(
+            "Contract-movement residual (spike #651, source #3): v33_tuned_base "
+            "frozen as the base, plus a tiny secondary Ridge on "
+            "new_contract_value_raw + new_contract_value_raw*position fit to v33 "
+            "residuals across all players (no training filter). "
+            "new_contract_value_raw is the OTC APY-%-of-cap-at-signing of a deal "
+            "the player signed in the target offseason (cap-inflation "
+            "normalized) and exactly 0.0 for the majority who signed no tracked "
+            "deal that year, so with fit_intercept=False those players get a "
+            "byte-identical v33 prediction (mirrors draft_capital #376 / "
+            "coaching_change #651-1). Injects the offseason role-securing signal "
+            "a stats-only model can't see — a new/large deal proxies the team's "
+            "own role expectation (non-market). New `player_contracts` table "
+            "scraped from OverTheCap (nflverse contracts mirror is stale, ends "
+            "2022). Source is leakage-free: FA opens mid-March, before the run. "
+            "VERDICT: NEGATIVE / TIE — favorable but underpowered (held-out "
+            "rolling 2023–25). ALL MAE 2.2244 vs v33 2.2278 (Δ−0.0033, 95% CI "
+            "[−0.0119, +0.0052], p=0.44); RB (the target) Δ−0.0089 (CI "
+            "[−0.0252, +0.0082], p=0.29), WR a tie (+0.0016). v42 wins the "
+            "point estimate on ALL and RB — the first source to lean positive "
+            "rather than flat — but no position clears the gate (CI excludes 0); "
+            "the RB cohort (147 players) is too small to resolve a ~0.009 "
+            "effect. Learned RB coef +0.157 PPG per %-of-cap (big-deal RBs get "
+            "a real boost), but most 'new deals' are minimum contracts (median "
+            "0.4% of cap) → little aggregate signal. Not promoted; v33 stays "
+            "active. The cleanest *new* information tried so far; revisit if the "
+            "RB sample grows or paired with a role/snap signal."
+        ),
+        features=["new_contract_value_raw"],
+        combiner_type="residual",
+        base_model_name="v33_tuned_base",
+        interaction_terms=["new_contract_value_raw*position"],
+        training_filter={},
+    ),
     "naive_prior_season_ppg": ModelDefinition(
         name="naive_prior_season_ppg",
         version=1,

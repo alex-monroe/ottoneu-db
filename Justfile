@@ -229,6 +229,14 @@ backfill-vegas *args:
 backfill-depth-charts *args:
     {{python}} scripts/backfill_depth_charts.py {{args}}
 
+# Backfill team coaching changes from nflverse  (e.g. just backfill-team-coaching --since 2016 ; --dry-run supported)
+backfill-team-coaching *args:
+    {{python}} scripts/backfill_team_coaching.py {{args}}
+
+# Scrape OverTheCap contract history  (e.g. just scrape-otc-contracts --since 2018 ; --dry-run supported)
+scrape-otc-contracts *args:
+    {{python}} scripts/scrape_otc_contracts.py {{args}}
+
 # Seed preseason win totals  (e.g. just seed-win-totals --season 2026)
 seed-win-totals *args:
     {{python}} scripts/seed_preseason_win_totals.py {{args}}

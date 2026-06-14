@@ -1,6 +1,17 @@
 # Spike #651 — Data-acquisition plan for the next projection-accuracy lever
 
-## Status: Complete (2026-06-14) · Source #1 built + tested → TIE (2026-06-14)
+## Status: Complete (2026-06-14) · Source #1 → TIE · Source #3 → TIE (favorable) (2026-06-14)
+
+> **Update 2 (2026-06-14):** Source #3 (**FA/contract movement**) built + tested.
+> The clean nflverse contracts mirror proved **stale** (ends 2022), so OverTheCap
+> was scraped (`scripts/scrape_otc_contracts.py` → new `player_contracts` table,
+> 5,122 deals) — exactly the "primary source if nflverse is stale" path this
+> spike flagged. `new_contract_value_raw` feature + `v42_contract_residual`.
+> **Verdict: NEGATIVE / TIE but favorable** — v42 wins the ALL *and* RB point
+> estimate (ALL Δ−0.0033 p=0.44; RB Δ−0.0089 p=0.29) without clearing the gate;
+> the cleanest new info tried and the first to lean positive, but the RB cohort
+> (147) is underpowered. Not promoted. See the #651 source-#3 section in
+> [experiment-log.md](../generated/experiment-log.md).
 
 > **Update (2026-06-14):** Recommended first acquisition (**coaching change**)
 > was built and run through the full held-out gate. New `team_coaching` table

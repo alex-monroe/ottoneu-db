@@ -37,6 +37,7 @@ the MAE verdict. "—" only for rows predating the column.
 
 | Date | Model | Change | Held-out ALL MAE | Δ vs comparator | 95% CI | Significant? | Rank Δ (ρ / top-N vs comparator) | Protocol | PR |
 |------|-------|--------|------------------|----------|--------|--------------|----------------------------------|----------|-----|
+| 2026-06-14 | v42_contract_residual | #651 spike acquisition #3: two-stage residual on v33 + `new_contract_value_raw` (OTC APY-%-of-cap of a deal signed in the target offseason; new `player_contracts` table scraped from OverTheCap — nflverse mirror stale ≤2022) + `*position`; no-new-deal players byte-identical to v33 | 2.224 | **−0.0033** vs **v33** | [−0.0119, +0.0052] | **N** (p=0.44) — **NEGATIVE / TIE, favorable but underpowered**; v42 wins the ALL *and* RB point estimate (first source to lean positive, not flat), but no position clears the gate. RB (target) Δ−0.0089 (CI [−0.025, +0.008], p=0.29, 147 players); WR tie (+0.0016). RB coef +0.157/%-cap helps big-deal RBs, but median deal is 0.4% of cap. See #651 source-#3 section below | RB ρ 0.791 (top-12 0.500), WR ρ 0.780 — both ≈ v33; top-N unchanged | rolling 2023–2025 (full window; tie) | #651-3 |
 | 2026-06-14 | v41_coaching_residual | #651 spike acquisition #1: two-stage residual on v33 + `coaching_change_raw` (offseason head-coach change, new `team_coaching` table from nflverse `games.csv`) + `coaching_change_raw*position`; coach-stable players byte-identical to v33 | 2.229 | +0.0014 vs **v33** | [−0.0003, +0.0033] | **N** (p=0.106) — **NEGATIVE / TIE**; the *new-information* acquisition the wave's modeling NEGATIVEs called for, but the small coach-changed cohort (~5–10 teams/yr) carries too little signal. Residual α=100 shrinks coefs ≈0. QB hypothesis a dead tie (MAE 3.698 vs 3.697). Per spike plan → next is source #3 (FA/contract). See #651 section below | QB ρ 0.671→0.670, WR ρ 0.780→0.780, TE 0.760→0.759 (all ≈); top-N unchanged | rolling 2023–2025 (full window; tie, nothing to confirm) | #651 |
 | 2026-06-14 | v40_huber_e110 / e135 / e200 | #645 robust loss: Huber instead of Ridge squared loss (epsilon 1.10/1.35/2.00), v33 features. Best = e200 | 2.225 (e200) | −0.008 vs **v33** | [−0.020, +0.005] | **N** (p=0.23) — **NEGATIVE, tie at best**; only e200 (≈Ridge) ties, robust e110/e135 *regress* (+0.018/+0.007). Robustness is the wrong direction. See #645 section below | e200: WR ρ +0.002, QB +0.004, TE −0.002 (≈); top-N ≈ | rolling 2023–24 (iteration look; confirmation window not burned) | #645 |
 | 2026-06-14 | v39_relevance_step / v39b / v39c | #643 rank-aware training: Ridge fit weighted by prior-season relevance (topn_step k=1/k=2; ppg_within_pos). 3 schemes, best = v39c | 2.259 (v39c) | **+0.026** vs **v33** | [+0.005, +0.047] | **SIGNIFICANT REGRESSION** (p=0.015) — **NEGATIVE, all 3 schemes worse**; ranking *not* improved where it matters (WR/TE ρ down). See #643 section below | WR ρ 0.762→0.758, TE ρ 0.748→0.724–0.738 (worse); QB ρ +0.009 / top-12 0.417→0.500 (99 samples, unresolvable) | rolling 2023–24 (iteration look; confirmation window not burned) | #643 |
@@ -177,6 +178,49 @@ Caveat for future base work: the win is small and concentrated at RB/WR; the
 isolated-base sweep still over-projects (bias −0.57 at the chosen cell) — the
 learned intercept absorbs level, so isolated-base bias is not a gate. The
 3-season window length and per-position weights were not swept (follow-ups).
+
+### Contract-movement acquisition (#651, spike source #3) — NEGATIVE / TIE (favorable), 2026-06-14
+
+The second [data-acquisition spike](../exec-plans/data-acquisition-spike-651.md)
+source, taken after coaching change (#1) tied: an offseason role-securing signal
+from player contracts. A new (especially large) deal is a **non-market** proxy
+for how a team values a player's role — it prices the team's own expectation, not
+a fantasy consensus — so it clears the hard constraint. FA opens mid-March, so a
+deal signed in the target offseason is leakage-free for that season.
+
+**Acquisition — the hard part, as the spike predicted.** The clean GitHub-hosted
+source (nflverse contracts mirror) is **stale**: last published 2022-04, `max
+year_signed = 2022`, zero rows for the 2023–2025 held-out window. So the primary
+source was required: **OverTheCap** (host allowlisted with the spike). OTC's
+per-position `contract-history` pages render the full historical table (Player,
+Year Signed, APY, Guaranteed, **APY as % of cap at signing** — cap-inflation
+normalized) — `scripts/scrape_otc_contracts.py` parses QB/RB/WR/TE into a new
+`player_contracts` table (5,122 rows, ~577–745 deals/yr 2023–25). Name-matched to
+`players` by (normalized name, position); the usual name-match tax drops a few
+nickname mismatches (e.g. "Matt"/"Matthew" Stafford) — fringe-heavy, no leakage.
+
+**Feature/model:** `new_contract_value_raw` (APY-%-of-cap of a deal signed in the
+target offseason; exactly 0.0 for the majority who signed none → residual-safe) +
+`contract_signed_raw` (binary). `v42_contract_residual` is a two-stage residual on
+`v33_tuned_base` (fit_intercept=False) — no-new-deal players get byte-identical
+v33 predictions (mirrors draft_capital #376).
+
+**Result (rolling held-out 2023–2025):** TIE, but **the first source to lean
+favorable** rather than flat. v42 wins the point estimate on **ALL** (MAE 2.2244
+vs 2.2278, Δ−0.0033, CI [−0.0119, +0.0052], p=0.44) *and* on the targeted **RB**
+position (2.3847 vs 2.3936, Δ−0.0089, CI [−0.0252, +0.0082], p=0.29, 147 players)
+— but neither clears the gate (CI excludes 0 required). WR is a clean tie
+(+0.0016, p=0.51). The learned RB coefficient is +0.157 PPG per %-of-cap (a
+bell-cow RB on a 10%-of-cap deal gets ~+1.5 PPG), but most "new deals" are
+minimum contracts (median 0.4% of cap), so the aggregate signal is thin and the
+RB cohort too small to resolve a ~0.009 effect.
+
+**Read:** contract movement is the cleanest genuinely-*new* (non-nflverse,
+non-market) information tried, and unlike same-data refits or the coaching tie it
+moves the RB point estimate in the right direction — consistent with the spike's
+"modest-but-real WR/RB" hypothesis. Not promoted; v33 stays active. Worth
+revisiting if the RB sample grows (more eval seasons) or if it's paired with the
+role/snap signal the spike's source #2 (north-star) wanted it to feed.
 
 ### Coaching-change acquisition (#651, spike source #1) — NEGATIVE / TIE, 2026-06-14
 

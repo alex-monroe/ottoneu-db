@@ -57,6 +57,10 @@ from scripts.feature_projections.features.coaching_change import (
     CoachingChangeFeature,
     CoachTenureFeature,
 )
+from scripts.feature_projections.features.contract_movement import (
+    NewContractValueFeature,
+    ContractSignedFeature,
+)
 
 FEATURE_REGISTRY: dict[str, type] = {
     "weighted_ppg": WeightedPPGFeature,
@@ -93,4 +97,6 @@ FEATURE_REGISTRY: dict[str, type] = {
     "position_mean": PositionMeanFeature,
     "coaching_change_raw": CoachingChangeFeature,
     "coach_tenure_raw": CoachTenureFeature,
+    "new_contract_value_raw": NewContractValueFeature,
+    "contract_signed_raw": ContractSignedFeature,
 }

@@ -279,6 +279,33 @@ def _build_coaching_lookup(supabase) -> dict[tuple[str, int], dict[str, Any]]:
     return lookup
 
 
+def _build_contracts_lookup(supabase) -> dict[tuple[str, int], dict[str, Any]]:
+    """Fetch player_contracts and return (player_id, year_signed) -> {apy_cap_pct,...}.
+
+    Powers the new_contract_value_raw / contract_signed_raw features (spike #651,
+    source #3). Keyed by year_signed: a deal signed in offseason N (March–April)
+    is known before season N's games, so reading the target season's row is a
+    forward-looking, leakage-free role signal.
+    """
+    rows = fetch_all_rows(
+        supabase,
+        "player_contracts",
+        "player_id, year_signed, apy_cap_pct, value, guaranteed",
+    )
+    lookup: dict[tuple[str, int], dict[str, Any]] = {}
+    for r in rows:
+        pid = r.get("player_id")
+        year = r.get("year_signed")
+        if not pid or year is None:
+            continue
+        lookup[(str(pid), int(year))] = {
+            "apy_cap_pct": r.get("apy_cap_pct"),
+            "value": r.get("value"),
+            "guaranteed": r.get("guaranteed"),
+        }
+    return lookup
+
+
 def _build_qb_ecosystem_lookups(
     supabase,
 ) -> tuple[dict[tuple[str, int], str], dict[tuple[str, int], str]]:
@@ -396,6 +423,7 @@ def _build_context(
     player_team_by_season: dict[tuple[str, int], str] | None = None,
     qb_quality: dict[tuple[str, int], float] | None = None,
     team_coaching: dict[tuple[str, int], dict[str, Any]] | None = None,
+    contracts_by_player_year: dict[tuple[str, int], dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Build the context dict for a player's feature computation."""
     context: dict[str, Any] = {"target_season": target_season}
@@ -469,6 +497,12 @@ def _build_context(
     # depth-chart team (player_team_by_season) for team-changer safety.
     if team_coaching is not None:
         context["team_coaching"] = team_coaching
+
+    # Per-player offseason contract signings for the new_contract_value_raw /
+    # contract_signed_raw features (spike #651, source #3), keyed by
+    # (player_id, year_signed).
+    if contracts_by_player_year is not None:
+        context["contracts_by_player_year"] = contracts_by_player_year
 
     # QB starter designation
     if qb_starters and position == "QB":
@@ -623,6 +657,9 @@ def run_model(
     # Per-team-season coaching-change signal once (spike #651).
     coaching_lookup = _build_coaching_lookup(supabase)
 
+    # Per-player offseason contract signings once (spike #651, source #3).
+    contracts_lookup = _build_contracts_lookup(supabase)
+
     # Leakage-free expected-games per (player, target season) — the #587 stage-c
     # availability haircut. Built from each player's prior-season games_played
     # (recency-weighted "history" mode); seasons strictly before the target only.
@@ -703,6 +740,7 @@ def run_model(
                 player_team_by_season=player_team_by_season,
                 qb_quality=qb_quality,
                 team_coaching=coaching_lookup,
+                contracts_by_player_year=contracts_lookup,
             )
 
             # Resolve position-specific features. For residual models, the
