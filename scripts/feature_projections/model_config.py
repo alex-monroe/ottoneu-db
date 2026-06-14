@@ -797,7 +797,15 @@ MODELS: dict[str, ModelDefinition] = {
             "the proper version of the failed historical team_context (#391). "
             "Both are None for QB/RB/K, so each global coefficient is a WR/TE "
             "coefficient. A team_qb_quality_raw*position interaction lets WR "
-            "and TE weight ecosystem differently. Full Ridge refit."
+            "and TE weight ecosystem differently. Full Ridge refit. VERDICT: "
+            "NEGATIVE (stopped on tie, confirmation window unburned) — "
+            "held-out rolling 2023-24: ALL Δ +0.001 vs v33 (p=0.86, dead "
+            "tie); WR +0.010 (p=0.52), TE −0.010 (p=0.37) — both noise. The "
+            "QB-ecosystem signal is already subsumed by implied_team_total "
+            "(offensive environment) + the WR's own target_share/wopr "
+            "(opportunity reflects QB quality). team_qb_changed_raw earns a "
+            "large in-sample coefficient that does not generalize — a clean "
+            "in-sample-vs-held-out overfit example."
         ),
         features=[
             "weighted_ppg_tuned_no_qb",
