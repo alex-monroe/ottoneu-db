@@ -34,6 +34,7 @@ from scripts.feature_projections.runner import (
     _build_depth_charts_lookup,
     _build_draft_capital_lookup,
     _build_qb_ecosystem_lookups,
+    _build_red_zone_lookup,
     _build_vegas_lines_lookup,
     _collect_feature_names_recursive,
     _compute_pooling_k,
@@ -106,6 +107,7 @@ def collect_training_data(
 
     # Fetch opening-day depth-chart tiers once (used across all training seasons)
     depth_charts_lookup = _build_depth_charts_lookup(supabase)
+    red_zone_lookup = _build_red_zone_lookup(supabase)  # #671
 
     # QB-ecosystem lookups for team_qb_quality_raw / team_qb_changed_raw (#642);
     # per-season centered QB1 PPG computed in the loop from that season's history.
@@ -197,6 +199,7 @@ def collect_training_data(
                 vegas_lines=vegas_lookup,
                 vegas_league_means=vegas_league_means,
                 depth_charts=depth_charts_lookup,
+                red_zone=red_zone_lookup,
                 qb1_by_team=qb1_by_team,
                 player_team_by_season=player_team_by_season,
                 qb_quality=qb_quality,

@@ -953,6 +953,80 @@ class TestWeightedQBVolumeEfficiencyFeature:
         )
 
 
+class TestWeightedXFPRedZoneFeature:
+    """Tests for the red-zone xFP base (#671)."""
+
+    def setup_method(self):
+        from scripts.feature_projections.features.xfp_redzone import WeightedXFPRedZoneFeature
+        self.feature = WeightedXFPRedZoneFeature()
+        self.base = WeightedPPGTunedNoQBFeature()
+
+    def test_name_and_base(self):
+        assert self.feature.name == "weighted_xfp_redzone"
+        assert self.feature.is_base is True
+
+    def test_no_redzone_context_identical_to_base(self):
+        hist = make_history_df([{"season": 2024, "ppg": 12.0, "games_played": 17}])
+        nfl = make_nfl_stats_df([{"season": 2024, "rushing_tds": 8}])
+        assert self.feature.compute("p1", "RB", hist, nfl, {}) == self.base.compute("p1", "RB", hist, nfl, {})
+
+    def test_missing_rz_row_keeps_realized(self):
+        hist = make_history_df([{"season": 2024, "ppg": 12.0, "games_played": 17}])
+        nfl = make_nfl_stats_df([{"season": 2024, "rushing_tds": 8}])
+        ctx = {"red_zone": {("other", 2024): {"rz_carries": 1, "rz_targets": 0,
+               "rz_pass_attempts": 0, "gz_carries": 1, "gz_targets": 0}}}
+        assert self.feature.compute("p1", "RB", hist, nfl, ctx) == self.base.compute("p1", "RB", hist, nfl, ctx)
+
+    def test_expected_td_points_goal_line_weighting(self):
+        # A goal-line carry is worth far more expected rush TD than a 10–20 carry.
+        gz = self.feature._expected_td_points(
+            {"gz_carries": 10, "rz_carries": 10, "rz_targets": 0, "gz_targets": 0, "rz_pass_attempts": 0})
+        outer = self.feature._expected_td_points(
+            {"gz_carries": 0, "rz_carries": 10, "rz_targets": 0, "gz_targets": 0, "rz_pass_attempts": 0})
+        assert gz > 5 * outer
+
+    def test_td_lucky_season_regresses_down(self):
+        """A back who scored more TDs than his RZ role implies is pulled down."""
+        hist = make_history_df([{"season": 2024, "ppg": 14.0, "games_played": 17}])
+        # 12 rush TDs but only 10 GZ + 10 outer carries → expected ~3.6 TDs ≪ 12.
+        nfl = make_nfl_stats_df([{"season": 2024, "rushing_tds": 12}])
+        ctx = {"red_zone": {("p1", 2024): {"gz_carries": 10, "rz_carries": 20,
+               "rz_targets": 0, "gz_targets": 0, "rz_pass_attempts": 0}}}
+        assert self.feature.compute("p1", "RB", hist, nfl, ctx) < 14.0
+
+
+class TestTDRegressionRawFeature:
+    """Tests for the additive red-zone TD-regression flag (#671)."""
+
+    def setup_method(self):
+        from scripts.feature_projections.features.xfp_redzone import TDRegressionRawFeature
+        self.feature = TDRegressionRawFeature()
+
+    def test_name_and_not_base(self):
+        assert self.feature.name == "td_regression_raw"
+        assert self.feature.is_base is False
+
+    def test_none_without_redzone_context(self):
+        hist = make_history_df([{"season": 2024, "ppg": 12.0, "games_played": 17}])
+        assert self.feature.compute("p1", "RB", hist, pd.DataFrame(), {}) is None
+
+    def test_positive_when_overperformed_tds(self):
+        """Scored more TD points than red-zone role implies → positive flag."""
+        hist = make_history_df([{"season": 2024, "ppg": 14.0, "games_played": 17}])
+        nfl = make_nfl_stats_df([{"season": 2024, "rushing_tds": 12}])  # 12 TDs
+        ctx = {"red_zone": {("p1", 2024): {"gz_carries": 5, "rz_carries": 10,  # expects ~1.8 TDs
+               "rz_targets": 0, "gz_targets": 0, "rz_pass_attempts": 0}}}
+        val = self.feature.compute("p1", "RB", hist, nfl, ctx)
+        assert val is not None and val > 0  # over-performed → due to regress down
+
+    def test_negative_when_underperformed_tds(self):
+        hist = make_history_df([{"season": 2024, "ppg": 10.0, "games_played": 17}])
+        nfl = make_nfl_stats_df([{"season": 2024, "rushing_tds": 1}])  # only 1 TD
+        ctx = {"red_zone": {("p1", 2024): {"gz_carries": 20, "rz_carries": 30,  # heavy role
+               "rz_targets": 0, "gz_targets": 0, "rz_pass_attempts": 0}}}
+        assert self.feature.compute("p1", "RB", hist, nfl, ctx) < 0  # unlucky → positive regression
+
+
 class TestRegressionToMeanTieredFeature:
     """Tests for the tiered regression-to-mean feature (GH #304)."""
 

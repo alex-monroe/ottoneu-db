@@ -37,6 +37,8 @@ the MAE verdict. "—" only for rows predating the column.
 
 | Date | Model | Change | Held-out ALL MAE | Δ vs comparator | 95% CI | Significant? | Rank Δ (ρ / top-N vs comparator) | Protocol | PR |
 |------|-------|--------|------------------|----------|--------|--------------|----------------------------------|----------|-----|
+| 2026-06-15 | v47_td_regression | #671 Phase 2 (additive): v33 + `td_regression_raw` — recency-weighted per-game gap between realized TD points and red-zone-role-expected TD points (new `red_zone_usage` table), so the combiner can fade TD-lucky players | 2.242 | +0.018 vs **v33** | [−0.004, +0.040] | **N** (p=0.108) — **NEGATIVE / tie-leaning-worse**. Keeps the realized base (unlike v46) but the TD-luck flag adds variance, not net signal. RB −0.008 (p=0.586, the position where goal-line role matters most — but noise); WR/TE/QB worse. TD over/under-performance vs RZ role doesn't predict next-year PPG well enough to beat v33's existing role proxies. See #671 Phase 2 section below | RB ρ 0.791→0.790, WR 0.782→0.776, TE 0.759→0.761 (all ≈) | rolling 2023–2025 (one look) | #671 |
+| 2026-06-15 | v46_xfp_redzone | #671 Phase 2 (base-swap): v33 with base → `weighted_xfp_redzone` — each season's realized TDs replaced by red-zone-usage-expected TDs (league RZ→TD model, rush-TD corr 0.92; goal-line carry ≈ 7× a 10–20 carry). The "proper xFP" L1 couldn't build without RZ data | 2.258 | +0.030 vs **v33** | (not separately tested; dominated) | **NEGATIVE** — worse than v33 across positions (ALL +0.030; WR +0.035, TE +0.045; QB/RB ≈). Same failure mode as L1/L5: replacing realized TDs in the *base* discards realized-TD persistence, and since RZ→TD corr is 0.92 the expected ≈ realized so the swap mostly just removes signal. See #671 Phase 2 section below | QB ρ +0.004, RB −0.004, WR −0.005, TE −0.010 (all ≈/worse) | rolling 2023–2025 (one look) | #671 |
 | 2026-06-15 | v45_qb_volume_model | #667 spike L5: QB volume×regressed-efficiency base — v44 with base → `weighted_qb_volume_efficiency` (QB-only: reconstruct each season as realized attempts/g × efficiency [YPA, TD-rate, INT-rate, YPC] shrunk toward QB population; non-QB identical to v44) | 2.236 | +0.060 QB vs **v44** | [−0.032, +0.158] | **NEGATIVE** — L5 *removes* signal. QB MAE 3.617 vs **v44** 3.557 (Δ +0.060, p=0.21) and QB ρ 0.686 vs 0.696 — both **worse than v44**. Still beats v33 (QB 3.617 vs 3.697) only by inheriting v44's pooling. Fully regressing QB efficiency over-strips real skill (elite YPA/TD QBs pulled to average), hurting ordering. Triangulates with #640 (QB volume features tied) + L1 (TD regression tied): **same-data QB efficiency reconstruction is tapped — the QB win is L3 pooling, not volume/efficiency decomposition.** See #667 L5 section below | QB ρ 0.696→0.686 (worse vs v44); +0.015 vs v33 | rolling 2023–2025 (one look) | #667 |
 | 2026-06-15 | v44_eb_pooling_perpos | #667 spike L3 follow-up: per-position EB pooling — v43 with `partial_pooling` → `partial_pooling_eb` (k no longer global 1.0 but the method-of-moments `k_g = σ²_g/τ²_g` estimated per position from each fold's training population; est. k≈0.5–0.7, QB highest, i.e. v43 over-shrank) | 2.237 | +0.0003 vs **v33** | [−0.034, +0.034] | ALL **N** (p=0.98, dead tie) — but **QB MAE −0.166, CI [−0.324, −0.025], p=0.020 SIGNIFICANT** (stronger than v43's p=0.041); QB bias −0.563→−0.285. Balanced MAE 2.459→2.423 (−0.036); no position regresses. **QB ρ +0.027, CI [−0.0015, +0.061], p=0.068** — improved from v43 (0.087), CI now *barely* spans 0 (just shy of the ranking gate). Strictly dominates v43 on the QB story; **strongest promotion candidate of the spike** (operator call). Stopped iterating here to avoid forking-path inflation on the eval window. See #667 L3 section below | **QB ρ 0.669→0.697 (+0.027, p=0.068)**, WR/RB/TE ≈; QB top-12 hit unchanged | rolling 2023–2025 (one look) | #667 |
 | 2026-06-15 | v43_eb_pooling | #667 spike L3: empirical-Bayes partial pooling — v33 with `regression_to_mean` → `partial_pooling` (shrinkage toward positional mean now scales to sample size, `w_p = n_p/(n_p+k)`, `n_p` = effective full-seasons played, `k`=1; prior = positional mean, else identical to v33) | 2.223 | **−0.005** vs **v33** | [−0.032, +0.022] | ALL **N** (p=0.72) — tie overall; **QB MAE −0.119, CI [−0.247, −0.004], p=0.041 SIGNIFICANT** — the spike's first significant win, at the worst & (Superflex) most valuable position. Balanced MAE 2.450→2.418 (−0.032); QB bias −0.549→−0.317; WR −0.017, RB −0.010 (tiny wins), TE +0.017 (slight). **Strongest candidate of the spike; promotion left to operator** (ALL-MAE gate is a tie, QB ρ trends but isn't significant). See #667 L3 section below | **QB ρ 0.671→0.690 (+0.019, p=0.087, NS but trending)**, WR +0.004, RB +0.004, TE −0.006; QB/WR/RB top-N ≈ or up | rolling 2023–2025 (full window; one look) | #667 |
@@ -54,6 +56,43 @@ the MAE verdict. "—" only for rows predating the column.
 | 2026-06-10 | v31_depth_chart | #599 backfill of 2021–2023 player_stats (coverage 29–40%→82–84%); all models re-projected/retrained on the corrected population | 2.232 | **−0.091** vs v14 | [−0.163, −0.020] | **Y** (p=0.014, 617 clusters) | — (predates column; see #598 tables in holdout report) | rolling 2023–2025 | #599 backfill |
 | 2026-06-10 | v31_depth_chart | same — fixed window (3-season train handicap) | 2.269 | −0.020 vs v14 | [−0.113, +0.078] | N (p=0.68) | — | fixed 2021–23→24–25 | #599 backfill |
 | 2026-06-10 | v20_learned_usage | same backfill — over-projection bias check | 2.325 | — | bias −1.060→**−0.032** | bias artifact removed | — | fixed | #599 backfill |
+
+### Red-zone xFP (#671) — NEGATIVE: new information that doesn't move PPG, 2026-06-15
+
+The #667 spike concluded the residual gap to FantasyPros is an *information* gap,
+so #671 acquired genuinely new information: per-player-season **red-zone /
+goal-line usage** from nflverse PBP (new `red_zone_usage` table, 2018–2025,
+3,824 rows). Red-zone usage is the role-based "expected TDs" signal L1 lacked — a
+goal-line back *should* score the rushing TDs. The league RZ→TD model is strong
+(`corr(expected_rush_td, realized) = 0.92`; a goal-line carry ≈ 7× a 10–20 carry
+in expected rush TDs). Two modeling uses were gated on the rolling held-out
+harness:
+
+- **v46 — base-swap** (`weighted_xfp_redzone`): replace each season's realized
+  TDs with RZ-expected TDs. **NEGATIVE**, ALL MAE 2.258 vs v33 2.228 (+0.030),
+  worse at WR/TE. Same failure as L1/L5: de-noising the *base* discards the
+  realized-TD persistence the combiner was using, and because RZ→TD corr is 0.92
+  the expected ≈ realized, so the swap nets out as signal removal.
+- **v47 — additive flag** (`td_regression_raw` = realized − RZ-expected TD points,
+  recency-weighted): keep the realized base, add the over/under-performance
+  signal so the model can fade TD-lucky players. **NEGATIVE / tie**, ALL MAE
+  2.242 vs 2.228 (Δ +0.018, p=0.108). RB −0.008 (p=0.586) — the position where
+  goal-line role is most TD-decisive, but noise. WR/TE/QB worse.
+
+**Read — the important finding.** Even *new, high-quality* information doesn't
+beat v33, because (1) v33 already proxies red-zone role indirectly through
+`usage_share`, `depth_chart_position`, `implied_team_total`, and `draft_capital`
+(starters/high-draft-capital backs get the goal-line work), and (2) TD
+over/under-performance has too little year-over-year predictive value for
+*next-season PPG* to overcome the variance it adds at ~62–290 players/position.
+This refines the spike's conclusion: the FantasyPros edge is **not** TD-luck /
+red-zone role — those are already captured. It is something the analysts encode
+that neither our box-score stats nor red-zone usage carry (likely forward-looking
+role/scheme/personnel changes — the #651 coaching/contract track). **Not
+promoted; v33 stays active.** The `red_zone_usage` data remains in the DB and is
+useful for non-projection surfaces (in-season analysis, the site), and for any
+future week-grain work — the acquisition was sound; the season-PPG *modeling*
+lever is what came up empty.
 
 ### Structural levers spike (#667) — ranking-significance gate built + validated, 2026-06-15
 
