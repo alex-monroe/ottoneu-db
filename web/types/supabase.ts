@@ -883,6 +883,53 @@ export type Database = {
           },
         ]
       }
+      red_zone_usage: {
+        Row: {
+          created_at: string
+          gz_carries: number
+          gz_targets: number
+          id: string
+          player_id: string
+          rz_carries: number
+          rz_pass_attempts: number
+          rz_targets: number
+          season: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          gz_carries?: number
+          gz_targets?: number
+          id?: string
+          player_id: string
+          rz_carries?: number
+          rz_pass_attempts?: number
+          rz_targets?: number
+          season: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          gz_carries?: number
+          gz_targets?: number
+          id?: string
+          player_id?: string
+          rz_carries?: number
+          rz_pass_attempts?: number
+          rz_targets?: number
+          season?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "red_zone_usage_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: true
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_coaching: {
         Row: {
           coach_tenure_years: number
