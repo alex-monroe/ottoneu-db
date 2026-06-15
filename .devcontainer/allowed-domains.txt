@@ -46,7 +46,14 @@ www.draftsharks.com
 www.fantasypros.com
 
 # Supabase (project ref rbinbcwinchphipvcfqk)
+# Data plane (PostgREST/REST — the anon-key path the Next.js app uses):
 rbinbcwinchphipvcfqk.supabase.co
+# Control plane (Management API — what the Supabase MCP server, authed with the
+# sbp_ personal access token, uses for list_projects/apply_migration/execute_sql/
+# list_tables/etc.). Without this the stdio MCP handshake still shows "connected"
+# in /mcp (it's local), but tool enumeration against the API is firewall-dropped,
+# so no Supabase tools register inside the devcontainer.
+api.supabase.com
 
 # Projection data sources (spike #651) — contracts / coaching
 # nflverse sources (coaching via import_schedules, snap counts, combine, rosters,
