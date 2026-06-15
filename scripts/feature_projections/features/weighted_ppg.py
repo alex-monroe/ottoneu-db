@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 import pandas as pd
 
+from scripts.config import SCORING_SETTINGS
 from scripts.feature_projections.features.base import ProjectionFeature
 
 
@@ -264,6 +265,131 @@ class WeightedPPGPerPositionTunedFeature(WeightedPPGNoQBTrajectoryFeature):
 
     def _recency_weights(self, position: str) -> list[float]:
         return self.POSITION_RECENCY_WEIGHTS.get(position, self.RECENCY_WEIGHTS)
+
+
+# League TD-rate-per-opportunity priors, by position and TD type (GH #667, L1).
+# Computed offline from 2018–2025 nfl_stats (pooled TDs / pooled opportunities),
+# the same embedded-constant pattern as ROOKIE_GROWTH_CURVES above. Only the
+# TD types that are real signal for a position are listed: QB pass+rush, RB
+# rush+rec, WR rec+rush, TE rec. (Non-QB "passing TDs" and TE rushing TDs are
+# trick-play noise and are left at their realized value.) `opp` names the
+# nfl_stats opportunity column whose volume the rate multiplies.
+TD_RATE_PRIORS: dict[str, dict[str, tuple[str, float]]] = {
+    #            td column        (opportunity column,      league rate)
+    "QB": {"passing_tds":   ("passing_attempts", 0.04411),
+           "rushing_tds":   ("rushing_attempts", 0.04608)},
+    "RB": {"rushing_tds":   ("rushing_attempts", 0.03102),
+           "receiving_tds": ("receptions",       0.03863)},
+    "WR": {"receiving_tds": ("receptions",       0.07648),
+           "rushing_tds":   ("rushing_attempts", 0.03955)},
+    "TE": {"receiving_tds": ("receptions",       0.07881)},
+}
+
+# Empirical-Bayes prior strength per opportunity type, in opportunity units: the
+# shrink weight on a player's own realized TD rate is opp / (opp + beta), so a
+# high-volume starter keeps most of their own rate while a low-volume player is
+# pulled hard toward the league prior. A full-time role lands near a 0.5–0.7
+# self-weight; this is the deliberately un-tuned v1 (a proper per-fold sweep of
+# beta is the L3 empirical-Bayes follow-up, not an eyeballed knob here).
+TD_PRIOR_STRENGTH: dict[str, float] = {
+    "passing_attempts": 550.0,
+    "rushing_attempts": 180.0,
+    "receptions": 60.0,
+}
+
+# Fantasy points per TD by type, pulled from the league scoring config so the
+# correction matches the actual scoring (no hardcoded point values).
+_TD_POINTS = {
+    "passing_tds": SCORING_SETTINGS["passing_tds"],
+    "rushing_tds": SCORING_SETTINGS["rushing_tds"],
+    "receiving_tds": SCORING_SETTINGS["receiving_tds"],
+}
+
+
+class WeightedXFPTunedNoQBFeature(WeightedPPGTunedNoQBFeature):
+    """xFP base (GH #667, L1): weighted past *expected* PPG, not realized PPG.
+
+    A drop-in replacement for ``weighted_ppg_tuned_no_qb`` (same tuned recency
+    weights, same games-reliability scaling, same QB/K no-trajectory rule) that
+    differs in exactly one thing: **the quantity being autoregressed.** Realized
+    PPG bundles stable volume with noisy efficiency (TD rate especially), and
+    autoregressing a noise-contaminated quantity onto a noisier version of
+    itself hits a variance floor no combiner can beat (the 2026-06 MAE wall).
+
+    For each historical season we replace realized touchdowns with
+    **opportunity-expected** touchdowns — each TD type's rate is shrunk toward
+    the league prior with strength proportional to the player's opportunity
+    volume (``opp / (opp + beta)``) — and adjust that season's PPG by the
+    per-game TD-points delta:
+
+        xfp_ppg = ppg + (expected_TD_points - realized_TD_points) / games_played
+
+    Yards, receptions, and interceptions stay realized; only the TD component
+    (the dominant, hardest-regressing efficiency noise) is regressed. A season
+    with no matching nfl_stats row falls back to realized PPG. Everything
+    downstream (recency weighting, rookie trajectory) is inherited unchanged —
+    it simply operates on the xFP-adjusted per-season values.
+    """
+
+    @property
+    def name(self) -> str:
+        return "weighted_xfp_tuned_no_qb"
+
+    @property
+    def is_base(self) -> bool:
+        return True
+
+    @staticmethod
+    def _expected_tds(realized: float, opp: float, beta: float, rate: float) -> float:
+        """Volume-weighted shrink of realized TDs toward the opportunity-expected count."""
+        if opp <= 0:
+            return realized  # no opportunity to regress on — keep realized
+        w = opp / (opp + beta)
+        return w * realized + (1.0 - w) * rate * opp
+
+    def _xfp_adjust(
+        self, history_df: pd.DataFrame, nfl_stats_df: pd.DataFrame, position: str
+    ) -> pd.DataFrame:
+        """Return a copy of history_df with `ppg` replaced by the xFP-adjusted PPG."""
+        priors = TD_RATE_PRIORS.get(position)
+        if not priors or history_df.empty or nfl_stats_df is None or nfl_stats_df.empty:
+            return history_df
+
+        nfl_by_season = {
+            int(r["season"]): r
+            for _, r in nfl_stats_df.iterrows()
+            if pd.notna(r.get("season"))
+        }
+        out = history_df.copy()
+        new_ppg = []
+        for _, row in out.iterrows():
+            ppg = float(row["ppg"]) if pd.notna(row.get("ppg")) else None
+            games = float(row.get("games_played") or 0)
+            nfl = nfl_by_season.get(int(row["season"])) if pd.notna(row.get("season")) else None
+            if ppg is None or games <= 0 or nfl is None:
+                new_ppg.append(row.get("ppg"))
+                continue
+            delta_pts = 0.0
+            for td_col, (opp_col, rate) in priors.items():
+                realized = float(nfl.get(td_col) or 0)
+                opp = float(nfl.get(opp_col) or 0)
+                beta = TD_PRIOR_STRENGTH[opp_col]
+                expected = self._expected_tds(realized, opp, beta, rate)
+                delta_pts += (expected - realized) * _TD_POINTS[td_col]
+            new_ppg.append(ppg + delta_pts / games)
+        out["ppg"] = new_ppg
+        return out
+
+    def compute(
+        self,
+        player_id: str,
+        position: str,
+        history_df: pd.DataFrame,
+        nfl_stats_df: pd.DataFrame,
+        context: dict[str, Any],
+    ) -> Optional[float]:
+        adjusted = self._xfp_adjust(history_df, nfl_stats_df, position)
+        return super().compute(player_id, position, adjusted, nfl_stats_df, context)
 
 
 class WeightedPPGRookieGrowthFeature(WeightedPPGFeature):

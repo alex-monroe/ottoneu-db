@@ -14,6 +14,7 @@ from scripts.feature_projections.features.weighted_ppg import (
     WeightedPPGRookieGrowthFeature,
     WeightedPPGRookieGrowthNoQBFeature,
     WeightedPPGTunedNoQBFeature,
+    WeightedXFPTunedNoQBFeature,
     ROOKIE_GROWTH_CURVES,
     ROOKIE_MIN_GAMES_FULL_WEIGHT,
 )
@@ -25,6 +26,10 @@ from scripts.feature_projections.features.usage_share import UsageShareFeature, 
 from scripts.feature_projections.features.regression_to_mean import (
     RegressionToMeanFeature,
     RegressionToMeanTieredFeature,
+)
+from scripts.feature_projections.features.partial_pooling import (
+    PartialPoolingFeature,
+    PartialPoolingEBFeature,
 )
 from scripts.feature_projections.features.snap_trend import SnapTrendFeature
 from scripts.feature_projections.features.qb_starter_usage import QBStarterUsageFeature, QBStarterBackupPenaltyFeature
@@ -187,6 +192,75 @@ class TestWeightedPPGTunedNoQBFeature:
         """The tuned subclass overrides, not mutates, the parent's weights."""
         assert WeightedPPGFeature.RECENCY_WEIGHTS == [0.55, 0.25, 0.20]
         assert WeightedPPGTunedNoQBFeature.RECENCY_WEIGHTS == [0.65, 0.20, 0.15]
+
+
+# ---------------------------------------------------------------------------
+# WeightedXFPTunedNoQBFeature (#667, L1 — xFP target)
+# ---------------------------------------------------------------------------
+
+class TestWeightedXFPTunedNoQBFeature:
+    """Tests for the xFP base feature (GH #667, L1)."""
+
+    def setup_method(self):
+        self.xfp = WeightedXFPTunedNoQBFeature()
+        self.ppg = WeightedPPGTunedNoQBFeature()
+
+    def test_name(self):
+        assert self.xfp.name == "weighted_xfp_tuned_no_qb"
+        assert self.xfp.is_base is True
+
+    def test_inherits_tuned_recency_weights(self):
+        assert self.xfp.RECENCY_WEIGHTS == [0.65, 0.20, 0.15]
+        assert self.xfp.NO_TRAJECTORY_POSITIONS == frozenset({"QB", "K"})
+
+    def test_no_priors_position_identical_to_ppg(self):
+        """K has no TD priors → xFP must equal the plain tuned-PPG base exactly."""
+        hist = make_history_df([{"season": 2024, "ppg": 8.0, "games_played": 17}])
+        nfl = make_nfl_stats_df([{"season": 2024, "receiving_tds": 0, "receptions": 0}])
+        assert self.xfp.compute("p1", "K", hist, nfl, {}) == pytest.approx(
+            self.ppg.compute("p1", "K", hist, nfl, {})
+        )
+
+    def test_missing_nfl_row_falls_back_to_realized(self):
+        """A season with no matching nfl_stats row keeps its realized PPG."""
+        hist = make_history_df([
+            {"season": 2023, "ppg": 12.0, "games_played": 17},
+            {"season": 2024, "ppg": 15.0, "games_played": 17},
+        ])
+        assert self.xfp.compute("p1", "WR", hist, pd.DataFrame(), {}) == pytest.approx(
+            self.ppg.compute("p1", "WR", hist, pd.DataFrame(), {})
+        )
+
+    def test_td_luck_inflated_season_regresses_down(self):
+        """A WR with TDs well above the league rate is pulled below realized PPG."""
+        hist = make_history_df([{"season": 2024, "ppg": 15.0, "games_played": 17}])
+        nfl = make_nfl_stats_df([
+            {"season": 2024, "receiving_tds": 12, "receptions": 80,
+             "rushing_tds": 0, "rushing_attempts": 0},
+        ])
+        xfp_val = self.xfp.compute("p1", "WR", hist, nfl, {})
+        assert xfp_val < 15.0  # de-noised below the TD-inflated realized value
+
+    def test_td_unlucky_season_regresses_up(self):
+        """A WR with TDs below the league rate is pulled above realized PPG."""
+        hist = make_history_df([{"season": 2024, "ppg": 12.0, "games_played": 17}])
+        nfl = make_nfl_stats_df([
+            {"season": 2024, "receiving_tds": 2, "receptions": 80,
+             "rushing_tds": 0, "rushing_attempts": 0},
+        ])
+        assert self.xfp.compute("p1", "WR", hist, nfl, {}) > 12.0
+
+    def test_expected_tds_shrink_weight(self):
+        """Higher opportunity volume keeps more of the player's own realized rate."""
+        # Same realized rate (10 TD / 100 opp = 0.10) vs league prior 0.05.
+        hi = self.xfp._expected_tds(realized=10, opp=100, beta=60, rate=0.05)
+        lo = self.xfp._expected_tds(realized=5, opp=50, beta=60, rate=0.05)
+        # 100-opp player keeps a larger fraction of its (above-prior) rate than
+        # the 50-opp player, so its expected rate sits higher.
+        assert (hi / 100) > (lo / 50)
+
+    def test_expected_tds_zero_opportunity_keeps_realized(self):
+        assert self.xfp._expected_tds(realized=3, opp=0, beta=60, rate=0.05) == 3
 
 
 # ---------------------------------------------------------------------------
@@ -715,6 +789,127 @@ class TestRegressionToMeanFeature:
         ctx = {"base_ppg": 12.0, "positional_mean_ppg": 12.0}
         result = self.feature.compute("p1", "RB", pd.DataFrame(), pd.DataFrame(), ctx)
         assert result == pytest.approx(0.0)
+
+
+class TestPartialPoolingFeature:
+    """Tests for the empirical-Bayes partial-pooling feature (GH #667, L3)."""
+
+    def setup_method(self):
+        self.feature = PartialPoolingFeature()
+
+    def test_name(self):
+        assert self.feature.name == "partial_pooling"
+        assert self.feature.is_base is False
+
+    def test_missing_context_returns_none(self):
+        assert self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), {}) is None
+        assert self.feature.compute(
+            "p1", "QB", pd.DataFrame(), pd.DataFrame(), {"base_ppg": 15.0}
+        ) is None
+
+    def test_effective_seasons(self):
+        assert self.feature._effective_seasons(
+            make_history_df([{"games_played": 17}, {"games_played": 17}])
+        ) == pytest.approx(2.0)
+        # games are capped at a full season (a 17-game year never exceeds 1.0)
+        assert self.feature._effective_seasons(
+            make_history_df([{"games_played": 20}])
+        ) == pytest.approx(1.0)
+        assert self.feature._effective_seasons(pd.DataFrame()) == 0.0
+
+    def test_shrinkage_scales_with_sample_size(self):
+        """A thin-sample season is pulled toward the prior much harder than a vet."""
+        ctx = {"base_ppg": 20.0, "positional_mean_ppg": 10.0}  # above-mean → pulled down
+        vet = self.feature.compute(
+            "p1", "WR",
+            make_history_df([{"games_played": 17}, {"games_played": 17}, {"games_played": 17}]),
+            pd.DataFrame(), ctx,
+        )
+        thin = self.feature.compute(
+            "p1", "WR", make_history_df([{"games_played": 3}]), pd.DataFrame(), ctx,
+        )
+        # n_p=3 → shrink 0.25 → delta -2.5; n_p≈0.176 → shrink ≈0.85 → delta ≈-8.5
+        assert vet == pytest.approx((10.0 - 20.0) * (1.0 / (3.0 + 1.0)))
+        assert abs(thin) > abs(vet)  # thinner sample pulled harder
+        assert thin < 0 and vet < 0  # both above mean → both negative
+
+    def test_below_mean_gets_positive_delta(self):
+        ctx = {"base_ppg": 8.0, "positional_mean_ppg": 12.0}
+        result = self.feature.compute(
+            "p1", "WR", make_history_df([{"games_played": 17}]), pd.DataFrame(), ctx
+        )
+        assert result > 0  # below mean → boosted
+
+    def test_zero_sample_full_shrink_to_prior(self):
+        """No games of history → shrink weight 1.0 (delta = prior − base)."""
+        ctx = {"base_ppg": 18.0, "positional_mean_ppg": 11.0}
+        result = self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), ctx)
+        assert result == pytest.approx(11.0 - 18.0)
+
+
+class TestPartialPoolingEBFeature:
+    """Tests for the per-position empirical-Bayes pooling feature (GH #667, L3)."""
+
+    def setup_method(self):
+        self.feature = PartialPoolingEBFeature()
+
+    def test_name(self):
+        assert self.feature.name == "partial_pooling_eb"
+
+    def test_uses_context_k(self):
+        """k comes from context['pooling_k'] rather than the global default."""
+        hist = make_history_df([{"games_played": 17}, {"games_played": 17}])  # n_p=2
+        ctx = {"base_ppg": 20.0, "positional_mean_ppg": 10.0, "pooling_k": 0.5}
+        # delta = (10 − 20) · 0.5/(2 + 0.5) = −2.0
+        assert self.feature.compute("p1", "QB", hist, pd.DataFrame(), ctx) == pytest.approx(-2.0)
+
+    def test_falls_back_to_default_k_when_absent(self):
+        """No context k → parent's global PRIOR_STRENGTH (1.0)."""
+        hist = make_history_df([{"games_played": 17}, {"games_played": 17}])
+        ctx = {"base_ppg": 20.0, "positional_mean_ppg": 10.0}
+        # delta = (10 − 20) · 1/(2 + 1) = −3.333
+        assert self.feature.compute("p1", "QB", hist, pd.DataFrame(), ctx) == pytest.approx(-10.0 / 3.0)
+
+    def test_smaller_k_shrinks_less(self):
+        """A smaller (EB-estimated) k keeps more of the player's own estimate."""
+        hist = make_history_df([{"games_played": 17}, {"games_played": 17}])
+        base = {"base_ppg": 20.0, "positional_mean_ppg": 10.0}
+        small_k = abs(self.feature.compute("p1", "QB", hist, pd.DataFrame(), {**base, "pooling_k": 0.5}))
+        big_k = abs(self.feature.compute("p1", "QB", hist, pd.DataFrame(), {**base, "pooling_k": 1.5}))
+        assert small_k < big_k
+
+
+class TestComputePoolingK:
+    """Tests for the per-fold EB k estimator (GH #667, L3)."""
+
+    def test_thin_population_falls_back_to_one(self):
+        from scripts.feature_projections.runner import _compute_pooling_k
+        # Two QBs only (< min_players) → fallback k=1.0.
+        history = pd.DataFrame([
+            {"player_id": "q1", "season": 2022, "ppg": 18.0, "games_played": 17},
+            {"player_id": "q2", "season": 2022, "ppg": 12.0, "games_played": 17},
+        ])
+        players = pd.DataFrame([
+            {"player_id_ref": "q1", "position": "QB"},
+            {"player_id_ref": "q2", "position": "QB"},
+        ])
+        k = _compute_pooling_k(history, players)
+        assert k.get("QB") == 1.0
+
+    def test_k_is_clipped(self):
+        from scripts.feature_projections.runner import _compute_pooling_k
+        # Many players, all with near-identical means across seasons → τ²≈0 would
+        # blow k up; the clip caps it at 2.0.
+        rows = []
+        players = []
+        for i in range(12):
+            pid = f"p{i}"
+            players.append({"player_id_ref": pid, "position": "WR"})
+            # within-player spread but tiny between-player spread
+            rows.append({"player_id": pid, "season": 2021, "ppg": 10.0 + (i % 2) * 4, "games_played": 17})
+            rows.append({"player_id": pid, "season": 2022, "ppg": 10.0 - (i % 2) * 4, "games_played": 17})
+        k = _compute_pooling_k(pd.DataFrame(rows), pd.DataFrame(players))
+        assert 0.3 <= k.get("WR") <= 2.0
 
 
 class TestRegressionToMeanTieredFeature:

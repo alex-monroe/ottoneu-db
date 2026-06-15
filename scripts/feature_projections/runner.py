@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from scripts.config import get_supabase_client, MIN_GAMES, fetch_all_rows
@@ -130,6 +131,63 @@ def _compute_positional_mean_ppg(
     pos_means = player_avg.groupby("position")["ppg"].mean()
 
     return {str(pos): float(val) for pos, val in pos_means.items()}
+
+
+def _compute_pooling_k(
+    history_df: pd.DataFrame,
+    players_df: pd.DataFrame,
+    min_games: int = 10,
+    min_players: int = 8,
+    k_clip: tuple[float, float] = (0.3, 2.0),
+) -> dict[str, float]:
+    """Empirical-Bayes pooling strength k_g per position (GH #667, L3).
+
+    For the normal–normal hierarchical model behind ``partial_pooling``, the
+    shrinkage toward the positional mean is ``k_g / (n_p + k_g)`` with
+    ``k_g = σ²_g / τ²_g`` — the within-player season-to-season variance over the
+    between-player variance of true means. Estimated by method of moments from
+    the training population only (the same leakage-free, before-the-target-season
+    history that feeds ``positional_mean_ppg``), so the held-out harness
+    re-estimates it per fold. Restricting to full-ish seasons (``games ≥
+    min_games``) makes each season ≈ one season-equivalent so σ² is in the same
+    units as the feature's ``n_p``.
+
+    Falls back to 1.0 for any position with too few players to estimate, and
+    clips to ``k_clip`` to guard against a thin-fold variance blowing up.
+    """
+    if history_df.empty or players_df.empty:
+        return {}
+
+    merged = history_df.merge(
+        players_df[["player_id_ref", "position"]],
+        left_on="player_id",
+        right_on="player_id_ref",
+        how="left",
+    )
+    merged["games_played"] = pd.to_numeric(merged["games_played"], errors="coerce").fillna(0)
+    merged["ppg"] = pd.to_numeric(merged["ppg"], errors="coerce")
+    qualified = merged[(merged["games_played"] >= min_games) & merged["ppg"].notna()]
+    if qualified.empty:
+        return {}
+
+    out: dict[str, float] = {}
+    for position, pos_rows in qualified.groupby("position"):
+        seasons_by_player = pos_rows.groupby("player_id")["ppg"].apply(list)
+        if len(seasons_by_player) < min_players:
+            out[str(position)] = 1.0
+            continue
+        player_means = [float(np.mean(v)) for v in seasons_by_player]
+        within = [float(np.var(v, ddof=1)) for v in seasons_by_player if len(v) >= 2]
+        if len(within) < 2 or len(player_means) < 2:
+            out[str(position)] = 1.0
+            continue
+        sigma2 = float(np.mean(within))
+        m_bar = float(np.mean([len(v) for v in seasons_by_player]))
+        # Var(observed player means) = τ² + σ²/m̄  ⇒  τ² = Var(means) − σ²/m̄.
+        tau2 = max(float(np.var(player_means, ddof=1)) - sigma2 / m_bar, 0.1)
+        k = sigma2 / tau2
+        out[str(position)] = float(min(max(k, k_clip[0]), k_clip[1]))
+    return out
 
 
 def _compute_positional_starter_floor(
@@ -396,6 +454,7 @@ def _build_context(
     player_team_by_season: dict[tuple[str, int], str] | None = None,
     qb_quality: dict[tuple[str, int], float] | None = None,
     team_coaching: dict[tuple[str, int], dict[str, Any]] | None = None,
+    pooling_k: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     """Build the context dict for a player's feature computation."""
     context: dict[str, Any] = {"target_season": target_season}
@@ -433,6 +492,11 @@ def _build_context(
     # Positional starter floor for tiered regression
     if positional_starter_floors and position in positional_starter_floors:
         context["positional_starter_floor"] = positional_starter_floors[position]
+
+    # Empirical-Bayes pooling strength k_g for the partial_pooling_eb feature
+    # (GH #667, L3). Per-position; falls back to the feature default if absent.
+    if pooling_k and position in pooling_k:
+        context["pooling_k"] = pooling_k[position]
 
     # Draft capital (round + overall pick) for the draft_capital_raw feature.
     if draft_capital is not None:
@@ -666,6 +730,9 @@ def run_model(
         # Compute positional starter floors for tiered regression
         positional_starter_floors = _compute_positional_starter_floor(history_df, players_df)
 
+        # Empirical-Bayes pooling strength per position (#667, L3).
+        pooling_k = _compute_pooling_k(history_df, players_df)
+
         # Centered QB1 prior PPG per team for this target season (#642).
         qb_quality = _compute_qb_quality_by_team(history_df, qb1_by_team, target_season)
 
@@ -703,6 +770,7 @@ def run_model(
                 player_team_by_season=player_team_by_season,
                 qb_quality=qb_quality,
                 team_coaching=coaching_lookup,
+                pooling_k=pooling_k,
             )
 
             # Resolve position-specific features. For residual models, the

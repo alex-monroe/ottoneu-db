@@ -56,6 +56,7 @@ docs/
 │   ├── [projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md)  # 4-phase accuracy improvement roadmap
 │   ├── [projection-methodology-audit.md](docs/exec-plans/projection-methodology-audit.md)  # ML-quality audit: train/test leakage + eval findings (#571–#577)
 │   ├── [projection-system-review.md](docs/exec-plans/projection-system-review-2026-06.md)  # 2026-06 expert review + implementation plan (#594–#599, waves for #587–#592)
+│   ├── [structural-projection-levers-667.md](docs/exec-plans/structural-projection-levers-667.md)  # Spike #667: structural levers (xFP target, game-level, empirical-Bayes, ranking gate) — L4 ranking-significance gate built+validated
 │   ├── [python-312-upgrade-spike.md](docs/exec-plans/python-312-upgrade-spike.md)  # Spike: Py3.9→3.12 + pandas 2.x — GO verdict + nfl_data_py blocker (#627)
 │   ├── [qb-usage-share.md](docs/exec-plans/qb-usage-share.md)              # QB Usage Share findings and next steps
 │   └── [season-cycle.md](docs/exec-plans/season-cycle.md)                # Cross-season data & UI scheme (date-driven season-cycle resolver)
@@ -145,6 +146,7 @@ When any task modifies the projection system — including `scripts/feature_proj
    ```
    just significance <name> v33_tuned_base --protocol rolling --eval-seasons 2023,2024,2025 --min-train-season 2021
    ```
+   **Ranking gate (#667 L4):** add `--metric spearman --position <QB|RB|WR|TE>` to bootstrap the **Spearman-ρ delta** instead of the MAE delta — the within-position *ordering* gate the downstream consumers (VORP, surplus, auction, keepers) actually care about (#598). The ranking signal is larger than the MAE signal, so this gate detects ordering wins/losses the underpowered MAE bootstrap is blind to (it confirmed FP significantly out-orders v33 at QB, ρ 0.71 vs 0.81, p=0.001). For ordering-targeted changes, gate on ρ and require MAE not significantly regress; for level changes, the reverse.
    Availability-touching changes additionally run `just availability-backtest` and report **both** rate and availability MAE (#574).
 3. **In the PR description**, lead with the held-out ranking + significance verdict (and the per-position Ranking-quality rows, #598). Include the in-sample `accuracy-report` table only if labelled "in-sample diagnostic — not the ranking".
 4. **Promotion requires a *significant* held-out win over the active model** (CI excludes 0), never a point-estimate delta. Promote via `just promote <model>` (or `cli.py promote --model <name>`) — `update_projections.py` reads `projection_models.is_active` dynamically (no hardcoded `ACTIVE_MODEL`). Methodology copy on `/projections`, `/arbitration` (projected mode), and `/projection-accuracy` is rendered live by `<ActiveModelCard>` (`web/components/ActiveModelCard.tsx`) from `fetchActiveProjectionModel()`, so do **not** hardcode model names or feature lists in page copy.

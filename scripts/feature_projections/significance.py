@@ -12,6 +12,17 @@ held-out window and bootstraps the MAE difference to produce a confidence
 interval and a bootstrap p-value. A difference is only "real" if its 95% CI
 excludes zero.
 
+**Ranking-metric gate (GH #667, L4).** MAE and ordering dissociate (#598): the
+downstream consumers (VORP, surplus value, auction pricing, keepers) care about
+*within-position ordering* and the top tier, not absolute PPG level — yet the
+promote gate has always been MAE. ``--metric spearman`` swaps the bootstrapped
+statistic from the paired MAE delta to the **Spearman-ρ delta** (rank
+correlation of projected vs actual PPG), still resampled *by player* so the CI
+respects within-player correlation. Because the ranking signal is larger than
+the MAE signal, the same underpowered bootstrap finally has something to detect.
+Ranking is a within-position decision, so a ``--position`` other than ``ALL`` is
+required for ``--metric spearman``.
+
 By default it runs on the same leakage-free held-out window as
 ``holdout_eval.py`` (train 2021–2023, eval 2024–2025), so learned models are
 compared out-of-sample. Predictions come from ``holdout_eval.gather_predictions``
@@ -20,6 +31,10 @@ so the two tools always agree.
 Usage:
     venv/bin/python scripts/feature_projections/significance.py \
         v14_qb_starter v31_depth_chart [--position ALL] [--iterations 10000]
+    # Ranking-metric gate (per-position only):
+    venv/bin/python scripts/feature_projections/significance.py \
+        v33_tuned_base external_fantasypros_v1 --metric spearman --position QB \
+        --protocol rolling --eval-seasons 2023,2024,2025 --min-train-season 2021
 """
 
 from __future__ import annotations
@@ -88,6 +103,125 @@ def _paired_errors(
         np.array(err_b, dtype=np.float64),
         np.array(pids, dtype=object),
     )
+
+
+def _paired_preds(
+    preds: dict,
+    actuals_by_season: dict,
+    pos_map: dict,
+    model_a: str,
+    model_b: str,
+    position: str,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Per-row (proj_a, proj_b, actual, player_id) arrays for a ranking metric.
+
+    Like ``_paired_errors`` but keeps the raw projections and actual instead of
+    collapsing to absolute error, because a rank statistic (Spearman ρ) is a
+    property of the *whole vector*, not summable per row. The player id is again
+    the bootstrap cluster label (GH #594, Finding C).
+    """
+    proj_a: list[float] = []
+    proj_b: list[float] = []
+    act: list[float] = []
+    pids: list[str] = []
+    pa, pb = preds.get(model_a, {}), preds.get(model_b, {})
+    for season, actuals in actuals_by_season.items():
+        sa, sb = pa.get(season, {}), pb.get(season, {})
+        for pid, actual in actuals.items():
+            if pid not in sa or pid not in sb:
+                continue
+            if position != "ALL" and pos_map.get(pid) != position:
+                continue
+            proj_a.append(sa[pid])
+            proj_b.append(sb[pid])
+            act.append(actual)
+            pids.append(pid)
+    return (
+        np.array(proj_a, dtype=np.float64),
+        np.array(proj_b, dtype=np.float64),
+        np.array(act, dtype=np.float64),
+        np.array(pids, dtype=object),
+    )
+
+
+def _spearman(proj: np.ndarray, actual: np.ndarray) -> float:
+    """Spearman rank correlation; 0.0 when undefined (constant vector / n<2)."""
+    if len(proj) < 2:
+        return 0.0
+    from scipy.stats import spearmanr
+
+    rho, _ = spearmanr(proj, actual)
+    return 0.0 if rho is None or np.isnan(rho) else float(rho)
+
+
+def bootstrap_spearman_difference(
+    proj_a: np.ndarray,
+    proj_b: np.ndarray,
+    actual: np.ndarray,
+    clusters: Optional[np.ndarray] = None,
+    iterations: int = 10000,
+    seed: int = 0,
+) -> dict:
+    """Player-clustered paired bootstrap of Spearman_ρ(A) − Spearman_ρ(B).
+
+    **Positive** delta ⇒ A orders players better (the opposite sign convention to
+    the MAE delta, where negative ⇒ A better — ρ is higher-is-better). Each
+    resample draws whole players (their multiple eval-season rows together) and
+    recomputes both models' ρ on the resampled vector, so the CI accounts for
+    within-player correlation. Returns observed delta, 95% CI, two-sided
+    bootstrap p-value, and whether the CI excludes zero.
+    """
+    n = len(actual)
+    if n == 0:
+        return {"n": 0}
+    rng = np.random.default_rng(seed)
+    rho_a = _spearman(proj_a, actual)
+    rho_b = _spearman(proj_b, actual)
+    observed = rho_a - rho_b
+
+    deltas = np.empty(iterations, dtype=np.float64)
+    if clusters is not None and len(clusters):
+        groups: dict = {}
+        for i, c in enumerate(clusters):
+            groups.setdefault(c, []).append(i)
+        cluster_rows = [np.array(v, dtype=np.intp) for v in groups.values()]
+        m = len(cluster_rows)
+        for i in range(iterations):
+            chosen = rng.integers(0, m, m)
+            rows = np.concatenate([cluster_rows[j] for j in chosen])
+            deltas[i] = _spearman(proj_a[rows], actual[rows]) - _spearman(
+                proj_b[rows], actual[rows]
+            )
+        n_clusters = m
+    else:
+        for i in range(iterations):
+            idx = rng.integers(0, n, n)
+            deltas[i] = _spearman(proj_a[idx], actual[idx]) - _spearman(
+                proj_b[idx], actual[idx]
+            )
+        n_clusters = n
+
+    lo, hi = np.percentile(deltas, [2.5, 97.5])
+    if observed > 0:
+        p = 2.0 * float(np.mean(deltas <= 0))
+    elif observed < 0:
+        p = 2.0 * float(np.mean(deltas >= 0))
+    else:
+        p = 1.0
+    p = min(1.0, p)
+
+    return {
+        "n": n,
+        "n_clusters": n_clusters,
+        "metric": "spearman",
+        "rho_a": rho_a,
+        "rho_b": rho_b,
+        "delta": observed,
+        "ci_low": float(lo),
+        "ci_high": float(hi),
+        "p_value": p,
+        "significant": bool((lo > 0) or (hi < 0)),
+    }
 
 
 def bootstrap_mae_difference(
@@ -166,7 +300,13 @@ def run(
     protocol: str = "fixed",
     min_train_season: Optional[int] = None,
     use_cache: bool = True,
+    metric: str = "mae",
 ) -> dict:
+    if metric == "spearman" and position == "ALL":
+        raise ValueError(
+            "--metric spearman requires a --position (QB|RB|WR|TE); ranking is a "
+            "within-position decision (GH #598), not a cross-position one."
+        )
     models = _expand_with_bases([model_a, model_b])
     if protocol == "rolling":
         if min_train_season is None:
@@ -179,14 +319,23 @@ def run(
         preds, actuals_by_season, pos_map = gather_predictions(
             train_seasons, eval_seasons, models, use_cache=use_cache
         )
-    err_a, err_b, pids = _paired_errors(
-        preds, actuals_by_season, pos_map, model_a, model_b, position
-    )
-    res = bootstrap_mae_difference(
-        err_a, err_b, clusters=pids, iterations=iterations, seed=seed
-    )
+    if metric == "spearman":
+        proj_a, proj_b, act, pids = _paired_preds(
+            preds, actuals_by_season, pos_map, model_a, model_b, position
+        )
+        res = bootstrap_spearman_difference(
+            proj_a, proj_b, act, clusters=pids, iterations=iterations, seed=seed
+        )
+    else:
+        err_a, err_b, pids = _paired_errors(
+            preds, actuals_by_season, pos_map, model_a, model_b, position
+        )
+        res = bootstrap_mae_difference(
+            err_a, err_b, clusters=pids, iterations=iterations, seed=seed
+        )
     res.update(
-        {"model_a": model_a, "model_b": model_b, "position": position, "protocol": protocol}
+        {"model_a": model_a, "model_b": model_b, "position": position,
+         "protocol": protocol, "metric": metric}
     )
     return res
 
@@ -194,8 +343,10 @@ def run(
 def _print_result(res: dict, train_seasons: list[int], eval_seasons: list[int]) -> None:
     a, b = res["model_a"], res["model_b"]
     protocol = res.get("protocol", "fixed")
+    is_rank = res.get("metric") == "spearman"
+    stat = "Spearman ρ" if is_rank else "MAE"
     print("\n" + "=" * 72)
-    print(f"Paired bootstrap — MAE({a}) − MAE({b})")
+    print(f"Paired bootstrap — {stat}({a}) − {stat}({b})")
     if protocol == "rolling":
         print(f"Rolling-origin: expanding-window folds → eval {eval_seasons} | position {res['position']}")
     else:
@@ -206,17 +357,28 @@ def _print_result(res: dict, train_seasons: list[int], eval_seasons: list[int]) 
         print("No paired players found — cannot test.")
         return
     print(f"  Paired player-seasons (N): {res['n']}  |  unique players: {res.get('n_clusters', '—')}")
-    print(f"  MAE {a}: {res['mae_a']:.4f}")
-    print(f"  MAE {b}: {res['mae_b']:.4f}")
-    print(f"  Observed delta (A−B): {res['delta']:+.4f}  "
-          f"({'A better' if res['delta'] < 0 else 'B better' if res['delta'] > 0 else 'tie'})")
+    if is_rank:
+        # ρ is higher-is-better: positive delta ⇒ A orders better.
+        print(f"  ρ {a}: {res['rho_a']:.4f}")
+        print(f"  ρ {b}: {res['rho_b']:.4f}")
+        better_dir = "A better" if res["delta"] > 0 else "B better" if res["delta"] < 0 else "tie"
+        print(f"  Observed delta (A−B): {res['delta']:+.4f}  ({better_dir})")
+        better = a if res["delta"] > 0 else b
+        quality = "orders players better"
+    else:
+        print(f"  MAE {a}: {res['mae_a']:.4f}")
+        print(f"  MAE {b}: {res['mae_b']:.4f}")
+        better_dir = "A better" if res["delta"] < 0 else "B better" if res["delta"] > 0 else "tie"
+        print(f"  Observed delta (A−B): {res['delta']:+.4f}  ({better_dir})")
+        better = a if res["delta"] < 0 else b
+        quality = "is more accurate"
     print(f"  95% CI: [{res['ci_low']:+.4f}, {res['ci_high']:+.4f}]")
     print(f"  Bootstrap p-value: {res['p_value']:.4f}")
     if res["significant"]:
-        better = a if res["delta"] < 0 else b
-        print(f"  ⇒ SIGNIFICANT at 95%: {better} is more accurate (CI excludes 0).")
+        print(f"  ⇒ SIGNIFICANT at 95%: {better} {quality} (CI excludes 0).")
     else:
-        print(f"  ⇒ NOT significant at 95%: the MAE gap is within sampling noise (CI spans 0).")
+        noise = "ranking" if is_rank else "MAE"
+        print(f"  ⇒ NOT significant at 95%: the {noise} gap is within sampling noise (CI spans 0).")
 
 
 def main() -> None:
@@ -232,6 +394,11 @@ def main() -> None:
                         help="Rolling protocol: earliest training season "
                              "(default: min of --train-seasons).")
     parser.add_argument("--position", default="ALL", help="ALL | QB | RB | WR | TE | K")
+    parser.add_argument("--metric", choices=("mae", "spearman"), default="mae",
+                        help="mae: paired bootstrap of the MAE delta (default, the "
+                             "accuracy gate). spearman: paired bootstrap of the "
+                             "Spearman-ρ delta — the ranking/decision gate (GH #667, L4); "
+                             "requires a non-ALL --position.")
     parser.add_argument("--iterations", type=int, default=10000)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--no-cache", action="store_true",
@@ -252,11 +419,14 @@ def main() -> None:
                 f"rolling: every eval season must be > --min-train-season ({min_train})"
             )
 
+    if args.metric == "spearman" and args.position == "ALL":
+        parser.error("--metric spearman requires --position QB|RB|WR|TE (ranking is within-position)")
+
     res = run(
         args.model_a, args.model_b, train_seasons, eval_seasons,
         position=args.position, iterations=args.iterations, seed=args.seed,
         protocol=args.protocol, min_train_season=args.min_train_season,
-        use_cache=not args.no_cache,
+        use_cache=not args.no_cache, metric=args.metric,
     )
     _print_result(res, train_seasons, eval_seasons)
 

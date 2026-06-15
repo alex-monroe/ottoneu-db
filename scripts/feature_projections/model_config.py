@@ -628,6 +628,131 @@ MODELS: dict[str, ModelDefinition] = {
             "depth_chart_position_raw*position",
         ],
     ),
+    "v42_xfp_base": ModelDefinition(
+        name="v42_xfp_base",
+        version=1,
+        description=(
+            "xFP target (spike #667, L1): v33_tuned_base with the base feature "
+            "swapped weighted_ppg_tuned_no_qb → weighted_xfp_tuned_no_qb. The "
+            "base now autoregresses *expected* PPG (realized TDs replaced by "
+            "opportunity-expected TDs, volume-weighted shrink toward league "
+            "priors) instead of realized PPG, stripping the dominant efficiency "
+            "noise (TD luck) before the combiner sees it. Everything else — "
+            "adjustment features, interactions, learned combiner — identical to "
+            "v33. Gated on the #667 ranking (Spearman-ρ) metric at QB/WR, where "
+            "the FP ordering gap lives, not just MAE."
+        ),
+        features=[
+            "weighted_xfp_tuned_no_qb",
+            "age_curve",
+            "regression_to_mean",
+            "qb_backup_penalty",
+            "usage_share_raw",
+            "target_share_raw",
+            "air_yards_share_raw",
+            "wopr_raw",
+            "racr_raw",
+            "draft_capital_raw",
+            "implied_team_total_raw",
+            "depth_chart_position_raw",
+            "role_change_raw",
+        ],
+        combiner_type="learned",
+        interaction_terms=[
+            "usage_share_raw*position",
+            "usage_share_raw*base_ppg",
+            "usage_share_raw^2",
+            "target_share_raw*position",
+            "wopr_raw*base_ppg",
+            "wopr_raw^2",
+            "draft_capital_raw*position",
+            "implied_team_total_raw*position",
+            "depth_chart_position_raw*position",
+        ],
+    ),
+    "v43_eb_pooling": ModelDefinition(
+        name="v43_eb_pooling",
+        version=1,
+        description=(
+            "Empirical-Bayes partial pooling (spike #667, L3): v33_tuned_base "
+            "with regression_to_mean → partial_pooling. The shrinkage toward the "
+            "positional mean now scales to the player's observed sample size "
+            "(w_p = n_p/(n_p+k), n_p = effective full-seasons of games played) "
+            "instead of a constant 0.12 factor, so thin-sample seasons regress "
+            "hard and full-career vets barely move. Prior = positional mean and "
+            "everything else identical to v33, isolating the sample-size-scaling "
+            "change. Hierarchical prior + per-fold k + posterior quantiles are "
+            "scoped follow-ups."
+        ),
+        features=[
+            "weighted_ppg_tuned_no_qb",
+            "age_curve",
+            "partial_pooling",
+            "qb_backup_penalty",
+            "usage_share_raw",
+            "target_share_raw",
+            "air_yards_share_raw",
+            "wopr_raw",
+            "racr_raw",
+            "draft_capital_raw",
+            "implied_team_total_raw",
+            "depth_chart_position_raw",
+            "role_change_raw",
+        ],
+        combiner_type="learned",
+        interaction_terms=[
+            "usage_share_raw*position",
+            "usage_share_raw*base_ppg",
+            "usage_share_raw^2",
+            "target_share_raw*position",
+            "wopr_raw*base_ppg",
+            "wopr_raw^2",
+            "draft_capital_raw*position",
+            "implied_team_total_raw*position",
+            "depth_chart_position_raw*position",
+        ],
+    ),
+    "v44_eb_pooling_perpos": ModelDefinition(
+        name="v44_eb_pooling_perpos",
+        version=1,
+        description=(
+            "Per-position empirical-Bayes pooling (spike #667, L3 follow-up): "
+            "v43_eb_pooling with partial_pooling → partial_pooling_eb. The "
+            "pooling strength k is no longer a hand-set global 1.0 but the "
+            "method-of-moments estimate k_g = σ²_g/τ²_g computed per position "
+            "from each fold's training population (runner._compute_pooling_k; "
+            "leakage-free). Estimated k ≈ 0.5–0.7 (QB highest), i.e. v43 was "
+            "over-shrinking. Aims to turn v43's significant QB MAE win + trending "
+            "QB ρ into an unambiguous, promotable result. Else identical to v33."
+        ),
+        features=[
+            "weighted_ppg_tuned_no_qb",
+            "age_curve",
+            "partial_pooling_eb",
+            "qb_backup_penalty",
+            "usage_share_raw",
+            "target_share_raw",
+            "air_yards_share_raw",
+            "wopr_raw",
+            "racr_raw",
+            "draft_capital_raw",
+            "implied_team_total_raw",
+            "depth_chart_position_raw",
+            "role_change_raw",
+        ],
+        combiner_type="learned",
+        interaction_terms=[
+            "usage_share_raw*position",
+            "usage_share_raw*base_ppg",
+            "usage_share_raw^2",
+            "target_share_raw*position",
+            "wopr_raw*base_ppg",
+            "wopr_raw^2",
+            "draft_capital_raw*position",
+            "implied_team_total_raw*position",
+            "depth_chart_position_raw*position",
+        ],
+    ),
     "v34_qb_residual": ModelDefinition(
         name="v34_qb_residual",
         version=1,
