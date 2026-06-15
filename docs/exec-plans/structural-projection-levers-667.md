@@ -1,6 +1,6 @@
 # Spike #667 — Structural projection levers beyond the same-data MAE frontier
 
-## Status: In progress (2026-06-15) · L4 ranking-gate **built + validated** · L1 v1 (TD-regression xFP) → **held-out TIE**
+## Status: In progress (2026-06-15) · L4 ranking-gate **built + validated** · L1 v1 (TD-regression xFP) → **held-out TIE** · L3 v1 (EB partial pooling) → **SIGNIFICANT at QB** (spike's first significant win)
 
 > **TL;DR.** The 2026-06 wave's four NEGATIVEs proved *same-data features are
 > tapped on MAE*. They did **not** prove the model is optimal — they proved MAE
@@ -221,6 +221,20 @@ workflow). Gate on **both** MAE (must not regress) **and** calibration
 **Note on the constraint.** Pure shrinkage toward own-data priors — no market
 input; compatible with the early-offseason value prop (FantasyPros/ADP are
 eval-time comparators only, never model inputs).
+
+> **Outcome — v1 (sample-size-scaled shrink, positional-mean prior, k=1) →
+> SIGNIFICANT at QB (2026-06-15).** `v43_eb_pooling` (= v33 with
+> `regression_to_mean` → `partial_pooling`) is the **spike's first significant
+> win**. **QB MAE −0.119, CI [−0.247, −0.004], p=0.041** (bias −0.549→−0.317);
+> **balanced MAE 2.450→2.418**; QB ρ +0.019 (p=0.087, trending, NS). ALL MAE a
+> tie (−0.005, p=0.72 — QB is a small slice of the pool), WR/RB tiny wins, TE
+> tiny loss. The fixed-factor `regression_to_mean` was leaving QB accuracy on the
+> table; sample-size-aware pooling helps exactly the thin-n / high-value position
+> where v33 was worst — as predicted. **Doesn't clear the strict ALL-MAE gate, so
+> not auto-promoted** (operator call, from main). Follow-ups to push it over:
+> hierarchical (position×age/role) prior, per-position / per-fold `k`, and the
+> free posterior P10/P50/P90. See the #667 L3 section in
+> [experiment-log.md](../generated/experiment-log.md).
 
 ---
 

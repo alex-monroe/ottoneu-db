@@ -25,6 +25,7 @@ from scripts.feature_projections.features.regression_to_mean import (
     RegressionToMeanFeature,
     RegressionToMeanTieredFeature,
 )
+from scripts.feature_projections.features.partial_pooling import PartialPoolingFeature
 from scripts.feature_projections.features.snap_trend import SnapTrendFeature
 from scripts.feature_projections.features.qb_starter_usage import (
     QBStarterUsageFeature,
@@ -73,6 +74,7 @@ FEATURE_REGISTRY: dict[str, type] = {
     "usage_share": UsageShareFeature,
     "usage_share_raw": UsageShareRawFeature,
     "regression_to_mean": RegressionToMeanFeature,
+    "partial_pooling": PartialPoolingFeature,
     "regression_to_mean_tiered": RegressionToMeanTieredFeature,
     "snap_trend": SnapTrendFeature,
     "qb_starter_usage": QBStarterUsageFeature,

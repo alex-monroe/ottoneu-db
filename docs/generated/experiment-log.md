@@ -37,6 +37,7 @@ the MAE verdict. "—" only for rows predating the column.
 
 | Date | Model | Change | Held-out ALL MAE | Δ vs comparator | 95% CI | Significant? | Rank Δ (ρ / top-N vs comparator) | Protocol | PR |
 |------|-------|--------|------------------|----------|--------|--------------|----------------------------------|----------|-----|
+| 2026-06-15 | v43_eb_pooling | #667 spike L3: empirical-Bayes partial pooling — v33 with `regression_to_mean` → `partial_pooling` (shrinkage toward positional mean now scales to sample size, `w_p = n_p/(n_p+k)`, `n_p` = effective full-seasons played, `k`=1; prior = positional mean, else identical to v33) | 2.223 | **−0.005** vs **v33** | [−0.032, +0.022] | ALL **N** (p=0.72) — tie overall; **QB MAE −0.119, CI [−0.247, −0.004], p=0.041 SIGNIFICANT** — the spike's first significant win, at the worst & (Superflex) most valuable position. Balanced MAE 2.450→2.418 (−0.032); QB bias −0.549→−0.317; WR −0.017, RB −0.010 (tiny wins), TE +0.017 (slight). **Strongest candidate of the spike; promotion left to operator** (ALL-MAE gate is a tie, QB ρ trends but isn't significant). See #667 L3 section below | **QB ρ 0.671→0.690 (+0.019, p=0.087, NS but trending)**, WR +0.004, RB +0.004, TE −0.006; QB/WR/RB top-N ≈ or up | rolling 2023–2025 (full window; one look) | #667 |
 | 2026-06-15 | v42_xfp_base | #667 spike L1: xFP target — v33 with base swapped `weighted_ppg_tuned_no_qb` → `weighted_xfp_tuned_no_qb` (realized TDs replaced by opportunity-expected TDs, volume-weighted shrink toward league priors; yards/receptions stay realized). Tests the "regress on expected, not realized points" reframe | 2.238 | +0.011 vs **v33** | [−0.007, +0.031] | **N** (p=0.25) — **NEGATIVE / TIE**; the TD-regression-only xFP moves neither MAE nor the QB ordering it targeted out of the noise band. **Ranking gate (#667 L4) on the hypothesis position**: QB ρ +0.004, CI [−0.013, +0.023], **p=0.58** — a dead tie, nowhere near FP's ρ-0.10 QB edge. v33's existing usage/target_share/wopr features already proxy most opportunity de-noising; TD luck alone isn't the QB ordering lever. See #667 section below | QB ρ 0.670→0.674 (≈, p=0.58), RB +0.008, WR −0.004, TE −0.003 (all ≈); top-N unchanged | rolling 2023–2025 (full window; tie, nothing to confirm) | #667 |
 | 2026-06-14 | v41_coaching_residual | #651 spike acquisition #1: two-stage residual on v33 + `coaching_change_raw` (offseason head-coach change, new `team_coaching` table from nflverse `games.csv`) + `coaching_change_raw*position`; coach-stable players byte-identical to v33 | 2.229 | +0.0014 vs **v33** | [−0.0003, +0.0033] | **N** (p=0.106) — **NEGATIVE / TIE**; the *new-information* acquisition the wave's modeling NEGATIVEs called for, but the small coach-changed cohort (~5–10 teams/yr) carries too little signal. Residual α=100 shrinks coefs ≈0. QB hypothesis a dead tie (MAE 3.698 vs 3.697). Per spike plan → next is source #3 (FA/contract). See #651 section below | QB ρ 0.671→0.670, WR ρ 0.780→0.780, TE 0.760→0.759 (all ≈); top-N unchanged | rolling 2023–2025 (full window; tie, nothing to confirm) | #651 |
 | 2026-06-14 | v40_huber_e110 / e135 / e200 | #645 robust loss: Huber instead of Ridge squared loss (epsilon 1.10/1.35/2.00), v33 features. Best = e200 | 2.225 (e200) | −0.008 vs **v33** | [−0.020, +0.005] | **N** (p=0.23) — **NEGATIVE, tie at best**; only e200 (≈Ridge) ties, robust e110/e135 *regress* (+0.018/+0.007). Robustness is the wrong direction. See #645 section below | e200: WR ρ +0.002, QB +0.004, TE −0.002 (≈); top-N ≈ | rolling 2023–24 (iteration look; confirmation window not burned) | #645 |
@@ -78,6 +79,43 @@ out-orders the active `v33_tuned_base` at **QB** — ρ **0.805 vs 0.707**, Δ �
 real and detectable where the MAE wall is a power artifact** — which is exactly
 the gate the wave was missing. Next per the spike: L1 xFP-target base
 (`v42_xfp_base`), gated on this ρ metric.
+
+### Empirical-Bayes partial pooling (#667, L3) — SIGNIFICANT at QB, 2026-06-15
+
+Second modeling lever off the #667 spike, and the **first significant win** over
+v33 in the whole 40+-experiment program. `v43_eb_pooling` swaps v33's
+`regression_to_mean` feature for `partial_pooling`. The old feature pulls every
+player toward the positional mean by a constant 0.12 factor regardless of how
+much data underlies their estimate; partial pooling makes the shrinkage **scale
+to sample size** — `delta = (k/(n_p+k))·(positional_mean − base_ppg)`, with
+`n_p` = effective full-seasons of games played and `k`=1 — so a 3-game season is
+pulled ~85% toward the prior while a three-season vet moves ~25%. Prior is still
+the positional mean and everything else is identical to v33, isolating exactly
+the sample-size-scaling change. The learned combiner fits the coefficient, so `k`
+only sets the *shape* of how trust grows with sample size.
+
+**Result (rolling 2023–2025, one look):**
+- **ALL MAE:** 2.223 vs v33 2.228, Δ −0.005, CI [−0.032, +0.022], p=0.72 —
+  **tie overall** (QB is a small slice of the pooled population).
+- **QB MAE:** 3.579 vs 3.697, Δ **−0.119**, CI **[−0.247, −0.004]**, **p=0.041 —
+  SIGNIFICANT.** QB bias also halved (−0.549 → −0.317).
+- **QB ranking (L4 ρ gate):** 0.690 vs 0.671, Δ +0.019, CI [−0.003, +0.044],
+  p=0.087 — trends the right way but **not** significant.
+- **Balanced MAE** (the #577 position-mix-neutral metric) 2.450 → **2.418**
+  (−0.032). WR −0.017, RB −0.010 (tiny wins); TE +0.017 (slight regression).
+
+**Read.** The fixed-factor shrinkage *was* leaving QB accuracy on the table:
+QBs have the fewest effective samples (thin position, frequent mid-season
+takeovers) and benefit most from sample-size-aware pooling. This is the lever the
+spike predicted — a principled replacement for the hand-tuned `regression_to_mean`
+that helps exactly the thin-n / high-value position where v33 was worst. **But it
+does not clear the strict ALL-MAE promotion gate** (that's a tie), and the QB ρ
+decision metric isn't significant; the QB MAE p=0.041 is one position among three
+looks. So: strongest candidate of the spike, logged as a **POSITIVE-at-QB**, with
+promotion left to the operator (run from main, post-merge). Natural follow-ups
+that should push it over the line: a hierarchical (position×age / role) prior and
+a per-position / per-fold-estimated `k` (this v1 fixed `k`=1 globally), plus the
+posterior P10/P50/P90 the formulation yields for free.
 
 ### xFP target (#667, L1) — NEGATIVE / TIE, 2026-06-15
 

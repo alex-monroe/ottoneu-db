@@ -27,6 +27,7 @@ from scripts.feature_projections.features.regression_to_mean import (
     RegressionToMeanFeature,
     RegressionToMeanTieredFeature,
 )
+from scripts.feature_projections.features.partial_pooling import PartialPoolingFeature
 from scripts.feature_projections.features.snap_trend import SnapTrendFeature
 from scripts.feature_projections.features.qb_starter_usage import QBStarterUsageFeature, QBStarterBackupPenaltyFeature
 from scripts.feature_projections.features.qb_volume import (
@@ -785,6 +786,62 @@ class TestRegressionToMeanFeature:
         ctx = {"base_ppg": 12.0, "positional_mean_ppg": 12.0}
         result = self.feature.compute("p1", "RB", pd.DataFrame(), pd.DataFrame(), ctx)
         assert result == pytest.approx(0.0)
+
+
+class TestPartialPoolingFeature:
+    """Tests for the empirical-Bayes partial-pooling feature (GH #667, L3)."""
+
+    def setup_method(self):
+        self.feature = PartialPoolingFeature()
+
+    def test_name(self):
+        assert self.feature.name == "partial_pooling"
+        assert self.feature.is_base is False
+
+    def test_missing_context_returns_none(self):
+        assert self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), {}) is None
+        assert self.feature.compute(
+            "p1", "QB", pd.DataFrame(), pd.DataFrame(), {"base_ppg": 15.0}
+        ) is None
+
+    def test_effective_seasons(self):
+        assert self.feature._effective_seasons(
+            make_history_df([{"games_played": 17}, {"games_played": 17}])
+        ) == pytest.approx(2.0)
+        # games are capped at a full season (a 17-game year never exceeds 1.0)
+        assert self.feature._effective_seasons(
+            make_history_df([{"games_played": 20}])
+        ) == pytest.approx(1.0)
+        assert self.feature._effective_seasons(pd.DataFrame()) == 0.0
+
+    def test_shrinkage_scales_with_sample_size(self):
+        """A thin-sample season is pulled toward the prior much harder than a vet."""
+        ctx = {"base_ppg": 20.0, "positional_mean_ppg": 10.0}  # above-mean → pulled down
+        vet = self.feature.compute(
+            "p1", "WR",
+            make_history_df([{"games_played": 17}, {"games_played": 17}, {"games_played": 17}]),
+            pd.DataFrame(), ctx,
+        )
+        thin = self.feature.compute(
+            "p1", "WR", make_history_df([{"games_played": 3}]), pd.DataFrame(), ctx,
+        )
+        # n_p=3 → shrink 0.25 → delta -2.5; n_p≈0.176 → shrink ≈0.85 → delta ≈-8.5
+        assert vet == pytest.approx((10.0 - 20.0) * (1.0 / (3.0 + 1.0)))
+        assert abs(thin) > abs(vet)  # thinner sample pulled harder
+        assert thin < 0 and vet < 0  # both above mean → both negative
+
+    def test_below_mean_gets_positive_delta(self):
+        ctx = {"base_ppg": 8.0, "positional_mean_ppg": 12.0}
+        result = self.feature.compute(
+            "p1", "WR", make_history_df([{"games_played": 17}]), pd.DataFrame(), ctx
+        )
+        assert result > 0  # below mean → boosted
+
+    def test_zero_sample_full_shrink_to_prior(self):
+        """No games of history → shrink weight 1.0 (delta = prior − base)."""
+        ctx = {"base_ppg": 18.0, "positional_mean_ppg": 11.0}
+        result = self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), ctx)
+        assert result == pytest.approx(11.0 - 18.0)
 
 
 class TestRegressionToMeanTieredFeature:
