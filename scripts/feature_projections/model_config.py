@@ -796,6 +796,90 @@ MODELS: dict[str, ModelDefinition] = {
             "depth_chart_position_raw*position",
         ],
     ),
+    "v46_xfp_redzone": ModelDefinition(
+        name="v46_xfp_redzone",
+        version=1,
+        description=(
+            "Red-zone xFP base (issue #671, the #667 spike's new-information "
+            "lever): v33_tuned_base with the base feature swapped "
+            "weighted_ppg_tuned_no_qb → weighted_xfp_redzone. Each historical "
+            "season's realized TDs are replaced with TDs expected from red-zone / "
+            "goal-line usage (new red_zone_usage table) — a goal-line carry is "
+            "worth ~7× a 10–20 carry in expected rush TDs. Unlike L1's xFP "
+            "(population_rate × volume, which tied), this uses the durable, "
+            "role-based RZ signal v33 cannot derive from a player's own PPG. "
+            "Yards/receptions stay realized; everything else identical to v33."
+        ),
+        features=[
+            "weighted_xfp_redzone",
+            "age_curve",
+            "regression_to_mean",
+            "qb_backup_penalty",
+            "usage_share_raw",
+            "target_share_raw",
+            "air_yards_share_raw",
+            "wopr_raw",
+            "racr_raw",
+            "draft_capital_raw",
+            "implied_team_total_raw",
+            "depth_chart_position_raw",
+            "role_change_raw",
+        ],
+        combiner_type="learned",
+        interaction_terms=[
+            "usage_share_raw*position",
+            "usage_share_raw*base_ppg",
+            "usage_share_raw^2",
+            "target_share_raw*position",
+            "wopr_raw*base_ppg",
+            "wopr_raw^2",
+            "draft_capital_raw*position",
+            "implied_team_total_raw*position",
+            "depth_chart_position_raw*position",
+        ],
+    ),
+    "v47_td_regression": ModelDefinition(
+        name="v47_td_regression",
+        version=1,
+        description=(
+            "Additive TD-regression flag from red-zone usage (issue #671): "
+            "v33_tuned_base + td_regression_raw, the recency-weighted per-game "
+            "gap between realized TD points and red-zone-role-expected TD points. "
+            "Unlike v46 (which replaced the base and regressed), this keeps the "
+            "realized base and adds the over/under-performance signal so the "
+            "combiner can pull down TD-lucky players and up unlucky ones. "
+            "Realized base + all other features identical to v33."
+        ),
+        features=[
+            "weighted_ppg_tuned_no_qb",
+            "age_curve",
+            "regression_to_mean",
+            "qb_backup_penalty",
+            "usage_share_raw",
+            "target_share_raw",
+            "air_yards_share_raw",
+            "wopr_raw",
+            "racr_raw",
+            "draft_capital_raw",
+            "implied_team_total_raw",
+            "depth_chart_position_raw",
+            "role_change_raw",
+            "td_regression_raw",
+        ],
+        combiner_type="learned",
+        interaction_terms=[
+            "usage_share_raw*position",
+            "usage_share_raw*base_ppg",
+            "usage_share_raw^2",
+            "target_share_raw*position",
+            "wopr_raw*base_ppg",
+            "wopr_raw^2",
+            "draft_capital_raw*position",
+            "implied_team_total_raw*position",
+            "depth_chart_position_raw*position",
+            "td_regression_raw*position",
+        ],
+    ),
     "v34_qb_residual": ModelDefinition(
         name="v34_qb_residual",
         version=1,

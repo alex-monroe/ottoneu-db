@@ -311,6 +311,31 @@ def _build_depth_charts_lookup(supabase) -> dict[tuple[str, int], int]:
     return lookup
 
 
+_RED_ZONE_FIELDS = ("rz_carries", "rz_targets", "rz_pass_attempts", "gz_carries", "gz_targets")
+
+
+def _build_red_zone_lookup(supabase) -> dict[tuple[str, int], dict[str, int]]:
+    """Fetch red_zone_usage and return (player_id, season) -> RZ/GZ opportunity counts.
+
+    Powers the weighted_xfp_redzone base feature (#671): each *historical* season's
+    realized TDs are replaced with red-zone-usage-expected TDs. Keyed by the
+    historical season the feature reads (never the target season), so it is a
+    property of completed games — not leakage.
+    """
+    rows = fetch_all_rows(
+        supabase, "red_zone_usage",
+        "player_id, season, " + ", ".join(_RED_ZONE_FIELDS),
+    )
+    lookup: dict[tuple[str, int], dict[str, int]] = {}
+    for r in rows:
+        pid = r.get("player_id")
+        season = r.get("season")
+        if not pid or season is None:
+            continue
+        lookup[(str(pid), int(season))] = {f: int(r.get(f) or 0) for f in _RED_ZONE_FIELDS}
+    return lookup
+
+
 def _build_coaching_lookup(supabase) -> dict[tuple[str, int], dict[str, Any]]:
     """Fetch team_coaching and return (team, season) -> {changed, tenure}.
 
@@ -455,6 +480,7 @@ def _build_context(
     qb_quality: dict[tuple[str, int], float] | None = None,
     team_coaching: dict[tuple[str, int], dict[str, Any]] | None = None,
     pooling_k: dict[str, float] | None = None,
+    red_zone: dict[tuple[str, int], dict[str, int]] | None = None,
 ) -> dict[str, Any]:
     """Build the context dict for a player's feature computation."""
     context: dict[str, Any] = {"target_season": target_season}
@@ -517,6 +543,11 @@ def _build_context(
     # depth_chart_position_raw and role_change_raw features.
     if depth_charts is not None:
         context["depth_charts"] = depth_charts
+
+    # Red-zone / goal-line usage (player_id, season) -> counts for the
+    # weighted_xfp_redzone base feature (#671).
+    if red_zone is not None:
+        context["red_zone"] = red_zone
 
     # QB-ecosystem lookups for the team_qb_quality_raw / team_qb_changed_raw
     # features (#642): each team's projected QB1, the player's depth-chart team
@@ -679,6 +710,9 @@ def run_model(
     # Fetch opening-day depth-chart tiers once (used across all target seasons)
     depth_charts_lookup = _build_depth_charts_lookup(supabase)
 
+    # Fetch red-zone usage once (used across all target seasons) for #671.
+    red_zone_lookup = _build_red_zone_lookup(supabase)
+
     # QB-ecosystem lookups for the team_qb_quality_raw / team_qb_changed_raw
     # features (#642). Global; the per-season centered QB1 PPG is computed in
     # the loop from that season's history window.
@@ -771,6 +805,7 @@ def run_model(
                 qb_quality=qb_quality,
                 team_coaching=coaching_lookup,
                 pooling_k=pooling_k,
+                red_zone=red_zone_lookup,
             )
 
             # Resolve position-specific features. For residual models, the
