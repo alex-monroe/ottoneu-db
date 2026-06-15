@@ -51,6 +51,33 @@ the MAE verdict. "—" only for rows predating the column.
 | 2026-06-10 | v31_depth_chart | same — fixed window (3-season train handicap) | 2.269 | −0.020 vs v14 | [−0.113, +0.078] | N (p=0.68) | — | fixed 2021–23→24–25 | #599 backfill |
 | 2026-06-10 | v20_learned_usage | same backfill — over-projection bias check | 2.325 | — | bias −1.060→**−0.032** | bias artifact removed | — | fixed | #599 backfill |
 
+### Structural levers spike (#667) — ranking-significance gate built + validated, 2026-06-15
+
+Spike #667 challenges the 2026-06 wave's "v33 is at the frontier" conclusion: the
+four NEGATIVEs prove **MAE on realized PPG is saturated and underpowered**, not
+that the model is optimal. The base autoregresses *realized* PPG (volume ×
+efficiency × availability) onto a noisier version of itself — a target-construction
+and statistical-power problem, not a true frontier. Five structural levers (xFP
+target, game-level modeling, empirical-Bayes pooling, a ranking/decision gate,
+QB-specific volume×regressed-TD) are scoped in
+[structural-projection-levers-667.md](../exec-plans/structural-projection-levers-667.md).
+
+**Built this spike (L4, the linchpin):** a ranking-metric significance gate —
+`just significance <a> <b> --metric spearman --position <P>` — a player-clustered
+paired bootstrap of the **Spearman-ρ delta** (`bootstrap_spearman_difference`).
+It makes within-position *ordering* (what VORP/surplus/auction/keepers consume,
+#598) a first-class, testable statistic alongside MAE. Sequenced first so later
+levers' wins are *detectable*.
+
+**Validation result (the spike's central evidence):** on the rolling held-out
+window (eval 2023/2024/2025, min-train 2021), FantasyPros **significantly**
+out-orders the active `v33_tuned_base` at **QB** — ρ **0.805 vs 0.707**, Δ −0.098,
+95% CI **[−0.167, −0.040]**, **p=0.001** (54 unique QBs, 118 player-seasons). The
+*MAE* bootstrap on the same QBs never clears significance. **The ordering gap is
+real and detectable where the MAE wall is a power artifact** — which is exactly
+the gate the wave was missing. Next per the spike: L1 xFP-target base
+(`v42_xfp_base`), gated on this ρ metric.
+
 ### Availability / expected-games (#587) — measured on `availability-backtest`, not rate MAE
 
 #587 targets the *availability budget* (avail-MAE − rate-MAE), a different metric

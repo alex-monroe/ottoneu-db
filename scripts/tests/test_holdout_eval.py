@@ -13,7 +13,10 @@ from scripts.feature_projections.holdout_eval import (
     _restrict_to_harmonized_population,
     rolling_folds,
 )
-from scripts.feature_projections.significance import bootstrap_mae_difference
+from scripts.feature_projections.significance import (
+    bootstrap_mae_difference,
+    bootstrap_spearman_difference,
+)
 
 
 class TestRollingFolds:
@@ -73,6 +76,55 @@ class TestClusterBootstrap:
         # A's errors are smaller ⇒ delta (A−B) negative ⇒ A more accurate.
         assert res["delta"] < 0
         assert res["significant"] is True
+
+
+class TestSpearmanBootstrap:
+    """Ranking-metric gate (GH #667, L4): paired bootstrap of the Spearman delta."""
+
+    def test_higher_is_better_sign(self):
+        # actual order is monotone in the index. A reproduces it perfectly;
+        # B reverses it. ρ_A ≈ +1, ρ_B ≈ −1 ⇒ delta (A−B) strongly positive.
+        actual = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+        proj_a = actual.copy()
+        proj_b = actual[::-1].copy()
+        clusters = np.array(list("abcdef"), dtype=object)
+        res = bootstrap_spearman_difference(
+            proj_a, proj_b, actual, clusters=clusters, iterations=1000, seed=0
+        )
+        assert res["metric"] == "spearman"
+        assert res["rho_a"] == pytest.approx(1.0)
+        assert res["rho_b"] == pytest.approx(-1.0)
+        assert res["delta"] > 0  # A orders better
+        assert res["significant"] is True
+
+    def test_empty_input(self):
+        res = bootstrap_spearman_difference(
+            np.array([]), np.array([]), np.array([])
+        )
+        assert res == {"n": 0}
+
+    def test_tie_not_significant(self):
+        # Both models produce the same ordering ⇒ zero delta, CI spans 0.
+        actual = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+        proj = actual.copy()
+        clusters = np.array(list("abcde"), dtype=object)
+        res = bootstrap_spearman_difference(
+            proj, proj.copy(), actual, clusters=clusters, iterations=500, seed=0
+        )
+        assert res["delta"] == pytest.approx(0.0)
+        assert res["significant"] is False
+
+    def test_constant_vector_is_zero_not_nan(self):
+        # A constant projection has undefined Spearman; we treat it as 0.0 so the
+        # bootstrap never produces NaN deltas.
+        actual = np.array([1.0, 2.0, 3.0, 4.0])
+        const = np.array([5.0, 5.0, 5.0, 5.0])
+        clusters = np.array(list("abcd"), dtype=object)
+        res = bootstrap_spearman_difference(
+            actual.copy(), const, actual, clusters=clusters, iterations=200, seed=0
+        )
+        assert res["rho_b"] == 0.0
+        assert not np.isnan(res["delta"])
 
 
 class TestHoldoutCache:
