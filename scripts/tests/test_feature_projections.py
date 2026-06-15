@@ -912,6 +912,47 @@ class TestComputePoolingK:
         assert 0.3 <= k.get("WR") <= 2.0
 
 
+class TestWeightedQBVolumeEfficiencyFeature:
+    """Tests for the L5 QB volume × regressed-efficiency base (GH #667)."""
+
+    def setup_method(self):
+        from scripts.feature_projections.features.qb_volume_efficiency import (
+            WeightedQBVolumeEfficiencyFeature,
+        )
+        self.feature = WeightedQBVolumeEfficiencyFeature()
+        self.base = WeightedPPGTunedNoQBFeature()
+
+    def test_name_and_base(self):
+        assert self.feature.name == "weighted_qb_volume_efficiency"
+        assert self.feature.is_base is True
+
+    def test_non_qb_identical_to_base(self):
+        hist = make_history_df([{"season": 2024, "ppg": 12.0, "games_played": 17}])
+        nfl = make_nfl_stats_df([{"season": 2024, "receptions": 80, "receiving_tds": 8}])
+        for pos in ("WR", "RB", "TE", "K"):
+            assert self.feature.compute("p", pos, hist, nfl, {}) == self.base.compute("p", pos, hist, nfl, {})
+
+    def test_qb_backup_falls_back_to_realized(self):
+        """A QB-season below MIN_ATTEMPTS keeps realized PPG (no reconstruction)."""
+        hist = make_history_df([{"season": 2024, "ppg": 6.0, "games_played": 17}])
+        nfl = make_nfl_stats_df([{"season": 2024, "passing_attempts": 20, "passing_yards": 120,
+                                  "passing_tds": 1, "interceptions": 1}])
+        assert self.feature.compute("p", "QB", hist, nfl, {}) == self.base.compute("p", "QB", hist, nfl, {})
+
+    def test_qb_td_inflated_season_regresses_down(self):
+        """A QB with TD rate well above population is reconstructed below realized-from-stats."""
+        nfl = pd.Series({"passing_attempts": 550, "passing_yards": 3900, "passing_tds": 40,
+                         "interceptions": 10, "rushing_attempts": 0, "rushing_yards": 0, "rushing_tds": 0})
+        realized_pts = (3900 * 0.04 + 40 * 4 - 10 * 2) / 17
+        assert self.feature._xqb_ppg(nfl, 17) < realized_pts  # TD luck regressed out
+
+    def test_missing_nfl_keeps_realized(self):
+        hist = make_history_df([{"season": 2024, "ppg": 18.0, "games_played": 17}])
+        assert self.feature.compute("p", "QB", hist, pd.DataFrame(), {}) == self.base.compute(
+            "p", "QB", hist, pd.DataFrame(), {}
+        )
+
+
 class TestRegressionToMeanTieredFeature:
     """Tests for the tiered regression-to-mean feature (GH #304)."""
 

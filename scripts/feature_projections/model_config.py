@@ -753,6 +753,49 @@ MODELS: dict[str, ModelDefinition] = {
             "depth_chart_position_raw*position",
         ],
     ),
+    "v45_qb_volume_model": ModelDefinition(
+        name="v45_qb_volume_model",
+        version=1,
+        description=(
+            "QB volume × regressed-efficiency base (spike #667, L5): "
+            "v44_eb_pooling_perpos with the base feature swapped "
+            "weighted_ppg_tuned_no_qb → weighted_qb_volume_efficiency. For QB "
+            "only, each season's PPG is reconstructed as realized attempts/game "
+            "× efficiency (YPA, TD-rate, INT-rate, YPC) shrunk toward the QB "
+            "population — stable volume × heavily-regressed efficiency. Non-QB "
+            "falls through to the identical tuned base, so this stacks L5 on top "
+            "of L3's EB pooling. Tests whether a fuller QB efficiency strip adds "
+            "beyond the pooling win (vs v44) and vs the active v33. Gated on QB "
+            "MAE + QB ρ."
+        ),
+        features=[
+            "weighted_qb_volume_efficiency",
+            "age_curve",
+            "partial_pooling_eb",
+            "qb_backup_penalty",
+            "usage_share_raw",
+            "target_share_raw",
+            "air_yards_share_raw",
+            "wopr_raw",
+            "racr_raw",
+            "draft_capital_raw",
+            "implied_team_total_raw",
+            "depth_chart_position_raw",
+            "role_change_raw",
+        ],
+        combiner_type="learned",
+        interaction_terms=[
+            "usage_share_raw*position",
+            "usage_share_raw*base_ppg",
+            "usage_share_raw^2",
+            "target_share_raw*position",
+            "wopr_raw*base_ppg",
+            "wopr_raw^2",
+            "draft_capital_raw*position",
+            "implied_team_total_raw*position",
+            "depth_chart_position_raw*position",
+        ],
+    ),
     "v34_qb_residual": ModelDefinition(
         name="v34_qb_residual",
         version=1,

@@ -37,6 +37,7 @@ the MAE verdict. "—" only for rows predating the column.
 
 | Date | Model | Change | Held-out ALL MAE | Δ vs comparator | 95% CI | Significant? | Rank Δ (ρ / top-N vs comparator) | Protocol | PR |
 |------|-------|--------|------------------|----------|--------|--------------|----------------------------------|----------|-----|
+| 2026-06-15 | v45_qb_volume_model | #667 spike L5: QB volume×regressed-efficiency base — v44 with base → `weighted_qb_volume_efficiency` (QB-only: reconstruct each season as realized attempts/g × efficiency [YPA, TD-rate, INT-rate, YPC] shrunk toward QB population; non-QB identical to v44) | 2.236 | +0.060 QB vs **v44** | [−0.032, +0.158] | **NEGATIVE** — L5 *removes* signal. QB MAE 3.617 vs **v44** 3.557 (Δ +0.060, p=0.21) and QB ρ 0.686 vs 0.696 — both **worse than v44**. Still beats v33 (QB 3.617 vs 3.697) only by inheriting v44's pooling. Fully regressing QB efficiency over-strips real skill (elite YPA/TD QBs pulled to average), hurting ordering. Triangulates with #640 (QB volume features tied) + L1 (TD regression tied): **same-data QB efficiency reconstruction is tapped — the QB win is L3 pooling, not volume/efficiency decomposition.** See #667 L5 section below | QB ρ 0.696→0.686 (worse vs v44); +0.015 vs v33 | rolling 2023–2025 (one look) | #667 |
 | 2026-06-15 | v44_eb_pooling_perpos | #667 spike L3 follow-up: per-position EB pooling — v43 with `partial_pooling` → `partial_pooling_eb` (k no longer global 1.0 but the method-of-moments `k_g = σ²_g/τ²_g` estimated per position from each fold's training population; est. k≈0.5–0.7, QB highest, i.e. v43 over-shrank) | 2.237 | +0.0003 vs **v33** | [−0.034, +0.034] | ALL **N** (p=0.98, dead tie) — but **QB MAE −0.166, CI [−0.324, −0.025], p=0.020 SIGNIFICANT** (stronger than v43's p=0.041); QB bias −0.563→−0.285. Balanced MAE 2.459→2.423 (−0.036); no position regresses. **QB ρ +0.027, CI [−0.0015, +0.061], p=0.068** — improved from v43 (0.087), CI now *barely* spans 0 (just shy of the ranking gate). Strictly dominates v43 on the QB story; **strongest promotion candidate of the spike** (operator call). Stopped iterating here to avoid forking-path inflation on the eval window. See #667 L3 section below | **QB ρ 0.669→0.697 (+0.027, p=0.068)**, WR/RB/TE ≈; QB top-12 hit unchanged | rolling 2023–2025 (one look) | #667 |
 | 2026-06-15 | v43_eb_pooling | #667 spike L3: empirical-Bayes partial pooling — v33 with `regression_to_mean` → `partial_pooling` (shrinkage toward positional mean now scales to sample size, `w_p = n_p/(n_p+k)`, `n_p` = effective full-seasons played, `k`=1; prior = positional mean, else identical to v33) | 2.223 | **−0.005** vs **v33** | [−0.032, +0.022] | ALL **N** (p=0.72) — tie overall; **QB MAE −0.119, CI [−0.247, −0.004], p=0.041 SIGNIFICANT** — the spike's first significant win, at the worst & (Superflex) most valuable position. Balanced MAE 2.450→2.418 (−0.032); QB bias −0.549→−0.317; WR −0.017, RB −0.010 (tiny wins), TE +0.017 (slight). **Strongest candidate of the spike; promotion left to operator** (ALL-MAE gate is a tie, QB ρ trends but isn't significant). See #667 L3 section below | **QB ρ 0.671→0.690 (+0.019, p=0.087, NS but trending)**, WR +0.004, RB +0.004, TE −0.006; QB/WR/RB top-N ≈ or up | rolling 2023–2025 (full window; one look) | #667 |
 | 2026-06-15 | v42_xfp_base | #667 spike L1: xFP target — v33 with base swapped `weighted_ppg_tuned_no_qb` → `weighted_xfp_tuned_no_qb` (realized TDs replaced by opportunity-expected TDs, volume-weighted shrink toward league priors; yards/receptions stay realized). Tests the "regress on expected, not realized points" reframe | 2.238 | +0.011 vs **v33** | [−0.007, +0.031] | **N** (p=0.25) — **NEGATIVE / TIE**; the TD-regression-only xFP moves neither MAE nor the QB ordering it targeted out of the noise band. **Ranking gate (#667 L4) on the hypothesis position**: QB ρ +0.004, CI [−0.013, +0.023], **p=0.58** — a dead tie, nowhere near FP's ρ-0.10 QB edge. v33's existing usage/target_share/wopr features already proxy most opportunity de-noising; TD luck alone isn't the QB ordering lever. See #667 section below | QB ρ 0.670→0.674 (≈, p=0.58), RB +0.008, WR −0.004, TE −0.003 (all ≈); top-N unchanged | rolling 2023–2025 (full window; tie, nothing to confirm) | #667 |
@@ -117,6 +118,32 @@ promotion left to the operator (run from main, post-merge). Natural follow-ups
 that should push it over the line: a hierarchical (position×age / role) prior and
 a per-position / per-fold-estimated `k` (this v1 fixed `k`=1 globally), plus the
 posterior P10/P50/P90 the formulation yields for free.
+
+### QB volume × regressed-efficiency (#667, L5) — NEGATIVE, 2026-06-15
+
+L5 = "project QB as stable volume × heavily-regressed efficiency," L1 applied to
+the worst & most-valuable position and done fully (regress YPA, TD-rate,
+INT-rate, YPC — not just TDs). `v45_qb_volume_model` swaps v44's base for
+`weighted_qb_volume_efficiency`: for QB only, each season's PPG is reconstructed
+as realized attempts/game (the stable part) × population-shrunk efficiency;
+non-QB falls through to the identical tuned base, so it stacks L5 on top of L3's
+pooling win.
+
+**Result: it removes signal.** vs v44 (the model it builds on): QB MAE 3.617 vs
+3.557 (Δ +0.060, CI [−0.032, +0.158], p=0.21) and **QB ρ 0.696 → 0.686** — both
+worse. v45 still beats v33 at QB (3.617 vs 3.697) purely by inheriting v44's
+pooling; the L5 reconstruction itself is a net negative.
+
+**Read.** Fully regressing QB efficiency toward the population over-strips *real*
+QB skill — elite-YPA / high-TD-rate QBs are sustainably good, and pulling them to
+average degrades both accuracy and ordering. This is the third same-data QB
+reconstruction to fail to add signal (#640 QB volume features → tie; L1 TD-only
+xFP → tie; L5 full efficiency strip → mild regression), triangulating a firm
+conclusion: **the QB improvement available from own data is the sample-size-aware
+shrinkage of L3 (v44), not any decomposition of volume × efficiency.** The
+residual QB ordering gap to FantasyPros (ρ ~0.70 vs ~0.81) is an *information*
+gap — exactly what the #651 acquisition track targets — not a same-data modeling
+gap. L5 closed as NEGATIVE; not promoted.
 
 #### Per-position EB k (#667, L3 follow-up) — v44_eb_pooling_perpos, 2026-06-15
 

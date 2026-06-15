@@ -29,6 +29,9 @@ from scripts.feature_projections.features.partial_pooling import (
     PartialPoolingFeature,
     PartialPoolingEBFeature,
 )
+from scripts.feature_projections.features.qb_volume_efficiency import (
+    WeightedQBVolumeEfficiencyFeature,
+)
 from scripts.feature_projections.features.snap_trend import SnapTrendFeature
 from scripts.feature_projections.features.qb_starter_usage import (
     QBStarterUsageFeature,
@@ -69,6 +72,7 @@ FEATURE_REGISTRY: dict[str, type] = {
     "weighted_ppg_reliability_no_qb": WeightedPPGReliabilityNoQBFeature,
     "weighted_ppg_tuned_no_qb": WeightedPPGTunedNoQBFeature,
     "weighted_xfp_tuned_no_qb": WeightedXFPTunedNoQBFeature,
+    "weighted_qb_volume_efficiency": WeightedQBVolumeEfficiencyFeature,
     "weighted_ppg_pos_tuned_no_qb": WeightedPPGPerPositionTunedFeature,
     "age_curve": AgeCurveFeature,
     "stat_efficiency": StatEfficiencyFeature,
