@@ -336,6 +336,41 @@ def _build_red_zone_lookup(supabase) -> dict[tuple[str, int], dict[str, int]]:
     return lookup
 
 
+_NGS_PASSING_FIELDS = (
+    "attempts",
+    "completion_pct_above_expectation",
+    "avg_air_yards_to_sticks",
+    "aggressiveness",
+    "avg_time_to_throw",
+    "avg_air_yards_differential",
+)
+
+
+def _build_ngs_passing_lookup(supabase) -> dict[tuple[str, int], dict[str, float]]:
+    """Fetch ngs_passing and return (player_id, season) -> NGS passing metrics.
+
+    Powers the QB-only NGS features (#674): stabilized skill/process metrics
+    (CPOE, air-yards-to-sticks, aggressiveness, time-to-throw, air-yards
+    differential). Keyed by the historical season the feature reads (never the
+    target season) — a property of completed games, so not leakage. Only the
+    columns the features consume are fetched; missing values stay None.
+    """
+    rows = fetch_all_rows(
+        supabase, "ngs_passing",
+        "player_id, season, " + ", ".join(_NGS_PASSING_FIELDS),
+    )
+    lookup: dict[tuple[str, int], dict[str, float]] = {}
+    for r in rows:
+        pid = r.get("player_id")
+        season = r.get("season")
+        if not pid or season is None:
+            continue
+        lookup[(str(pid), int(season))] = {
+            f: r.get(f) for f in _NGS_PASSING_FIELDS
+        }
+    return lookup
+
+
 def _build_coaching_lookup(supabase) -> dict[tuple[str, int], dict[str, Any]]:
     """Fetch team_coaching and return (team, season) -> {changed, tenure}.
 
@@ -481,6 +516,7 @@ def _build_context(
     team_coaching: dict[tuple[str, int], dict[str, Any]] | None = None,
     pooling_k: dict[str, float] | None = None,
     red_zone: dict[tuple[str, int], dict[str, int]] | None = None,
+    ngs_passing: dict[tuple[str, int], dict[str, float]] | None = None,
 ) -> dict[str, Any]:
     """Build the context dict for a player's feature computation."""
     context: dict[str, Any] = {"target_season": target_season}
@@ -548,6 +584,11 @@ def _build_context(
     # weighted_xfp_redzone base feature (#671).
     if red_zone is not None:
         context["red_zone"] = red_zone
+
+    # NGS passing (player_id, season) -> stabilized QB skill metrics for the
+    # QB-only ngs_*_raw features (#674).
+    if ngs_passing is not None:
+        context["ngs_passing"] = ngs_passing
 
     # QB-ecosystem lookups for the team_qb_quality_raw / team_qb_changed_raw
     # features (#642): each team's projected QB1, the player's depth-chart team
@@ -713,6 +754,9 @@ def run_model(
     # Fetch red-zone usage once (used across all target seasons) for #671.
     red_zone_lookup = _build_red_zone_lookup(supabase)
 
+    # Fetch NGS passing once (used across all target seasons) for #674.
+    ngs_passing_lookup = _build_ngs_passing_lookup(supabase)
+
     # QB-ecosystem lookups for the team_qb_quality_raw / team_qb_changed_raw
     # features (#642). Global; the per-season centered QB1 PPG is computed in
     # the loop from that season's history window.
@@ -806,6 +850,7 @@ def run_model(
                 team_coaching=coaching_lookup,
                 pooling_k=pooling_k,
                 red_zone=red_zone_lookup,
+                ngs_passing=ngs_passing_lookup,
             )
 
             # Resolve position-specific features. For residual models, the

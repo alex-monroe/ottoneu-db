@@ -883,6 +883,71 @@ export type Database = {
           },
         ]
       }
+      ngs_passing: {
+        Row: {
+          aggressiveness: number | null
+          attempts: number
+          avg_air_yards_differential: number | null
+          avg_air_yards_to_sticks: number | null
+          avg_completed_air_yards: number | null
+          avg_intended_air_yards: number | null
+          avg_time_to_throw: number | null
+          completion_pct_above_expectation: number | null
+          created_at: string
+          expected_completion_pct: number | null
+          id: string
+          max_completed_air_distance: number | null
+          passer_rating: number | null
+          player_id: string
+          season: number
+          updated_at: string
+        }
+        Insert: {
+          aggressiveness?: number | null
+          attempts?: number
+          avg_air_yards_differential?: number | null
+          avg_air_yards_to_sticks?: number | null
+          avg_completed_air_yards?: number | null
+          avg_intended_air_yards?: number | null
+          avg_time_to_throw?: number | null
+          completion_pct_above_expectation?: number | null
+          created_at?: string
+          expected_completion_pct?: number | null
+          id?: string
+          max_completed_air_distance?: number | null
+          passer_rating?: number | null
+          player_id: string
+          season: number
+          updated_at?: string
+        }
+        Update: {
+          aggressiveness?: number | null
+          attempts?: number
+          avg_air_yards_differential?: number | null
+          avg_air_yards_to_sticks?: number | null
+          avg_completed_air_yards?: number | null
+          avg_intended_air_yards?: number | null
+          avg_time_to_throw?: number | null
+          completion_pct_above_expectation?: number | null
+          created_at?: string
+          expected_completion_pct?: number | null
+          id?: string
+          max_completed_air_distance?: number | null
+          passer_rating?: number | null
+          player_id?: string
+          season?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ngs_passing_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: true
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       red_zone_usage: {
         Row: {
           created_at: string

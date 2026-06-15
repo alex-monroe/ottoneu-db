@@ -36,6 +36,13 @@ from scripts.feature_projections.features.xfp_redzone import (
     WeightedXFPRedZoneFeature,
     TDRegressionRawFeature,
 )
+from scripts.feature_projections.features.ngs_passing import (
+    NGSCPOERawFeature,
+    NGSAirYardsToSticksRawFeature,
+    NGSAggressivenessRawFeature,
+    NGSTimeToThrowRawFeature,
+    NGSAirYardsDifferentialRawFeature,
+)
 from scripts.feature_projections.features.snap_trend import SnapTrendFeature
 from scripts.feature_projections.features.qb_starter_usage import (
     QBStarterUsageFeature,
@@ -79,6 +86,11 @@ FEATURE_REGISTRY: dict[str, type] = {
     "weighted_qb_volume_efficiency": WeightedQBVolumeEfficiencyFeature,
     "weighted_xfp_redzone": WeightedXFPRedZoneFeature,
     "td_regression_raw": TDRegressionRawFeature,
+    "ngs_cpoe_raw": NGSCPOERawFeature,
+    "ngs_air_yards_to_sticks_raw": NGSAirYardsToSticksRawFeature,
+    "ngs_aggressiveness_raw": NGSAggressivenessRawFeature,
+    "ngs_time_to_throw_raw": NGSTimeToThrowRawFeature,
+    "ngs_air_yards_differential_raw": NGSAirYardsDifferentialRawFeature,
     "weighted_ppg_pos_tuned_no_qb": WeightedPPGPerPositionTunedFeature,
     "age_curve": AgeCurveFeature,
     "stat_efficiency": StatEfficiencyFeature,
