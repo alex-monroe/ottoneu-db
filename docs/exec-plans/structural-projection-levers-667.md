@@ -1,6 +1,32 @@
 # Spike #667 — Structural projection levers beyond the same-data MAE frontier
 
-## Status: In progress (2026-06-15) · L4 ranking-gate **built + validated** · L1 v1 (TD-regression xFP) → **held-out TIE** · L3 (EB partial pooling, v43 global-k → v44 per-position-k) → **SIGNIFICANT QB MAE win** (spike's first significant win; v44 QB MAE p=0.020, QB ρ p=0.068 on the cusp) — strongest promotion candidate
+## Status: CLOSED (2026-06-15)
+
+**Final scorecard** (all levers run or feasibility-resolved):
+
+| Lever | What | Verdict |
+|-------|------|---------|
+| **L4** | Ranking-significance gate (`--metric spearman`) | ✅ **Built + validated** — the spike's enabling tool; proved FP out-orders v33 at QB (p=0.001) |
+| **L1** | xFP target (TD-regression base, `v42_xfp_base`) | ⚪ **TIE** — same-data efficiency proxy already captured by v33's features |
+| **L3** | EB partial pooling — `v43_eb_pooling` (global k) → **`v44_eb_pooling_perpos`** (per-position EB k) | 🟢 **SIGNIFICANT QB MAE win** (v44 −0.166, p=0.020; QB ρ p=0.068 on the cusp; no regression) — **strongest candidate, promotion deferred to operator** |
+| **L5** | QB volume × regressed-efficiency (`v45_qb_volume_model`) | 🔴 **NEGATIVE** — over-strips real QB skill; worse than v44. Triangulates with #640 + L1 |
+| **L2** | Game/week-level modeling | ⏸️ **Feasible but DEPRIORITIZED** — ingestion works; power premise undercut by L1/L5 |
+| Ensemble | Decorrelated validated blend | ⬜ Not run — scoped, deferred |
+
+**One-line conclusion.** The spike's reframe paid in exactly one place: **L3's
+sample-size-aware shrinkage** (v44) is a real, significant QB-accuracy gain and a
+promotable replacement for the hand-tuned `regression_to_mean`. Every *efficiency*
+reframe (L1, L5) tied or regressed — three independent same-data QB
+reconstructions (#640, L1, L5) now agree the residual QB ordering gap to
+FantasyPros is an **information** gap (→ #651 acquisition), not a same-data
+modeling gap. L4 (the ranking gate) is the lasting tool that made all of this
+*decidable*. L2's power argument is moot once the same-data signal is shown
+absent.
+
+> **History:** L4 ranking-gate **built + validated** · L1 (TD-regression xFP) →
+> **TIE** · L3 (v43 global-k → v44 per-position-k) → **SIGNIFICANT QB MAE win**
+> (v44 QB MAE p=0.020, QB ρ p=0.068) · L5 (QB volume×efficiency) → **NEGATIVE**
+> (worse than v44) · L2 → **feasible but deprioritized**.
 
 > **TL;DR.** The 2026-06 wave's four NEGATIVEs proved *same-data features are
 > tapped on MAE*. They did **not** prove the model is optimal — they proved MAE
@@ -283,6 +309,23 @@ weekly table.** So L2 is the one lever that needs new ingestion plumbing
 L1/L4 prove the reframe pays. Do the partial (game-level volume → season) slice
 first if L1's xFP win points at volume as the carrier.
 
+> **Outcome — feasibility verified, then DEPRIORITIZED (2026-06-15).**
+> Ingestion is **not blocked**: `nfl_data_py==0.3.2 import_weekly_data([2023])`
+> returns 5,653 weekly rows with every volume/efficiency column
+> (attempts/carries/targets/receptions/yards/TDs) plus `fantasy_points` and
+> `position` — the table + backfill could be built on the established pipeline.
+> **But the motivation collapsed.** L2's case is a *power* argument: more rows
+> resolve same-data effects the season-grain harness can't. L1 (xFP tie) and L5
+> (efficiency-strip *regression*) showed the same-data **efficiency** signal
+> isn't there to resolve, and the one real win — L3 pooling (v44) — was already
+> detectable at season grain. The spike gated L2 on "after L1 proves the reframe
+> pays"; the reframe did **not** pay. Building the multi-session pipeline (new
+> `nfl_weekly_stats` table + migration + backfill + a game-level model) to gain
+> power for detecting effects now shown absent is low-value. **Left
+> feasible-but-unbuilt;** revisit only with a *new* hypothesis that is genuinely
+> week-grain (e.g. within-season role-change detection), not as a power patch for
+> the saturated season-grain efficiency frontier.
+
 ---
 
 ## L5 — QB-specific volume × regressed-TD model (scoped)
@@ -295,6 +338,17 @@ decision value. L5 is **L1 applied where it matters most**: project QB as
 expected TDs. Build as the QB position-override of `v42_xfp_base`, or as a
 QB-only residual on v33 (the `v34_qb_residual` pattern already exists). **Gate on
 the QB ρ delta** — that is the metric with the demonstrated, significant gap.
+
+> **Outcome — NEGATIVE (2026-06-15).** `v45_qb_volume_model` (= v44 with the QB
+> base reconstructed as realized attempts/game × population-shrunk YPA / TD-rate /
+> INT-rate / YPC; non-QB identical to v44) **removes** signal: vs v44 it is QB
+> MAE +0.060 (p=0.21) and QB ρ 0.696→0.686 — both worse. Fully regressing QB
+> efficiency over-strips genuine, sustainable QB skill (elite YPA/TD-rate), hurting
+> ordering. With #640 (QB volume features → tie) and L1 (TD-only xFP → tie), this
+> is the **third** same-data QB reconstruction to add nothing: the QB win came
+> from L3's pooling, and the residual gap to FP is *informational* (#651), not a
+> same-data modeling gap. See the #667 L5 section in
+> [experiment-log.md](../generated/experiment-log.md).
 
 ---
 
