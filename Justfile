@@ -229,6 +229,10 @@ backfill-vegas *args:
 backfill-depth-charts *args:
     {{python}} scripts/backfill_depth_charts.py {{args}}
 
+# Backfill red-zone usage from nflverse PBP  (e.g. just backfill-red-zone --seasons 2018-2025 ; --dry-run supported)
+backfill-red-zone *args:
+    {{python}} scripts/backfill_red_zone.py {{args}}
+
 # Seed preseason win totals  (e.g. just seed-win-totals --season 2026)
 seed-win-totals *args:
     {{python}} scripts/seed_preseason_win_totals.py {{args}}
