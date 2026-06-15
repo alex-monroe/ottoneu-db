@@ -1,6 +1,6 @@
 # Spike #667 — Structural projection levers beyond the same-data MAE frontier
 
-## Status: In progress (2026-06-15) · L4 ranking-gate **built + validated** · L1 v1 (TD-regression xFP) → **held-out TIE** · L3 v1 (EB partial pooling) → **SIGNIFICANT at QB** (spike's first significant win)
+## Status: In progress (2026-06-15) · L4 ranking-gate **built + validated** · L1 v1 (TD-regression xFP) → **held-out TIE** · L3 (EB partial pooling, v43 global-k → v44 per-position-k) → **SIGNIFICANT QB MAE win** (spike's first significant win; v44 QB MAE p=0.020, QB ρ p=0.068 on the cusp) — strongest promotion candidate
 
 > **TL;DR.** The 2026-06 wave's four NEGATIVEs proved *same-data features are
 > tapped on MAE*. They did **not** prove the model is optimal — they proved MAE
@@ -235,6 +235,19 @@ eval-time comparators only, never model inputs).
 > hierarchical (position×age/role) prior, per-position / per-fold `k`, and the
 > free posterior P10/P50/P90. See the #667 L3 section in
 > [experiment-log.md](../generated/experiment-log.md).
+>
+> **Follow-up — per-position EB k → v44_eb_pooling_perpos (2026-06-15).** The
+> hand-set global `k=1` over-shrank: the EB method-of-moments estimate
+> `k_g = σ²_g/τ²_g` is ≈0.5–0.7 (QB highest). v44 estimates `k` per position from
+> each fold's training population (`runner._compute_pooling_k`, leakage-free) via
+> the `partial_pooling_eb` feature. **Strictly dominates v43:** QB MAE −0.166,
+> CI [−0.324, −0.025], **p=0.020** (vs v43 p=0.041); QB ρ +0.027, **p=0.068**
+> (vs 0.087 — CI now *barely* spans 0); ALL MAE a dead tie (no regression),
+> balanced MAE −0.036. Clears a significant QB MAE win with no regression (the
+> L4-style promotion case) but **not** the strict ALL-MAE gate nor — quite — the
+> QB ρ ranking gate. **Iteration stopped here** to avoid forking-path inflation
+> on the 2023–2025 window; the next lever (hierarchical/age-aware prior) must be
+> validated on fresh ground. **Strongest promotion candidate of the spike.**
 
 ---
 

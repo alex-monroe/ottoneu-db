@@ -36,6 +36,7 @@ from scripts.feature_projections.runner import (
     _build_qb_ecosystem_lookups,
     _build_vegas_lines_lookup,
     _collect_feature_names_recursive,
+    _compute_pooling_k,
     _compute_positional_mean_ppg,
     _compute_qb_quality_by_team,
     _compute_team_aggregates,
@@ -149,6 +150,7 @@ def collect_training_data(
         # Team aggregates and positional means
         team_aggregates = _compute_team_aggregates(nfl_stats_all, players_df)
         positional_means = _compute_positional_mean_ppg(history_df, players_df)
+        pooling_k = _compute_pooling_k(history_df, players_df)  # EB k_g (#667, L3)
 
         # Centered QB1 prior PPG per team for this target season (#642).
         qb_quality = _compute_qb_quality_by_team(history_df, qb1_by_team, target_season)
@@ -199,6 +201,7 @@ def collect_training_data(
                 player_team_by_season=player_team_by_season,
                 qb_quality=qb_quality,
                 team_coaching=coaching_lookup,
+                pooling_k=pooling_k,
             )
 
             effective_features, effective_weights = _resolve_features_for_position(model_def, position)

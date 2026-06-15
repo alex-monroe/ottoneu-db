@@ -27,7 +27,10 @@ from scripts.feature_projections.features.regression_to_mean import (
     RegressionToMeanFeature,
     RegressionToMeanTieredFeature,
 )
-from scripts.feature_projections.features.partial_pooling import PartialPoolingFeature
+from scripts.feature_projections.features.partial_pooling import (
+    PartialPoolingFeature,
+    PartialPoolingEBFeature,
+)
 from scripts.feature_projections.features.snap_trend import SnapTrendFeature
 from scripts.feature_projections.features.qb_starter_usage import QBStarterUsageFeature, QBStarterBackupPenaltyFeature
 from scripts.feature_projections.features.qb_volume import (
@@ -842,6 +845,71 @@ class TestPartialPoolingFeature:
         ctx = {"base_ppg": 18.0, "positional_mean_ppg": 11.0}
         result = self.feature.compute("p1", "QB", pd.DataFrame(), pd.DataFrame(), ctx)
         assert result == pytest.approx(11.0 - 18.0)
+
+
+class TestPartialPoolingEBFeature:
+    """Tests for the per-position empirical-Bayes pooling feature (GH #667, L3)."""
+
+    def setup_method(self):
+        self.feature = PartialPoolingEBFeature()
+
+    def test_name(self):
+        assert self.feature.name == "partial_pooling_eb"
+
+    def test_uses_context_k(self):
+        """k comes from context['pooling_k'] rather than the global default."""
+        hist = make_history_df([{"games_played": 17}, {"games_played": 17}])  # n_p=2
+        ctx = {"base_ppg": 20.0, "positional_mean_ppg": 10.0, "pooling_k": 0.5}
+        # delta = (10 − 20) · 0.5/(2 + 0.5) = −2.0
+        assert self.feature.compute("p1", "QB", hist, pd.DataFrame(), ctx) == pytest.approx(-2.0)
+
+    def test_falls_back_to_default_k_when_absent(self):
+        """No context k → parent's global PRIOR_STRENGTH (1.0)."""
+        hist = make_history_df([{"games_played": 17}, {"games_played": 17}])
+        ctx = {"base_ppg": 20.0, "positional_mean_ppg": 10.0}
+        # delta = (10 − 20) · 1/(2 + 1) = −3.333
+        assert self.feature.compute("p1", "QB", hist, pd.DataFrame(), ctx) == pytest.approx(-10.0 / 3.0)
+
+    def test_smaller_k_shrinks_less(self):
+        """A smaller (EB-estimated) k keeps more of the player's own estimate."""
+        hist = make_history_df([{"games_played": 17}, {"games_played": 17}])
+        base = {"base_ppg": 20.0, "positional_mean_ppg": 10.0}
+        small_k = abs(self.feature.compute("p1", "QB", hist, pd.DataFrame(), {**base, "pooling_k": 0.5}))
+        big_k = abs(self.feature.compute("p1", "QB", hist, pd.DataFrame(), {**base, "pooling_k": 1.5}))
+        assert small_k < big_k
+
+
+class TestComputePoolingK:
+    """Tests for the per-fold EB k estimator (GH #667, L3)."""
+
+    def test_thin_population_falls_back_to_one(self):
+        from scripts.feature_projections.runner import _compute_pooling_k
+        # Two QBs only (< min_players) → fallback k=1.0.
+        history = pd.DataFrame([
+            {"player_id": "q1", "season": 2022, "ppg": 18.0, "games_played": 17},
+            {"player_id": "q2", "season": 2022, "ppg": 12.0, "games_played": 17},
+        ])
+        players = pd.DataFrame([
+            {"player_id_ref": "q1", "position": "QB"},
+            {"player_id_ref": "q2", "position": "QB"},
+        ])
+        k = _compute_pooling_k(history, players)
+        assert k.get("QB") == 1.0
+
+    def test_k_is_clipped(self):
+        from scripts.feature_projections.runner import _compute_pooling_k
+        # Many players, all with near-identical means across seasons → τ²≈0 would
+        # blow k up; the clip caps it at 2.0.
+        rows = []
+        players = []
+        for i in range(12):
+            pid = f"p{i}"
+            players.append({"player_id_ref": pid, "position": "WR"})
+            # within-player spread but tiny between-player spread
+            rows.append({"player_id": pid, "season": 2021, "ppg": 10.0 + (i % 2) * 4, "games_played": 17})
+            rows.append({"player_id": pid, "season": 2022, "ppg": 10.0 - (i % 2) * 4, "games_played": 17})
+        k = _compute_pooling_k(pd.DataFrame(rows), pd.DataFrame(players))
+        assert 0.3 <= k.get("WR") <= 2.0
 
 
 class TestRegressionToMeanTieredFeature:
