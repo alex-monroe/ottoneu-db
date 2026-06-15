@@ -14,8 +14,9 @@ count, per player, plays inside the 20 (red zone) and inside the 10 (goal line):
 
 Player mapping mirrors `backfill_depth_charts` / `backfill_nfl_stats`: PBP rows
 carry **gsis** ids (`rusher_player_id` etc.) and *abbreviated* names ("C.McCaffrey"),
-so we aggregate by gsis id, crosswalk gsis → full display name via that season's
-weekly data, then normalize the full name and match it to the `players` table.
+so we aggregate by gsis id, crosswalk gsis → full name via that season's roster
+(`import_seasonal_rosters` — covers the current season, which weekly stats don't
+publish until later), then normalize the full name and match it to `players`.
 Unmatched ids (punters/defenders credited on RZ special-teams/defensive plays,
 plus the occasional name variant) are dropped — ≈99% of skill-position RZ usage
 matches.
@@ -101,12 +102,18 @@ def build_player_lookup(supabase) -> dict[str, str]:
 
 
 def gsis_name_crosswalk(season: int) -> dict[str, str]:
-    """gsis player id -> full display name, from that season's weekly data."""
-    wk = nfl.import_weekly_data([season])
+    """gsis player id -> full name, from that season's roster.
+
+    Uses ``import_seasonal_rosters`` (gsis ``player_id`` + ``player_name``) rather
+    than weekly data: rosters publish for the current season before the weekly
+    stats parquet does, so this also covers the most recent season (weekly 404s
+    for it in the offseason).
+    """
+    roster = nfl.import_seasonal_rosters([season])
     return {
         str(pid): str(name)
-        for pid, name in zip(wk["player_id"], wk["player_display_name"])
-        if pid is not None and name is not None
+        for pid, name in zip(roster["player_id"], roster["player_name"])
+        if pid and name
     }
 
 
@@ -139,15 +146,14 @@ def backfill(seasons: list[int], dry_run: bool = False) -> None:
     for season in seasons:
         try:
             pbp = nfl.import_pbp_data([season], columns=_PBP_COLUMNS, downcast=True)
+            counts = aggregate_red_zone(pbp)
+            crosswalk = gsis_name_crosswalk(season)
+            payload, matched, unmatched = map_to_payload(counts, crosswalk, player_lookup, season)
         except Exception as e:  # noqa: BLE001 — skip a season the source can't provide
             print(f"  {season}: skipped ({type(e).__name__}: {e})")
             continue
 
-        counts = aggregate_red_zone(pbp)
-        crosswalk = gsis_name_crosswalk(season)
-        payload, matched, unmatched = map_to_payload(counts, crosswalk, player_lookup, season)
         print(f"  {season}: {matched} matched, {unmatched} unmatched ({len(payload)} rows)")
-
         if dry_run or not payload:
             continue
 
