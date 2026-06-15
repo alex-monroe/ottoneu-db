@@ -37,6 +37,7 @@ the MAE verdict. "—" only for rows predating the column.
 
 | Date | Model | Change | Held-out ALL MAE | Δ vs comparator | 95% CI | Significant? | Rank Δ (ρ / top-N vs comparator) | Protocol | PR |
 |------|-------|--------|------------------|----------|--------|--------------|----------------------------------|----------|-----|
+| 2026-06-15 | v42_xfp_base | #667 spike L1: xFP target — v33 with base swapped `weighted_ppg_tuned_no_qb` → `weighted_xfp_tuned_no_qb` (realized TDs replaced by opportunity-expected TDs, volume-weighted shrink toward league priors; yards/receptions stay realized). Tests the "regress on expected, not realized points" reframe | 2.238 | +0.011 vs **v33** | [−0.007, +0.031] | **N** (p=0.25) — **NEGATIVE / TIE**; the TD-regression-only xFP moves neither MAE nor the QB ordering it targeted out of the noise band. **Ranking gate (#667 L4) on the hypothesis position**: QB ρ +0.004, CI [−0.013, +0.023], **p=0.58** — a dead tie, nowhere near FP's ρ-0.10 QB edge. v33's existing usage/target_share/wopr features already proxy most opportunity de-noising; TD luck alone isn't the QB ordering lever. See #667 section below | QB ρ 0.670→0.674 (≈, p=0.58), RB +0.008, WR −0.004, TE −0.003 (all ≈); top-N unchanged | rolling 2023–2025 (full window; tie, nothing to confirm) | #667 |
 | 2026-06-14 | v41_coaching_residual | #651 spike acquisition #1: two-stage residual on v33 + `coaching_change_raw` (offseason head-coach change, new `team_coaching` table from nflverse `games.csv`) + `coaching_change_raw*position`; coach-stable players byte-identical to v33 | 2.229 | +0.0014 vs **v33** | [−0.0003, +0.0033] | **N** (p=0.106) — **NEGATIVE / TIE**; the *new-information* acquisition the wave's modeling NEGATIVEs called for, but the small coach-changed cohort (~5–10 teams/yr) carries too little signal. Residual α=100 shrinks coefs ≈0. QB hypothesis a dead tie (MAE 3.698 vs 3.697). Per spike plan → next is source #3 (FA/contract). See #651 section below | QB ρ 0.671→0.670, WR ρ 0.780→0.780, TE 0.760→0.759 (all ≈); top-N unchanged | rolling 2023–2025 (full window; tie, nothing to confirm) | #651 |
 | 2026-06-14 | v40_huber_e110 / e135 / e200 | #645 robust loss: Huber instead of Ridge squared loss (epsilon 1.10/1.35/2.00), v33 features. Best = e200 | 2.225 (e200) | −0.008 vs **v33** | [−0.020, +0.005] | **N** (p=0.23) — **NEGATIVE, tie at best**; only e200 (≈Ridge) ties, robust e110/e135 *regress* (+0.018/+0.007). Robustness is the wrong direction. See #645 section below | e200: WR ρ +0.002, QB +0.004, TE −0.002 (≈); top-N ≈ | rolling 2023–24 (iteration look; confirmation window not burned) | #645 |
 | 2026-06-14 | v39_relevance_step / v39b / v39c | #643 rank-aware training: Ridge fit weighted by prior-season relevance (topn_step k=1/k=2; ppg_within_pos). 3 schemes, best = v39c | 2.259 (v39c) | **+0.026** vs **v33** | [+0.005, +0.047] | **SIGNIFICANT REGRESSION** (p=0.015) — **NEGATIVE, all 3 schemes worse**; ranking *not* improved where it matters (WR/TE ρ down). See #643 section below | WR ρ 0.762→0.758, TE ρ 0.748→0.724–0.738 (worse); QB ρ +0.009 / top-12 0.417→0.500 (99 samples, unresolvable) | rolling 2023–24 (iteration look; confirmation window not burned) | #643 |
@@ -77,6 +78,36 @@ out-orders the active `v33_tuned_base` at **QB** — ρ **0.805 vs 0.707**, Δ �
 real and detectable where the MAE wall is a power artifact** — which is exactly
 the gate the wave was missing. Next per the spike: L1 xFP-target base
 (`v42_xfp_base`), gated on this ρ metric.
+
+### xFP target (#667, L1) — NEGATIVE / TIE, 2026-06-15
+
+First modeling lever off the #667 spike. `v42_xfp_base` swaps v33's base feature
+`weighted_ppg_tuned_no_qb` → `weighted_xfp_tuned_no_qb`: each historical season's
+PPG is recomputed with realized touchdowns replaced by **opportunity-expected**
+TDs (per-position league TD-rate-per-opportunity priors from 2018–2025, shrunk
+volume-weighted via `opp/(opp+β)`), adjusting PPG by the per-game TD-points
+delta. Yards/receptions/INTs stay realized — only the TD component (the dominant,
+hardest-regressing efficiency noise) is regressed. A pure drop-in base swap;
+everything else identical to v33. Hypothesis: stripping TD luck before the
+combiner improves next-year **ordering** even at MAE parity.
+
+**Result: held-out tie on both metrics.** Rolling 2023–2025:
+- **MAE:** 2.238 vs v33 2.226, Δ +0.011, CI [−0.007, +0.031], p=0.25 — NOT
+  significant (leans slightly worse).
+- **QB ranking (the targeted position, via the new #667 L4 gate):** ρ
+  0.674 vs 0.670, Δ +0.004, CI [−0.013, +0.023], **p=0.58** — a dead tie.
+  Other positions ≈ (RB +0.008, WR −0.004, TE −0.003, all within ±0.01).
+
+**Read.** TD-regression-only xFP is not the QB ordering lever. Two likely
+reasons: (1) v33 already carries usage_share/target_share/wopr/racr, which proxy
+much of the opportunity de-noising the combiner needs, so re-deriving it in the
+base is redundant; (2) FP's ρ-0.10 QB edge is large — TD luck is a small slice of
+it, so even a perfect TD strip can't close it. The fuller xFP (air-yards/aDOT/RZ
+reconstruction, L5's volume×regressed-efficiency) or L2/L3 remain unexplored, but
+**this v1 confirms the cheap slice of L1 ties.** Not promoted; v33 stays active.
+The TD-prior β was deliberately un-tuned (a per-fold sweep is the L3 follow-up) —
+but a tie this flat (p=0.58 on the target metric) is unlikely to be rescued by β
+tuning alone.
 
 ### Availability / expected-games (#587) — measured on `availability-backtest`, not rate MAE
 

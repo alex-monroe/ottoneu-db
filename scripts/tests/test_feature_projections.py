@@ -14,6 +14,7 @@ from scripts.feature_projections.features.weighted_ppg import (
     WeightedPPGRookieGrowthFeature,
     WeightedPPGRookieGrowthNoQBFeature,
     WeightedPPGTunedNoQBFeature,
+    WeightedXFPTunedNoQBFeature,
     ROOKIE_GROWTH_CURVES,
     ROOKIE_MIN_GAMES_FULL_WEIGHT,
 )
@@ -187,6 +188,75 @@ class TestWeightedPPGTunedNoQBFeature:
         """The tuned subclass overrides, not mutates, the parent's weights."""
         assert WeightedPPGFeature.RECENCY_WEIGHTS == [0.55, 0.25, 0.20]
         assert WeightedPPGTunedNoQBFeature.RECENCY_WEIGHTS == [0.65, 0.20, 0.15]
+
+
+# ---------------------------------------------------------------------------
+# WeightedXFPTunedNoQBFeature (#667, L1 — xFP target)
+# ---------------------------------------------------------------------------
+
+class TestWeightedXFPTunedNoQBFeature:
+    """Tests for the xFP base feature (GH #667, L1)."""
+
+    def setup_method(self):
+        self.xfp = WeightedXFPTunedNoQBFeature()
+        self.ppg = WeightedPPGTunedNoQBFeature()
+
+    def test_name(self):
+        assert self.xfp.name == "weighted_xfp_tuned_no_qb"
+        assert self.xfp.is_base is True
+
+    def test_inherits_tuned_recency_weights(self):
+        assert self.xfp.RECENCY_WEIGHTS == [0.65, 0.20, 0.15]
+        assert self.xfp.NO_TRAJECTORY_POSITIONS == frozenset({"QB", "K"})
+
+    def test_no_priors_position_identical_to_ppg(self):
+        """K has no TD priors → xFP must equal the plain tuned-PPG base exactly."""
+        hist = make_history_df([{"season": 2024, "ppg": 8.0, "games_played": 17}])
+        nfl = make_nfl_stats_df([{"season": 2024, "receiving_tds": 0, "receptions": 0}])
+        assert self.xfp.compute("p1", "K", hist, nfl, {}) == pytest.approx(
+            self.ppg.compute("p1", "K", hist, nfl, {})
+        )
+
+    def test_missing_nfl_row_falls_back_to_realized(self):
+        """A season with no matching nfl_stats row keeps its realized PPG."""
+        hist = make_history_df([
+            {"season": 2023, "ppg": 12.0, "games_played": 17},
+            {"season": 2024, "ppg": 15.0, "games_played": 17},
+        ])
+        assert self.xfp.compute("p1", "WR", hist, pd.DataFrame(), {}) == pytest.approx(
+            self.ppg.compute("p1", "WR", hist, pd.DataFrame(), {})
+        )
+
+    def test_td_luck_inflated_season_regresses_down(self):
+        """A WR with TDs well above the league rate is pulled below realized PPG."""
+        hist = make_history_df([{"season": 2024, "ppg": 15.0, "games_played": 17}])
+        nfl = make_nfl_stats_df([
+            {"season": 2024, "receiving_tds": 12, "receptions": 80,
+             "rushing_tds": 0, "rushing_attempts": 0},
+        ])
+        xfp_val = self.xfp.compute("p1", "WR", hist, nfl, {})
+        assert xfp_val < 15.0  # de-noised below the TD-inflated realized value
+
+    def test_td_unlucky_season_regresses_up(self):
+        """A WR with TDs below the league rate is pulled above realized PPG."""
+        hist = make_history_df([{"season": 2024, "ppg": 12.0, "games_played": 17}])
+        nfl = make_nfl_stats_df([
+            {"season": 2024, "receiving_tds": 2, "receptions": 80,
+             "rushing_tds": 0, "rushing_attempts": 0},
+        ])
+        assert self.xfp.compute("p1", "WR", hist, nfl, {}) > 12.0
+
+    def test_expected_tds_shrink_weight(self):
+        """Higher opportunity volume keeps more of the player's own realized rate."""
+        # Same realized rate (10 TD / 100 opp = 0.10) vs league prior 0.05.
+        hi = self.xfp._expected_tds(realized=10, opp=100, beta=60, rate=0.05)
+        lo = self.xfp._expected_tds(realized=5, opp=50, beta=60, rate=0.05)
+        # 100-opp player keeps a larger fraction of its (above-prior) rate than
+        # the 50-opp player, so its expected rate sits higher.
+        assert (hi / 100) > (lo / 50)
+
+    def test_expected_tds_zero_opportunity_keeps_realized(self):
+        assert self.xfp._expected_tds(realized=3, opp=0, beta=60, rate=0.05) == 3
 
 
 # ---------------------------------------------------------------------------

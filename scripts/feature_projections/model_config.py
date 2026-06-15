@@ -628,6 +628,48 @@ MODELS: dict[str, ModelDefinition] = {
             "depth_chart_position_raw*position",
         ],
     ),
+    "v42_xfp_base": ModelDefinition(
+        name="v42_xfp_base",
+        version=1,
+        description=(
+            "xFP target (spike #667, L1): v33_tuned_base with the base feature "
+            "swapped weighted_ppg_tuned_no_qb → weighted_xfp_tuned_no_qb. The "
+            "base now autoregresses *expected* PPG (realized TDs replaced by "
+            "opportunity-expected TDs, volume-weighted shrink toward league "
+            "priors) instead of realized PPG, stripping the dominant efficiency "
+            "noise (TD luck) before the combiner sees it. Everything else — "
+            "adjustment features, interactions, learned combiner — identical to "
+            "v33. Gated on the #667 ranking (Spearman-ρ) metric at QB/WR, where "
+            "the FP ordering gap lives, not just MAE."
+        ),
+        features=[
+            "weighted_xfp_tuned_no_qb",
+            "age_curve",
+            "regression_to_mean",
+            "qb_backup_penalty",
+            "usage_share_raw",
+            "target_share_raw",
+            "air_yards_share_raw",
+            "wopr_raw",
+            "racr_raw",
+            "draft_capital_raw",
+            "implied_team_total_raw",
+            "depth_chart_position_raw",
+            "role_change_raw",
+        ],
+        combiner_type="learned",
+        interaction_terms=[
+            "usage_share_raw*position",
+            "usage_share_raw*base_ppg",
+            "usage_share_raw^2",
+            "target_share_raw*position",
+            "wopr_raw*base_ppg",
+            "wopr_raw^2",
+            "draft_capital_raw*position",
+            "implied_team_total_raw*position",
+            "depth_chart_position_raw*position",
+        ],
+    ),
     "v34_qb_residual": ModelDefinition(
         name="v34_qb_residual",
         version=1,

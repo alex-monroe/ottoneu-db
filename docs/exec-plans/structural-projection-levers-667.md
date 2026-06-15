@@ -1,6 +1,6 @@
 # Spike #667 — Structural projection levers beyond the same-data MAE frontier
 
-## Status: In progress (2026-06-15) · L4 ranking-gate **built + validated**
+## Status: In progress (2026-06-15) · L4 ranking-gate **built + validated** · L1 v1 (TD-regression xFP) → **held-out TIE**
 
 > **TL;DR.** The 2026-06 wave's four NEGATIVEs proved *same-data features are
 > tapped on MAE*. They did **not** prove the model is optimal — they proved MAE
@@ -168,6 +168,20 @@ WR**, not MAE.
 **Risk / kill criterion.** If xFP ties realized-PPG on *both* MAE and ρ at every
 position, the efficiency-noise hypothesis is wrong and we stop — same discipline
 as #651's source #1.
+
+> **Outcome — v1 (TD-regression-only) → held-out TIE (2026-06-15).**
+> `weighted_xfp_tuned_no_qb` (realized TDs → opportunity-expected TDs,
+> volume-weighted shrink toward league priors; yards/receptions stay realized)
+> ran the full rolling gate. **MAE** 2.238 vs v33 2.226 (Δ +0.011, p=0.25, NS);
+> **QB ρ** 0.674 vs 0.670 (Δ +0.004, **p=0.58** on the L4 gate) — a dead tie on
+> the position the hypothesis targeted. v33's existing usage/target_share/wopr
+> features already proxy most opportunity de-noising, and FP's ρ-0.10 QB edge is
+> far larger than any TD-luck slice. **The cheap slice of L1 ties; not promoted.**
+> Unexplored: the *fuller* xFP (air-yards/aDOT/RZ reconstruction) and a per-fold
+> β sweep — but a p=0.58 tie on the target metric is unlikely to be β-rescued.
+> Next per sequencing: **L3** (empirical-Bayes pooling — also supplies a
+> principled version of L1's TD shrink) or the **decorrelated ensemble** cheap
+> win. See the #667 section in [experiment-log.md](../generated/experiment-log.md).
 
 ---
 
