@@ -880,6 +880,57 @@ MODELS: dict[str, ModelDefinition] = {
             "td_regression_raw*position",
         ],
     ),
+    "v48_ngs_qb": ModelDefinition(
+        name="v48_ngs_qb",
+        version=1,
+        description=(
+            "NGS QB skill signals stacked on the best QB model (issue #674, the "
+            "#667 spike's 'new information' follow-up): v44_eb_pooling_perpos plus "
+            "five QB-only Next Gen Stats raw features — ngs_cpoe_raw, "
+            "ngs_air_yards_to_sticks_raw, ngs_aggressiveness_raw, "
+            "ngs_time_to_throw_raw, ngs_air_yards_differential_raw (new ngs_passing "
+            "table). The bet vs the realized-efficiency reframes that all "
+            "tied/regressed (L1 xFP, L5 volume×efficiency, #640 QB volume): NGS "
+            "process metrics are stabilized, less-luck-driven measures of QB skill "
+            "that are more persistent year-to-year than the realized comp%/YPA/TD "
+            "rate already in PPG. QB-only (every NGS feature returns None for "
+            "non-QB), so RB/WR/TE/K projections are byte-identical to v44. "
+            "Gated on the #667 L4 harness: QB MAE + QB ρ significance vs the "
+            "active model and the incremental effect vs v44."
+        ),
+        features=[
+            "weighted_ppg_tuned_no_qb",
+            "age_curve",
+            "partial_pooling_eb",
+            "qb_backup_penalty",
+            "usage_share_raw",
+            "target_share_raw",
+            "air_yards_share_raw",
+            "wopr_raw",
+            "racr_raw",
+            "draft_capital_raw",
+            "implied_team_total_raw",
+            "depth_chart_position_raw",
+            "role_change_raw",
+            "ngs_cpoe_raw",
+            "ngs_air_yards_to_sticks_raw",
+            "ngs_aggressiveness_raw",
+            "ngs_time_to_throw_raw",
+            "ngs_air_yards_differential_raw",
+        ],
+        combiner_type="learned",
+        interaction_terms=[
+            "usage_share_raw*position",
+            "usage_share_raw*base_ppg",
+            "usage_share_raw^2",
+            "target_share_raw*position",
+            "wopr_raw*base_ppg",
+            "wopr_raw^2",
+            "draft_capital_raw*position",
+            "implied_team_total_raw*position",
+            "depth_chart_position_raw*position",
+        ],
+    ),
     "v34_qb_residual": ModelDefinition(
         name="v34_qb_residual",
         version=1,

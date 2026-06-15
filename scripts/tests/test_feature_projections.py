@@ -2824,3 +2824,74 @@ class TestPositionMeanFeature:
         # Projection is the positional mean, NOT the player's own production.
         assert self.feature.compute("p1", "WR", df, pd.DataFrame(),
                                     {"positional_mean_ppg": 7.3}) == 7.3
+
+
+# ---------------------------------------------------------------------------
+# NGS passing features (#674)
+# ---------------------------------------------------------------------------
+
+from scripts.feature_projections.features.ngs_passing import (
+    NGSCPOERawFeature,
+    NGSAirYardsToSticksRawFeature,
+    NGSTimeToThrowRawFeature,
+)
+
+
+class TestNGSPassingFeatures:
+    def _nfl(self, seasons):
+        return make_nfl_stats_df(
+            [{"season": s, "games_played": 17, "passing_attempts": 500} for s in seasons]
+        )
+
+    def _ngs_ctx(self, by_season):
+        """by_season: {season: {metric: value, ...}} for player 'qb1'."""
+        ngs = {}
+        for season, metrics in by_season.items():
+            rec = {"attempts": metrics.get("attempts", 500)}
+            rec.update(metrics)
+            ngs[("qb1", season)] = rec
+        return {"ngs_passing": ngs}
+
+    def test_non_qb_returns_none(self):
+        ctx = self._ngs_ctx({2024: {"completion_pct_above_expectation": 4.0}})
+        for pos in ("RB", "WR", "TE"):
+            assert NGSCPOERawFeature().compute("qb1", pos, pd.DataFrame(),
+                                               self._nfl([2024]), ctx) is None
+
+    def test_no_ngs_context_returns_none(self):
+        assert NGSCPOERawFeature().compute("qb1", "QB", pd.DataFrame(),
+                                           self._nfl([2024]), {}) is None
+
+    def test_single_season_value(self):
+        ctx = self._ngs_ctx({2024: {"completion_pct_above_expectation": 4.2}})
+        val = NGSCPOERawFeature().compute("qb1", "QB", pd.DataFrame(),
+                                          self._nfl([2024]), ctx)
+        assert val == pytest.approx(4.2)
+
+    def test_recency_weighted_over_seasons(self):
+        # weights [0.6, 0.3, 0.1] most-recent → oldest
+        ctx = self._ngs_ctx({
+            2022: {"avg_time_to_throw": 2.5},
+            2023: {"avg_time_to_throw": 2.7},
+            2024: {"avg_time_to_throw": 3.0},
+        })
+        val = NGSTimeToThrowRawFeature().compute("qb1", "QB", pd.DataFrame(),
+                                                 self._nfl([2022, 2023, 2024]), ctx)
+        expected = (3.0 * 0.6 + 2.7 * 0.3 + 2.5 * 0.1) / (0.6 + 0.3 + 0.1)
+        assert val == pytest.approx(expected)
+
+    def test_low_attempts_season_skipped(self):
+        ctx = self._ngs_ctx({
+            2023: {"avg_air_yards_to_sticks": 1.0, "attempts": 50},   # below MIN_ATTEMPTS
+            2024: {"avg_air_yards_to_sticks": 0.5, "attempts": 500},
+        })
+        val = NGSAirYardsToSticksRawFeature().compute("qb1", "QB", pd.DataFrame(),
+                                                      self._nfl([2023, 2024]), ctx)
+        assert val == pytest.approx(0.5)  # only 2024 contributes
+
+    def test_missing_metric_returns_none(self):
+        # NGS row exists but the requested column is absent → None
+        ctx = self._ngs_ctx({2024: {"avg_time_to_throw": 2.8}})
+        val = NGSCPOERawFeature().compute("qb1", "QB", pd.DataFrame(),
+                                          self._nfl([2024]), ctx)
+        assert val is None

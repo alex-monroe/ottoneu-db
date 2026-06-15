@@ -37,6 +37,7 @@ the MAE verdict. "—" only for rows predating the column.
 
 | Date | Model | Change | Held-out ALL MAE | Δ vs comparator | 95% CI | Significant? | Rank Δ (ρ / top-N vs comparator) | Protocol | PR |
 |------|-------|--------|------------------|----------|--------|--------------|----------------------------------|----------|-----|
+| 2026-06-15 | v48_ngs_qb | #674: NGS QB skill signals stacked on v44 — v44 + five QB-only Next Gen Stats raw features (`ngs_cpoe_raw`, `ngs_air_yards_to_sticks_raw`, `ngs_aggressiveness_raw`, `ngs_time_to_throw_raw`, `ngs_air_yards_differential_raw`; new `ngs_passing` table, 327 player-seasons 2018–2025, 100% QB match). Bet: NGS *process* metrics (CPOE / intended depth / aggressiveness / time-to-throw) are more persistent year-to-year than the realized comp%/YPA/TD rate already in PPG | 2.237 | +0.054 QB vs **v44** | [−0.050, +0.164] | **NEGATIVE / TIE** — NGS adds nothing on top of v44. QB MAE 3.610 vs **v44** 3.557 (Δ +0.054, p=0.31, point-estimate *worse*); QB ρ 0.694 vs 0.696 (Δ −0.002, p=0.89, flat). The small edge over the active **v33** (QB MAE −0.087, p=0.35; QB ρ +0.023, p=0.28) is **entirely v44's EB-pooling base** (#667 L3), which the NGS noise dilutes — none significant. Confirms the arc: realized/box-score efficiency, even stabilized NGS, is already proxied by v33's role features; the FP QB ordering gap is forward-looking role/scheme, not QB process skill. See #674 section below | QB ρ 0.696→0.694 (≈, vs v44); +0.023 vs v33 (≈); QB top-12 hit 0.417→0.500 | rolling 2023–2025 (one look) | #674 |
 | 2026-06-15 | v47_td_regression | #671 Phase 2 (additive): v33 + `td_regression_raw` — recency-weighted per-game gap between realized TD points and red-zone-role-expected TD points (new `red_zone_usage` table), so the combiner can fade TD-lucky players | 2.242 | +0.018 vs **v33** | [−0.004, +0.040] | **N** (p=0.108) — **NEGATIVE / tie-leaning-worse**. Keeps the realized base (unlike v46) but the TD-luck flag adds variance, not net signal. RB −0.008 (p=0.586, the position where goal-line role matters most — but noise); WR/TE/QB worse. TD over/under-performance vs RZ role doesn't predict next-year PPG well enough to beat v33's existing role proxies. See #671 Phase 2 section below | RB ρ 0.791→0.790, WR 0.782→0.776, TE 0.759→0.761 (all ≈) | rolling 2023–2025 (one look) | #671 |
 | 2026-06-15 | v46_xfp_redzone | #671 Phase 2 (base-swap): v33 with base → `weighted_xfp_redzone` — each season's realized TDs replaced by red-zone-usage-expected TDs (league RZ→TD model, rush-TD corr 0.92; goal-line carry ≈ 7× a 10–20 carry). The "proper xFP" L1 couldn't build without RZ data | 2.258 | +0.030 vs **v33** | (not separately tested; dominated) | **NEGATIVE** — worse than v33 across positions (ALL +0.030; WR +0.035, TE +0.045; QB/RB ≈). Same failure mode as L1/L5: replacing realized TDs in the *base* discards realized-TD persistence, and since RZ→TD corr is 0.92 the expected ≈ realized so the swap mostly just removes signal. See #671 Phase 2 section below | QB ρ +0.004, RB −0.004, WR −0.005, TE −0.010 (all ≈/worse) | rolling 2023–2025 (one look) | #671 |
 | 2026-06-15 | v45_qb_volume_model | #667 spike L5: QB volume×regressed-efficiency base — v44 with base → `weighted_qb_volume_efficiency` (QB-only: reconstruct each season as realized attempts/g × efficiency [YPA, TD-rate, INT-rate, YPC] shrunk toward QB population; non-QB identical to v44) | 2.236 | +0.060 QB vs **v44** | [−0.032, +0.158] | **NEGATIVE** — L5 *removes* signal. QB MAE 3.617 vs **v44** 3.557 (Δ +0.060, p=0.21) and QB ρ 0.686 vs 0.696 — both **worse than v44**. Still beats v33 (QB 3.617 vs 3.697) only by inheriting v44's pooling. Fully regressing QB efficiency over-strips real skill (elite YPA/TD QBs pulled to average), hurting ordering. Triangulates with #640 (QB volume features tied) + L1 (TD regression tied): **same-data QB efficiency reconstruction is tapped — the QB win is L3 pooling, not volume/efficiency decomposition.** See #667 L5 section below | QB ρ 0.696→0.686 (worse vs v44); +0.015 vs v33 | rolling 2023–2025 (one look) | #667 |
@@ -56,6 +57,54 @@ the MAE verdict. "—" only for rows predating the column.
 | 2026-06-10 | v31_depth_chart | #599 backfill of 2021–2023 player_stats (coverage 29–40%→82–84%); all models re-projected/retrained on the corrected population | 2.232 | **−0.091** vs v14 | [−0.163, −0.020] | **Y** (p=0.014, 617 clusters) | — (predates column; see #598 tables in holdout report) | rolling 2023–2025 | #599 backfill |
 | 2026-06-10 | v31_depth_chart | same — fixed window (3-season train handicap) | 2.269 | −0.020 vs v14 | [−0.113, +0.078] | N (p=0.68) | — | fixed 2021–23→24–25 | #599 backfill |
 | 2026-06-10 | v20_learned_usage | same backfill — over-projection bias check | 2.325 | — | bias −1.060→**−0.032** | bias artifact removed | — | fixed | #599 backfill |
+
+### NGS QB skill signals (#674) — NEGATIVE / TIE: stabilized efficiency is already proxied, 2026-06-15
+
+The best-motivated same-data-family follow-up to the #667 spike: of every lever
+tried, the only real win was **L3 empirical-Bayes pooling (`v44`)**, and it won at
+**QB** — the worst, highest-FP-ordering-gap, and (in Superflex) most *valuable*
+position. Every *realized*-efficiency reframe tied or regressed (L1 xFP, L5
+volume×efficiency, #640 QB volume), but those all re-decompose the comp%/YPA/TD
+rate already in PPG. The distinguishing bet here: **NGS passing metrics are
+stabilized, less-luck-driven measures of QB skill** — *how* the throw was made,
+not whether it worked — that should be more persistent year-to-year and is the
+one efficiency-family signal not obviously redundant with `v33`.
+
+**Phase 1 — acquisition (sound).** New `ngs_passing` table (migration 033),
+backfilled from nflverse `import_ngs_data(stat_type="passing")` season-aggregate
+rows (`week==0`, `REG`): 2018–2025, **327 player-seasons, 100% QB name-match**
+(NGS carries the full display name, so no gsis crosswalk needed). Columns: CPOE
+(`completion_pct_above_expectation`), `avg_air_yards_to_sticks`, `aggressiveness`,
+`avg_time_to_throw`, `avg_air_yards_differential` + supporting air-yards / passer
+rating / attempts. Leakage-free — the feature reads only a player's prior seasons.
+
+**Phase 2 — modeling (`v48_ngs_qb`).** Five QB-only recency-weighted raw features
+stacked on `v44_eb_pooling_perpos` (the best QB model), QB-only so RB/WR/TE/K are
+byte-identical to v44. Gated on the #667 L4 harness — QB MAE + QB ρ significance
+vs the active model **and the incremental effect vs v44**:
+
+- **Incremental vs v44 (the real test): nothing.** QB MAE 3.610 vs 3.557
+  (Δ **+0.054**, 95% CI [−0.050, +0.164], p=0.31 — point-estimate *worse*); QB ρ
+  0.694 vs 0.696 (Δ **−0.002**, CI [−0.031, +0.028], p=0.89 — flat). The learned
+  combiner gives the NGS columns small, partly sign-flipped coefficients — fitting
+  noise, not signal.
+- **vs active v33:** QB MAE −0.087 (p=0.35) and QB ρ +0.023 (p=0.28) — both
+  *better* but **not significant**, and both *smaller* than v44's own edge over
+  v33. The apparent QB lift is **v44's EB pooling**, which the NGS noise dilutes,
+  not the NGS features.
+
+**Read — the important finding.** NGS QB *process* skill is the same dead end as
+TD luck / red-zone role (#671) and the efficiency reframes (L1/L5/#640): `v33`
+already proxies QB quality through `depth_chart_position`, `qb_backup_penalty`,
+`implied_team_total`, `draft_capital` and the EB-pooled base, and NGS process
+metrics have too little incremental year-over-year predictive value for next-
+season PPG to beat that at ~74 QBs / 152 player-seasons. This triangulates the
+whole arc: **the FantasyPros QB ordering gap is not box-score / efficiency /
+process skill — those are captured — it is forward-looking role/scheme/personnel
+(the #651 coaching/contract track).** **Not promoted; v33 stays active.** The
+`ngs_passing` data remains in the DB (useful for non-projection surfaces and
+future week-grain work); the season-PPG *modeling* lever came up empty. v48 +
+trained artifact committed for reproducibility.
 
 ### Red-zone xFP (#671) — NEGATIVE: new information that doesn't move PPG, 2026-06-15
 

@@ -233,6 +233,10 @@ backfill-depth-charts *args:
 backfill-red-zone *args:
     {{python}} scripts/backfill_red_zone.py {{args}}
 
+# Backfill NGS passing metrics from nflverse Next Gen Stats  (e.g. just backfill-ngs --seasons 2018-2025 ; --dry-run supported)
+backfill-ngs *args:
+    {{python}} scripts/backfill_ngs_passing.py {{args}}
+
 # Seed preseason win totals  (e.g. just seed-win-totals --season 2026)
 seed-win-totals *args:
     {{python}} scripts/seed_preseason_win_totals.py {{args}}
