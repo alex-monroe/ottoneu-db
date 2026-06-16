@@ -151,6 +151,8 @@ just backfill-nfl-stats [--seasons ...] [--dry-run]    # Backfill nfl_stats from
 just backfill-draft-capital [--since YYYY] [--dry-run] # Backfill draft_capital from nflverse draft_picks
 just backfill-vegas [--since YYYY | --current] [--dry-run]  # Backfill team_vegas_lines from nflverse games.csv (--current = projection season only)
 just backfill-depth-charts [--since YYYY] [--until YYYY] [--current] [--dry-run]  # Backfill depth_charts (opening-day depth tier) from nflverse (--current = projection season only)
+just backfill-red-zone [--seasons ...] [--dry-run]     # Backfill red_zone_usage (RZ/goal-line carries/targets) from nflverse PBP — issue #671
+just backfill-ngs [--seasons ...] [--dry-run]          # Backfill ngs_passing (QB Next Gen Stats: CPOE, aggressiveness, air-yards-to-sticks, …) from nflverse — issue #674
 just seed-win-totals --season YYYY                     # Upsert preseason sportsbook win totals (implied_total left NULL until schedule drops)
 just scrape-draft-sharks [--season YYYY] [--positions qb rb wr te] [--dry-run]  # Scrape Draft Sharks Half-PPR Superflex auction values (stored ×2 for the $400 cap)
 just scrape-calendar [--dry-run]                      # Scrape the Ottoneu finances Calendar into league_calendar (drives the season-cycle resolver)
