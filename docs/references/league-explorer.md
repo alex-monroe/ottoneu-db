@@ -7,7 +7,9 @@ explored by scripts and AI agents without touching the shared Supabase
 project.
 
 ```bash
+just league-explorer scan                           # enumerate ALL leagues (full ID sweep + activity check)
 just league-explorer discover                       # find leagues linked from our players' cards
+just league-explorer scrape --active                # full-scrape every active league
 just league-explorer scrape --discovered            # scrape every discovered league
 just league-explorer scrape --league-ids 33,74      # or scrape specific leagues
 just league-explorer report                         # canned cross-league summaries
@@ -17,14 +19,28 @@ just league-explorer query "SELECT ... "            # ad-hoc SQL (add --csv for 
 All artifacts live under `data/league_explorer/` (gitignored):
 `league_explorer.db` (SQLite) plus `cache/` (raw fetched pages).
 
-## How discovery works
+## Finding leagues: `scan` (complete) and `discover` (incremental)
 
-Ottoneu player cards show "trades in other leagues" links. `discover` reads
-our league's roster CSV, walks the rostered players' cards
-(`--max-players`, default 75), and records every `/football/{id}/` league it
-sees into `discovered_leagues`. Discovery compounds: scraping more popular
-players surfaces more leagues, and you can re-seed from any league with
-`--seed-league`.
+**`scan` enumerates the entire platform.** Football league IDs are small
+sequential integers (the space currently tops out around ~340); deleted or
+never-created IDs 307-redirect to `/football/?invalidLeague=1`, which the
+fetcher treats as "dead" (it never follows redirects). `scan` walks IDs from
+`--start`, auto-stopping after `--stop-after-misses` (default 120)
+consecutive dead IDs — new leagues each season push the ceiling up, so the
+auto-stop keeps future sweeps complete. For each live league it stores the
+settings row plus a cheap activity probe (2 extra requests): the current
+rosters CSV snapshot and the latest completed season's standings.
+
+**A league is "active"** if it played the latest completed season AND
+currently has rostered players (`ACTIVE_LEAGUES_SQL` in `cli.py`). `report`
+prints the count, and `scrape --active` full-scrapes exactly that set.
+
+**`discover` is the incremental alternative:** Ottoneu player cards show
+"trades in other leagues" links. `discover` reads our league's roster CSV,
+walks the rostered players' cards (`--max-players`, default 75), and records
+every `/football/{id}/` league it sees into `discovered_leagues`. Useful for
+finding the leagues most connected to ours; `scan` supersedes it for
+completeness.
 
 ## What gets scraped per league (~25 requests, 1 req/s)
 
@@ -86,7 +102,8 @@ GROUP BY 1,2 HAVING titles > 1 ORDER BY titles DESC;
 
 ## Limitations / future work
 
-- Private leagues and 404s are recorded as skipped, not scraped.
+- Pages that redirect (dead league IDs, login-gated pages) are treated as
+  unavailable and skipped; the fetcher never follows redirects.
 - Champions come from team trophy cases; a team deleted from a league takes
   its trophies with it.
 - Historical *rosters* (as opposed to standings) are not retroactively

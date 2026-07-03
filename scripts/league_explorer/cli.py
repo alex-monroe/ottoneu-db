@@ -3,6 +3,9 @@
 Usage (via `just league-explorer <args>`):
 
     discover   Find league IDs from player-card trade links in a seed league
+    scan       Enumerate the entire league-ID space (IDs are small sequential
+               ints; dead IDs redirect) and record every live league plus a
+               cheap activity check
     scrape     Scrape league settings, standings history, trophies, finances,
                and roster snapshots into the local SQLite DB
     report     Canned cross-league summaries (formats, champions, how winners
@@ -39,6 +42,30 @@ PLAYER_CARD_MAX_AGE = 24 * 7   # discovery links accrete slowly
 def _fetcher(args) -> Fetcher:
     return Fetcher(cache_dir=DEFAULT_CACHE, delay_seconds=args.delay,
                    refresh=getattr(args, "refresh", False))
+
+
+def latest_completed_season(today: date | None = None) -> int:
+    """Most recent fully played season (season Y runs Sep Y – Jan Y+1)."""
+    today = today or date.today()
+    return today.year - 1 if today.month >= 2 else today.year - 2
+
+
+# "Active" = fielded the latest completed season AND currently has players
+# rostered. Both signals are captured by `scan` (and by a full `scrape`).
+ACTIVE_LEAGUES_SQL = """
+    SELECT l.league_id FROM leagues l
+    WHERE EXISTS (SELECT 1 FROM standings s
+                   WHERE s.league_id = l.league_id AND s.season = :season)
+      AND EXISTS (SELECT 1 FROM roster_slots r
+                   WHERE r.league_id = l.league_id)
+    ORDER BY l.league_id
+"""
+
+
+def active_league_ids(conn) -> list[int]:
+    return [r["league_id"] for r in
+            conn.execute(ACTIVE_LEAGUES_SQL,
+                         {"season": latest_completed_season()})]
 
 
 def _print_table(headers: list[str], rows: list[tuple]) -> None:
@@ -84,6 +111,81 @@ def cmd_discover(args) -> int:
     print(f"Done. {len(found)} leagues linked from this run; "
           f"{total} total in discovered_leagues.")
     print("Next: just league-explorer scrape --discovered")
+    return 0
+
+
+def _scan_league(fetcher: Fetcher, conn, league_id: int,
+                 check_activity: bool = True) -> str | None:
+    """Record one league if it exists. Returns a status string, or None for a
+    dead ID (deleted/never created — Ottoneu redirects those)."""
+    settings_html = fetcher.get(f"/football/{league_id}/settings",
+                                max_age_hours=SETTINGS_MAX_AGE)
+    if settings_html is None:
+        return None
+    settings = parsers.parse_settings(settings_html)
+    if settings["league_id"] != league_id:
+        return "unparseable settings page"
+    store.upsert_league(conn, settings)
+    store.record_discovered(conn, league_id, "scan")
+    if not check_activity:
+        conn.commit()
+        return "live"
+
+    csv_text = fetcher.get(f"/football/{league_id}/csv/rosters",
+                           max_age_hours=SNAPSHOT_MAX_AGE)
+    roster_rows = parsers.parse_rosters_csv(csv_text) if csv_text else []
+    store.snapshot_rosters(conn, league_id, roster_rows)
+
+    season = latest_completed_season()
+    standings_html = fetcher.get(f"/football/{league_id}/standings/{season}",
+                                 max_age_hours=None)
+    standings_rows = parsers.parse_standings(standings_html) if standings_html else []
+    standings_rows = [r for r in standings_rows
+                      if (r["wins"] or r["losses"] or r["ties"]
+                          or (r["points_for"] or 0) > 0)]
+    if standings_rows:
+        store.replace_standings(conn, league_id, season, standings_rows)
+    conn.commit()
+
+    played = f"played {season}" if standings_rows else f"did not play {season}"
+    return f"live — {len(roster_rows)} roster slots, {played}"
+
+
+def cmd_scan(args) -> int:
+    fetcher = _fetcher(args)
+    conn = store.connect(args.db)
+
+    live = dead = 0
+    miss_run = 0
+    league_id = args.start - 1
+    while True:
+        league_id += 1
+        if args.end and league_id > args.end:
+            break
+        if not args.end and miss_run >= args.stop_after_misses:
+            print(f"Stopping: {args.stop_after_misses} consecutive dead IDs "
+                  f"(last live ID: {league_id - miss_run - 1}).")
+            break
+        try:
+            status = _scan_league(fetcher, conn, league_id,
+                                  check_activity=not args.no_activity_check)
+        except FetchError as e:
+            print(f"  league {league_id}: FAILED: {e}", file=sys.stderr)
+            miss_run = 0  # a fetch failure is not evidence the ID space ended
+            continue
+        if status is None:
+            dead += 1
+            miss_run += 1
+            continue
+        live += 1
+        miss_run = 0
+        print(f"  league {league_id}: {status}")
+
+    active = len(active_league_ids(conn))
+    print(f"\nScan complete: {live} live leagues, {dead} dead IDs "
+          f"({fetcher.requests_made} requests, {fetcher.cache_hits} cache hits).")
+    print(f"Active (played {latest_completed_season()} + currently rostered): "
+          f"{active} — full-scrape them with: just league-explorer scrape --active")
     return 0
 
 
@@ -146,10 +248,13 @@ def cmd_scrape(args) -> int:
 
     if args.league_ids:
         league_ids = [int(x) for x in args.league_ids.split(",") if x.strip()]
+    elif args.active:
+        league_ids = active_league_ids(conn)
     elif args.discovered:
         league_ids = store.discovered_league_ids(conn)
     else:
-        print("Provide --league-ids 33,74,... or --discovered", file=sys.stderr)
+        print("Provide --league-ids 33,74,..., --active, or --discovered",
+              file=sys.stderr)
         return 1
     if args.max_leagues:
         league_ids = league_ids[: args.max_leagues]
@@ -170,6 +275,13 @@ def cmd_scrape(args) -> int:
 
 def cmd_report(args) -> int:
     conn = store.connect(args.db)
+
+    season = latest_completed_season()
+    totals = conn.execute(
+        "SELECT COUNT(*) AS n FROM leagues").fetchone()["n"]
+    active = len(active_league_ids(conn))
+    print(f"{totals} leagues known; {active} active "
+          f"(played {season} + currently rostered players)\n")
 
     print("## Leagues scraped\n")
     rows = conn.execute(
@@ -282,9 +394,24 @@ def main(argv: list[str] | None = None) -> int:
                    help="How many rostered players' cards to scan (default 75)")
     p.set_defaults(func=cmd_discover)
 
+    p = sub.add_parser("scan", parents=[common],
+                       help="Enumerate all league IDs and record live leagues")
+    p.add_argument("--start", type=int, default=1, help="First league ID (default 1)")
+    p.add_argument("--end", type=int, default=0,
+                   help="Last league ID (default: auto-stop on a long dead run)")
+    p.add_argument("--stop-after-misses", type=int, default=120,
+                   help="Without --end, stop after this many consecutive dead IDs "
+                        "(default 120)")
+    p.add_argument("--no-activity-check", action="store_true",
+                   help="Settings only (1 request/league) — skip rosters + "
+                        "latest-season standings")
+    p.set_defaults(func=cmd_scan)
+
     p = sub.add_parser("scrape", parents=[common],
                        help="Scrape leagues into the local DB")
     p.add_argument("--league-ids", help="Comma-separated Ottoneu league IDs")
+    p.add_argument("--active", action="store_true",
+                   help="Scrape every active league (per the scan's activity check)")
     p.add_argument("--discovered", action="store_true",
                    help="Scrape every league in discovered_leagues")
     p.add_argument("--max-leagues", type=int, default=0,

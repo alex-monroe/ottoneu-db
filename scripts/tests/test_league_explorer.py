@@ -6,10 +6,11 @@ fake requests session (no network).
 """
 
 import time
+from datetime import date
 
 import pytest
 
-from scripts.league_explorer import parsers, store
+from scripts.league_explorer import cli, parsers, store
 from scripts.league_explorer.fetcher import Fetcher
 
 SETTINGS_HTML = """
@@ -232,7 +233,7 @@ class _FakeSession:
         self.headers = {}
         self.calls = 0
 
-    def get(self, url, timeout=None):
+    def get(self, url, timeout=None, allow_redirects=True):
         self.calls += 1
         return self.responses.pop(0)
 
@@ -253,6 +254,13 @@ class TestFetcher:
         assert f.get("/football/33/standings/2010") is None
         assert not list(tmp_path.iterdir())
 
+    def test_redirect_returns_none_and_is_not_cached(self, tmp_path):
+        # Dead league IDs 307-redirect to /football/?invalidLeague=1.
+        f = Fetcher(cache_dir=tmp_path, delay_seconds=0)
+        f.session = _FakeSession([_FakeResponse(status_code=307)])
+        assert f.get("/football/999/settings") is None
+        assert not list(tmp_path.iterdir())
+
     def test_refresh_bypasses_mutable_cache_but_not_immutable(self, tmp_path):
         f = Fetcher(cache_dir=tmp_path, delay_seconds=0, refresh=True)
         f.session = _FakeSession([_FakeResponse(text="v1"), _FakeResponse(text="v2")])
@@ -269,3 +277,48 @@ class TestFetcher:
         import os
         os.utime(cache_file, (two_days_ago, two_days_ago))
         assert f.get("/a", max_age_hours=12) == "new"
+
+
+class _FakeFetcher:
+    """Maps path substrings to canned pages; None means unavailable."""
+
+    def __init__(self, pages: dict):
+        self.pages = pages
+
+    def get(self, path, max_age_hours=None):
+        for fragment, page in self.pages.items():
+            if fragment in path:
+                return page
+        return None
+
+
+class TestScan:
+    def test_latest_completed_season(self):
+        assert cli.latest_completed_season(date(2026, 7, 3)) == 2025
+        assert cli.latest_completed_season(date(2026, 1, 15)) == 2024
+        assert cli.latest_completed_season(date(2026, 2, 1)) == 2025
+
+    def test_scan_league_dead_id(self, tmp_path):
+        conn = store.connect(tmp_path / "t.db")
+        assert cli._scan_league(_FakeFetcher({}), conn, 999) is None
+        assert conn.execute("SELECT COUNT(*) c FROM leagues").fetchone()["c"] == 0
+
+    def test_scan_league_live_and_active(self, tmp_path):
+        conn = store.connect(tmp_path / "t.db")
+        season = cli.latest_completed_season()
+        fetcher = _FakeFetcher({
+            "/settings": SETTINGS_HTML,
+            "/csv/rosters": ROSTERS_CSV,
+            f"/standings/{season}": STANDINGS_HTML,
+        })
+        status = cli._scan_league(fetcher, conn, 33)
+        assert status is not None and status.startswith("live")
+        assert conn.execute("SELECT COUNT(*) c FROM leagues").fetchone()["c"] == 1
+        assert cli.active_league_ids(conn) == [33]
+
+    def test_scan_league_live_but_inactive(self, tmp_path):
+        # Settings exist but no rosters and no latest-season standings.
+        conn = store.connect(tmp_path / "t.db")
+        status = cli._scan_league(_FakeFetcher({"/settings": SETTINGS_HTML}), conn, 33)
+        assert status is not None and "did not play" in status
+        assert cli.active_league_ids(conn) == []

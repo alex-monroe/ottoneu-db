@@ -58,7 +58,12 @@ class Fetcher:
         self._last_request_at = time.monotonic()
 
     def get(self, path: str, max_age_hours: float | None = None) -> str | None:
-        """Fetch BASE_URL + path, returning page text or None on HTTP 404.
+        """Fetch BASE_URL + path, returning page text or None if unavailable.
+
+        Returns None on HTTP 404 and on any redirect (redirects are not
+        followed: Ottoneu 307s deleted/nonexistent league URLs to
+        /football/?invalidLeague=1 and gated pages to a login screen, so a
+        redirect always means "no public page here").
 
         max_age_hours=None means the cached copy never expires (immutable
         pages like past-season standings). refresh=True bypasses the cache
@@ -78,12 +83,13 @@ class Fetcher:
                 time.sleep(retry_delay)
             self._throttle()
             try:
-                resp = self.session.get(BASE_URL + path, timeout=30)
+                resp = self.session.get(BASE_URL + path, timeout=30,
+                                        allow_redirects=False)
             except requests.RequestException as e:
                 last_error = e
                 continue
             self.requests_made += 1
-            if resp.status_code == 404:
+            if resp.status_code == 404 or 300 <= resp.status_code < 400:
                 return None
             if resp.status_code >= 500:
                 last_error = FetchError(f"HTTP {resp.status_code} for {path}")
