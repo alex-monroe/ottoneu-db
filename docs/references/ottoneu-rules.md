@@ -28,7 +28,8 @@ IR/PUP/NFI players don't count against roster limits but do count against salary
 ## Salary Cap & Player Acquisition
 
 - **$400 cap** per team
-- **Auctions:** 24-hour blind Vickrey-style (winner pays second-highest bid + $1). Minimum bid is the player's current cap penalty or $1.
+- **Annual auction draft** (any time after the keeper deadline, before the regular season): **live open auction**. Nomination order is the reverse of the prior season's standings; each nomination starts a 15-second countdown that resets on every bid; the last bidder wins and **pays their own final bid** (not the second price).
+- **In-season free agent auctions:** 24-hour blind Vickrey-style (winner pays second-highest bid + $1). Minimum bid is the player's current cap penalty or $1.
 - **Waivers:** Cut players can be claimed within 24 hours at their full previous salary.
 - **Cutting:** Incurs a cap penalty of half the player's salary (rounded up). Player cannot be reacquired by the same team for 30 days.
 

@@ -74,6 +74,19 @@ Practical consequences a model should apply:
 - **Cap is always ~100% committed in a healthy league.** Unspent cap is wasted surplus. The
   question is never "can I afford X" in isolation — it's "what do I cut to afford X, and is the
   surplus swing positive."
+- **Two auction formats, two bidding rules.** The **annual auction draft** (after the keeper
+  deadline) is a *live open auction*: 15-second countdown, winner **pays their own final bid** — so
+  budget-drain dynamics apply (nominating expensive players you don't want forces rivals to spend
+  first). **In-season FA auctions** are *24h blind Vickrey* (winner pays 2nd price + $1) — there,
+  bidding your true value is optimal.
+- **The market pays a star premium over model values.** In the 2025 startup auction (see the
+  `transactions` table), elite players cleared ~1.5–2.5× the model's `dollar_value` (Ja'Marr Chase
+  $99, Josh Allen $110, Lamar Jackson $113). Use model values for *relative* ranking and surplus
+  math; anchor *expected clearing prices* on observed market prices scaled to the league's current
+  purchasing power (sum of teams' cap space entering the auction).
+- **Hold an in-season reserve.** League 309 teams spent ~$830 combined on in-season auctions in
+  2025 (top spender $200); December impact adds cleared $60–70. A contender should leave real cap
+  room after the draft rather than spending to $0.
 
 ---
 
@@ -198,7 +211,9 @@ When reasoning about any advanced question, walk this explicitly:
 These are the mistakes that come from standard-dynasty training data. Explicitly avoid them:
 
 - Pricing QBs as if only one starts (ignoring Superflex).
-- Treating the draft as a snake (it's a blind Vickrey auction; bid = 2nd price + $1).
+- Treating the draft as a snake (it's an auction) — or conflating the two auction formats: the
+  annual draft is a **live open auction** (winner pays their own bid), while in-season FA auctions
+  are blind Vickrey (2nd price + $1).
 - Ignoring the cap entirely / valuing players in points instead of dollars.
 - Forgetting the +$4 raise, so "keep everyone good" — the treadmill makes that cap-infeasible.
 - Ignoring arbitration, so over-valuing legible cheap stars at face surplus.
