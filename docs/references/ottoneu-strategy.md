@@ -157,9 +157,15 @@ analyzing real allocations.
 - **20 spots, hard cap.** A roster spot is itself a scarce asset; a $1 dart only earns its keep if
   its upside beats the best available FA for that slot. Hoarding low-upside $1s wastes spots that
   could hold lottery tickets (rookies, handcuffs to elite RBs, post-hype QBs).
-- **Cutting costs half-salary (rounded up) as a cap penalty**, plus a 30-day re-acquisition block.
-  So a player's *true* carrying cost includes his eventual cut penalty. Cutting a $40 bust still
-  burns $20 of cap — sometimes the least-bad move, but never free.
+- **In-season cuts cost half-salary (rounded up) as a cap penalty**, plus a 30-day re-acquisition
+  block. So a player's *true* in-season carrying cost includes his eventual cut penalty. Cutting a
+  $40 bust mid-season still burns $20 of cap — sometimes the least-bad move, but never free.
+- **Offseason cuts are FREE** (end of season → keeper deadline): the full salary returns to cap
+  space, and there are no offseason waivers. This turns the keeper deadline into a pure market
+  test — keep a player iff his salary is at or below what equivalent production will cost at the
+  annual auction; otherwise cut penalty-free and redeploy the cash. This is why star players flood
+  the FA pool each offseason: owners cut anyone priced above expected market and rebuy at the
+  draft. Do not apply in-season cut-penalty reasoning to offseason keeper decisions.
 - **IR/PUP/NFI** don't count against the 20-spot limit but **do** count against the $400 cap.
   Stashing an injured high-upside player is cheap in roster-spot terms, costly in cap terms.
 

@@ -30,8 +30,10 @@ IR/PUP/NFI players don't count against roster limits but do count against salary
 - **$400 cap** per team
 - **Annual auction draft** (any time after the keeper deadline, before the regular season): **live open auction**. Nomination order is the reverse of the prior season's standings; each nomination starts a 15-second countdown that resets on every bid; the last bidder wins and **pays their own final bid** (not the second price).
 - **In-season free agent auctions:** 24-hour blind Vickrey-style (winner pays second-highest bid + $1). Minimum bid is the player's current cap penalty or $1.
-- **Waivers:** Cut players can be claimed within 24 hours at their full previous salary.
-- **Cutting:** Incurs a cap penalty of half the player's salary (rounded up). Player cannot be reacquired by the same team for 30 days.
+- **Waivers (in-season only):** Cut players can be claimed within 24 hours at their full previous salary. There are no waivers in the offseason.
+- **Cutting (in-season):** Incurs a cap penalty of half the player's salary (rounded up). Player cannot be auctioned or bid on by the cutting team for 30 days.
+- **Cutting (offseason):** Between the end of the season and the keeper deadline, cuts carry **no cap penalty** — the full salary returns to cap space. This makes the keeper deadline a market test: keep a player only if he's worth his salary. (The 30-day reacquisition block is written for in-season auctions; whether it applies to the annual auction draft is unverified — cut early if you may want to rebuy your own cuts.)
+- **Keeper deadline:** At 12:00am ET on August 1, rosters must meet salary-cap and roster limits.
 
 ## Salary Increases & Arbitration
 
