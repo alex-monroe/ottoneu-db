@@ -115,6 +115,7 @@ just preflight          # Fast pre-PR gate (~9s): lint + typecheck + both test s
 just install-hooks      # Install the opt-in pre-push hook that runs `just preflight` (skip a push with --no-verify)
 just ci                 # Full CI suite (lint + typecheck + tests + doc checks)
 just roster-context [season]  # Build the roster-question context pack (live league data); season defaults to 2026
+just league-explorer <cmd>    # Explore other public Ottoneu leagues → local SQLite (scan | discover | scrape | report | query); see docs/references/league-explorer.md
 
 # Projection CLI
 just list-models                                    # List available models
