@@ -31,6 +31,7 @@ IR/PUP/NFI players don't count against roster limits but do count against salary
 - **Auctions:** 24-hour blind Vickrey-style (winner pays second-highest bid + $1). Minimum bid is the player's current cap penalty or $1.
 - **Waivers:** Cut players can be claimed within 24 hours at their full previous salary.
 - **Cutting:** Incurs a cap penalty of half the player's salary (rounded up). Player cannot be reacquired by the same team for 30 days.
+- **Offseason cut exception (verified in-league, July 2026):** cuts made between the end of the season and the keeper deadline carry **no lasting cap penalty**. The Ottoneu transaction log still displays a half-salary figure on every cut (e.g. `Josh Allen | cut | $61` after his salary reached $121), but the finances page shows $0 cap penalties for teams that made large April cuts. This is why unkeepable stars are cut en masse each offseason (typically right after arbitration finalizes salaries on April 1) and re-enter the annual auction draft pool at reset prices.
 
 ## Salary Increases & Arbitration
 

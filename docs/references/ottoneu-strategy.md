@@ -147,6 +147,13 @@ analyzing real allocations.
 - **Cutting costs half-salary (rounded up) as a cap penalty**, plus a 30-day re-acquisition block.
   So a player's *true* carrying cost includes his eventual cut penalty. Cutting a $40 bust still
   burns $20 of cap — sometimes the least-bad move, but never free.
+- **Exception: offseason cuts are penalty-free** (verified on the finances page, July 2026 — see
+  [ottoneu-rules.md](ottoneu-rules.md)). Between season end and the keeper deadline, cutting carries
+  no lasting cap hit, so the in-season carrying-cost logic above does not apply to keeper decisions:
+  a non-keep frees the full salary. This drives the annual offseason cut wave — unkeepable stars
+  (post-raise, post-arbitration) hit the auction pool at reset prices, and league-wide auction
+  purchasing power (= $4,800 minus kept salaries, concentrated in a few teams) sets what they
+  clear at, not their prior salaries.
 - **IR/PUP/NFI** don't count against the 20-spot limit but **do** count against the $400 cap.
   Stashing an injured high-upside player is cheap in roster-spot terms, costly in cap terms.
 
