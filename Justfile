@@ -97,6 +97,12 @@ check-db:
 roster-context season="2026":
     {{python}} scripts/roster_context_pack.py --season {{season}}
 
+# Explore other public Ottoneu leagues → local SQLite (discover | scrape | report | query)
+# e.g. just league-explorer discover ; just league-explorer scrape --discovered
+# See docs/references/league-explorer.md
+league-explorer *args:
+    {{python}} scripts/league_explorer/cli.py {{args}}
+
 # ──────────────────────────────────────────────
 # Harness checks
 # ──────────────────────────────────────────────

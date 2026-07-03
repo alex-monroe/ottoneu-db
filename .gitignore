@@ -45,3 +45,6 @@ build/
 
 # Python editable-install build metadata
 *.egg-info/
+
+# League explorer local artifacts (SQLite DB + raw page cache)
+data/league_explorer/
