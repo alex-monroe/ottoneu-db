@@ -20,7 +20,7 @@ from __future__ import annotations
 import argparse
 from collections import defaultdict
 
-from scripts.config import get_supabase_client
+from scripts.config import LEAGUE_ID, fetch_all_rows, get_supabase_client
 
 CAP_PER_TEAM = 400
 NUM_TEAMS = 12
@@ -29,18 +29,26 @@ NUM_TEAMS = 12
 def fetch_rows(season: int):
     client = get_supabase_client()
 
+    # players and player_projections both exceed the 1000-row PostgREST cap;
+    # unpaginated reads silently truncated rosters and projections here.
     players = {
         p["id"]: p
-        for p in client.table("players").select("id,name,position").execute().data
+        for p in fetch_all_rows(client, "players", "id,name,position")
     }
-    prices = client.table("league_prices").select("player_id,price,team_name").execute().data
+    prices = fetch_all_rows(
+        client,
+        "league_prices",
+        "player_id,price,team_name",
+        filters=[("eq", "league_id", LEAGUE_ID)],
+    )
     projections = {
         p["player_id"]: p["projected_ppg"]
-        for p in client.table("player_projections")
-        .select("player_id,projected_ppg,season")
-        .eq("season", season)
-        .execute()
-        .data
+        for p in fetch_all_rows(
+            client,
+            "player_projections",
+            "player_id,projected_ppg",
+            filters=[("eq", "season", season)],
+        )
     }
 
     rows = []
