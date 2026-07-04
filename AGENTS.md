@@ -24,6 +24,7 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 - **Ottoneu rules:** See [docs/references/ottoneu-rules.md](docs/references/ottoneu-rules.md) for scoring, roster, salary cap, and arbitration rules
 - **Ottoneu strategy:** See [docs/references/ottoneu-strategy.md](docs/references/ottoneu-strategy.md) for format economics (surplus value, raise treadmill, Superflex QB premium, arbitration tax) and the reasoning checklist used by the `/ottoneu-roster-question` skill. Use the `/ottoneu-roster-question` skill (which loads this + live data via `just roster-context`) to answer advanced keeper/trade/auction/arbitration questions.
 - **Environment:** See [docs/references/environment-variables.md](docs/references/environment-variables.md) for `.env` setup
+- **League Explorer:** See [docs/references/league-explorer.md](docs/references/league-explorer.md) for the cross-league survey tool (`just league-explorer`) — scrapes other public Ottoneu leagues (settings, standings history, champions, roster/salary snapshots) into a local SQLite DB at `data/league_explorer/`, separate from Supabase
 - **Autonomous operation:** See [docs/references/autonomous-operation.md](docs/references/autonomous-operation.md) for the permission-friction strategy — allowlist design, prompt-rate metrics (`just permission-report`), and the `.devcontainer/` for safely running `claude --dangerously-skip-permissions`
 - **Season cycle:** See [docs/exec-plans/season-cycle.md](docs/exec-plans/season-cycle.md) — the site rolls between Ottoneu seasons from the `league_calendar` table; the current season is resolved at runtime via `scripts/season.py` and `web/lib/season.ts`, not from static config
 - **Projection Accuracy Plan:** See [docs/exec-plans/projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md) for the 4-phase accuracy improvement roadmap (Issues #271-#285)
@@ -65,6 +66,7 @@ docs/
 │   ├── [experiment-log.md](docs/generated/experiment-log.md)              # History of all model iteration attempts
 │   ├── [player-diagnostics.md](docs/generated/player-diagnostics.md)          # Per-player backtest diagnostics
 │   ├── [projection-accuracy.md](docs/generated/projection-accuracy.md)         # Projection model accuracy report (in-sample; see audit caveat)
+│   ├── [projection-intervals.md](docs/generated/projection-intervals.md)        # Empirical prediction-interval bands — held-out coverage + fitted offsets — `just interval-calibration`
 │   ├── [projection-holdout-eval.md](docs/generated/projection-holdout-eval.md)     # Held-out (leakage-free) model re-ranking — `just holdout-eval` (#572); naïve baselines (#575)
 │   ├── [projection-holdout-eval-matched.md](docs/generated/projection-holdout-eval-matched.md) # Held-out re-ranking on the common player set — apples-to-apples FantasyPros — `just holdout-eval --matched` (#575)
 │   ├── [projection-holdout-eval-rolling.md](docs/generated/projection-holdout-eval-rolling.md) # Held-out re-ranking, rolling-origin protocol — `just holdout-eval --protocol rolling` (#594)
@@ -75,6 +77,7 @@ docs/
 ├── references/
 │   ├── [autonomous-operation.md](docs/references/autonomous-operation.md)        # Permission-friction strategy: allowlist, prompt metrics, devcontainer
 │   ├── environment-variables.md       # .env and .env.local variable reference
+│   ├── [league-explorer.md](docs/references/league-explorer.md)             # Cross-league survey: other Ottoneu leagues → local SQLite (just league-explorer)
 │   ├── ottoneu-rules.md               # Scoring, roster, salary cap, arbitration rules
 │   └── ottoneu-strategy.md            # Format economics + AI reasoning checklist for roster construction
 └── superpowers/

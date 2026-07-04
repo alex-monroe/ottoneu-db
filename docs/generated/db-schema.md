@@ -1,6 +1,6 @@
 # Database Schema
 
-Twenty-four tables owned by this project, all with UUID primary keys.
+Twenty-five tables owned by this project, all with UUID primary keys.
 
 ## Shared Database — Hands Off `fp_*`
 
