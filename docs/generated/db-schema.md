@@ -25,7 +25,7 @@ The Supabase project (`OttoneuDB`, ref `rbinbcwinchphipvcfqk`) is **shared with 
 | `league_prices` | Current salaries (FK -> `players`) | `(player_id, league_id)` |
 | `transactions` | Event log of all roster moves (adds, cuts, trades, auctions) | -- |
 | `surplus_adjustments` | Manual value overrides per player per league per user (FK -> `players`, `users`) | `(player_id, league_id, user_id)` |
-| `player_projections` | Active projection outputs promoted from `model_projections` (FK -> `players`). Columns: `projected_ppg`, `projection_method`, `projected_games` (migration 030; promoted from `model_projections.projected_games`, NULL = no estimate / full availability). | `(player_id, season)` |
+| `player_projections` | Active projection outputs promoted from `model_projections` (FK -> `players`). Columns: `projected_ppg`, `projection_method`, `projected_games` (migration 030; promoted from `model_projections.projected_games`, NULL = no estimate / full availability), `projected_ppg_low`/`projected_ppg_high` (migration 034; empirical prediction-interval bounds, NULL = no calibrated band). | `(player_id, season)` |
 | `arbitration_plans` | Named arbitration budget allocation plans per user (FK -> `users`) | `(league_id, name, user_id)` |
 | `arbitration_plan_allocations` | Per-player dollar allocations within a plan (FK -> `arbitration_plans`, `players`) | `(plan_id, player_id)` |
 | `scraper_jobs` | Persistent job queue with status tracking, dependencies, and retry logic | -- |
@@ -62,6 +62,7 @@ The Supabase project (`OttoneuDB`, ref `rbinbcwinchphipvcfqk`) is **shared with 
 - `season` int
 - `projected_ppg` float — pure-rate per-game projection
 - `projected_games` numeric — expected games played (0–17), leakage-free recency-weighted mean of the player's prior-season `games_played` (#587 stage c). `NULL` = no estimate / full availability. Availability-inclusive PPG = `projected_ppg × min(projected_games,17)/17`.
+- `projected_ppg_low` / `projected_ppg_high` numeric — empirical prediction-interval bounds around `projected_ppg` (default 80%, migration 034). Segment-conditional (position × projected-PPG tier) held-out residual quantiles from `prediction_intervals.py`; held-out coverage confirmed before ship. `NULL` = no calibrated band (K, uncalibrated segment, or no fitted calibration).
 - `feature_values` jsonb — per-feature computed values for audit/debug
 
 **`backtest_results`**

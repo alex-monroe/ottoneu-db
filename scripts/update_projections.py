@@ -19,6 +19,7 @@ from scripts.analysis_utils import fetch_multi_season_stats
 from scripts.projection_methods import CollegeProspectPPG, RookieDraftCapitalPPG
 from scripts.feature_projections.runner import run_model
 from scripts.feature_projections.promote import promote_model
+from scripts.feature_projections.prediction_intervals import apply_to_model_projections
 
 TARGET_SEASONS = [2024, 2025, 2026]
 
@@ -327,6 +328,11 @@ def update_projections() -> None:
     # 1. Run the active model for the target seasons.
     run_count = run_model(active_model, TARGET_SEASONS)
     print(f"Generated {run_count} model projections.")
+
+    # 1b. Attach empirical prediction-interval bands (projected_ppg_low/high) from
+    # the checked-in calibration so they promote alongside the point projection.
+    banded = apply_to_model_projections(active_model, TARGET_SEASONS)
+    print(f"Attached interval bands to {banded} model projections.")
 
     # 2. Promote into player_projections.
     promoted = promote_model(active_model)

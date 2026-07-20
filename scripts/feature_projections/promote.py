@@ -35,7 +35,10 @@ def promote_model(model_name: str) -> int:
     while True:
         proj_res = (
             supabase.table("model_projections")
-            .select("player_id, season, projected_ppg, projected_games")
+            .select(
+                "player_id, season, projected_ppg, projected_games, "
+                "projected_ppg_low, projected_ppg_high"
+            )
             .eq("model_id", model_id)
             .range(offset, offset + page_size - 1)
             .execute()
@@ -47,6 +50,8 @@ def promote_model(model_name: str) -> int:
                 "season": row["season"],
                 "projected_ppg": row["projected_ppg"],
                 "projected_games": row.get("projected_games"),
+                "projected_ppg_low": row.get("projected_ppg_low"),
+                "projected_ppg_high": row.get("projected_ppg_high"),
                 "projection_method": model_name,
             })
         if len(page) < page_size:
