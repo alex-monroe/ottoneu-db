@@ -181,6 +181,14 @@ availability-backtest *args:
 coverage-report *args:
     {{python}} scripts/feature_projections/coverage_analysis.py {{args}}
 
+# Fit empirical prediction-interval bands from held-out residuals + confirm coverage.
+# Writes the production calibration JSON + the coverage report. Re-run after promoting
+# a new active model. (projection uncertainty bands)
+interval-calibration *args:
+    {{python}} scripts/feature_projections/prediction_intervals.py \
+      --output-json scripts/feature_projections/data/interval_quantiles.json \
+      --output-report docs/generated/projection-intervals.md {{args}}
+
 # Promote a model to production  (e.g. just promote v24_learned_elite)
 promote model:
     {{python}} scripts/feature_projections/cli.py promote --model {{model}}

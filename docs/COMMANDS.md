@@ -136,6 +136,10 @@ just significance <model_a> <model_b> [--protocol rolling] [--eval-seasons ...] 
                                                     # Player-clustered paired bootstrap of the MAE gap (GH #573, #594)
 just availability-backtest [...]                    # Availability-inclusive backtest (rate vs availability budget, GH #574)
 just coverage-report [--min-games N]                # Qualifying-population coverage: player_stats vs nflverse, per season (GH #599)
+just interval-calibration [--eval-seasons ...] [--min-train-season Y] [--interval-pct 80]
+                                                    # Fit empirical prediction-interval bands from held-out residuals +
+                                                    # confirm coverage; writes data/interval_quantiles.json + the report.
+                                                    # Re-run after promoting a new active model.
 # Held-out predictions are cached under .cache/holdout/, keyed on (model, train window, eval window,
 # model-definition fingerprint), so a second holdout-eval/significance run skips retraining (GH #597).
 # The cache is SHARED across git worktrees (GH #629): it resolves to the main checkout's
