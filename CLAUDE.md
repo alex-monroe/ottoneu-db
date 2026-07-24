@@ -66,7 +66,6 @@ docs/
 │   ├── [experiment-log.md](docs/generated/experiment-log.md)              # History of all model iteration attempts
 │   ├── [player-diagnostics.md](docs/generated/player-diagnostics.md)          # Per-player backtest diagnostics
 │   ├── [projection-accuracy.md](docs/generated/projection-accuracy.md)         # Projection model accuracy report (in-sample; see audit caveat)
-│   ├── [projection-intervals.md](docs/generated/projection-intervals.md)        # Empirical prediction-interval bands — held-out coverage + fitted offsets — `just interval-calibration`
 │   ├── [projection-holdout-eval.md](docs/generated/projection-holdout-eval.md)     # Held-out (leakage-free) model re-ranking — `just holdout-eval` (#572); naïve baselines (#575)
 │   ├── [projection-holdout-eval-matched.md](docs/generated/projection-holdout-eval-matched.md) # Held-out re-ranking on the common player set — apples-to-apples FantasyPros — `just holdout-eval --matched` (#575)
 │   ├── [projection-holdout-eval-rolling.md](docs/generated/projection-holdout-eval-rolling.md) # Held-out re-ranking, rolling-origin protocol — `just holdout-eval --protocol rolling` (#594)

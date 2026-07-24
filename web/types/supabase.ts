@@ -449,8 +449,6 @@ export type Database = {
           player_id: string
           projected_games: number | null
           projected_ppg: number
-          projected_ppg_high: number | null
-          projected_ppg_low: number | null
           season: number
         }
         Insert: {
@@ -461,8 +459,6 @@ export type Database = {
           player_id: string
           projected_games?: number | null
           projected_ppg: number
-          projected_ppg_high?: number | null
-          projected_ppg_low?: number | null
           season: number
         }
         Update: {
@@ -473,8 +469,6 @@ export type Database = {
           player_id?: string
           projected_games?: number | null
           projected_ppg?: number
-          projected_ppg_high?: number | null
-          projected_ppg_low?: number | null
           season?: number
         }
         Relationships: [
@@ -620,8 +614,6 @@ export type Database = {
           player_id: string
           projected_games: number | null
           projected_ppg: number
-          projected_ppg_high: number | null
-          projected_ppg_low: number | null
           projection_method: string
           season: number
           updated_at: string
@@ -632,8 +624,6 @@ export type Database = {
           player_id: string
           projected_games?: number | null
           projected_ppg: number
-          projected_ppg_high?: number | null
-          projected_ppg_low?: number | null
           projection_method: string
           season: number
           updated_at?: string
@@ -644,8 +634,6 @@ export type Database = {
           player_id?: string
           projected_games?: number | null
           projected_ppg?: number
-          projected_ppg_high?: number | null
-          projected_ppg_low?: number | null
           projection_method?: string
           season?: number
           updated_at?: string
