@@ -8,7 +8,7 @@
 |-------|------|---------|
 | **L4** | Ranking-significance gate (`--metric spearman`) | ✅ **Built + validated** — the spike's enabling tool; proved FP out-orders v33 at QB (p=0.001) |
 | **L1** | xFP target (TD-regression base, `v42_xfp_base`) | ⚪ **TIE** — same-data efficiency proxy already captured by v33's features |
-| **L3** | EB partial pooling — `v43_eb_pooling` (global k) → **`v44_eb_pooling_perpos`** (per-position EB k) | 🟢 **SIGNIFICANT QB MAE win** (v44 −0.166, p=0.020; QB ρ p=0.068 on the cusp; no regression) — **strongest candidate, promotion deferred to operator** |
+| **L3** | EB partial pooling — `v43_eb_pooling` (global k) → **`v44_eb_pooling_perpos`** (per-position EB k) | 🟢 **SIGNIFICANT QB MAE win** (v44 −0.166, p=0.020; QB ρ p=0.068 on the cusp; no regression) — **strongest candidate → PROMOTED 2026-07-25** (operator call; replaces `v33_tuned_base` as active) |
 | **L5** | QB volume × regressed-efficiency (`v45_qb_volume_model`) | 🔴 **NEGATIVE** — over-strips real QB skill; worse than v44. Triangulates with #640 + L1 |
 | **L2** | Game/week-level modeling | ⏸️ **Feasible but DEPRIORITIZED** — ingestion works; power premise undercut by L1/L5 |
 | Ensemble | Decorrelated validated blend | ⬜ Not run — scoped, deferred |
@@ -274,6 +274,17 @@ eval-time comparators only, never model inputs).
 > QB ρ ranking gate. **Iteration stopped here** to avoid forking-path inflation
 > on the 2023–2025 window; the next lever (hierarchical/age-aware prior) must be
 > validated on fresh ground. **Strongest promotion candidate of the spike.**
+>
+> **PROMOTED 2026-07-25 (operator call).** `v44_eb_pooling_perpos` is now the
+> active production model, replacing `v33_tuned_base`. Basis: the documented
+> significant QB MAE win (p=0.020) with no ALL-MAE regression — the L4-style
+> dual-metric promotion case (gate on the ordering/high-value position, require
+> MAE not significantly regress) sanctioned in CLAUDE.md's "Projection Model
+> Update Requirements". Registered + projected for 2022–2026, promoted via
+> `just promote v44_eb_pooling_perpos`, and re-projected through `just analyze`
+> (892 v44 + 659 rookie-draft-capital + 7 college-prospect rows for 2026). The
+> `<ActiveModelCard>` methodology copy on `/projections`, `/arbitration`, and
+> `/projection-accuracy` re-renders live from the DB, so no page copy changed.
 
 ---
 
