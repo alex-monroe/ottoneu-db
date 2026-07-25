@@ -23,8 +23,8 @@ point-estimate delta.
      needed (and never train on the eval seasons yourself).
 
 3. **Run the held-out re-rank** against the **active model** (check
-   `projection_models.is_active` — `v33_tuned_base` as of 2026-06; do not assume
-   a hardcoded name) and the naïve baselines (`naive_prior_season_ppg`,
+   `projection_models.is_active` — `v44_eb_pooling_perpos` as of 2026-07; do not
+   assume a hardcoded name) and the naïve baselines (`naive_prior_season_ppg`,
    `position_mean_baseline`). Prefer the rolling-origin protocol (#594); the
    cache (#597) makes re-runs fast — and it is **shared across worktrees** (#629:
    resolves to the main checkout's `.cache/holdout`), so an experiment worktree
