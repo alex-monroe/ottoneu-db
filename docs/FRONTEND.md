@@ -26,6 +26,7 @@ Several formerly-standalone pages were consolidated into **tabbed routes** using
 | `/login` | Email/password login |
 | `/admin` | User management (admin only) |
 | `/admin/workflows` | Workflow status history (admin only) — GitHub-status-style grid of the scheduled GitHub Actions over the last 21 days, read live from the public GitHub Actions API (server-side; no token required, optional `GITHUB_TOKEN` for rate limit) |
+| `/api/mcp/mcp` | **Remote MCP server** (Streamable HTTP, POST) — read-only league-data tools for MCP clients / AI agents. Bearer-key auth (`MCP_API_KEY`) inside the route handler; `/api/mcp` is exempted from cookie auth in `web/middleware.ts` (`PUBLIC_API_ROUTES`). See [docs/references/mcp-server.md](references/mcp-server.md) |
 
 ## Reusable Components
 

@@ -19,6 +19,7 @@
 | `SUPABASE_SECRET_KEY` | Supabase secret key — bypasses RLS (server-side only). Also accepts `OTTONEU_DB_SUPABASE_SECRET_KEY` (Vercel integration) |
 | `SESSION_SECRET` | Random string for HMAC session signing (server-side only) |
 | `GITHUB_TOKEN` | **Optional.** Read-only GitHub token used by the `/admin/workflows` status page to raise the GitHub Actions API rate limit. The repo is public so the page works without it (60 req/hr unauthenticated); set it for headroom. Optionally pair with `GITHUB_REPO_OWNER` / `GITHUB_REPO_NAME` (default `alex-monroe` / `ottoneu-db`). |
+| `MCP_API_KEY` | Shared bearer key for the remote MCP endpoint (`/api/mcp/mcp`). Generate with `openssl rand -hex 32`; also set in the Vercel project env for prod. Rotating it revokes access. Unset = the MCP endpoint rejects all requests (fails closed). See [mcp-server.md](mcp-server.md). |
 
 ## Templates
 
