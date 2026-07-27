@@ -17,11 +17,14 @@ from dotenv import load_dotenv
 from scripts.tasks import PULL_NFL_STATS, SCRAPE_ROSTER
 from scripts.worker import ScraperWorker
 from scripts.config import LEAGUE_ID, POSITIONS, get_supabase_client
+from scripts.season import stats_season
 
 load_dotenv()
 
 
-def enqueue_batch(season=2025):
+def enqueue_batch(season=None):
+    if season is None:
+        season = stats_season()
     """Create a full batch of scraper jobs and return the batch ID."""
     supabase = get_supabase_client()
     batch_id = str(uuid.uuid4())
@@ -58,7 +61,7 @@ def enqueue_batch(season=2025):
     return batch_id
 
 
-async def scrape_ottoneu_data(target_season=2025):
+async def scrape_ottoneu_data(target_season=None):
     """Enqueue a full batch and run the worker to completion."""
     batch_id = enqueue_batch(target_season)
     if not batch_id:
