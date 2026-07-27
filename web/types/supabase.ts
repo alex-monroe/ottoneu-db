@@ -1108,6 +1108,135 @@ export type Database = {
           },
         ]
       }
+      oauth_authorization_codes: {
+        Row: {
+          client_id: string
+          code_challenge: string
+          code_hash: string
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          redirect_uri: string
+          scope: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          code_challenge: string
+          code_hash: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          redirect_uri: string
+          scope: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          code_challenge?: string
+          code_hash?: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          redirect_uri?: string
+          scope?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oauth_authorization_codes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "oauth_clients"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "oauth_authorization_codes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      oauth_clients: {
+        Row: {
+          client_id: string
+          client_name: string
+          client_secret_hash: string | null
+          created_at: string
+          grant_types: string[]
+          id: string
+          redirect_uris: string[]
+          scope: string
+        }
+        Insert: {
+          client_id: string
+          client_name: string
+          client_secret_hash?: string | null
+          created_at?: string
+          grant_types?: string[]
+          id?: string
+          redirect_uris: string[]
+          scope?: string
+        }
+        Update: {
+          client_id?: string
+          client_name?: string
+          client_secret_hash?: string | null
+          created_at?: string
+          grant_types?: string[]
+          id?: string
+          redirect_uris?: string[]
+          scope?: string
+        }
+        Relationships: []
+      }
+      oauth_refresh_tokens: {
+        Row: {
+          client_id: string
+          created_at: string
+          expires_at: string
+          revoked_at: string | null
+          scope: string
+          token_hash: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          expires_at: string
+          revoked_at?: string | null
+          scope: string
+          token_hash: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          expires_at?: string
+          revoked_at?: string | null
+          scope?: string
+          token_hash?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oauth_refresh_tokens_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "oauth_clients"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "oauth_refresh_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           created_at: string
