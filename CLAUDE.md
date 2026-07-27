@@ -24,6 +24,7 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 - **Ottoneu rules:** See [docs/references/ottoneu-rules.md](docs/references/ottoneu-rules.md) for scoring, roster, salary cap, and arbitration rules
 - **Ottoneu strategy:** See [docs/references/ottoneu-strategy.md](docs/references/ottoneu-strategy.md) for format economics (surplus value, raise treadmill, Superflex QB premium, arbitration tax) and the reasoning checklist used by the `/ottoneu-roster-question` skill. Use the `/ottoneu-roster-question` skill (which loads this + live data via `just roster-context`) to answer advanced keeper/trade/auction/arbitration questions.
 - **Environment:** See [docs/references/environment-variables.md](docs/references/environment-variables.md) for `.env` setup
+- **MCP Server:** See [docs/references/mcp-server.md](docs/references/mcp-server.md) for the remote MCP endpoint (`/api/mcp/mcp`) that exposes league data (rosters, projections, values, arbitration) to MCP clients/AI agents — bearer-key auth via `MCP_API_KEY`, tool registry in `web/lib/mcp/tools.ts`
 - **League Explorer:** See [docs/references/league-explorer.md](docs/references/league-explorer.md) for the cross-league survey tool (`just league-explorer`) — scrapes other public Ottoneu leagues (settings, standings history, champions, roster/salary snapshots) into a local SQLite DB at `data/league_explorer/`, separate from Supabase
 - **Autonomous operation:** See [docs/references/autonomous-operation.md](docs/references/autonomous-operation.md) for the permission-friction strategy — allowlist design, prompt-rate metrics (`just permission-report`), and the `.devcontainer/` for safely running `claude --dangerously-skip-permissions`
 - **Season cycle:** See [docs/exec-plans/season-cycle.md](docs/exec-plans/season-cycle.md) — the site rolls between Ottoneu seasons from the `league_calendar` table; the current season is resolved at runtime via `scripts/season.py` and `web/lib/season.ts`, not from static config
@@ -77,6 +78,7 @@ docs/
 │   ├── [autonomous-operation.md](docs/references/autonomous-operation.md)        # Permission-friction strategy: allowlist, prompt metrics, devcontainer
 │   ├── environment-variables.md       # .env and .env.local variable reference
 │   ├── [league-explorer.md](docs/references/league-explorer.md)             # Cross-league survey: other Ottoneu leagues → local SQLite (just league-explorer)
+│   ├── [mcp-server.md](docs/references/mcp-server.md)                  # Remote MCP endpoint (/api/mcp/mcp): league-data tools for AI agents, bearer-key auth
 │   ├── ottoneu-rules.md               # Scoring, roster, salary cap, arbitration rules
 │   └── ottoneu-strategy.md            # Format economics + AI reasoning checklist for roster construction
 └── superpowers/
