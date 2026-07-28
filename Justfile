@@ -97,6 +97,13 @@ check-db:
 roster-context season="2026":
     {{python}} scripts/roster_context_pack.py --season {{season}}
 
+# Manage OAuth clients for the MCP server (create | list | revoke)
+# Only needed for clients that can't self-register via DCR — e.g. Gemini Spark's
+# "Advanced features" manual path. See docs/references/mcp-server.md
+# e.g. just oauth-client create --name "Gemini Spark" --redirect-uri https://host/callback
+oauth-client *args:
+    {{python}} scripts/oauth_client.py {{args}}
+
 # Explore other public Ottoneu leagues → local SQLite (discover | scrape | report | query)
 # e.g. just league-explorer discover ; just league-explorer scrape --discovered
 # See docs/references/league-explorer.md

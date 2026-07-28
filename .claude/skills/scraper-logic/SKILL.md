@@ -34,5 +34,21 @@ The scraping heavily relies on Playwright for browser automation and Supabase fo
     - **Processing**: This tracks historical salary movement into the `transactions` table.
 
 ## Automated Runs
-The scraping pipeline is commonly set to run daily at 6 AM using cron or GitHub Actions. 
-These scheduled runs will trigger the batch enqueue followed by the worker loop.
+The scraping pipeline runs on GitHub Actions (`.github/workflows/scrape-players.yml`),
+triggering the batch enqueue followed by the worker loop. The schedule is season-aware:
+
+- **In-season (Sep–Jan):** daily at 06:00 UTC.
+- **Offseason (Feb–Aug):** weekly on Mondays at 06:00 UTC — rosters still churn
+  (keeper cuts, arbitration results, trades), so `league_prices` needs a periodic
+  refresh even out of season, just less often than in-season.
+- **`workflow_dispatch`:** always runs, bypassing the season gate (use this for an
+  on-demand refresh).
+
+The workflow defines two cron entries and a gate step routes each trigger so exactly
+one fires per day. The scrape season resolves at runtime from `stats_season()`
+(`scripts/season.py`) — it is not hardcoded.
+
+**Environment note:** Ottoneu sits behind a Cloudflare anti-bot challenge. GitHub
+Actions runners pass it, but a headless scrape from a datacenter/sandbox IP is served
+a 403 "Just a moment…" interstitial and will time out waiting for page selectors. Run
+scrapes via the workflow (or an allow-listed IP), not from an arbitrary sandbox.
