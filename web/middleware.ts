@@ -20,6 +20,10 @@ export const PUBLIC_API_ROUTES = [
   // MCP endpoint: bearer-key auth is enforced inside the route handler
   // (withMcpAuth in app/api/mcp/[transport]/route.ts), not by cookies.
   "/api/mcp",
+  // OAuth endpoints for MCP clients. /token and /register are machine-to-machine
+  // and carry no cookie; /authorize verifies the session itself (it must match
+  // the signed consent token) rather than relying on the middleware gate.
+  "/api/oauth",
 ];
 
 export async function middleware(request: NextRequest) {

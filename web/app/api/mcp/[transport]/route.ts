@@ -33,7 +33,13 @@ const handler = createMcpHandler(
   },
 );
 
-const authedHandler = withMcpAuth(handler, verifyBearer, { required: true });
+// `resourceMetadataPath` puts the RFC 9728 document's URL in the
+// `WWW-Authenticate` header of every 401, which is how OAuth clients discover
+// the authorization server (see app/.well-known/oauth-protected-resource/).
+const authedHandler = withMcpAuth(handler, verifyBearer, {
+  required: true,
+  resourceMetadataPath: "/.well-known/oauth-protected-resource/api/mcp/mcp",
+});
 
 export { authedHandler as GET, authedHandler as POST, authedHandler as DELETE };
 export const maxDuration = 60;
