@@ -48,7 +48,30 @@ The workflow defines two cron entries and a gate step routes each trigger so exa
 one fires per day. The scrape season resolves at runtime from `stats_season()`
 (`scripts/season.py`) — it is not hardcoded.
 
-**Environment note:** Ottoneu sits behind a Cloudflare anti-bot challenge. GitHub
-Actions runners pass it, but a headless scrape from a datacenter/sandbox IP is served
-a 403 "Just a moment…" interstitial and will time out waiting for page selectors. Run
-scrapes via the workflow (or an allow-listed IP), not from an arbitrary sandbox.
+## Authentication / Cloudflare
+
+Ottoneu sits behind a Cloudflare anti-bot challenge. A headless, anonymous scrape
+from a datacenter IP (GitHub Actions runners **included** — they no longer reliably
+pass) is served a 403 `Just a moment…` interstitial, so every `scrape_roster` job
+times out waiting for `a.top_players` and is marked `failed`. When that happens no
+roster row is written and `league_prices` silently freezes at the last successful
+scrape — cuts/adds/trades stop appearing on the site even though `pull_nfl_stats`
+(which never touches Ottoneu) keeps succeeding.
+
+**Mitigation — reuse a real logged-in session:**
+
+1. From a local machine (a residential IP), run `just ottoneu-login`. A visible
+   browser opens; sign in and clear any Cloudflare check, then press Enter.
+2. That saves a Playwright `storage_state` (cookies **and** localStorage — Ottoneu
+   keeps its session in localStorage) to `ottoneu_state.json` (gitignored;
+   path overridable via `OTTONEU_STORAGE_STATE`).
+3. `scripts/worker.py` loads it into the browser context automatically when
+   present, clearing the challenge. It falls back to anonymous browsing when absent.
+
+The roster scrape raises an explicit `Cloudflare challenge` error (instead of a bare
+selector timeout) when it detects the `Just a moment…` title, so the failure is
+actionable. `OTTONEU_HEADLESS=0` runs a visible browser for debugging.
+
+Diagnosing a "missing cut/roster change" report: check `scraper_jobs` for recent
+`failed` `scrape_roster` rows and read their `last_error`; a `league_prices` row
+whose `updated_at` predates the reported change confirms the freeze.

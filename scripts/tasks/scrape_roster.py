@@ -129,7 +129,19 @@ async def run(params: dict, context, supabase, nfl_stats: pd.DataFrame) -> TaskR
     try:
         print(f"\n--- Scraping Position: {position} ({level_label}) ---")
         await page.goto(search_url, timeout=60000)
-        await page.wait_for_selector("a.top_players", timeout=30000)
+        try:
+            await page.wait_for_selector("a.top_players", timeout=30000)
+        except Exception:
+            # Distinguish a Cloudflare bot challenge from an ordinary timeout so
+            # the failure is actionable instead of a generic selector error.
+            title = (await page.title()) or ""
+            if "just a moment" in title.lower() or "attention required" in title.lower():
+                raise RuntimeError(
+                    "Ottoneu search page is behind a Cloudflare challenge "
+                    f"(page title: {title!r}). Capture an authenticated session "
+                    "with `just ottoneu-login` and re-run from a residential IP."
+                )
+            raise
 
         # Use form submission for all levels to get ALL players, not just
         # "top players" from the quick-filter links (which miss low-profile players)

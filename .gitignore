@@ -43,6 +43,10 @@ build/
 # Allow specific example files if needed
 !**/.env.example
 
+# Authenticated Ottoneu session (Playwright storage_state) — holds a live login;
+# captured by `just ottoneu-login`. Never commit it.
+ottoneu_state.json
+
 # Python editable-install build metadata
 *.egg-info/
 

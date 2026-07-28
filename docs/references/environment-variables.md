@@ -9,6 +9,8 @@
 | `FANGRAPHS_USERNAME` | FanGraphs login username (for arbitration progress scraper) |
 | `FANGRAPHS_PASSWORD` | FanGraphs login password (for arbitration progress scraper) |
 | `OTTONEU_HOLDOUT_CACHE` | **Optional.** Absolute path to the holdout-eval cache dir (GH #629). Default: the main checkout's `.cache/holdout`, resolved via `git rev-parse --git-common-dir` so all worktrees share one cache. Set to override the location. |
+| `OTTONEU_STORAGE_STATE` | **Optional.** Path to the Playwright `storage_state` JSON (cookies + localStorage) for an authenticated Ottoneu session. Default: `ottoneu_state.json` at the repo root (gitignored). Capture it with `just ottoneu-login`; the scraper worker loads it to clear the Cloudflare bot challenge on the search page. Absent → the worker browses anonymously (fine until Cloudflare challenges it). |
+| `OTTONEU_HEADLESS` | **Optional.** Set to `0` to run the scraper's Chromium in a visible (non-headless) window — useful for debugging the Cloudflare challenge locally. Default headless. |
 
 ## `web/.env.local` (for Next.js)
 

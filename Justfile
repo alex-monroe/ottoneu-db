@@ -85,6 +85,10 @@ test-web-file file:
 scrape:
     {{python}} scripts/ottoneu_scraper.py
 
+# Capture an authenticated Ottoneu session (clears the Cloudflare challenge). Run locally; a browser opens for you to log in.
+ottoneu-login:
+    {{python}} scripts/ottoneu_login.py
+
 # Update player projections (VORP/surplus/arbitration now computed in the web UI)
 analyze:
     {{python}} scripts/update_projections.py

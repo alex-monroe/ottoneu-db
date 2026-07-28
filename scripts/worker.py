@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import time
 import uuid
 
@@ -21,7 +22,7 @@ from scripts.tasks import (
     TaskResult,
 )
 from scripts.tasks import pull_nfl_stats, pull_player_stats, scrape_roster, scrape_player_card
-from scripts.config import get_supabase_client
+from scripts.config import get_supabase_client, OTTONEU_STORAGE_STATE_PATH
 
 
 
@@ -224,15 +225,33 @@ class ScraperWorker:
             return
 
         print("Launching browser...")
+        # OTTONEU_HEADLESS=0 runs a visible browser — useful when debugging the
+        # Cloudflare challenge locally.
+        headless = os.getenv("OTTONEU_HEADLESS", "1") != "0"
         self.playwright = await async_playwright().start()
-        self.browser = await self.playwright.chromium.launch(headless=True)
-        self.browser_context = await self.browser.new_context(
-            user_agent=(
+        self.browser = await self.playwright.chromium.launch(headless=headless)
+
+        context_kwargs = {
+            "user_agent": (
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                 "AppleWebKit/537.36 (KHTML, like Gecko) "
                 "Chrome/120.0.0.0 Safari/537.36"
             )
-        )
+        }
+        # Reuse an authenticated Ottoneu session (cookies + localStorage) if one
+        # has been captured via `just ottoneu-login`. This clears the Cloudflare
+        # bot challenge that blocks anonymous, headless, datacenter-IP scrapes of
+        # the search page. Falls back to anonymous browsing when absent.
+        if OTTONEU_STORAGE_STATE_PATH.exists():
+            print(f"Loading authenticated Ottoneu session from {OTTONEU_STORAGE_STATE_PATH}")
+            context_kwargs["storage_state"] = str(OTTONEU_STORAGE_STATE_PATH)
+        else:
+            print(
+                "No Ottoneu storage_state found — browsing anonymously. "
+                "If the roster scrape hits the Cloudflare 'Just a moment...' "
+                "challenge, capture a session with `just ottoneu-login`."
+            )
+        self.browser_context = await self.browser.new_context(**context_kwargs)
 
     async def _close_browser(self):
         """Shut down the browser if it was started."""

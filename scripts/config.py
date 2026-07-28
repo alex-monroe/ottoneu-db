@@ -57,6 +57,16 @@ NFL_TEAM_CODES = set(_config["NFL_TEAM_CODES"])
 # --- END GENERATED CONFIG ---
 
 
+# Path to the Playwright storage_state file holding an authenticated Ottoneu
+# session (cookies + localStorage). Produced by `just ottoneu-login` and loaded
+# by the scraper worker to clear the Cloudflare bot challenge on the search page.
+# Override the location with OTTONEU_STORAGE_STATE; the default lives at the repo
+# root and is gitignored so the session secret is never committed.
+OTTONEU_STORAGE_STATE_PATH = Path(
+    os.getenv("OTTONEU_STORAGE_STATE", str(CONFIG_PATH.parent / "ottoneu_state.json"))
+)
+
+
 def get_supabase_client() -> Client:
     """Return a configured Supabase client.
 
