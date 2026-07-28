@@ -68,6 +68,17 @@ scrape — cuts/adds/trades stop appearing on the site even though `pull_nfl_sta
 3. `scripts/worker.py` loads it into the browser context automatically when
    present, clearing the challenge. It falls back to anonymous browsing when absent.
 
+If the login window loops on the Cloudflare "verify you're human" (Turnstile)
+check — you click it and it re-appears — that is Cloudflare refusing to issue a
+clearance token to an automation-flagged browser (`navigator.webdriver`, the
+`--enable-automation` switch). `ottoneu_login.py` launches with those signals
+dropped (`--disable-blink-features=AutomationControlled`, `ignore_default_args=
+["--enable-automation"]`, and a `navigator.webdriver` mask) so the human can pass
+their own login; it never solves the challenge programmatically. The login and
+worker share `SCRAPER_USER_AGENT` because Cloudflare binds the clearance cookie to
+the UA — a mismatch would invalidate the saved session. If it still loops, fall
+back to the official Ottoneu CSV roster export (planned follow-up).
+
 The roster scrape raises an explicit `Cloudflare challenge` error (instead of a bare
 selector timeout) when it detects the `Just a moment…` title, so the failure is
 actionable. `OTTONEU_HEADLESS=0` runs a visible browser for debugging.

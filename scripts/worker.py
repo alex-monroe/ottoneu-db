@@ -22,7 +22,7 @@ from scripts.tasks import (
     TaskResult,
 )
 from scripts.tasks import pull_nfl_stats, pull_player_stats, scrape_roster, scrape_player_card
-from scripts.config import get_supabase_client, OTTONEU_STORAGE_STATE_PATH
+from scripts.config import get_supabase_client, OTTONEU_STORAGE_STATE_PATH, SCRAPER_USER_AGENT
 
 
 
@@ -231,13 +231,7 @@ class ScraperWorker:
         self.playwright = await async_playwright().start()
         self.browser = await self.playwright.chromium.launch(headless=headless)
 
-        context_kwargs = {
-            "user_agent": (
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/120.0.0.0 Safari/537.36"
-            )
-        }
+        context_kwargs = {"user_agent": SCRAPER_USER_AGENT}
         # Reuse an authenticated Ottoneu session (cookies + localStorage) if one
         # has been captured via `just ottoneu-login`. This clears the Cloudflare
         # bot challenge that blocks anonymous, headless, datacenter-IP scrapes of

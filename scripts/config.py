@@ -66,6 +66,16 @@ OTTONEU_STORAGE_STATE_PATH = Path(
     os.getenv("OTTONEU_STORAGE_STATE", str(CONFIG_PATH.parent / "ottoneu_state.json"))
 )
 
+# User-Agent presented by every scraper browser context. Kept in one place so the
+# session captured by `just ottoneu-login` and the headless scrape send an
+# identical UA — Cloudflare binds its clearance cookie to the UA, so a mismatch
+# between the login browser and the worker would invalidate the saved session.
+SCRAPER_USER_AGENT = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/120.0.0.0 Safari/537.36"
+)
+
 
 def get_supabase_client() -> Client:
     """Return a configured Supabase client.
