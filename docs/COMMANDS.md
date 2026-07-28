@@ -172,7 +172,7 @@ equivalent self-hosted setup would look like.
 
 | Workflow | Trigger | What it runs |
 |----------|---------|--------------|
-| `scrape-players.yml` | Daily 06:00 UTC (gated to Sep–Jan) + `workflow_dispatch` | `scripts/ottoneu_scraper.py` — full roster + player-card scrape (uses `SUPABASE_URL` / `SUPABASE_SECRET_KEY`) |
+| `scrape-players.yml` | Daily 06:00 UTC in-season (Sep–Jan) **+ weekly Mon 06:00 UTC in the offseason (Feb–Aug)** + `workflow_dispatch` | `scripts/ottoneu_scraper.py` — full roster + player-card scrape (uses `SUPABASE_URL` / `SUPABASE_SECRET_KEY`). Two cron entries routed by the season gate so each fires at most once/day; the weekly offseason cadence keeps `league_prices` current through keeper cuts / arbitration / trades (#555-style churn). Scrape season resolves from `stats_season()`, not a hardcoded year. |
 | `scrape-arbitration-progress.yml` | Every 6h (gated to Jan–Mar + Apr 1) + `workflow_dispatch` | `scripts/scrape_arbitration_progress.py` — pulls per-team allocation status via FanGraphs login (`FANGRAPHS_USERNAME` / `FANGRAPHS_PASSWORD`) |
 | `scrape-draft-sharks.yml` | Mondays 08:00 UTC + `workflow_dispatch` | `scripts/scrape_draft_sharks.py` — Draft Sharks Half-PPR Superflex auction values (no in-season gate; ×2 for the $400 cap) |
 | `scrape-league-calendar.yml` | Mondays 12:00 UTC + `workflow_dispatch` | `scripts/scrape_league_calendar.py` — refreshes `league_calendar`, the source of truth for the season-cycle resolver. Requires FanGraphs login. |
@@ -189,8 +189,11 @@ All scheduled scraping workflows that hit Supabase use the **service key**
 ### Equivalent local cron (reference only)
 
 ```bash
-# Daily at 6 AM: enqueue batch and run worker
-0 6 * * * cd /path/to/ottoneu_db && source venv/bin/activate && python scripts/enqueue.py batch && python scripts/worker.py
+# Daily at 6 AM in-season (Sep–Jan), weekly Mondays in the offseason (Feb–Aug):
+# enqueue batch and run worker. (In GitHub Actions this is one workflow with two
+# cron entries + a season gate; a local crontab needs the two lines below.)
+0 6 * 9-12,1 * cd /path/to/ottoneu_db && source venv/bin/activate && python scripts/enqueue.py batch && python scripts/worker.py
+0 6 * 2-8 1   cd /path/to/ottoneu_db && source venv/bin/activate && python scripts/enqueue.py batch && python scripts/worker.py
 
 # Every 6 hours (Jan-Mar): scrape arbitration progress
 0 */6 * 1-3 * cd /path/to/ottoneu_db && source venv/bin/activate && python scripts/scrape_arbitration_progress.py
