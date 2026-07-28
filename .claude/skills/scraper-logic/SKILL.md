@@ -76,8 +76,14 @@ dropped (`--disable-blink-features=AutomationControlled`, `ignore_default_args=
 ["--enable-automation"]`, and a `navigator.webdriver` mask) so the human can pass
 their own login; it never solves the challenge programmatically. The login and
 worker share `SCRAPER_USER_AGENT` because Cloudflare binds the clearance cookie to
-the UA — a mismatch would invalidate the saved session. If it still loops, fall
-back to the official Ottoneu CSV roster export (planned follow-up).
+the UA — a mismatch would invalidate the saved session.
+
+Note: the official Ottoneu **CSV roster export is not a replacement** for this
+scrape. It lists only current rostered players + salaries — no free agents (the
+scrape captures the whole FA universe with `team_name="FA"`) and no transaction
+history (from `scrape_player_card`). At most it could feed a roster-diff
+reconciliation to catch cuts/adds if the authenticated scrape is ever blocked; it
+cannot stand in for the search-page scrape.
 
 The roster scrape raises an explicit `Cloudflare challenge` error (instead of a bare
 selector timeout) when it detects the `Just a moment…` title, so the failure is
