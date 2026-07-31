@@ -21,22 +21,31 @@ Python Scripts (scripts/)
 
 ## Data Pipeline
 
-Uses a worker-based job queue. `scripts/enqueue.py` inserts jobs into the `scraper_jobs` table in Supabase. `scripts/worker.py` polls the queue, dispatches tasks, and manages a shared Playwright browser.
+Ottoneu data is pulled over **plain HTTP — no browser**. Cloudflare serves its
+challenge to requests that *impersonate a browser*, but lets honest automated clients
+through (from datacenter IPs incl. GitHub-hosted runners), so both tools send a
+descriptive User-Agent and parse with `requests` + `BeautifulSoup`:
 
-Three task types:
-- `pull_nfl_stats` — sync, loads snap counts via `nfl_data_py`
-- `scrape_roster` — async, scrapes one position from Ottoneu search page
-- `scrape_player_card` — async, scrapes FA transaction history for real salary
+- **`scripts/reconcile_roster.py`** — ingests the `/csv/rosters` export → `league_prices` (team ownership + salary), optionally inferring `transactions`. See [references/roster-csv-reconciliation.md](references/roster-csv-reconciliation.md).
+- **`scripts/scrape_player_cards.py`** — iterates every DB player with a real Ottoneu id and fetches its `player_card/{nfl|college}/{id}` page, parsing the Transaction History table into `transactions` (real dates + types). We already know every id from the DB (and new ones arrive via roster-CSV reconciliation), so there's no need to crawl the search page to *discover* players.
 
-Jobs support dependencies, retries (up to 3 attempts), and batch grouping. `ottoneu_scraper.py` is a backward-compatible wrapper that enqueues a batch and runs the worker. Data is upserted into three tables: `players`, `player_stats`, `league_prices`.
+The **nflverse** stats pulls still run on the worker-based job queue (browser-free):
+`scripts/enqueue.py` inserts jobs into `scraper_jobs`; `scripts/worker.py` polls and
+dispatches them. Two task types remain:
+- `pull_nfl_stats` — loads snap counts via `nfl_data_py`
+- `pull_player_stats` — computes Ottoneu fantasy points/ppg into `player_stats` from nflverse
 
-**Player identity across the college→NFL transition.** One human can hold multiple Ottoneu IDs over their lifecycle: a college prospect is backfilled with a placeholder `ottoneu_id` (and often a `draft_capital` row), then gets a *new* real id once drafted and rostered. `scrape_roster` reconciles this before inserting (`choose_prospect_to_adopt`): when no row owns the incoming real id, it adopts a same-`(name, position)` prospect record — one with a synthetic negative id **or** carrying draft capital — by updating its id, instead of creating a duplicate. (Earlier it only matched negative synthetic ids, so positively-keyed drafted prospects duplicated — stranding draft capital + projections on the orphan while the site showed the canonical row. The one-off `scripts/merge_duplicate_drafted_players.py` reconciled the existing dupes; the guard prevents recurrence. See GH #483.)
+Jobs support dependencies, retries (up to 3 attempts), and batch grouping.
+
+> The Playwright roster/player-card scrape (`scrape_roster`, `scrape_player_card`, `ottoneu_scraper.py`) was removed in favor of the HTTP tools above. Playwright is still used by the standalone FanGraphs/Draft-Sharks/calendar scrapers.
+
+**Player identity across the college→NFL transition.** One human can hold multiple Ottoneu IDs over their lifecycle: a college prospect is backfilled with a placeholder `ottoneu_id` (and often a `draft_capital` row), then gets a *new* real id once drafted and rostered. `reconcile_roster.py` reconciles this when it first sees a rostered id (`choose_prospect_to_adopt`, in `scripts/prospect_adopt.py`): when no row owns the incoming real id, it adopts a same-`(name, position)` prospect record — one with a synthetic negative id **or** carrying draft capital — by updating its id, instead of creating a duplicate. (The one-off `scripts/merge_duplicate_drafted_players.py` reconciled the existing dupes; the guard prevents recurrence. See GH #483.)
 
 ### NFL Stats (separate from Ottoneu data)
 
 `nfl_stats` stores pure NFL statistical data from nflverse-data (2010–present), kept separate from the Ottoneu fantasy data in `player_stats`. Backfilled via `scripts/backfill_nfl_stats.py` or the `Backfill NFL Stats` GitHub Action.
 
-- **`player_stats`** = Ottoneu fantasy data (total_points, ppg, pps, snaps from scraping)
+- **`player_stats`** = Ottoneu fantasy data (total_points, ppg, pps, snaps) computed from nflverse by `pull_player_stats`
 - **`nfl_stats`** = Real NFL stats (passing_yards, rushing_tds, snap counts, etc. from nflverse)
 
 ### Draft Sharks Auction Values (separate weekly scrape)
@@ -46,14 +55,13 @@ own `ds_auction_value` and the consensus `market_auction_value`) per player per 
 The Draft Sharks rankings table is client-rendered and lazy-loads on scroll, so
 `scripts/scrape_draft_sharks.py` drives it with Playwright, reads each row's position from
 its rank label, multiplies the site's $200-cap values by 2 (this league is $400), and
-matches players by `(normalized name, position)`. This is **not** part of the main
-`just scrape` pipeline — it runs standalone via `just scrape-draft-sharks` or the weekly
+matches players by `(normalized name, position)`. It runs standalone via `just scrape-draft-sharks` or the weekly
 `Scrape Draft Sharks Auction Values` GitHub Action. The web app surfaces these values on
 player cards and hover cards for users with projections access.
 
 ### Worker Task Modules (`scripts/tasks/`)
 
-Each task type lives in its own module. `__init__.py` defines task type constants and `TaskResult` dataclass. The worker caches NFL stats in memory so roster scrapes can match snap counts by player name.
+Each task type lives in its own module (`pull_nfl_stats`, `pull_player_stats`). `__init__.py` defines the task-type constants and the `TaskResult` dataclass. The worker no longer launches a browser (the Ottoneu scraping moved to the HTTP tools above).
 
 ## Analysis Pipeline
 
