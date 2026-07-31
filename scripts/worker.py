@@ -1,4 +1,11 @@
-"""Worker process: polls the scraper_jobs queue, dispatches tasks, manages browser lifecycle."""
+"""Worker process: polls the scraper_jobs queue and dispatches the nflverse tasks.
+
+The Ottoneu browser scraping (roster search page + player cards) was replaced by
+plain-HTTP tools — `scripts/reconcile_roster.py` (roster/salary from the CSV export)
+and `scripts/scrape_player_cards.py` (transactions from player cards) — so this
+worker no longer launches a browser. It still runs the browser-free nflverse pulls
+(`pull_nfl_stats`, `pull_player_stats`) off the queue.
+"""
 
 from __future__ import annotations
 
@@ -6,21 +13,11 @@ import argparse
 import asyncio
 import json
 import time
-import uuid
 
-import pandas as pd
-from playwright.async_api import async_playwright
 from supabase import Client
 
-from scripts.tasks import (
-    BROWSER_TASKS,
-    PULL_NFL_STATS,
-    PULL_PLAYER_STATS,
-    SCRAPE_PLAYER_CARD,
-    SCRAPE_ROSTER,
-    TaskResult,
-)
-from scripts.tasks import pull_nfl_stats, pull_player_stats, scrape_roster, scrape_player_card
+from scripts.tasks import PULL_NFL_STATS, PULL_PLAYER_STATS, TaskResult
+from scripts.tasks import pull_nfl_stats, pull_player_stats
 from scripts.config import get_supabase_client
 
 
@@ -30,10 +27,6 @@ class ScraperWorker:
 
     def __init__(self):
         self.supabase: Client = get_supabase_client()
-        self.playwright = None
-        self.browser = None
-        self.browser_context = None
-        self.nfl_stats_cache: dict[int, pd.DataFrame] = {}
         # Count of jobs that exhausted their retries and were marked 'failed'.
         # Used to give the process a non-zero exit so CI surfaces silent failures.
         self.failed_jobs = 0
@@ -47,22 +40,18 @@ class ScraperWorker:
         """
         print("Worker starting...")
 
-        try:
-            while True:
-                job = self._claim_next_job()
-                if not job:
-                    if poll:
-                        print(f"No pending jobs. Polling again in {interval}s...")
-                        time.sleep(interval)
-                        continue
-                    else:
-                        print("No more pending jobs. Worker done.")
-                        break
+        while True:
+            job = self._claim_next_job()
+            if not job:
+                if poll:
+                    print(f"No pending jobs. Polling again in {interval}s...")
+                    time.sleep(interval)
+                    continue
+                else:
+                    print("No more pending jobs. Worker done.")
+                    break
 
-                await self._execute_job(job)
-
-        finally:
-            await self._close_browser()
+            await self._execute_job(job)
 
     def _claim_next_job(self) -> dict | None:
         """Find and claim the next eligible job.
@@ -133,9 +122,6 @@ class ScraperWorker:
         params = job["params"] if isinstance(job["params"], dict) else json.loads(job["params"])
 
         try:
-            if task_type in BROWSER_TASKS:
-                await self._ensure_browser()
-
             result = await self._dispatch(task_type, params)
 
             if result.success:
@@ -157,26 +143,10 @@ class ScraperWorker:
     async def _dispatch(self, task_type: str, params: dict) -> TaskResult:
         """Route to the correct task module."""
         if task_type == PULL_NFL_STATS:
-            result = pull_nfl_stats.run(params)
-            if result.success and "stats" in result.data:
-                season = result.data.get("season", 2025)
-                self.nfl_stats_cache[season] = result.data["stats"]
-            return result
+            return pull_nfl_stats.run(params)
 
         elif task_type == PULL_PLAYER_STATS:
             return pull_player_stats.run(params, self.supabase)
-
-        elif task_type == SCRAPE_ROSTER:
-            season = params.get("season", 2025)
-            nfl_stats = self.nfl_stats_cache.get(season, pd.DataFrame())
-            return await scrape_roster.run(
-                params, self.browser_context, self.supabase, nfl_stats
-            )
-
-        elif task_type == SCRAPE_PLAYER_CARD:
-            return await scrape_player_card.run(
-                params, self.browser_context, self.supabase
-            )
 
         else:
             return TaskResult(success=False, error=f"Unknown task type: {task_type}")
@@ -217,33 +187,6 @@ class ScraperWorker:
             self.supabase.table("scraper_jobs").insert(job_data).execute()
 
         print(f"  Enqueued {len([c for c in child_jobs if c])} child jobs.")
-
-    async def _ensure_browser(self):
-        """Lazy-initialize the Playwright browser and context."""
-        if self.browser_context:
-            return
-
-        print("Launching browser...")
-        self.playwright = await async_playwright().start()
-        self.browser = await self.playwright.chromium.launch(headless=True)
-        self.browser_context = await self.browser.new_context(
-            user_agent=(
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/120.0.0.0 Safari/537.36"
-            )
-        )
-
-    async def _close_browser(self):
-        """Shut down the browser if it was started."""
-        if self.browser:
-            print("Closing browser...")
-            await self.browser.close()
-            self.browser = None
-            self.browser_context = None
-        if self.playwright:
-            await self.playwright.stop()
-            self.playwright = None
 
 
 async def main():

@@ -5,16 +5,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-# Task type constants
+# Task type constants. The Ottoneu browser-scraping tasks (scrape_roster,
+# scrape_player_card) were replaced by plain-HTTP tools (reconcile_roster.py,
+# scrape_player_cards.py); only the browser-free nflverse pulls remain on the queue.
 PULL_NFL_STATS = "pull_nfl_stats"
 PULL_PLAYER_STATS = "pull_player_stats"
-SCRAPE_ROSTER = "scrape_roster"
-SCRAPE_PLAYER_CARD = "scrape_player_card"
 
-ALL_TASK_TYPES = [PULL_NFL_STATS, PULL_PLAYER_STATS, SCRAPE_ROSTER, SCRAPE_PLAYER_CARD]
-
-# Tasks that require a Playwright browser
-BROWSER_TASKS = {SCRAPE_ROSTER, SCRAPE_PLAYER_CARD}
+ALL_TASK_TYPES = [PULL_NFL_STATS, PULL_PLAYER_STATS]
 
 
 @dataclass
