@@ -104,6 +104,7 @@ just test-python        # Python tests with coverage
 just test-web           # Jest tests with coverage
 just test-web-file <path>  # Run a single web test file (e.g. just test-web-file __tests__/lib/session.test.ts)
 just scrape             # Full scrape pipeline
+just reconcile-roster [--file f.csv] [--apply] [--infer-transactions]  # Sync league_prices from the /csv/rosters export (Cloudflare-blocked-scrape fallback); see docs/references/roster-csv-reconciliation.md
 just analyze            # Update player projections (active model + promote + rookie fallback)
 just check-db           # Verify database contents
 just check-arch         # Architectural/structural tests (includes check-migrations)
@@ -173,6 +174,7 @@ equivalent self-hosted setup would look like.
 | Workflow | Trigger | What it runs |
 |----------|---------|--------------|
 | `scrape-players.yml` | Daily 06:00 UTC in-season (Sep–Jan) **+ weekly Mon 06:00 UTC in the offseason (Feb–Aug)** + `workflow_dispatch` | `scripts/ottoneu_scraper.py` — full roster + player-card scrape (uses `SUPABASE_URL` / `SUPABASE_SECRET_KEY`). Two cron entries routed by the season gate so each fires at most once/day; the weekly offseason cadence keeps `league_prices` current through keeper cuts / arbitration / trades (#555-style churn). Scrape season resolves from `stats_season()`, not a hardcoded year. |
+| `pull-roster-csv.yml` | Daily 06:17 UTC + `workflow_dispatch` | `curl` the `/csv/rosters` export → `scripts/reconcile_roster.py --apply --infer-transactions` — lighter-weight roster-state sync (ownership + salary + inferred transactions; no FAs/history). ⚠️ 403s from GitHub-hosted runners; needs the `OTTONEU_COOKIE` secret or a self-hosted residential runner. See docs/references/roster-csv-reconciliation.md |
 | `scrape-arbitration-progress.yml` | Every 6h (gated to Jan–Mar + Apr 1) + `workflow_dispatch` | `scripts/scrape_arbitration_progress.py` — pulls per-team allocation status via FanGraphs login (`FANGRAPHS_USERNAME` / `FANGRAPHS_PASSWORD`) |
 | `scrape-draft-sharks.yml` | Mondays 08:00 UTC + `workflow_dispatch` | `scripts/scrape_draft_sharks.py` — Draft Sharks Half-PPR Superflex auction values (no in-season gate; ×2 for the $400 cap) |
 | `scrape-league-calendar.yml` | Mondays 12:00 UTC + `workflow_dispatch` | `scripts/scrape_league_calendar.py` — refreshes `league_calendar`, the source of truth for the season-cycle resolver. Requires FanGraphs login. |

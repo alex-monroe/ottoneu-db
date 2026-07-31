@@ -1,0 +1,75 @@
+name: Pull Roster CSV
+
+# Fetches the Ottoneu /csv/rosters export via curl and reconciles it into
+# league_prices (and inferred transactions). A lighter-weight alternative to the
+# Playwright scrape for *current-roster* state (ownership + salary only — no free
+# agents, no transaction history).
+#
+# ⚠️  The /csv/rosters endpoint 403s from datacenter IPs, INCLUDING GitHub-hosted
+#     runners. Without a valid session this job will fail at the fetch step with a
+#     clear message. To make it work: set the OTTONEU_COOKIE secret to a Cookie
+#     header captured on a machine that can reach the site (residential IP), or run
+#     this workflow on a self-hosted residential runner. See
+#     docs/references/roster-csv-reconciliation.md.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Daily at 06:17 UTC (offset off :00 to spread API load).
+    - cron: "17 6 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  pull-roster-csv:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install requests supabase python-dotenv
+          pip install -e . --no-deps
+
+      - name: Create .env
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_SECRET_KEY }}" >> .env
+
+      - name: Resolve league id
+        id: league
+        run: echo "id=$(jq -r '.LEAGUE_ID' config.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch roster CSV via curl
+        env:
+          OTTONEU_COOKIE: ${{ secrets.OTTONEU_COOKIE }}
+          LEAGUE_ID: ${{ steps.league.outputs.id }}
+        run: |
+          UA="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+          URL="https://ottoneu.fangraphs.com/football/${LEAGUE_ID}/csv/rosters"
+          echo "Fetching $URL"
+          CODE=$(curl -sS -A "$UA" -H "Cookie: ${OTTONEU_COOKIE}" \
+                      -o roster.csv -w "%{http_code}" "$URL" || echo "000")
+          echo "HTTP $CODE"
+          if [ "$CODE" != "200" ] || ! head -c 200 roster.csv | grep -q "Team ID"; then
+            echo "::error::Roster CSV fetch failed (HTTP $CODE). The endpoint 403s from"
+            echo "::error::datacenter IPs (incl. GitHub-hosted runners). Set the OTTONEU_COOKIE"
+            echo "::error::secret to a session captured on a residential IP, or use a self-hosted runner."
+            echo "----- first lines of response -----"
+            head -c 500 roster.csv || true
+            exit 1
+          fi
+          echo "Fetched $(wc -l < roster.csv) lines."
+
+      - name: Reconcile league_prices + infer transactions
+        run: |
+          python scripts/reconcile_roster.py --file roster.csv --apply --infer-transactions
