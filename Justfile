@@ -85,6 +85,11 @@ test-web-file file:
 scrape:
     {{python}} scripts/ottoneu_scraper.py
 
+# Reconcile league_prices from the /csv/rosters export (dry-run by default). Add --apply --infer-transactions to write.
+# Fetches over HTTP (needs a residential IP or OTTONEU_COOKIE); or pass --file roster.csv. e.g. just reconcile-roster --file roster.csv --apply
+reconcile-roster *args:
+    {{python}} scripts/reconcile_roster.py {{args}}
+
 # Update player projections (VORP/surplus/arbitration now computed in the web UI)
 analyze:
     {{python}} scripts/update_projections.py
