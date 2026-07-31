@@ -5,12 +5,11 @@ name: Pull Roster CSV
 # Playwright scrape for *current-roster* state (ownership + salary only — no free
 # agents, no transaction history).
 #
-# ⚠️  The /csv/rosters endpoint 403s from datacenter IPs, INCLUDING GitHub-hosted
-#     runners. Without a valid session this job will fail at the fetch step with a
-#     clear message. To make it work: set the OTTONEU_COOKIE secret to a Cookie
-#     header captured on a machine that can reach the site (residential IP), or run
-#     this workflow on a self-hosted residential runner. See
-#     docs/references/roster-csv-reconciliation.md.
+# The CSV endpoint is reachable from GitHub-hosted runners as long as we send an
+# HONEST User-Agent — impersonating a browser is what trips Cloudflare's challenge,
+# not the datacenter IP. OTTONEU_COOKIE is an optional escape hatch (a browser
+# Cookie header) only needed if Cloudflare ever tightens the rule for plain clients.
+# See docs/references/roster-csv-reconciliation.md.
 
 on:
   workflow_dispatch:
@@ -54,17 +53,20 @@ jobs:
           OTTONEU_COOKIE: ${{ secrets.OTTONEU_COOKIE }}
           LEAGUE_ID: ${{ steps.league.outputs.id }}
         run: |
-          UA="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+          # Honest UA on purpose — a spoofed browser UA triggers Cloudflare's challenge.
+          UA="ottoneu-db-roster-csv/1.0 (+https://github.com/alex-monroe/ottoneu-db)"
           URL="https://ottoneu.fangraphs.com/football/${LEAGUE_ID}/csv/rosters"
           echo "Fetching $URL"
-          CODE=$(curl -sS -A "$UA" -H "Cookie: ${OTTONEU_COOKIE}" \
-                      -o roster.csv -w "%{http_code}" "$URL" || echo "000")
+          ARGS=(-sS -A "$UA" -o roster.csv -w "%{http_code}")
+          # Optional escape hatch: only send a Cookie header if the secret is set.
+          if [ -n "${OTTONEU_COOKIE}" ]; then ARGS+=(-H "Cookie: ${OTTONEU_COOKIE}"); fi
+          CODE=$(curl "${ARGS[@]}" "$URL" || echo "000")
           echo "HTTP $CODE"
           if [ "$CODE" != "200" ] || ! head -c 200 roster.csv | grep -q "Team ID"; then
-            echo "::error::Roster CSV fetch failed (HTTP $CODE). The endpoint 403s from"
-            echo "::error::datacenter IPs (incl. GitHub-hosted runners). Set the OTTONEU_COOKIE"
-            echo "::error::secret to a session captured on a residential IP, or use a self-hosted runner."
-            echo "----- first lines of response -----"
+            echo "::error::Roster CSV fetch failed (HTTP $CODE). If this is a Cloudflare"
+            echo "::error::challenge, the request likely looked like a spoofed browser; this job"
+            echo "::error::sends an honest UA to avoid that. As a fallback, set the OTTONEU_COOKIE"
+            echo "::error::secret to a browser Cookie header. First bytes of the response:"
             head -c 500 roster.csv || true
             exit 1
           fi
