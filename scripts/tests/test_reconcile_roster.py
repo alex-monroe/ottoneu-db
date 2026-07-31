@@ -180,6 +180,22 @@ def test_fetch_success_returns_body(monkeypatch):
     assert fetch_roster_csv(309).startswith('"Team ID"')
 
 
+def test_fetch_sends_honest_non_browser_user_agent(monkeypatch):
+    # Impersonating a browser UA is what triggers Cloudflare's challenge on this
+    # endpoint; an honest UA passes. Lock in that we never spoof a browser.
+    captured = {}
+
+    def fake_get(url, headers=None, **k):
+        captured["headers"] = headers or {}
+        return _FakeResp(200, SAMPLE_CSV)
+
+    monkeypatch.setattr(rr.requests, "get", fake_get)
+    fetch_roster_csv(309)
+    ua = captured["headers"]["User-Agent"]
+    assert "Mozilla" not in ua and "Chrome" not in ua and "Safari" not in ua
+    assert "ottoneu-db" in ua
+
+
 # --- safety floor --------------------------------------------------------
 
 def test_reconcile_refuses_tiny_csv():

@@ -66,17 +66,25 @@ So the CSV path augments/replaces **roster-state** syncing but does not replace 
 Playwright pipeline for FA pricing or historical transactions. It runs **alongside**
 the existing `Scrape Player Data` workflow, not instead of it.
 
-## The datacenter-IP / Cloudflare caveat (important)
+## Cloudflare: send an honest User-Agent (counter-intuitive)
 
-`/csv/rosters` **403s from datacenter IPs — including GitHub-hosted Actions runners**.
-The `Pull Roster CSV` workflow will fail at the `curl` step (with a clear, actionable
-message) unless one of these is true:
+Unlike the Playwright search-page scrape, the `/csv/rosters` endpoint is reachable
+from **datacenter IPs, including GitHub-hosted runners** — the datacenter IP is *not*
+the blocker. What trips Cloudflare's interactive challenge (403 "Just a moment…") is
+**impersonating a browser**: a request whose User-Agent claims to be Chrome but has
+none of a real browser's TLS/JS fingerprint reads as a bot. An honest automated client
+sails through:
 
-1. **`OTTONEU_COOKIE` secret** is set to a `Cookie` header captured on a machine that
-   can reach the site (a residential IP). Cloudflare binds clearance to the User-Agent,
-   so the cookie must have been issued for the same UA the workflow sends.
-2. The workflow runs on a **self-hosted runner on a residential IP**.
+| User-Agent sent | Result |
+|---|---|
+| `Mozilla/5.0 … Chrome/120 … Safari/537.36` (browser spoof) | **403 challenge** |
+| `curl/8.x` (curl default) | **200 + CSV** |
+| `python-requests/2.x` | **200 + CSV** |
+| `ottoneu-db-roster-csv/1.0 (+github…)` (what we send) | **200 + CSV** |
 
-Locally from a residential machine, `just reconcile-roster --apply` works with a plain
-HTTP fetch (no cookie needed). The long-term fix remains the official Ottoneu API (see
-the `ottoneu-scrape-cloudflare-blocked` project note).
+So both `scripts/reconcile_roster.py` and the workflow deliberately send a descriptive,
+honest UA and **do not** impersonate a browser. No cookie or residential runner is
+required. `OTTONEU_COOKIE` (secret / `--cookie`) remains only as an **optional escape
+hatch** should Cloudflare ever start challenging plain clients too. The official Ottoneu
+API is still the durable long-term source (see the `ottoneu-scrape-cloudflare-blocked`
+project note).

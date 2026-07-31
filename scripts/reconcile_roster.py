@@ -19,10 +19,10 @@ diffs are caught same-day). The unique constraint makes re-runs idempotent.
 **Limitations.** The CSV lists ONLY current rostered players — no free agents
 and no transaction history. It cannot populate the FA universe or FA average
 salaries, and it is NOT a full replacement for the search-page scrape +
-player-card history. The endpoint also **403s from datacenter IPs** (incl.
-GitHub-hosted Actions runners); a residential IP or a valid session cookie
-(``OTTONEU_COOKIE``) is required. See
-``docs/references/roster-csv-reconciliation.md``.
+player-card history. (Unlike the Playwright search-page scrape, the CSV endpoint
+itself is reachable from datacenter IPs incl. GitHub-hosted runners — as long as
+you send an honest User-Agent and don't impersonate a browser; see
+``fetch_roster_csv``.) See ``docs/references/roster-csv-reconciliation.md``.
 
 Usage::
 
@@ -54,14 +54,13 @@ from scripts.prospect_adopt import choose_prospect_to_adopt
 
 ROSTER_CSV_URL_TEMPLATE = "https://ottoneu.fangraphs.com/football/{league_id}/csv/rosters"
 
-# Sent on the CSV fetch. Cloudflare binds any clearance token to the User-Agent, so
-# this must match the UA of whatever captured the session behind OTTONEU_COOKIE (and
-# the curl step in .github/workflows/pull-roster-csv.yml uses the same string).
-USER_AGENT = (
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/120.0.0.0 Safari/537.36"
-)
+# An HONEST, descriptive User-Agent. Counter-intuitively, this endpoint is served by
+# Cloudflare's *interactive* challenge (403 "Just a moment…") when a request spoofs a
+# real browser UA (a "Chrome" claim with none of a browser's TLS/JS fingerprint reads
+# as a bot), but a plain automated client — curl's default, python-requests, or a
+# descriptive tool UA like this — passes straight through with a 200, from datacenter
+# IPs (incl. GitHub-hosted runners) included. So do NOT impersonate a browser here.
+USER_AGENT = "ottoneu-db-roster-csv/1.0 (+https://github.com/alex-monroe/ottoneu-db)"
 
 # Absent-from-CSV owned players become free agents. The DB represents FAs with
 # team_name="FA"; 958/1032 existing FA rows carry the $1 placeholder price (the
@@ -156,9 +155,11 @@ def fetch_roster_csv(league_id: int = LEAGUE_ID, cookie: str | None = None,
                      timeout: int = 30) -> str:
     """GET the roster CSV, raising a clear error on a Cloudflare block or redirect.
 
-    ``cookie`` (or the ``OTTONEU_COOKIE`` env var) is sent as a raw ``Cookie``
-    header to reuse a residential-session clearance. The UA matches the scraper's
-    (``USER_AGENT``) because Cloudflare binds clearance to the UA.
+    Sends an honest, descriptive ``USER_AGENT`` — spoofing a browser UA is what
+    triggers Cloudflare's challenge on this endpoint, so we deliberately don't.
+    ``cookie`` (or the ``OTTONEU_COOKIE`` env var) is an optional escape hatch: a
+    raw ``Cookie`` header to reuse a browser session, only needed if Cloudflare
+    ever tightens the rule for plain clients.
     """
     url = ROSTER_CSV_URL_TEMPLATE.format(league_id=league_id)
     headers = {"User-Agent": USER_AGENT, "Accept": "text/csv, */*"}
