@@ -20,7 +20,7 @@ from __future__ import annotations
 import argparse
 from collections import defaultdict
 
-from scripts.config import get_supabase_client
+from scripts.config import fetch_all_rows, get_supabase_client
 
 CAP_PER_TEAM = 400
 NUM_TEAMS = 12
@@ -29,18 +29,24 @@ NUM_TEAMS = 12
 def fetch_rows(season: int):
     client = get_supabase_client()
 
+    # NOTE: all three reads must paginate. `players` and `league_prices` each
+    # exceed the PostgREST 1000-row cap (the scraper now writes ~900 free-agent
+    # rows into league_prices), so a bare .execute() silently truncates to the
+    # first 1000 rows — dropping rostered players and understating every team's
+    # committed salary. See CLAUDE.md "Supabase pagination".
     players = {
         p["id"]: p
-        for p in client.table("players").select("id,name,position").execute().data
+        for p in fetch_all_rows(client, "players", "id,name,position")
     }
-    prices = client.table("league_prices").select("player_id,price,team_name").execute().data
+    prices = fetch_all_rows(client, "league_prices", "player_id,price,team_name")
     projections = {
         p["player_id"]: p["projected_ppg"]
-        for p in client.table("player_projections")
-        .select("player_id,projected_ppg,season")
-        .eq("season", season)
-        .execute()
-        .data
+        for p in fetch_all_rows(
+            client,
+            "player_projections",
+            "player_id,projected_ppg,season",
+            filters=[("eq", "season", season)],
+        )
     }
 
     rows = []
