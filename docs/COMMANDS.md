@@ -107,7 +107,7 @@ just test-python        # Python tests with coverage
 just test-web           # Jest tests with coverage
 just test-web-file <path>  # Run a single web test file (e.g. just test-web-file __tests__/lib/session.test.ts)
 just scrape-player-cards [--apply] [--player-id N]  # Transaction history via HTTP per DB player id (replaces the Playwright scrape); see docs/references/roster-csv-reconciliation.md
-just reconcile-roster [--file f.csv] [--apply] [--infer-transactions]  # Sync league_prices from the /csv/rosters export (Cloudflare-blocked-scrape fallback); see docs/references/roster-csv-reconciliation.md
+just reconcile-roster [--file f.csv] [--apply] [--infer-transactions]  # Sync league_prices from the /csv/rosters export (primary roster ingest since #691 removed the Playwright scrape); see docs/references/roster-csv-reconciliation.md
 just analyze            # Update player projections (active model + promote + rookie fallback)
 just check-db           # Verify database contents
 just check-arch         # Architectural/structural tests (includes check-migrations)
