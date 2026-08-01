@@ -1,0 +1,77 @@
+name: Pull Roster CSV
+
+# Fetches the Ottoneu /csv/rosters export via curl and reconciles it into
+# league_prices (and inferred transactions). A lighter-weight alternative to the
+# Playwright scrape for *current-roster* state (ownership + salary only — no free
+# agents, no transaction history).
+#
+# The CSV endpoint is reachable from GitHub-hosted runners as long as we send an
+# HONEST User-Agent — impersonating a browser is what trips Cloudflare's challenge,
+# not the datacenter IP. OTTONEU_COOKIE is an optional escape hatch (a browser
+# Cookie header) only needed if Cloudflare ever tightens the rule for plain clients.
+# See docs/references/roster-csv-reconciliation.md.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Daily at 06:17 UTC (offset off :00 to spread API load).
+    - cron: "17 6 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  pull-roster-csv:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install requests supabase python-dotenv
+          pip install -e . --no-deps
+
+      - name: Create .env
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_SECRET_KEY }}" >> .env
+
+      - name: Resolve league id
+        id: league
+        run: echo "id=$(jq -r '.LEAGUE_ID' config.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch roster CSV via curl
+        env:
+          OTTONEU_COOKIE: ${{ secrets.OTTONEU_COOKIE }}
+          LEAGUE_ID: ${{ steps.league.outputs.id }}
+        run: |
+          # Honest UA on purpose — a spoofed browser UA triggers Cloudflare's challenge.
+          UA="ottoneu-db-roster-csv/1.0 (+https://github.com/alex-monroe/ottoneu-db)"
+          URL="https://ottoneu.fangraphs.com/football/${LEAGUE_ID}/csv/rosters"
+          echo "Fetching $URL"
+          ARGS=(-sS -A "$UA" -o roster.csv -w "%{http_code}")
+          # Optional escape hatch: only send a Cookie header if the secret is set.
+          if [ -n "${OTTONEU_COOKIE}" ]; then ARGS+=(-H "Cookie: ${OTTONEU_COOKIE}"); fi
+          CODE=$(curl "${ARGS[@]}" "$URL" || echo "000")
+          echo "HTTP $CODE"
+          if [ "$CODE" != "200" ] || ! head -c 200 roster.csv | grep -q "Team ID"; then
+            echo "::error::Roster CSV fetch failed (HTTP $CODE). If this is a Cloudflare"
+            echo "::error::challenge, the request likely looked like a spoofed browser; this job"
+            echo "::error::sends an honest UA to avoid that. As a fallback, set the OTTONEU_COOKIE"
+            echo "::error::secret to a browser Cookie header. First bytes of the response:"
+            head -c 500 roster.csv || true
+            exit 1
+          fi
+          echo "Fetched $(wc -l < roster.csv) lines."
+
+      - name: Reconcile league_prices + infer transactions
+        run: |
+          python scripts/reconcile_roster.py --file roster.csv --apply --infer-transactions

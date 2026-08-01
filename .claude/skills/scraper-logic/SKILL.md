@@ -5,50 +5,61 @@ description: Detailed explanation of the scraping pipeline for Ottoneu data and 
 
 # Scraper Logic
 
-The project uses a Python-based job queue pattern to update its database through scraping NFL stats and Ottoneu fantasy data. 
-The scraping heavily relies on Playwright for browser automation and Supabase for persistence.
+Ottoneu data is pulled over **plain HTTP with `requests` + `BeautifulSoup` — no
+browser**. (The old Playwright search-page crawl + player-card scrape were removed.)
+NFL stats come from nflverse via a browser-free job queue.
 
-## Overall Architecture
+## Ottoneu data (plain HTTP, no browser)
 
-1.  **Job Queue Pattern**: 
-    - Jobs are enqueued into the `scraper_jobs` table in Supabase.
-    - `scripts/worker.py` polls this table, claiming and executing tasks.
+Two standalone tools, both fetchable from datacenter IPs (incl. GitHub-hosted
+runners):
 
-2.  **Enqueueing Data**:
-    - The wrapper `scripts/ottoneu_scraper.py` runs a full update sequence by batching all required tasks.
-    - Can manually enqueue specific tasks using `scripts/enqueue.py` (e.g., `python scripts/enqueue.py batch` for everything).
+1. **`scripts/reconcile_roster.py`** (`just reconcile-roster`) — ingests the official
+   `/football/{league_id}/csv/rosters` export and reconciles it into `league_prices`
+   (team ownership + salary; absent-but-owned players → FA). With
+   `--infer-transactions` it also writes a `transactions` row per detected
+   cut/trade/add. See `docs/references/roster-csv-reconciliation.md`.
 
-## Main Job Types
+2. **`scripts/scrape_player_cards.py`** (`just scrape-player-cards`) — iterates every
+   player in the DB with a real Ottoneu id and fetches its player card
+   (`/football/{league_id}/player_card/{nfl|college}/{id}`), parsing the **Transaction
+   History** table into `transactions` (real dates + types: `add` / `cut` /
+   `increase` / `move (from <team>)`). We already know every id from the database (and
+   new ones arrive via roster-CSV reconciliation), so there is no need to crawl the
+   search page to *discover* players. Writes the `transactions` table only.
 
-1.  **`pull_nfl_stats`**
-    - **Logic**: A synchronous task that pulls NFL play-by-play data, mainly snap counts. Uses `nfl_data_py` to load stats.
-    - **Caching Task**: Caches the NFL stats in memory so that subsequent roster scrapes can quickly match snap counts to players by name.
+Player discovery / new-id adoption is handled by `reconcile_roster.py` via
+`choose_prospect_to_adopt` (`scripts/prospect_adopt.py`).
 
-2.  **`scrape_roster`**
-    - **Logic**: An asynchronous task that uses Playwright to visit the Ottoneu players search page for a specific position (e.g. QB, RB, WR, TE).
-    - **Dependencies**: It strictly depends on the previous `pull_nfl_stats` job having completed to get snap counts.
-    - **Processing**: Reads player performance metrics and current salary, matches this tightly to the cached NFL stats, and upserts player details into the `players`, `player_stats`, and `league_prices` tables.
+## NFL stats (browser-free job queue)
 
-3.  **`scrape_player_card`**
-    - **Logic**: An asynchronous task that visits an individual player's card to scrape explicit transaction history entries (Free Agency adds, drops, trades, etc.).
-    - **Processing**: This tracks historical salary movement into the `transactions` table.
+- Jobs are enqueued into the `scraper_jobs` table (`scripts/enqueue.py`).
+- `scripts/worker.py` polls the queue, claiming and dispatching tasks. It no longer
+  launches a browser.
+- Task types:
+  - **`pull_nfl_stats`** — loads snap counts / play-by-play via `nfl_data_py`.
+  - **`pull_player_stats`** — computes Ottoneu fantasy points / ppg into
+    `player_stats` from nflverse (this is what populates `player_stats.total_points`,
+    independent of any Ottoneu scrape).
 
-## Automated Runs
-The scraping pipeline runs on GitHub Actions (`.github/workflows/scrape-players.yml`),
-triggering the batch enqueue followed by the worker loop. The schedule is season-aware:
+## Automated Runs (GitHub Actions)
 
-- **In-season (Sep–Jan):** daily at 06:00 UTC.
-- **Offseason (Feb–Aug):** weekly on Mondays at 06:00 UTC — rosters still churn
-  (keeper cuts, arbitration results, trades), so `league_prices` needs a periodic
-  refresh even out of season, just less often than in-season.
-- **`workflow_dispatch`:** always runs, bypassing the season gate (use this for an
-  on-demand refresh).
+- **`pull-roster-csv.yml`** — daily 06:17 UTC + `workflow_dispatch`: curl the CSV
+  export → `reconcile_roster.py --apply --infer-transactions`.
+- **`scrape-player-cards.yml`** — daily 06:40 UTC + `workflow_dispatch`: run
+  `scrape_player_cards.py --apply` over every DB player id.
+- The nflverse batch (`enqueue.py batch` + `worker.py`) runs browser-free.
 
-The workflow defines two cron entries and a gate step routes each trigger so exactly
-one fires per day. The scrape season resolves at runtime from `stats_season()`
-(`scripts/season.py`) — it is not hardcoded.
+## Cloudflare (important, counter-intuitive)
 
-**Environment note:** Ottoneu sits behind a Cloudflare anti-bot challenge. GitHub
-Actions runners pass it, but a headless scrape from a datacenter/sandbox IP is served
-a 403 "Just a moment…" interstitial and will time out waiting for page selectors. Run
-scrapes via the workflow (or an allow-listed IP), not from an arbitrary sandbox.
+Ottoneu sits behind Cloudflare, but the block is driven by **User-Agent, not IP**:
+a request that *impersonates a browser* (a `Mozilla/…Chrome` UA with none of a real
+browser's fingerprint) is served the 403 "Just a moment…" interstitial, while an
+**honest** automated UA (curl default, `python-requests`, or a descriptive tool UA)
+passes straight through — from datacenter IPs (incl. GitHub-hosted runners) included.
+So the HTTP tools deliberately send a descriptive, honest User-Agent and never spoof a
+browser. `OTTONEU_COOKIE` is an optional escape hatch only. (See PR #690.)
+
+Note: the CSV export lists only current rostered players — no free agents and no
+transaction history — which is exactly why the player-card scrape complements it: the
+cards supply the real transaction log for every known id, FAs included.

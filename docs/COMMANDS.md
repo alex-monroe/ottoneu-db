@@ -23,14 +23,17 @@ All Python commands below assume the venv is activated. If running without activ
 ```bash
 source venv/bin/activate
 
-# Scraping
-python scripts/ottoneu_scraper.py                    # Full scrape pipeline (backward-compat wrapper: enqueues batch + runs worker)
-python scripts/enqueue.py batch                      # Enqueue full pipeline (NFL stats + all 5 positions)
-python scripts/enqueue.py roster --position QB       # Enqueue single position scrape
-python scripts/enqueue.py player --ottoneu-id 6771 --name "Josh Allen" --player-uuid <uuid>  # Enqueue single player card scrape
+# Ottoneu data (plain HTTP — no browser; the Playwright roster/player-card scrape was removed)
+python scripts/reconcile_roster.py --apply --infer-transactions  # Roster/salary state from the /csv/rosters export
+python scripts/scrape_player_cards.py --apply        # Transaction history from every DB player's card
+python scripts/scrape_player_cards.py --player-id 11818           # Single player (dry-run)
+
+# nflverse job queue (browser-free)
+python scripts/enqueue.py batch                      # Enqueue the nflverse batch (NFL stats + player stats)
 python scripts/enqueue.py nfl-stats                  # Enqueue NFL stats pull only
+python scripts/enqueue.py player-stats --seasons 2024 2025        # Enqueue player-stats pull
 python scripts/enqueue.py status                     # Show recent job statuses
-python scripts/worker.py                             # Process pending scraper jobs (exit when done)
+python scripts/worker.py                             # Process pending jobs (exit when done)
 python scripts/worker.py --poll                      # Process jobs continuously (for scheduling)
 
 # Analysis
@@ -103,7 +106,8 @@ just test               # Run all tests (Python + web)
 just test-python        # Python tests with coverage
 just test-web           # Jest tests with coverage
 just test-web-file <path>  # Run a single web test file (e.g. just test-web-file __tests__/lib/session.test.ts)
-just scrape             # Full scrape pipeline
+just scrape-player-cards [--apply] [--player-id N]  # Transaction history via HTTP per DB player id (replaces the Playwright scrape); see docs/references/roster-csv-reconciliation.md
+just reconcile-roster [--file f.csv] [--apply] [--infer-transactions]  # Sync league_prices from the /csv/rosters export (Cloudflare-blocked-scrape fallback); see docs/references/roster-csv-reconciliation.md
 just analyze            # Update player projections (active model + promote + rookie fallback)
 just check-db           # Verify database contents
 just check-arch         # Architectural/structural tests (includes check-migrations)
@@ -173,7 +177,8 @@ equivalent self-hosted setup would look like.
 
 | Workflow | Trigger | What it runs |
 |----------|---------|--------------|
-| `scrape-players.yml` | Daily 06:00 UTC in-season (Sep–Jan) **+ weekly Mon 06:00 UTC in the offseason (Feb–Aug)** + `workflow_dispatch` | `scripts/ottoneu_scraper.py` — full roster + player-card scrape (uses `SUPABASE_URL` / `SUPABASE_SECRET_KEY`). Two cron entries routed by the season gate so each fires at most once/day; the weekly offseason cadence keeps `league_prices` current through keeper cuts / arbitration / trades (#555-style churn). Scrape season resolves from `stats_season()`, not a hardcoded year. |
+| `scrape-player-cards.yml` | Daily 06:40 UTC + `workflow_dispatch` | `scripts/scrape_player_cards.py --apply` — fetches every DB player's Ottoneu player card over plain HTTP (no browser) and upserts transaction history. Replaces the old Playwright `scrape-players.yml`. Honest UA → works on GitHub-hosted runners. Roster/salary comes from `pull-roster-csv.yml`; stats from the nflverse pulls. |
+| `pull-roster-csv.yml` | Daily 06:17 UTC + `workflow_dispatch` | `curl` the `/csv/rosters` export → `scripts/reconcile_roster.py --apply --infer-transactions` — lighter-weight roster-state sync (ownership + salary + inferred transactions; no FAs/history). Works from GitHub-hosted runners with an honest User-Agent (a browser-spoof UA, not the datacenter IP, is what trips Cloudflare); `OTTONEU_COOKIE` is an optional fallback. See docs/references/roster-csv-reconciliation.md |
 | `scrape-arbitration-progress.yml` | Every 6h (gated to Jan–Mar + Apr 1) + `workflow_dispatch` | `scripts/scrape_arbitration_progress.py` — pulls per-team allocation status via FanGraphs login (`FANGRAPHS_USERNAME` / `FANGRAPHS_PASSWORD`) |
 | `scrape-draft-sharks.yml` | Mondays 08:00 UTC + `workflow_dispatch` | `scripts/scrape_draft_sharks.py` — Draft Sharks Half-PPR Superflex auction values (no in-season gate; ×2 for the $400 cap) |
 | `scrape-league-calendar.yml` | Mondays 12:00 UTC + `workflow_dispatch` | `scripts/scrape_league_calendar.py` — refreshes `league_calendar`, the source of truth for the season-cycle resolver. Requires FanGraphs login. |
@@ -190,11 +195,12 @@ All scheduled scraping workflows that hit Supabase use the **service key**
 ### Equivalent local cron (reference only)
 
 ```bash
-# Daily at 6 AM in-season (Sep–Jan), weekly Mondays in the offseason (Feb–Aug):
-# enqueue batch and run worker. (In GitHub Actions this is one workflow with two
-# cron entries + a season gate; a local crontab needs the two lines below.)
-0 6 * 9-12,1 * cd /path/to/ottoneu_db && source venv/bin/activate && python scripts/enqueue.py batch && python scripts/worker.py
-0 6 * 2-8 1   cd /path/to/ottoneu_db && source venv/bin/activate && python scripts/enqueue.py batch && python scripts/worker.py
+# Daily Ottoneu data over plain HTTP (no browser): roster/salary from the CSV
+# export, then transaction history from each player card.
+17 6 * * * cd /path/to/ottoneu_db && source venv/bin/activate && python scripts/reconcile_roster.py --apply --infer-transactions
+40 6 * * * cd /path/to/ottoneu_db && source venv/bin/activate && python scripts/scrape_player_cards.py --apply
+# nflverse stats batch (browser-free queue):
+0 7 * * * cd /path/to/ottoneu_db && source venv/bin/activate && python scripts/enqueue.py batch && python scripts/worker.py
 
 # Every 6 hours (Jan-Mar): scrape arbitration progress
 0 */6 * 1-3 * cd /path/to/ottoneu_db && source venv/bin/activate && python scripts/scrape_arbitration_progress.py

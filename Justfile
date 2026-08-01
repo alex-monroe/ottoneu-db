@@ -81,9 +81,15 @@ test-web-file file:
 # Backend
 # ──────────────────────────────────────────────
 
-# Run full scrape pipeline
-scrape:
-    {{python}} scripts/ottoneu_scraper.py
+# Scrape player-card transaction history over HTTP for every DB player id (dry-run by default).
+# Add --apply to write. e.g. just scrape-player-cards --apply ; just scrape-player-cards --player-id 11818
+scrape-player-cards *args:
+    {{python}} scripts/scrape_player_cards.py {{args}}
+
+# Reconcile league_prices from the /csv/rosters export (dry-run by default). Add --apply --infer-transactions to write.
+# Fetches over HTTP (needs a residential IP or OTTONEU_COOKIE); or pass --file roster.csv. e.g. just reconcile-roster --file roster.csv --apply
+reconcile-roster *args:
+    {{python}} scripts/reconcile_roster.py {{args}}
 
 # Update player projections (VORP/surplus/arbitration now computed in the web UI)
 analyze:

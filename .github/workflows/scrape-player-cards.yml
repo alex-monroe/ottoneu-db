@@ -1,0 +1,45 @@
+name: Scrape Player Cards
+
+# Fetches every DB player's Ottoneu player card over plain HTTP (no browser) and
+# upserts its transaction history. Replaces the Playwright search-page crawl:
+# instead of clicking around to discover players, we already know every Ottoneu
+# player id from the database, so we hit each player_card URL directly.
+#
+# Sends an honest User-Agent (impersonating a browser is what trips Cloudflare —
+# not the datacenter IP), so this runs fine on stock GitHub-hosted runners.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Daily at 06:40 UTC (after the roster CSV pull at 06:17).
+    - cron: "40 6 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  scrape-player-cards:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install requests beautifulsoup4 lxml supabase python-dotenv
+          pip install -e . --no-deps
+
+      - name: Create .env
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_SECRET_KEY }}" >> .env
+
+      - name: Scrape player-card transactions
+        run: python scripts/scrape_player_cards.py --apply
