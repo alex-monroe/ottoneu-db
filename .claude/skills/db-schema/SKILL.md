@@ -57,5 +57,5 @@ The database for the Ottoneu Fantasy Football League 309 contains eleven main ta
     - Fields include `allocation` (dollar amount).
 
 11. **`scraper_jobs`**: Persistent job queue for the backend data pipeline.
-    - Used by the Playwright/Python worker to scrape stats and rosters.
+    - Used by `scripts/worker.py` for the browser-free nflverse pulls (`pull_nfl_stats`, `pull_player_stats`). Ottoneu roster/transaction ingest is standalone (`reconcile_roster.py`, `scrape_player_cards.py`) and does not use this queue.
     - Fields include `task_type`, `status`, `depends_on`, `error_message`, and timestamps.

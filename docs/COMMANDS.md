@@ -107,7 +107,7 @@ just test-python        # Python tests with coverage
 just test-web           # Jest tests with coverage
 just test-web-file <path>  # Run a single web test file (e.g. just test-web-file __tests__/lib/session.test.ts)
 just scrape-player-cards [--apply] [--player-id N]  # Transaction history via HTTP per DB player id (replaces the Playwright scrape); see docs/references/roster-csv-reconciliation.md
-just reconcile-roster [--file f.csv] [--apply] [--infer-transactions]  # Sync league_prices from the /csv/rosters export (Cloudflare-blocked-scrape fallback); see docs/references/roster-csv-reconciliation.md
+just reconcile-roster [--file f.csv] [--apply] [--infer-transactions]  # Sync league_prices from the /csv/rosters export (primary roster ingest since #691 removed the Playwright scrape); see docs/references/roster-csv-reconciliation.md
 just analyze            # Update player projections (active model + promote + rookie fallback)
 just check-db           # Verify database contents
 just check-arch         # Architectural/structural tests (includes check-migrations)
@@ -120,6 +120,7 @@ just install-hooks      # Install the opt-in pre-push hook that runs `just prefl
 just ci                 # Full CI suite (lint + typecheck + tests + doc checks)
 just roster-context [season]  # Build the roster-question context pack (live league data); season defaults to 2026
 just league-explorer <cmd>    # Explore other public Ottoneu leagues → local SQLite (scan | discover | scrape | report | query); see docs/references/league-explorer.md
+just oauth-client <cmd> [...] # Manage MCP OAuth clients (create | list | revoke) — only for clients that can't self-register via DCR (e.g. Gemini Spark's "Advanced features" path); see docs/references/mcp-server.md
 
 # Projection CLI
 just list-models                                    # List available models

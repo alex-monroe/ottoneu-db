@@ -15,14 +15,14 @@ held-out harness (`/experiment`), never on the in-sample segment numbers.
    baseline (use `venv/bin/python` directly — no `source venv/bin/activate`):
    ```bash
    venv/bin/python scripts/feature_projections/cli.py segment-analysis \
-     --models v33_tuned_base,v14_qb_starter,naive_prior_season_ppg \
+     --models v44_eb_pooling_perpos,v14_qb_starter,naive_prior_season_ppg \
      --seasons 2022,2023,2024,2025
    ```
 
 3. **Run per-player diagnostics** for the player-level view:
    ```bash
    venv/bin/python scripts/feature_projections/cli.py diagnostics \
-     --model v33_tuned_base --season 2025 --top 50 \
+     --model v44_eb_pooling_perpos --season 2025 --top 50 \
      --output docs/generated/player-diagnostics.md
    ```
 
@@ -38,6 +38,8 @@ held-out harness (`/experiment`), never on the in-sample segment numbers.
 
 7. **Propose improvements as hypotheses, not conclusions.** For any proposed
    feature or weight change, hand off to `/experiment` to get a held-out,
-   significance-tested verdict vs `v33_tuned_base` before trusting it. Be alert to
+   significance-tested verdict vs the active model (`v44_eb_pooling_perpos` as of
+   2026-07; always confirm from `projection_models.is_active`) before trusting it.
+   Be alert to
    the level-vs-ordering split (#579/#598): a segment can be biased in level while
    still ranked correctly, which changes whether a fix is even worth making.

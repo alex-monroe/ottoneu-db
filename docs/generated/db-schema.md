@@ -1,6 +1,6 @@
 # Database Schema
 
-Twenty-seven tables owned by this project. Most have UUID primary keys; the OAuth code/token tables are keyed by the SHA-256 hash of their secret instead.
+Twenty-eight tables owned by this project. Most have UUID primary keys; the OAuth code/token tables are keyed by the SHA-256 hash of their secret instead.
 
 ## Shared Database — Hands Off `fp_*`
 
