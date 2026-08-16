@@ -18,19 +18,34 @@ marketplace.visualstudio.com
 vscode.blob.core.windows.net
 
 # Package registries
+# registry.npmjs.org is Cloudflare anycast (a 104.16.0.0/12 pool) and hands
+# back a different subset per query, so no snapshot of A records is complete —
+# init-firewall.sh resolves it DNS_ROUNDS times to widen the capture, but a
+# runtime `npm install` can still hit an unpinned edge. This is why the MCP
+# servers are installed once in post-create.sh (before the firewall comes up)
+# and launched from disk rather than via `npx -y`, which would put a registry
+# fetch on every MCP server start.
 registry.npmjs.org
 pypi.org
 files.pythonhosted.org
 
-# GitHub (clone/push, gh CLI, nflverse release downloads)
-# github.com / api.github.com are served from a rotating pool of IPs, so a
-# single resolved A record goes stale ("no route to host"). Pin GitHub's
-# published CIDR blocks (https://api.github.com/meta) instead — the firewall's
-# hash:net ipset accepts CIDR entries directly.
+# GitHub (clone/push, gh CLI, GitHub MCP server, nflverse release downloads)
+#
+# The authoritative list is fetched live from https://api.github.com/meta by
+# init-firewall.sh at startup — do NOT rely on the entries below alone.
+# api.github.com is GeoDNS over ~24 IPv4 endpoints and only these four
+# "classic" blocks share a stable prefix; the other twenty are Azure regional
+# edges (20.x, 4.x, 48.x, 172.182.x) with no common prefix, which rotate and
+# get added to over time. These four are the offline fallback for when the meta
+# fetch fails; on their own they cover roughly a sixth of the pool, which is
+# what made the GitHub MCP server and `git push` fail intermittently.
 192.30.252.0/22
 185.199.108.0/22
 140.82.112.0/20
 143.55.64.0/20
+# Belt-and-braces: also resolve the hostnames, in case /meta is unreachable.
+github.com
+api.github.com
 raw.githubusercontent.com
 objects.githubusercontent.com
 codeload.github.com

@@ -119,14 +119,18 @@ check the effect with `just permission-report`.
   Anthropic's reference devcontainer) allowing only the domains in
   `allowed-domains.txt` — Anthropic, GitHub, npm/PyPI, the project's scrapers,
   and your Supabase host (**add your `<project-ref>.supabase.co` before first
-  use** — find it in `SUPABASE_URL` in `.env`);
+  use** — find it in `SUPABASE_URL` in `.env`). GitHub's ranges are fetched
+  live from `api.github.com/meta` at startup rather than read from the file —
+  see [Egress firewall: rotating-IP hosts](#egress-firewall-rotating-ip-hosts);
 - a named volume for `~/.claude` so login and history persist across rebuilds.
 
 Usage (VS Code: "Reopen in Container", or `devcontainer up` CLI):
 
 1. First boot runs `post-create.sh` (installs Claude Code + project deps) and
    `init-firewall.sh` (applies the firewall — also re-applied on every start).
-2. Copy `.env` / `web/.env.local` into the workspace if not already present.
+2. Copy `.env` / `web/.env.local` into the workspace if not already present, and
+   `.mcp.json` (gitignored — start from `.mcp.json.example`) if you want the MCP
+   servers.
 3. Run `claude` once to authenticate, then:
 
 ```
@@ -145,6 +149,45 @@ real risk is the production Supabase database** (the container legitimately
 needs credentials for it). Mitigations: prefer read-only keys for exploratory
 work, rely on PR review for migrations, and remember `fp_*` tables are
 off-limits (see CLAUDE.md).
+
+### Egress firewall: rotating-IP hosts
+
+Two classes of host defeat a naive "resolve the hostname once at boot"
+allowlist, and both surface as *intermittent* failures — the same command works
+or fails depending only on which IP DNS happened to return:
+
+- **GitHub.** `api.github.com` is GeoDNS over ~24 IPv4 endpoints. Only four are
+  the classic blocks (`192.30.252.0/22`, `185.199.108.0/22`, `140.82.112.0/20`,
+  `143.55.64.0/20`); the other twenty are Azure regional edges (`20.x`, `4.x`,
+  `48.x`, `172.182.x`) with no shared prefix, and GitHub adds to the pool over
+  time. Pinning only the classic blocks covered about a sixth of the pool, which
+  made the **GitHub MCP server and `git push` fail intermittently**. Fix:
+  `init-firewall.sh` fetches `https://api.github.com/meta` at startup — before
+  it installs any REJECT rule, while egress is still open — and adds every
+  published v4 range from `api`/`web`/`git`/`packages` (~93 entries). The static
+  CIDRs in `allowed-domains.txt` are now only the offline fallback.
+- **npm.** `registry.npmjs.org` is Cloudflare anycast out of a `104.16.0.0/12`
+  pool, so no snapshot of A records is complete. `init-firewall.sh` resolves
+  each hostname `DNS_ROUNDS` (default 3) times to widen the capture, but the
+  real fix is to keep the registry off the hot path: `post-create.sh` installs
+  the MCP servers with `npm install -g` (postCreate runs *before* the firewall),
+  and `.mcp.json` uses `npx --prefer-offline`, which serves from that warm cache
+  instead of re-fetching the packument on every server start. With plain
+  `npx -y`, a start that resolved to an unpinned edge would hang until the MCP
+  startup timeout and the server would silently never register.
+
+**IPv6 egress is rejected outright.** The allowlist is v4-only (`ipset` family
+`inet`, `dig +short A`), so leaving the v6 chains at default-ACCEPT was a hole
+straight through the default-deny boundary — and a third source of
+nondeterminism, since happy-eyeballs picks v6 or v4 per connection and only one
+was filtered. Every allowlisted host is reachable over v4. `REJECT` rather than
+`DROP` so clients fail over to v4 immediately instead of stalling on a timeout.
+
+Debugging note: the two npm/GitHub failure modes are distinguishable by symptom.
+A server **missing entirely** from `/mcp` points at the npm registry path; a
+server that **connects but whose tool calls error or hang** points at the
+api.github.com path. A stdio MCP handshake is local, so `/mcp` can report
+"connected" while every API call behind it is being firewall-dropped.
 
 Host caveats: `venv/` and `web/node_modules/` are backed by named volumes
 (`ottoneu-venv`, `ottoneu-web-node-modules` — see `.devcontainer/devcontainer.json`,
