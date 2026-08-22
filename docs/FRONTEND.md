@@ -23,6 +23,7 @@ Several formerly-standalone pages were consolidated into **tabbed routes** using
 | `/arbitration` | Tabbed: **Targets** (per-opponent breakdown) · **Simulation** (Monte Carlo) · **Planner** (save budget allocations). The Targets/Simulation value-mode toggle uses `?mode=` and preserves `?tab=` via `ModeToggle`'s `extraParams`. |
 | `/vegas-lines` | Preseason Vegas implied team totals review (AFC/NFC division cards, season selector) — spot-check the data feeding the `implied_team_total_raw` projection feature |
 | `/depth-charts` | Opening-day NFL depth-chart review (team cards grouped by division, QB/RB/WR/TE tiers, role-change arrows, active-model projected PPG, season selector) — spot-check the data feeding the `depth_chart_position_raw` / `role_change_raw` projection features |
+| `/mock-draft` | **Mock draft** — practice keeper auction against AI opponents, seeded from live rosters/caps + Draft Sharks values. Two formats: a **live real-time auction** (per-player clock, AI bid against you, clock extends on every bid, auto-bid proxy, pause/pace controls) and the turn-by-turn sealed-bid mode. Gated on projections access. See [docs/references/mock-draft.md](references/mock-draft.md) |
 | `/login` | Email/password login |
 | `/admin` | User management (admin only) |
 | `/admin/workflows` | Workflow status history (admin only) — GitHub-status-style grid of the scheduled GitHub Actions over the last 21 days, read live from the public GitHub Actions API (server-side; no token required, optional `GITHUB_TOKEN` for rate limit) |

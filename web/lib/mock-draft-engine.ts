@@ -1,12 +1,15 @@
 /**
- * Mock-draft engine — the AI opponent heuristics and auction resolution, ported
- * from scripts/auction_simulator.py. Pure & framework-free (no React, no
- * Supabase) so it can run in the browser and be unit-tested directly.
+ * Mock-draft engine — the AI opponent heuristics and sealed-bid auction
+ * resolution, ported from scripts/auction_simulator.py. Pure & framework-free
+ * (no React, no Supabase) so it can run in the browser and be unit-tested
+ * directly.
  *
  * Model: one nominee at a time (highest market value first). Every team computes
  * a private max bid; the highest wins and pays second-highest + 1 (Vickrey),
  * capped at MAX_BID. AI bids come from the heuristics below; the user's bid is
  * whatever they enter. See docs/references/auction-simulator.md for the model.
+ * The real-time (English) auction layer that reuses these heuristics lives in
+ * mock-draft-live.ts; see docs/references/mock-draft.md.
  */
 
 export type Pos = "QB" | "RB" | "WR" | "TE" | "K";

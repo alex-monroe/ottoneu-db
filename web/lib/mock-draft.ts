@@ -2,6 +2,7 @@
  * Server-side data for the mock-draft tool: seed every team's current keeper
  * roster (from league_prices) and the free-agent pool priced by Draft Sharks
  * superflex market value — the same inputs scripts/auction_simulator.py uses.
+ * See docs/references/mock-draft.md.
  */
 import { CAP_PER_TEAM } from "@/lib/config";
 import type { FAPlayer, Pos, RosterPlayer } from "@/lib/mock-draft-engine";
