@@ -86,6 +86,17 @@ describe("MockDraftClient (live auction)", () => {
     expect(screen.queryByText("paused")).not.toBeInTheDocument();
   });
 
+  it("carries the valuation-noise slider into the draft", () => {
+    render(<MockDraftClient teams={seeds} faPool={faPool} season={2026} />);
+    const slider = screen.getByLabelText("Manager valuation noise");
+    expect(screen.getByText("off")).toBeInTheDocument();
+    fireEvent.change(slider, { target: { value: "60" } });
+    expect(screen.getByText("±60%")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Start draft"));
+    // the drafting header advertises the spread the AI managers are using
+    expect(screen.getByText(/±60% valuations/)).toBeInTheDocument();
+  });
+
   it("turn-by-turn mode has no clock", () => {
     render(<MockDraftClient teams={seeds} faPool={faPool} season={2026} />);
     fireEvent.click(screen.getByText("Turn by turn"));

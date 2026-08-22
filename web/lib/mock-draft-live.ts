@@ -17,11 +17,13 @@ import {
   aiBid,
   applyWin,
   FILL_TO,
+  NO_VALUATION_NOISE,
   resolveNominee,
   size,
   type BidResult,
   type DraftTeam,
   type FAPlayer,
+  type ValuationNoise,
 } from "@/lib/mock-draft-engine";
 
 // ── pacing ──
@@ -86,6 +88,7 @@ export interface LiveDraft {
   soldUntil: number;
   nominatorIdx: number;
   userTeam: string;
+  valuation: ValuationNoise; // how far rivals' private prices stray from market
 }
 
 // ── helpers ──
@@ -100,7 +103,12 @@ export const msLeft = (lot: LiveLot, now: number) => Math.max(0, lot.deadline - 
 /** The smallest bid the user can put on the board right now. */
 export const minUserBid = (lot: LiveLot) => lot.price + 1;
 
-export function newDraft(teams: DraftTeam[], pool: FAPlayer[], userTeam: string): LiveDraft {
+export function newDraft(
+  teams: DraftTeam[],
+  pool: FAPlayer[],
+  userTeam: string,
+  valuation: ValuationNoise = NO_VALUATION_NOISE,
+): LiveDraft {
   return {
     teams,
     pool,
@@ -110,6 +118,7 @@ export function newDraft(teams: DraftTeam[], pool: FAPlayer[], userTeam: string)
     soldUntil: 0,
     nominatorIdx: 0,
     userTeam,
+    valuation,
   };
 }
 
@@ -120,7 +129,11 @@ function nominator(teams: DraftTeam[], idx: number): string {
   return ring[idx % ring.length]?.name ?? teams[0]?.name ?? "";
 }
 
-/** Put the next player from the pool on the block. */
+/**
+ * Put the next player from the pool on the block. Each AI's private max is
+ * computed once here, off its own private valuation of the player, so its
+ * ceiling is consistent for the whole lot.
+ */
 function openLot(st: LiveDraft, now: number, cfg: LiveConfig): LiveDraft {
   if (st.pool.length === 0) return { ...st, lot: null, sold: null, soldUntil: 0 };
   const player = st.pool[0];
@@ -131,7 +144,7 @@ function openLot(st: LiveDraft, now: number, cfg: LiveConfig): LiveDraft {
       next[t.name] = now + cfg.userReactMs;
       continue;
     }
-    maxes[t.name] = Math.round(aiBid(t, player));
+    maxes[t.name] = Math.round(aiBid(t, player, true, st.valuation));
     next[t.name] = now + react(cfg);
   }
   const lot: LiveLot = {
@@ -309,7 +322,7 @@ export function instantStep(st: LiveDraft, userBid: number, now: number): LiveDr
   if (st.pool.length === 0) return st;
   const player = st.pool[0];
   const teams = cloneTeams(st.teams);
-  const res = resolveNominee(teams, player, st.userTeam, userBid);
+  const res = resolveNominee(teams, player, st.userTeam, userBid, st.valuation);
   if (res.winner) {
     const winner = teams.find((t) => t.name === res.winner);
     if (winner) applyWin(winner, player, res.price);

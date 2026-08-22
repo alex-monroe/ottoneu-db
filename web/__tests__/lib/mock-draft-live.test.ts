@@ -1,4 +1,9 @@
-import type { DraftTeam, FAPlayer } from "@/lib/mock-draft-engine";
+import {
+  valuationMultiplier,
+  type DraftTeam,
+  type FAPlayer,
+  type ValuationNoise,
+} from "@/lib/mock-draft-engine";
 import {
   advanceLive,
   instantStep,
@@ -174,5 +179,42 @@ describe("instantStep", () => {
     const st = instantStep(start([wr1], teams), 50, 0);
     expect(st.log[0].userWon).toBe(true);
     expect(st.log[0].price).toBeLessThanOrEqual(50);
+  });
+});
+
+describe("private valuations in the live auction", () => {
+  const noise: ValuationNoise = { spread: 0.9, seed: 21 };
+  const names = Array.from({ length: 60 }, (_, i) => `T${i}`);
+  // a rival this seed is high on, and one it is low on, for the same WR
+  const hi = names.find((n) => valuationMultiplier(n, wr1.id, noise) > 1.7)!;
+  const lo = names.find((n) => valuationMultiplier(n, wr1.id, noise) < 0.4)!;
+  const teams = [team("You", true), team(hi), team(lo)];
+
+  it("prices each rival's private max off his own valuation, not market", () => {
+    const st = advanceLive(newDraft(teams, [wr1], "You", noise), 0, cfg);
+    expect(st.lot!.maxes[hi]).toBeGreaterThan(wr1.mv);
+    expect(st.lot!.maxes[lo]).toBeLessThan(wr1.mv * 0.6);
+  });
+
+  it("keeps each ceiling fixed for the whole lot", () => {
+    let st = advanceLive(newDraft(teams, [wr1], "You", noise), 0, cfg);
+    const maxes = { ...st.lot!.maxes };
+    [st] = run(st, 0, cfg.clockMs * 3);
+    const sale = st.log[0];
+    expect(sale.winner).toBe(hi); // the manager who loves him wins
+    expect(sale.price).toBeLessThanOrEqual(maxes[hi]);
+  });
+
+  it("defaults to no noise — every rival prices at market", () => {
+    const st = advanceLive(start([wr1], teams), 0, cfg);
+    expect(st.valuation.spread).toBe(0);
+    for (const n of [hi, lo]) expect(st.lot!.maxes[n]).toBeGreaterThanOrEqual(wr1.mv * 0.8);
+  });
+
+  it("instantStep (the fast-forwards) uses the same valuations", () => {
+    const st = instantStep(newDraft([team("You", true), team(lo)], [wr1], "You", noise), 0, 0);
+    expect(st.log).toHaveLength(1);
+    // the lone rival is priced well under market, so the sale is too
+    expect(st.log[0].price).toBeLessThan(wr1.mv * 0.6);
   });
 });

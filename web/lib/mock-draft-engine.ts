@@ -8,6 +8,9 @@
  * a private max bid; the highest wins and pays second-highest + 1 (Vickrey),
  * capped at MAX_BID. AI bids come from the heuristics below; the user's bid is
  * whatever they enter. See docs/references/auction-simulator.md for the model.
+ * Optionally each AI manager also carries a *private valuation* of every player
+ * — a deterministic ±spread multiplier on market value (see ValuationNoise) —
+ * so rivals disagree about who is worth what.
  * The real-time (English) auction layer that reuses these heuristics lives in
  * mock-draft-live.ts; see docs/references/mock-draft.md.
  */
@@ -78,6 +81,60 @@ function lognormalNoise(sigma: number): number {
 
 const taste = () => lognormalNoise(TASTE_SIGMA);
 
+// ── private manager valuations ──
+/**
+ * How far a manager's private valuation of a player may stray from Draft Sharks
+ * market value. `spread` is a fraction (0.9 = ±90%); `seed` makes one draft's
+ * opinions differ from the next while staying stable *within* a draft.
+ */
+export interface ValuationNoise {
+  spread: number;
+  seed: number;
+}
+
+export const MAX_VALUATION_SPREAD = 0.9;
+
+export const NO_VALUATION_NOISE: ValuationNoise = { spread: 0, seed: 0 };
+
+/** A fresh seed for a draft's set of private valuations. */
+export const randomValuationSeed = () => Math.floor(Math.random() * 2 ** 31);
+
+/** FNV-1a — a cheap, stable string hash (unsigned 32-bit). */
+function hash32(s: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+
+/**
+ * One manager's private multiplier on a player's market value: uniform in
+ * [1 - spread, 1 + spread], deterministic in (seed, team, player). Deterministic
+ * matters — a manager who is high on a player stays high on him all draft, and
+ * across every bid within a single lot.
+ */
+export function valuationMultiplier(
+  teamName: string,
+  playerId: string,
+  { spread, seed }: ValuationNoise,
+): number {
+  const s = Math.max(0, Math.min(MAX_VALUATION_SPREAD, spread));
+  if (s === 0) return 1;
+  const u = hash32(`${seed}|${teamName}|${playerId}`) / 2 ** 32; // [0, 1)
+  return 1 + s * (2 * u - 1);
+}
+
+/** What `team` privately thinks `p` is worth (market value when noise is off). */
+export function privateValue(
+  teamName: string,
+  p: FAPlayer,
+  val: ValuationNoise = NO_VALUATION_NOISE,
+): number {
+  return p.mv * valuationMultiplier(teamName, p.id, val);
+}
+
 // Nomination order is value-weighted but jittered — real managers don't nominate
 // strictly highest-to-lowest. Bigger sigma = more shuffled.
 export const NOMINATION_SIGMA = 0.4;
@@ -97,26 +154,39 @@ export function nominationOrder(pool: FAPlayer[]): FAPlayer[] {
 /**
  * An AI team's private max bid for a player (0 = not interested).
  * `noise` toggles the taste multiplier — off for a stable "suggested bid" hint.
+ * `val` gives this manager a private valuation of the player (see
+ * ValuationNoise); with the default it values him exactly at market.
  */
-export function aiBid(t: DraftTeam, p: FAPlayer, noise = true): number {
-  const startNeed = STARTABLE[p.pos] !== undefined && p.mv >= STARTABLE[p.pos];
+export function aiBid(
+  t: DraftTeam,
+  p: FAPlayer,
+  noise = true,
+  val: ValuationNoise = NO_VALUATION_NOISE,
+): number {
+  // everything below reasons about what *this* manager thinks the player is
+  // worth, not the market price — including whether he counts as a starter
+  const mv = privateValue(t.name, p, val);
+  const startNeed = STARTABLE[p.pos] !== undefined && mv >= STARTABLE[p.pos];
   let base = 0;
   if (startableCount(t, p.pos) < START[p.pos] && startNeed) {
-    base = p.mv * (p.pos === "QB" ? SF_PREMIUM : 1); // lock down a starter (QBs first)
+    base = mv * (p.pos === "QB" ? SF_PREMIUM : 1); // lock down a starter (QBs first)
   } else if (posCount(t, p.pos) < START[p.pos] + BENCH[p.pos]) {
-    base = p.mv * DEPTH_DISC; // bench depth
+    base = mv * DEPTH_DISC; // bench depth
   }
   const spotsToFill = Math.max(0, FILL_TO - size(t));
   const afford = t.cap - RESERVE - Math.max(0, spotsToFill - 1); // keep reserve + $1/open spot
   let want = base > 0 ? base * (noise ? taste() : 1) : 0;
   // pounce: reach for a below-market elite regardless of positional need
-  if (p.mv >= POUNCE.minMarket && size(t) < FILL_TO) {
-    want = Math.max(want, Math.min(POUNCE.frac * p.mv, POUNCE.max));
+  if (mv >= POUNCE.minMarket && size(t) < FILL_TO) {
+    want = Math.max(want, Math.min(POUNCE.frac * mv, POUNCE.max));
   }
   return Math.max(0, Math.min(want, afford, MAX_BID));
 }
 
-/** A neutral "what the book says you'd pay" hint for the user's team. */
+/**
+ * A neutral "what the book says you'd pay" hint for the user's team — always at
+ * market value, never noised: the private valuations belong to the AI managers.
+ */
 export function suggestedBid(userTeam: DraftTeam, p: FAPlayer): number {
   return Math.round(aiBid(userTeam, p, false));
 }
@@ -139,6 +209,7 @@ export function resolveNominee(
   player: FAPlayer,
   userTeamName: string,
   userBid: number,
+  val: ValuationNoise = NO_VALUATION_NOISE,
 ): BidResult {
   const bids = teams
     .map((t) => ({
@@ -146,7 +217,7 @@ export function resolveNominee(
       bid:
         t.name === userTeamName
           ? Math.max(0, Math.round(userBid))
-          : Math.round(aiBid(t, player)),
+          : Math.round(aiBid(t, player, true, val)),
     }))
     .filter((b) => b.bid >= 1)
     .sort((a, b) => b.bid - a.bid);
