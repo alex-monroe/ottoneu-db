@@ -1,6 +1,7 @@
 import {
   aiBid,
   applyWin,
+  nominationOrder,
   resolveNominee,
   startingLineup,
   starterNeeds,
@@ -93,6 +94,36 @@ describe("startingLineup", () => {
     // FLEX should be filled by the best leftover skill player (RB C, the extra back)
     expect(lineup.find((l) => l.slot === "FLEX")?.player).not.toBeNull();
     expect(bySlot).toBeDefined();
+  });
+});
+
+describe("nominationOrder", () => {
+  const pool: FAPlayer[] = Array.from({ length: 40 }, (_, i) => ({
+    id: `p${i}`,
+    name: `P${i}`,
+    pos: "WR",
+    mv: 100 - i * 2, // 100 down to 22
+  }));
+
+  it("preserves the full set (no drops or dupes)", () => {
+    const ordered = nominationOrder(pool);
+    expect(ordered).toHaveLength(pool.length);
+    expect(new Set(ordered.map((p) => p.id))).toEqual(new Set(pool.map((p) => p.id)));
+  });
+
+  it("is jittered, not strictly by value, but still value-weighted", () => {
+    let strictCount = 0;
+    let topInFirstQuartileCount = 0;
+    const runs = 40;
+    for (let r = 0; r < runs; r++) {
+      const ordered = nominationOrder(pool);
+      const isStrict = ordered.every((p, i) => i === 0 || ordered[i - 1].mv >= p.mv);
+      if (isStrict) strictCount++;
+      const topIdx = ordered.findIndex((p) => p.id === "p0"); // the $100 player
+      if (topIdx < pool.length / 4) topInFirstQuartileCount++;
+    }
+    expect(strictCount).toBeLessThan(runs); // not always strictly descending
+    expect(topInFirstQuartileCount).toBeGreaterThan(runs / 2); // but the elite still tends early
   });
 });
 

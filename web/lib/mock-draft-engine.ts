@@ -65,12 +65,30 @@ export const startableCount = (t: DraftTeam, pos: Pos) =>
 export const committed = (t: DraftTeam) =>
   t.roster.reduce((a, p) => a + p.salary, 0);
 
-/** lognormal(0, sigma) taste multiplier via Box–Muller. */
-function taste(): number {
+/** lognormal(0, sigma) multiplier via Box–Muller. */
+function lognormalNoise(sigma: number): number {
   const u1 = Math.random() || 1e-9;
   const u2 = Math.random();
   const n = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-  return Math.exp(TASTE_SIGMA * n);
+  return Math.exp(sigma * n);
+}
+
+const taste = () => lognormalNoise(TASTE_SIGMA);
+
+// Nomination order is value-weighted but jittered — real managers don't nominate
+// strictly highest-to-lowest. Bigger sigma = more shuffled.
+export const NOMINATION_SIGMA = 0.4;
+
+/**
+ * A nomination order for the FA pool: mostly by market value, but noised so it's
+ * not strictly high→low. Each player gets a jittered sort key (computed once, so
+ * the sort is stable), then the pool is ordered by that key descending.
+ */
+export function nominationOrder(pool: FAPlayer[]): FAPlayer[] {
+  return [...pool]
+    .map((p) => ({ p, key: p.mv * lognormalNoise(NOMINATION_SIGMA) }))
+    .sort((a, b) => b.key - a.key)
+    .map((x) => x.p);
 }
 
 /**

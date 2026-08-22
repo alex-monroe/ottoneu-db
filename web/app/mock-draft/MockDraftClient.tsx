@@ -6,6 +6,7 @@ import {
   applyWin,
   committed,
   fillsANeed,
+  nominationOrder,
   ROSTER_SPOTS,
   resolveNominee,
   size,
@@ -93,7 +94,7 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
       cap: seed.cap,
       roster: seed.roster.map((p) => ({ ...p })),
     }));
-    setState({ teams, pool: [...faPool], log: [] });
+    setState({ teams, pool: nominationOrder(faPool), log: [] });
     setPhase("drafting");
   }
 
@@ -164,9 +165,9 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
             Start draft
           </button>
           <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-            Players are nominated highest-value first. Set your max bid and win the auction (you pay
-            the second-highest bid + $1), or pass. Use “Skip to my next need” to fast-forward past
-            players you don’t want.
+            Players are nominated highest-value first (with some randomness). Set your max bid and
+            win the auction (you pay the second-highest bid + $1), or pass. Use “Skip to my next
+            need” to fast-forward past players you don’t want.
           </p>
         </div>
       </div>
