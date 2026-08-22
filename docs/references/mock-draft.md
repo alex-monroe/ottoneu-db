@@ -15,7 +15,61 @@ is priced by **Draft Sharks superflex market value** (`draft_sharks_values`). Ga
 Both formats use the **same AI valuation heuristics** (`aiBid`), ported from the Monte-Carlo
 sim in `scripts/auction_simulator.py` ([auction-simulator.md](auction-simulator.md)) — starter needs, the
 Superflex QB premium, bench-depth discount, a cash reserve, $1 held per open roster spot,
-below-market pounces, and per-bid taste noise. They differ only in how the auction is run.
+below-market pounces, budget pressure, and per-bid taste noise. They differ only in how the
+auction is run.
+
+## Budget pressure (why the AI overpays)
+
+A bot that only ever bids market value ends the draft sitting on cash, which in a keeper
+auction is pure waste — and it makes for a soft practice room. `budgetPressure` gives every
+AI a **≥ 1 multiplier on every bid**, so it finishes spent out instead:
+
+```
+spendable    = cap − RESERVE                              # what it means to deploy
+naturalSpend = mv × (1 − TAIL_DECAY^spots) / (1 − TAIL_DECAY)   # market cost of the rest of its draft
+pressure     = clamp(spendable / naturalSpend, 1, MAX_PRESSURE)
+```
+
+`naturalSpend` estimates what filling the remaining spots costs at market. Nomination runs
+roughly high value → low, so the rest of a team's draft is modelled as a geometrically
+decaying tail (`TAIL_DECAY = 0.7`) off the player currently on the block. A team whose
+spendable cash exceeds that estimate is holding dollars it can never convert into players,
+so those dollars are worth less than face and it bids them up — capped at `MAX_PRESSURE`
+(6×), and still bounded by affordability and `MAX_BID`.
+
+Three details matter:
+
+- **The anchor is market value, never the private valuation.** A manager's future spending
+  happens at market prices. Anchoring on its own opinion would let a manager who is *low*
+  on this player inflate his bid, cancelling out the disagreement the noise slider exists
+  to create.
+- **Pressure is self-limiting.** Early, with many spots open, `naturalSpend` is large and
+  pressure sits at ~1 — a normal-budget team behaves exactly as before. It only bites for
+  teams genuinely richer than the market they still have to buy from, and it climbs as
+  spots run out (that's the familiar end-of-draft "$1 players go for $15" effect).
+- **Cash still can't buy a bad roster.** `MAX_AT_POS` (QB 4 · RB 6 · WR 7 · TE 3 · K 1) is a
+  hard positional ceiling that no amount of surplus overrides — including the pounce.
+
+Two supporting behaviours close the same leak from the other side: a team with more than
+`SPILL_CASH` ($25) of surplus keeps buying past the usual `FILL_TO` (18) stopping point to
+the full `ROSTER_SPOTS` (20), and once its positional targets are met it will still buy a
+**best-available body** at `SPARE_DISC` (32% of market) rather than leave a spot empty.
+
+Measured over a full auto-drafted pool seeded from live rosters (12 teams × 25 drafts):
+
+| Valuation noise | Mean leftover | Teams over $50 |
+|---|---|---|
+| 0 | $41.5 → **$22.0** | 23% → **4%** |
+| ±40% | $35.8 → **$19.8** | 18% → **3%** |
+| ±90% | $27.8 → **$15.9** | 9% → **1%** |
+
+The residual is structural rather than a tuning miss: those teams have filled all 20 roster
+spots, and both formats price a lot at the *runner-up's* ceiling (Vickrey / English), so a
+team far richer than the rest of the room wins its lots cheaply and runs out of spots before
+it runs out of money.
+
+Because `suggestedBid` is `aiBid` with the noise switched off, **your** suggested bid is
+budget-aware too — it leans over book value when you are the one with cash to burn.
 
 ## Manager valuation noise (the setup slider)
 
@@ -111,9 +165,13 @@ roster room.
 - Roster seeds are only as fresh as `league_prices` (see
   [roster-csv-reconciliation.md](roster-csv-reconciliation.md)).
 - AI teams value players purely off Draft Sharks market value (optionally noised per
-  manager, above); they don't reason about keeper economics, contract length, or trades.
+  manager, above) plus budget pressure; they don't reason about keeper economics, contract
+  length, or trades.
   The noise is symmetric and independent per player — it makes the room disagree, but it
   doesn't model a manager with a coherent *strategy* (a positional bias, a rebuild).
+- Budget pressure is a `/mock-draft` addition — `scripts/auction_simulator.py` has not been
+  given the same treatment, so its bots still leave cash on the table. The two are no longer
+  a strict port of each other.
 - For the batch/offline version of the same model — thousands of simulated auctions to
   price a target list rather than one interactive draft — see
   [auction-simulator.md](auction-simulator.md).

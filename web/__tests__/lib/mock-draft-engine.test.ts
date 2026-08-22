@@ -1,6 +1,9 @@
 import {
   aiBid,
   applyWin,
+  budgetPressure,
+  MAX_PRESSURE,
+  openSpots,
   MAX_VALUATION_SPREAD,
   nominationOrder,
   privateValue,
@@ -16,6 +19,10 @@ import {
 function team(name: string, isUser = false, cap = 200, roster: DraftTeam["roster"] = []): DraftTeam {
   return { name, isUser, cap, roster };
 }
+
+/** average of a noisy bid over enough draws for the taste jitter to wash out */
+const mean = (f: () => number) =>
+  Array.from({ length: 60 }, f).reduce((a, b) => a + b, 0) / 60;
 
 const eliteQB: FAPlayer = { id: "q1", name: "Elite QB", pos: "QB", mv: 60 };
 const wr1: FAPlayer = { id: "w1", name: "WR One", pos: "WR", mv: 50 };
@@ -40,6 +47,67 @@ describe("aiBid", () => {
   it("respects affordability (never bids more than cap minus reserve)", () => {
     const t = team("Broke", false, 12);
     expect(aiBid(t, eliteQB)).toBeLessThanOrEqual(12);
+  });
+
+  it("pays over market when the cash would otherwise go unspent", () => {
+    // same roster need, wildly different bankrolls: the rich team must lean over
+    // market because it cannot spend $340 at market across its open spots
+    const normal = mean(() => aiBid(team("Normal", false, 60), wr1));
+    const rich = mean(() => aiBid(team("Rich", false, 350), wr1));
+    expect(normal).toBeLessThanOrEqual(wr1.mv * 1.2); // ~market
+    expect(rich).toBeGreaterThan(wr1.mv * 1.5); // deliberately over market
+  });
+
+  it("buys a best-available body once positional targets are met", () => {
+    // WR room already at starters+bench (2+3), but roster spots and cash remain
+    const roster = Array.from({ length: 5 }, (_, i) => ({
+      id: `w${i}`, name: `W${i}`, pos: "WR" as const, salary: 20, mv: 25,
+    }));
+    expect(aiBid(team("Spare", false, 250, roster), wr1)).toBeGreaterThan(0);
+  });
+
+  it("never buys past the hard positional ceiling, however rich", () => {
+    const roster = Array.from({ length: 7 }, (_, i) => ({
+      id: `w${i}`, name: `W${i}`, pos: "WR" as const, salary: 1, mv: 25,
+    }));
+    expect(aiBid(team("Loaded", false, 380, roster), wr1)).toBe(0);
+  });
+});
+
+describe("budgetPressure", () => {
+  it("is neutral for a team whose cash matches what it still has to buy", () => {
+    expect(budgetPressure(team("Normal", false, 45), 40)).toBe(1);
+  });
+
+  it("rises with surplus cash and is capped", () => {
+    const poor = budgetPressure(team("Poor", false, 45), 40);
+    const mid = budgetPressure(team("Mid", false, 200), 40);
+    const loaded = budgetPressure(team("Loaded", false, 390), 4);
+    expect(mid).toBeGreaterThan(poor);
+    expect(loaded).toBeGreaterThan(mid);
+    expect(loaded).toBeLessThanOrEqual(MAX_PRESSURE);
+  });
+
+  it("is anchored on market value, not a private valuation", () => {
+    // otherwise a manager who is *low* on a player would inflate his bid,
+    // cancelling out the valuation noise
+    const t = team("Rich", false, 300);
+    const noise: ValuationNoise = { spread: 0.8, seed: 11 };
+    const names = Array.from({ length: 40 }, (_, i) => `T${i}`);
+    const hi = names.find((n) => valuationMultiplier(n, wr1.id, noise) > 1.6)!;
+    const lo = names.find((n) => valuationMultiplier(n, wr1.id, noise) < 0.4)!;
+    expect(mean(() => aiBid({ ...t, name: hi }, wr1, true, noise))).toBeGreaterThan(
+      mean(() => aiBid({ ...t, name: lo }, wr1, true, noise)),
+    );
+  });
+
+  it("stops mattering once the roster is full", () => {
+    const roster = Array.from({ length: 20 }, (_, i) => ({
+      id: `p${i}`, name: `P${i}`, pos: "WR" as const, salary: 1, mv: 5,
+    }));
+    const t = team("Full", false, 300, roster);
+    expect(openSpots(t)).toBe(0);
+    expect(budgetPressure(t, 20)).toBe(1);
   });
 });
 
@@ -182,8 +250,6 @@ describe("private manager valuations", () => {
 
   it("moves AI bids: rivals who love a player pay more than the market-only case", () => {
     const t = team("A");
-    const mean = (f: () => number) =>
-      Array.from({ length: 60 }, f).reduce((a, b) => a + b, 0) / 60;
     const flat = mean(() => aiBid(t, wr1));
     // find a team the seed happens to be high on, and one it's low on
     const names = Array.from({ length: 40 }, (_, i) => `T${i}`);
