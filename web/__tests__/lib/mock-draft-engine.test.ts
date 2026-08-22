@@ -1,12 +1,16 @@
 import {
   aiBid,
   applyWin,
+  MAX_VALUATION_SPREAD,
   nominationOrder,
+  privateValue,
   resolveNominee,
   startingLineup,
   starterNeeds,
+  valuationMultiplier,
   type DraftTeam,
   type FAPlayer,
+  type ValuationNoise,
 } from "@/lib/mock-draft-engine";
 
 function team(name: string, isUser = false, cap = 200, roster: DraftTeam["roster"] = []): DraftTeam {
@@ -135,5 +139,74 @@ describe("starterNeeds", () => {
     const needs = starterNeeds(team("A", false, 100, roster));
     expect(needs.find((n) => n.pos === "TE")?.filled).toBe(true);
     expect(needs.find((n) => n.pos === "QB")?.filled).toBe(false);
+  });
+});
+
+describe("private manager valuations", () => {
+  const noise: ValuationNoise = { spread: 0.5, seed: 7 };
+
+  it("is a no-op at spread 0 — everyone prices at market", () => {
+    expect(valuationMultiplier("A", "w1", { spread: 0, seed: 7 })).toBe(1);
+    expect(privateValue("A", wr1)).toBe(wr1.mv);
+  });
+
+  it("is stable for a (seed, team, player) — a manager keeps his opinion", () => {
+    const a = privateValue("A", wr1, noise);
+    expect(privateValue("A", wr1, noise)).toBe(a);
+    expect(privateValue("A", wr1, { spread: 0.5, seed: 8 })).not.toBe(a); // new draft, new opinions
+  });
+
+  it("gives different managers different prices for the same player", () => {
+    const prices = ["A", "B", "C", "D", "E", "F"].map((t) => privateValue(t, wr1, noise));
+    expect(new Set(prices).size).toBeGreaterThan(1);
+  });
+
+  it("stays inside ±spread of market, and clamps beyond the max spread", () => {
+    for (let i = 0; i < 200; i++) {
+      const m = valuationMultiplier(`Team ${i}`, `p${i}`, noise);
+      expect(m).toBeGreaterThanOrEqual(1 - noise.spread);
+      expect(m).toBeLessThanOrEqual(1 + noise.spread);
+      const clamped = valuationMultiplier(`Team ${i}`, `p${i}`, { spread: 5, seed: 1 });
+      expect(clamped).toBeGreaterThanOrEqual(1 - MAX_VALUATION_SPREAD);
+      expect(clamped).toBeLessThanOrEqual(1 + MAX_VALUATION_SPREAD);
+    }
+  });
+
+  it("spans most of the band across the pool (not clustered at market)", () => {
+    const mults = Array.from({ length: 500 }, (_, i) =>
+      valuationMultiplier("A", `p${i}`, { spread: 0.9, seed: 3 }),
+    );
+    expect(Math.min(...mults)).toBeLessThan(0.3); // someone is priced way down
+    expect(Math.max(...mults)).toBeGreaterThan(1.7); // and someone way up
+  });
+
+  it("moves AI bids: rivals who love a player pay more than the market-only case", () => {
+    const t = team("A");
+    const mean = (f: () => number) =>
+      Array.from({ length: 60 }, f).reduce((a, b) => a + b, 0) / 60;
+    const flat = mean(() => aiBid(t, wr1));
+    // find a team the seed happens to be high on, and one it's low on
+    const names = Array.from({ length: 40 }, (_, i) => `T${i}`);
+    const hi = names.find((n) => valuationMultiplier(n, wr1.id, { spread: 0.8, seed: 11 }) > 1.6)!;
+    const lo = names.find((n) => valuationMultiplier(n, wr1.id, { spread: 0.8, seed: 11 }) < 0.4)!;
+    expect(mean(() => aiBid(team(hi), wr1, true, { spread: 0.8, seed: 11 }))).toBeGreaterThan(flat);
+    expect(mean(() => aiBid(team(lo), wr1, true, { spread: 0.8, seed: 11 }))).toBeLessThan(flat);
+  });
+
+  it("resolveNominee passes the noise through to the AI bids", () => {
+    const spread90: ValuationNoise = { spread: 0.9, seed: 4 };
+    const names = Array.from({ length: 60 }, (_, i) => `T${i}`);
+    const hi = names.find((n) => valuationMultiplier(n, wr1.id, spread90) > 1.7);
+    const lo = names.find((n) => valuationMultiplier(n, wr1.id, spread90) < 0.4);
+    expect(hi && lo).toBeTruthy();
+    const meanTopBid = (rival: string) => {
+      const runs = Array.from({ length: 60 }, () =>
+        resolveNominee([team("You", true), team(rival)], wr1, "You", 0, spread90),
+      );
+      return runs.reduce((a, r) => a + (r.topBids[0]?.bid ?? 0), 0) / runs.length;
+    };
+    // the rival who loves him pays over market; the one who doesn't, well under
+    expect(meanTopBid(hi!)).toBeGreaterThan(wr1.mv);
+    expect(meanTopBid(lo!)).toBeLessThan(wr1.mv * 0.6);
   });
 });

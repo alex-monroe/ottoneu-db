@@ -5,7 +5,9 @@ import type { MockDraftTeamSeed } from "@/lib/mock-draft";
 import {
   committed,
   fillsANeed,
+  MAX_VALUATION_SPREAD,
   nominationOrder,
+  randomValuationSeed,
   ROSTER_SPOTS,
   size,
   startableCount,
@@ -69,6 +71,8 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
   const [speed, setSpeed] = useState<SpeedKey>("normal");
   const [paused, setPaused] = useState(false);
   const [userTeam, setUserTeam] = useState<string>(seeds[0]?.name ?? "");
+  // ±% each rival manager's private player valuations may stray from market
+  const [valuationNoisePct, setValuationNoisePct] = useState(0);
   const [bidInput, setBidInput] = useState<string>("0");
   const [draft, setDraft] = useState<LiveDraft | null>(null);
   const [now, setNow] = useState<number>(() => Date.now());
@@ -109,7 +113,10 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
       roster: seed.roster.map((p) => ({ ...p })),
     }));
     const t = Date.now();
-    const fresh = newDraft(teams, nominationOrder(faPool), userTeam);
+    const fresh = newDraft(teams, nominationOrder(faPool), userTeam, {
+      spread: valuationNoisePct / 100,
+      seed: randomValuationSeed(), // new opinions every draft
+    });
     // live mode opens the first lot immediately so there's no blank first tick
     setDraft(mode === "live" ? advanceLive(fresh, t, cfg) : fresh);
     setNow(t);
@@ -246,6 +253,39 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
             </div>
           )}
 
+          <div className="mt-5">
+            <div className="flex items-baseline justify-between">
+              <label
+                htmlFor="valuation-noise"
+                className="text-sm font-medium text-slate-700 dark:text-slate-300"
+              >
+                Manager valuation noise
+              </label>
+              <span className="font-mono text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                {valuationNoisePct === 0 ? "off" : `±${valuationNoisePct}%`}
+              </span>
+            </div>
+            <input
+              id="valuation-noise"
+              type="range"
+              min={0}
+              max={MAX_VALUATION_SPREAD * 100}
+              step={5}
+              value={valuationNoisePct}
+              onChange={(e) => setValuationNoisePct(Number(e.target.value))}
+              className="mt-2 w-full accent-indigo-600"
+            />
+            <div className="flex justify-between font-mono text-[10px] text-slate-400">
+              <span>0%</span>
+              <span>±{MAX_VALUATION_SPREAD * 100}%</span>
+            </div>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {valuationNoisePct === 0
+                ? "Every rival prices players exactly at Draft Sharks market value."
+                : `Each rival manager gets a private price for every player, up to ±${valuationNoisePct}% off market — and sticks to it all draft. Higher noise means more rivals who overpay for their guys and let yours go cheap. Your own book value is always shown at market.`}
+            </p>
+          </div>
+
           <button
             onClick={start}
             className="mt-5 w-full rounded-md bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-500"
@@ -283,6 +323,7 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
           Mock Draft · <span className="text-indigo-600 dark:text-indigo-400">{userTeam}</span>
           <span className="ml-2 align-middle text-xs font-medium uppercase tracking-wide text-slate-400">
             {mode === "live" ? "live auction" : "turn by turn"}
+            {valuationNoisePct > 0 && ` · ±${valuationNoisePct}% valuations`}
           </span>
         </h1>
         <div className="flex items-center gap-2">
