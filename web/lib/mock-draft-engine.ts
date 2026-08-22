@@ -48,12 +48,20 @@ export const MAX_BID = 110;
 const RESERVE = 10; // every team keeps this for in-season waivers
 const SF_PREMIUM = 1.5; // Superflex: teams pay up for a 2nd startable QB
 const DEPTH_DISC = 0.5; // fraction of market paid for bench depth
+const SPARE_DISC = 0.32; // …and for a best-available body past the depth target
 const TASTE_SIGMA = 0.16; // per-bid valuation noise
 const POUNCE = { frac: 0.85, minMarket: 45, max: 72 }; // AI reach for below-market elites
+
+// ── budget pressure (cash that would otherwise go unspent) ──
+const TAIL_DECAY = 0.7; // value falloff of the players still to be nominated
+export const MAX_PRESSURE = 6; // ceiling on the over-market multiplier
+const SPILL_CASH = 25; // surplus above which a team keeps buying past FILL_TO
 
 // target roster shape every AI builds toward (starters, then bench)
 const START: Record<Pos, number> = { QB: 2, RB: 2, WR: 2, TE: 1, K: 1 };
 const BENCH: Record<Pos, number> = { QB: 1, RB: 2, WR: 3, TE: 1, K: 0 };
+// hard positional ceiling — no amount of spare cash buys a 7th kicker
+const MAX_AT_POS: Record<Pos, number> = { QB: 4, RB: 6, WR: 7, TE: 3, K: 1 };
 // min market value for a player to count as a genuine starter at his position
 const STARTABLE: Record<Pos, number> = { QB: 15, RB: 14, WR: 18, TE: 9, K: 0 };
 
@@ -151,6 +159,43 @@ export function nominationOrder(pool: FAPlayer[]): FAPlayer[] {
     .map((x) => x.p);
 }
 
+// ── budget pressure ──
+/**
+ * How many more bodies this team intends to buy. Teams normally stop at FILL_TO
+ * and leave a couple of spots open for the season, but one still holding real
+ * money keeps buying to the roster limit — an empty spot is a cheaper way to
+ * convert cash into a player than banking it.
+ */
+export function openSpots(t: DraftTeam): number {
+  const target = t.cap - RESERVE > SPILL_CASH ? ROSTER_SPOTS : FILL_TO;
+  return Math.max(0, target - size(t));
+}
+
+/**
+ * A >= 1 multiplier on every bid, so a team finishes the draft spent out instead
+ * of sitting on cash it can no longer deploy.
+ *
+ * `marketMv` — the *market* value of the player on the block, not this manager's
+ * private opinion of him — anchors an estimate of what filling the remaining
+ * spots costs: nomination runs roughly high value -> low, so the rest of a
+ * team's draft is modelled as a geometrically decaying tail off the current lot.
+ * A team whose spendable cash exceeds that estimate is holding dollars it cannot
+ * spend at market, so it bids them up instead.
+ *
+ * The anchor stays at market on purpose: a team's future spending happens at
+ * market prices, so pricing it off a private valuation would let a manager who
+ * is *low* on this player inflate his bid — cancelling out the very disagreement
+ * ValuationNoise exists to create.
+ */
+export function budgetPressure(t: DraftTeam, marketMv: number): number {
+  const spots = openSpots(t);
+  const spendable = t.cap - RESERVE;
+  if (spots <= 0 || spendable <= 0) return 1;
+  const naturalSpend =
+    (Math.max(1, marketMv) * (1 - TAIL_DECAY ** spots)) / (1 - TAIL_DECAY);
+  return Math.min(MAX_PRESSURE, Math.max(1, spendable / naturalSpend));
+}
+
 /**
  * An AI team's private max bid for a player (0 = not interested).
  * `noise` toggles the taste multiplier — off for a stable "suggested bid" hint.
@@ -167,18 +212,23 @@ export function aiBid(
   // worth, not the market price — including whether he counts as a starter
   const mv = privateValue(t.name, p, val);
   const startNeed = STARTABLE[p.pos] !== undefined && mv >= STARTABLE[p.pos];
+  const spots = openSpots(t);
   let base = 0;
   if (startableCount(t, p.pos) < START[p.pos] && startNeed) {
     base = mv * (p.pos === "QB" ? SF_PREMIUM : 1); // lock down a starter (QBs first)
   } else if (posCount(t, p.pos) < START[p.pos] + BENCH[p.pos]) {
     base = mv * DEPTH_DISC; // bench depth
+  } else if (spots > 0 && posCount(t, p.pos) < MAX_AT_POS[p.pos]) {
+    base = mv * SPARE_DISC; // best available — a roster spot still needs a body
   }
-  const spotsToFill = Math.max(0, FILL_TO - size(t));
-  const afford = t.cap - RESERVE - Math.max(0, spotsToFill - 1); // keep reserve + $1/open spot
-  let want = base > 0 ? base * (noise ? taste() : 1) : 0;
-  // pounce: reach for a below-market elite regardless of positional need
-  if (mv >= POUNCE.minMarket && size(t) < FILL_TO) {
-    want = Math.max(want, Math.min(POUNCE.frac * mv, POUNCE.max));
+  // unspendable cash is worth less than face: lean over market rather than bank it
+  const pressure = budgetPressure(t, p.mv);
+  const afford = t.cap - RESERVE - Math.max(0, spots - 1); // keep reserve + $1/open spot
+  let want = base > 0 ? base * pressure * (noise ? taste() : 1) : 0;
+  // pounce: reach for a below-market elite regardless of positional *need* —
+  // but never past the hard positional ceiling
+  if (mv >= POUNCE.minMarket && spots > 0 && posCount(t, p.pos) < MAX_AT_POS[p.pos]) {
+    want = Math.max(want, Math.min(POUNCE.frac * mv, POUNCE.max) * pressure);
   }
   return Math.max(0, Math.min(want, afford, MAX_BID));
 }
