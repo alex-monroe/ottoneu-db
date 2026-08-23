@@ -23,6 +23,8 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 - **Git workflow:** See [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) for branch and PR requirements
 - **Ottoneu rules:** See [docs/references/ottoneu-rules.md](docs/references/ottoneu-rules.md) for scoring, roster, salary cap, and arbitration rules
 - **Ottoneu strategy:** See [docs/references/ottoneu-strategy.md](docs/references/ottoneu-strategy.md) for format economics (surplus value, raise treadmill, Superflex QB premium, arbitration tax) and the reasoning checklist used by the `/ottoneu-roster-question` skill. Use the `/ottoneu-roster-question` skill (which loads this + live data via `just roster-context`) to answer advanced keeper/trade/auction/arbitration questions.
+- **Mock Draft:** See [docs/references/mock-draft.md](docs/references/mock-draft.md) for the `/mock-draft` practice auction — a real-time (English) auction against AI opponents (`web/lib/mock-draft-live.ts`) plus the original turn-by-turn sealed-bid mode, both seeded from live rosters/caps and Draft Sharks market values. A setup slider adds **manager valuation noise** (0 → ±90%): each rival gets a private, draft-stable price for every player
+- **Auction Simulator:** See [docs/references/auction-simulator.md](docs/references/auction-simulator.md) for the offline Monte-Carlo keeper-auction sim (`scripts/auction_simulator.py`) — thousands of simulated drafts to price a target list. The `/mock-draft` AI opponents are a port of its heuristics
 - **Environment:** See [docs/references/environment-variables.md](docs/references/environment-variables.md) for `.env` setup
 - **Autonomous operation:** See [docs/references/autonomous-operation.md](docs/references/autonomous-operation.md) for the permission-friction strategy — allowlist design, prompt-rate metrics (`just permission-report`), and the `.devcontainer/` for safely running `claude --dangerously-skip-permissions`
 - **Season cycle:** See [docs/exec-plans/season-cycle.md](docs/exec-plans/season-cycle.md) — the site rolls between Ottoneu seasons from the `league_calendar` table; the current season is resolved at runtime via `scripts/season.py` and `web/lib/season.ts`, not from static config
@@ -73,8 +75,10 @@ docs/
 │   ├── [rookie-backtest.md](docs/generated/rookie-backtest.md)             # Rookie (0-history) projection backtest — draft_capital vs baselines
 │   └── [segment-analysis.md](docs/generated/segment-analysis.md)            # Segmented projection accuracy analysis
 ├── references/
-│   ├── [autonomous-operation.md](docs/references/autonomous-operation.md)        # Permission-friction strategy: allowlist, prompt metrics, devcontainer
+│   ├── [autonomous-operation.md](docs/references/autonomous-operation.md)        # Permission-friction strategy: allowlist, prompt metrics, devcontainer (+ egress firewall / MCP startup)
 │   ├── environment-variables.md       # .env and .env.local variable reference
+│   ├── [auction-simulator.md](docs/references/auction-simulator.md)         # Offline Monte-Carlo keeper-auction sim (scripts/auction_simulator.py)
+│   ├── [mock-draft.md](docs/references/mock-draft.md)                 # /mock-draft practice auction: live real-time mode + turn-by-turn (+ per-manager valuation noise)
 │   ├── ottoneu-rules.md               # Scoring, roster, salary cap, arbitration rules
 │   └── ottoneu-strategy.md            # Format economics + AI reasoning checklist for roster construction
 └── superpowers/

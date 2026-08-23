@@ -42,6 +42,11 @@ python scripts/worker.py --poll                      # Process jobs continuously
 # scripts have been removed; only the projection update step remains on the backend.
 python scripts/update_projections.py                 # Update player projections (runs active model + promote + rookie fallback)
 python scripts/scrape_arbitration_progress.py        # Scrape Ottoneu arbitration progress (allocations + team status)
+python scripts/auction_simulator.py                  # Monte-Carlo keeper-auction sim (400 sims by default; see docs/references/auction-simulator.md)
+python scripts/auction_simulator.py --full           # One full-league roster dump across all 12 teams
+python scripts/auction_simulator.py --steals         # 6 sample drafts with your below-market steals flagged
+python scripts/auction_simulator.py --sample        # One quick sample of just your buys
+python scripts/auction_simulator.py --refresh       # Re-pull league_prices/players/draft_sharks_values from Supabase first (after a re-scrape)
 
 # Feature-based Projections
 python scripts/feature_projections/cli.py list                                              # List available model definitions
