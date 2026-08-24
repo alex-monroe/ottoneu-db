@@ -36,6 +36,29 @@ string) and carry an `inferred from /csv/rosters reconciliation` provenance mark
 `(player_id, league_id, transaction_type, transaction_date, salary)` makes re-runs
 idempotent.
 
+### Inferences never duplicate a scraped move
+
+This script owns `league_prices`; `scrape_player_cards.py` owns `transactions`.
+Neither writes the other's table — so after the card scrape logs a move *with its
+real timestamp*, the next reconciliation still sees a stale price row, re-derives
+the same move, and (since the uniqueness key includes `transaction_date`) files a
+second copy under the run date. That is how the 2026-08-23 run wrote 86 rows that
+each duplicated a card row from 2026-08-22, burying real activity under what
+looked like a day of frantic trading.
+
+So before inferring, `_already_scraped` reads back the last
+`TXN_DEDUPE_LOOKBACK_DAYS` (14) of **non-inferred** transactions and skips any
+event already recorded there, matching on the whole move
+(`player_id, type, salary, team`) rather than just the player. An inference dated
+the run day is strictly worse than the same move with its true timestamp. The
+lookback ignores this script's own prior output, so a genuine repeat (add → cut →
+re-add at the same price) is still recorded, and a lagging or failed card-scrape
+run still gets covered. `_print_summary` reports the skipped count.
+
+The rows already written before this fix are suppressed on read instead, by
+`web/lib/mcp/transactions.ts` — see
+[the MCP server reference](mcp-server.md#reading-the-transaction-feed).
+
 ## Usage
 
 ```bash

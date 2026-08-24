@@ -40,7 +40,7 @@ import os
 import re
 import sys
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 
 import requests
 from dotenv import load_dotenv
@@ -68,6 +68,16 @@ USER_AGENT = "ottoneu-db-roster-csv/1.0 (+https://github.com/alex-monroe/ottoneu
 FA_TEAM = "FA"
 FA_PLACEHOLDER_PRICE = 1
 _FA_LABELS = {"", "FA", "Free Agent"}
+
+# Stamped into `raw_description` so a row inferred here is distinguishable from
+# one the player-card scrape recorded with a real timestamp — both on re-read
+# (web/lib/mcp/transactions.ts) and when deduping the next run's inferences.
+_INFERRED_MARKER = "inferred from /csv/rosters reconciliation"
+
+# How far back to look for a card-scraped copy of a move before inferring it.
+# Wide enough to cover a lagging or failed card-scrape run, narrow enough that a
+# genuine repeat (add → cut → re-add at the same price) is not swallowed.
+TXN_DEDUPE_LOOKBACK_DAYS = 14
 
 # Safety floor: refuse to apply a suspiciously small CSV (a truncated/garbled
 # fetch must never mass-cut real rosters). A real league is ~12 teams / 150+ rows.
@@ -315,15 +325,44 @@ def apply_reconciliation(sb, recon: Reconciliation, players: list[dict],
     return events
 
 
-def build_transaction_rows(events: list[Event], run_date: date,
-                           league_id: int) -> list[dict]:
+def _already_scraped(sb, league_id: int, run_date: date,
+                     lookback_days: int = TXN_DEDUPE_LOOKBACK_DAYS) -> set[tuple]:
+    """Keys of real player-card transactions recorded near ``run_date``.
+
+    ``scrape_player_cards.py`` owns ``transactions`` and ``reconcile_roster``
+    owns ``league_prices``; neither writes the other's table. So after the card
+    scrape logs a move *with its true timestamp*, this reconciliation still sees
+    a stale price row, re-derives the same move, and — since the upsert key
+    includes ``transaction_date`` — files a second copy under the run date. That
+    is how 86 duplicate rows landed on 2026-08-23, one for every card row from
+    2026-08-22, burying real activity under a bulk load.
+
+    So look back a window and skip any event a card already accounts for.
+    """
+    since = (run_date - timedelta(days=lookback_days)).isoformat()
+    rows = fetch_all_rows(
+        sb, "transactions", "player_id, transaction_type, salary, team_name, raw_description",
+        filters=[("eq", "league_id", league_id), ("gte", "transaction_date", since)],
+    )
+    return {
+        (r["player_id"], r["transaction_type"], r["salary"], r["team_name"])
+        for r in rows
+        if _INFERRED_MARKER not in (r.get("raw_description") or "")
+    }
+
+
+def build_transaction_rows(events: list[Event], run_date: date, league_id: int,
+                           already_scraped: set[tuple] | None = None) -> list[dict]:
     """Build ``transactions`` rows from move events, dated ``run_date``.
 
     Follows the scraper's stored convention: ``cut``, ``add``, and
     ``move (from <old team>)`` type strings; ``from_team`` left null (the source
     team is encoded in the ``move (from …)`` type). Skips events without a
-    resolved ``player_id`` (dry-run creates).
+    resolved ``player_id`` (dry-run creates), and events already recorded by the
+    player-card scrape (see ``_already_scraped``) — an inference dated the run
+    day is strictly worse than the same move with its real timestamp.
     """
+    already_scraped = already_scraped or set()
     date_iso = run_date.isoformat()
     date_label = f"{run_date:%b} {run_date.day}, {run_date.year}"
     season = run_date.year
@@ -337,6 +376,8 @@ def build_transaction_rows(events: list[Event], run_date: date,
             ttype, team = f"move (from {e.from_team})", e.team
         else:
             ttype, team = "add", e.team
+        if (e.player_id, ttype, e.salary, team) in already_scraped:
+            continue
         rows.append({
             "player_id": e.player_id,
             "league_id": league_id,
@@ -347,7 +388,7 @@ def build_transaction_rows(events: list[Event], run_date: date,
             "salary": e.salary,
             "transaction_date": date_iso,
             "raw_description": f"{date_label} | {team} | {ttype} | ${e.salary} | "
-                               f"inferred from /csv/rosters reconciliation {date_iso}",
+                               f"{_INFERRED_MARKER} {date_iso}",
         })
     return rows
 
@@ -378,8 +419,12 @@ def reconcile(sb, csv_text: str, league_id: int, apply: bool,
     events = apply_reconciliation(sb, recon, players, league_id, dry_run=not apply)
 
     txn_rows: list[dict] = []
+    inferred_skipped = 0
     if infer_transactions:
-        txn_rows = build_transaction_rows(events, run_date, league_id)
+        already = _already_scraped(sb, league_id, run_date)
+        resolved = sum(1 for e in events if e.player_id is not None)
+        txn_rows = build_transaction_rows(events, run_date, league_id, already)
+        inferred_skipped = resolved - len(txn_rows)
         if apply:
             _write_transactions(sb, txn_rows)
 
@@ -396,6 +441,7 @@ def reconcile(sb, csv_text: str, league_id: int, apply: bool,
         "price_changes": len(recon.price_changes),
         "creates": len(recon.creates),
         "transactions_written": len(txn_rows) if apply else 0,
+        "transactions_skipped_as_scraped": inferred_skipped,
         "events": events,
     }
 
@@ -412,6 +458,9 @@ def _print_summary(summary: dict, apply: bool, infer: bool) -> None:
     if infer:
         print(f"  transactions:   {summary['transactions_written']} written"
               if apply else "  transactions:   (dry-run — not written)")
+        if summary["transactions_skipped_as_scraped"]:
+            print(f"  skipped:        {summary['transactions_skipped_as_scraped']} already "
+                  "recorded by the player-card scrape (real timestamps)")
     for e in summary["events"]:
         if e.kind == "trade":
             print(f"    trade  {e.name:24} {e.from_team} → {e.team}  ${e.salary}")

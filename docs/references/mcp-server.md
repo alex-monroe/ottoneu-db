@@ -68,13 +68,13 @@ All tools are read-only and use the anon Supabase client (every table touched ha
 
 | Tool | Purpose |
 |------|---------|
-| `get_league_overview` | League settings, scoring, arb rules, current season phase + deadlines, active projection model. Call first. |
+| `get_league_overview` | League settings, scoring, arb rules, current season phase + deadlines, active projection model. Call first — `season_context.in_season` / `.framing` settle whether games have started. |
 | `get_league_calendar` | All season boundary dates (arb window, keeper deadline, auction, kickoff, trade deadline). |
 | `get_rosters` | All rosters (or one team), current or as-of-date via transaction replay, with salaries + cap space. |
 | `search_players` | Name-substring player search with position/rostered filters. |
 | `get_player` | Full player card: stats by season, projection, auction values, recent transactions. By `ottoneu_id` or name. |
-| `get_transactions` | League transaction log, newest first, with team/type/date filters. |
-| `get_projections` | Active-model projection board (ranked, includes rookies). |
+| `get_transactions` | League transaction log, newest first (real clock order), with team/type/date filters. Rows carry `source` + `feed_quality`; see [Reading the transaction feed](#reading-the-transaction-feed). |
+| `get_projections` | Active-model projection board (ranked, includes rookies). Free agents come back with `salary: null` — see [Free agents have no salary](#free-agents-have-no-salary). |
 | `get_player_values` | VORP-based dollar values + surplus (`calculateSurplus` over end-of-season salaries). |
 | `get_arbitration_analysis` | Ranked arb targets with post-raise surplus; `exclude_team` parameterizes the perspective (`web/lib/mcp/arb.ts`). |
 | `get_arbitration_progress` | Live scraped arb state: team completion, top raises with projected finals, per-team spending. |
@@ -82,6 +82,61 @@ All tools are read-only and use the anon Supabase client (every table touched ha
 | `get_vegas_lines` | Preseason implied totals + win totals per NFL team. |
 
 Responses are JSON text content with rounded numbers and capped list sizes (token-friendly for LLM consumers). The tool handlers only *compose* the existing data layer (`web/lib/data.ts`, `analysis.ts`, `roster-reconstruction.ts`) and pure calculators (`surplus.ts`, `arb-progress.ts`) — no math is duplicated.
+
+## Consumer-facing gotchas
+
+Three of these came out of an AI report generator running a weekly digest off the
+server (Aug 2026). Each was a case of the tools handing over a field that read as
+one thing and meant another, so the fixes are as much about what the response
+*says* as what it contains.
+
+### Reading the transaction feed
+
+`transactions` stores a `transaction_date` **DATE**, not a timestamp, so every move
+made on the same day ties. That broke the feed in two ways: ordering by the date
+and taking the first N returned an arbitrary slice of a busy day, and the slice
+reshuffled between identical calls. Two columns are also effectively dead —
+`from_team` is null on all 1,462 rows, and the origin of a trade lives in the type
+string as `move (from <team>)`.
+
+`web/lib/mcp/transactions.ts` repairs all of this at read time. Nothing new is
+stored; the information was already in the row:
+
+| Response field | Recovered from |
+|---|---|
+| `occurred_at_local` | The Ottoneu card clock the scraper keeps verbatim in `raw_description` ("Aug 22, 2026 9:26 PM"). Present on 87% of rows; null when only a date is known. Site wall-clock, deliberately unzoned. |
+| `from_team` | The `move (from <team>)` type string (106 trades; the stored column stays null). `type` is normalized to `move`. |
+| `source` | `scraped` = a real dated move off a player card. `inferred` = derived by diffing `league_prices` against the roster CSV, and therefore **dated the reconciliation run, not the move**. |
+
+`get_transactions` also assembles its page in two steps — probe for the oldest
+date that could still belong, then fetch *every* row from that date forward — so
+the page is exact rather than merely stable, and orders it on the recovered clock.
+
+**`feed_quality` tells you whether there is a story to tell.** When
+`is_bulk_load` is true the page is one batch (an auction, or a reconciliation
+backfill), not league activity — report roster state from `get_rosters` and say
+no dated activity is available, rather than narrating a day of frantic trading.
+
+### Free agents have no salary
+
+A free agent still has a `league_prices` row, carrying the **$1 placeholder**
+`reconcile_roster.py` writes on a cut (the roster CSV cannot supply a price for an
+unowned player). Emitted as `salary` that reads as a real number to bid against —
+"Tyreek Hill at $1". So `get_projections`, `search_players`, and `get_player` set
+`salary: null` whenever `is_free_agent` is true, and carry a `salary_note`
+pointing at the real anchors: `auction_value` / `market_auction_value` (Draft
+Sharks, scaled to this league's cap) on the projection board, or
+`get_player_values` for VORP-based worth.
+
+### The calendar is authoritative about the season
+
+Clients aggregate this server with live-scoring sources, and one reported "week 2,
+Sunday kickoffs, starters yet to play" for a league sitting in `pre_draft` with
+kickoff still two weeks out. A phase enum alone did not stop a digest prompt from
+assuming in-season framing, so `get_league_overview` now also returns
+`season_context.in_season`, `regular_season_start`, and a plain-language
+`framing` line that states outright that no games have been played and that any
+other source's current-week claim is stale.
 
 ## Connecting a client
 
