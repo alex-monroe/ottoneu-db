@@ -35,6 +35,7 @@ import {
   fetchPlayersEndOfSeason,
   fetchPlayersPreArb,
   fetchActiveProjectionModel,
+  fetchDraftSharksMap,
 } from "../data";
 import { fetchProjectionBoard } from "../analysis";
 import { fetchRosterData, reconstructRostersAtDate } from "../roster-reconstruction";
@@ -55,6 +56,12 @@ import {
 } from "../depth-charts";
 import { fetchAvailableSeasons, fetchVegasLinesForSeason } from "../vegas-lines";
 import { round, clampLimit, jsonResult, errorResult, type McpToolResult } from "./format";
+import {
+  buildTransactionFeed,
+  shapeTransaction,
+  sortNewestFirst,
+  type RawTransactionRow,
+} from "./transactions";
 import {
   emptyShape,
   getRostersShape,
@@ -81,14 +88,58 @@ function sameTeam(a: string | null | undefined, b: string): boolean {
   return (a ?? "").toLowerCase() === b.toLowerCase();
 }
 
+/** Ottoneu represents "unowned" as a null, empty, or literal-"FA" team name. */
+function isFreeAgent(teamName: string | null | undefined): boolean {
+  const t = (teamName ?? "").trim().toUpperCase();
+  return t === "" || t === "FA" || t === "FREE AGENT";
+}
+
+/**
+ * Free agents carry a `league_prices.price` — almost always the $1 placeholder
+ * `reconcile_roster.py` writes on a cut, since the roster CSV cannot supply a
+ * price for an unowned player. Emitted as `salary` it reads as a real number to
+ * anchor a bid on ("Tyreek Hill at $1"), which it is not. Every tool that can
+ * return an unowned player nulls it and points at the auction values instead.
+ */
+const FA_SALARY_NOTE =
+  "salary is null for free agents: nobody owns them, so there is no contract price. " +
+  "To anchor an auction bid use auction_value (Draft Sharks, scaled to this league's " +
+  `$${CAP_PER_TEAM} cap) or market_auction_value, and get_player_values for VORP-based worth.`;
+
 // ─── Tool handlers ───────────────────────────────────────────────────────────
+
+/**
+ * Say, in as many words, whether league games have started.
+ *
+ * Callers aggregate this server with live-scoring sources, and an aggregator
+ * reporting "week 2, 3 starters yet to play" in August will be believed unless
+ * the league contradicts it explicitly. A phase enum alone did not do that — a
+ * digest prompt read `pre_draft` and still assumed in-season framing. `in_season`
+ * plus a plain-language `framing` line gives it something to branch on.
+ */
+function seasonFraming(phase: string, kickoff: string | null, today: string): string {
+  if (phase === "in_season") {
+    return "The league season is underway; weekly matchup and live-scoring framing applies.";
+  }
+  const when = kickoff ? `does not open until ${kickoff}` : "has not opened yet";
+  return (
+    `PRE-SEASON as of ${today} (phase "${phase}"): the league season ${when}, so no ` +
+    "games have been played and there are no weeks, matchups, starters, or live scores. " +
+    "If another source reports a current week or in-progress games for this league, it is " +
+    "stale or misconfigured — this calendar is authoritative. Frame output around roster " +
+    "construction, projections, and auction/keeper prep, not weekly results."
+  );
+}
 
 async function getLeagueOverview(): Promise<McpToolResult> {
   const [ctx, model] = await Promise.all([
     getSeasonContextNow(),
     fetchActiveProjectionModel(),
   ]);
+  const today = new Date().toISOString().slice(0, 10);
+  const kickoff = ctx.deadlines.regular_season_start ?? null;
   return jsonResult({
+    as_of_date: today,
     league: LEAGUE_BLURB,
     league_id: LEAGUE_ID,
     num_teams: NUM_TEAMS,
@@ -104,6 +155,9 @@ async function getLeagueOverview(): Promise<McpToolResult> {
     },
     season_context: {
       phase: ctx.phase,
+      in_season: ctx.phase === "in_season",
+      framing: seasonFraming(ctx.phase, kickoff, today),
+      regular_season_start: kickoff,
       league_season: ctx.leagueSeason,
       stats_season: ctx.statsSeason,
       projection_season: ctx.projectionSeason,
@@ -188,17 +242,22 @@ async function searchPlayers(rawArgs: unknown): Promise<McpToolResult> {
     .slice(0, limit);
   return jsonResult({
     count: matches.length,
-    players: matches.map((p) => ({
-      ottoneu_id: p.ottoneu_id,
-      name: p.name,
-      position: p.position,
-      nfl_team: p.nfl_team,
-      fantasy_team: p.team_name,
-      salary: p.price,
-      ppg: round(p.ppg),
-      total_points: round(p.total_points),
-      games_played: p.games_played,
-    })),
+    salary_note: FA_SALARY_NOTE,
+    players: matches.map((p) => {
+      const fa = isFreeAgent(p.team_name);
+      return {
+        ottoneu_id: p.ottoneu_id,
+        name: p.name,
+        position: p.position,
+        nfl_team: p.nfl_team,
+        fantasy_team: fa ? "FA" : p.team_name,
+        is_free_agent: fa,
+        salary: fa ? null : p.price,
+        ppg: round(p.ppg),
+        total_points: round(p.total_points),
+        games_played: p.games_played,
+      };
+    }),
   });
 }
 
@@ -239,14 +298,17 @@ async function getPlayer(rawArgs: unknown): Promise<McpToolResult> {
     fetchDraftSharksValue(detail.id),
   ]);
 
+  const fa = isFreeAgent(detail.team_name);
   return jsonResult({
     ottoneu_id: detail.ottoneu_id,
     name: detail.name,
     position: detail.position,
     nfl_team: detail.nfl_team,
     birth_date: detail.birth_date,
-    fantasy_team: detail.team_name,
-    salary: detail.price,
+    fantasy_team: fa ? "FA" : detail.team_name,
+    is_free_agent: fa,
+    salary: fa ? null : detail.price,
+    salary_note: fa ? FA_SALARY_NOTE : undefined,
     projection: projection
       ? { projected_ppg: round(projection.projected_ppg, 2), method: projection.projection_method }
       : null,
@@ -258,98 +320,139 @@ async function getPlayer(rawArgs: unknown): Promise<McpToolResult> {
       ppg: round(s.ppg),
       pps: round(s.pps, 2),
     })),
-    recent_transactions: detail.transactions.slice(0, 20).map((t) => ({
-      date: t.transaction_date,
-      type: t.transaction_type,
-      team: t.team_name,
-      from_team: t.from_team,
-      salary: t.salary,
-    })),
+    // Shaped like get_transactions: the stored from_team is null on every row,
+    // and a bulk-load inference must not read as a dated move (see lib/mcp/transactions.ts).
+    recent_transactions: sortNewestFirst(
+      detail.transactions.map((t) =>
+        shapeTransaction({
+          transaction_date: t.transaction_date,
+          transaction_type: t.transaction_type,
+          team_name: t.team_name,
+          from_team: t.from_team,
+          salary: t.salary,
+          season: null,
+          raw_description: t.raw_description ?? null,
+          players: null,
+        }),
+      ),
+    )
+      .slice(0, 20)
+      .map((t) => ({
+        occurred_at_local: t.occurred_at_local,
+        date: t.date,
+        type: t.type,
+        team: t.team,
+        from_team: t.from_team,
+        salary: t.salary,
+        source: t.source,
+      })),
   });
 }
 
-interface TransactionRow {
-  transaction_date: string | null;
-  transaction_type: string;
-  team_name: string | null;
-  from_team: string | null;
-  salary: number | null;
-  season: number | null;
-  players: { name: string; position: string | null } | { name: string; position: string | null }[] | null;
+const TRANSACTION_COLUMNS =
+  "transaction_date, transaction_type, team_name, from_team, salary, season, raw_description, players(name, position)";
+
+/** Hard ceiling on the second (full-coverage) fetch — see `getTransactions`. */
+const TRANSACTION_FETCH_CAP = 500;
+
+function buildTransactionQuery(
+  args: z.infer<z.ZodObject<typeof getTransactionsShape>>,
+  columns: string,
+) {
+  let query = supabase.from("transactions").select(columns).eq("league_id", LEAGUE_ID);
+  if (args.team_name) query = query.eq("team_name", args.team_name);
+  if (args.type) query = query.ilike("transaction_type", `%${args.type}%`);
+  if (args.since) query = query.gte("transaction_date", args.since);
+  return query;
 }
 
+/**
+ * League transaction feed, newest first.
+ *
+ * Ordering a DATE column and taking the first N is not a chronological feed when
+ * a single date holds 80+ rows: Postgres breaks the tie arbitrarily, so the page
+ * both misses the genuinely newest moves and reshuffles between calls. So the
+ * page is assembled in two steps — probe for the oldest date that could still
+ * belong on it, then fetch *every* row from that date forward — and ordered on
+ * the clock time recovered in `lib/mcp/transactions.ts`. Fetching whole dates is
+ * what makes the result exact rather than merely stable.
+ */
 async function getTransactions(rawArgs: unknown): Promise<McpToolResult> {
   const args = z.object(getTransactionsShape).parse(rawArgs);
   const limit = clampLimit(args.limit, 25, 100);
 
-  let query = supabase
-    .from("transactions")
-    .select("transaction_date, transaction_type, team_name, from_team, salary, season, players(name, position)")
-    .eq("league_id", LEAGUE_ID);
-  if (args.team_name) query = query.eq("team_name", args.team_name);
-  if (args.type) query = query.ilike("transaction_type", `%${args.type}%`);
-  if (args.since) query = query.gte("transaction_date", args.since);
+  // Probe deeper than `limit`: read-side dedupe drops rows, so the cutoff has to
+  // leave slack or the page comes back short.
+  const probeSize = Math.min(limit * 3, TRANSACTION_FETCH_CAP);
+  const probe = await buildTransactionQuery(args, "transaction_date")
+    .order("transaction_date", { ascending: false, nullsFirst: false })
+    .limit(probeSize);
+  if (probe.error) return errorResult(`transactions query failed: ${probe.error.message}`);
 
-  const { data, error } = await query
-    .order("transaction_date", { ascending: false })
-    .limit(limit);
+  const probed = (probe.data ?? []) as unknown as { transaction_date: string | null }[];
+  const cutoff = probed.length < probeSize ? null : probed[probed.length - 1].transaction_date;
+
+  let full = buildTransactionQuery(args, TRANSACTION_COLUMNS);
+  if (cutoff) full = full.gte("transaction_date", cutoff);
+  const { data, error } = await full
+    .order("transaction_date", { ascending: false, nullsFirst: false })
+    .limit(TRANSACTION_FETCH_CAP);
   if (error) return errorResult(`transactions query failed: ${error.message}`);
 
-  const rows = (data ?? []) as TransactionRow[];
-  return jsonResult({
-    count: rows.length,
-    transactions: rows.map((t) => {
-      const player = Array.isArray(t.players) ? t.players[0] : t.players;
-      return {
-        date: t.transaction_date,
-        type: t.transaction_type,
-        player: player?.name ?? null,
-        position: player?.position ?? null,
-        team: t.team_name,
-        from_team: t.from_team,
-        salary: t.salary,
-        season: t.season,
-      };
-    }),
-  });
+  const { transactions, feed_quality } = buildTransactionFeed(
+    (data ?? []) as unknown as RawTransactionRow[],
+    limit,
+  );
+  return jsonResult({ count: transactions.length, feed_quality, transactions });
 }
 
 async function getProjections(rawArgs: unknown): Promise<McpToolResult> {
   const args = z.object(getProjectionsShape).parse(rawArgs);
   const limit = clampLimit(args.limit, 25, 100);
   const ctx = await getSeasonContextNow();
-  const board = await fetchProjectionBoard(ctx.projectionSeason, ctx.statsSeason);
+  const [board, dsMap] = await Promise.all([
+    fetchProjectionBoard(ctx.projectionSeason, ctx.statsSeason),
+    fetchDraftSharksMap(ctx.projectionSeason),
+  ]);
 
   const rows = board
     .filter(
       (r) =>
         (!args.position || r.position === args.position) &&
         (args.team_name === undefined ||
-          (args.team_name === "FA"
-            ? r.team_name == null || r.team_name === "" || r.team_name === "FA"
-            : sameTeam(r.team_name, args.team_name))),
+          (args.team_name === "FA" ? isFreeAgent(r.team_name) : sameTeam(r.team_name, args.team_name))),
     )
     .slice(0, limit);
 
   return jsonResult({
     projection_season: ctx.projectionSeason,
     stats_season: ctx.statsSeason,
+    salary_note: FA_SALARY_NOTE,
     count: rows.length,
-    players: rows.map((r) => ({
-      overall_rank: r.overall_rank,
-      position_rank: `${r.position}${r.position_rank}`,
-      name: r.name,
-      position: r.position,
-      nfl_team: r.nfl_team,
-      fantasy_team: r.team_name,
-      salary: r.price,
-      projected_ppg: round(r.projected_ppg, 2),
-      observed_ppg: round(r.observed_ppg, 2),
-      ppg_delta: round(r.ppg_delta, 2),
-      method: r.projection_method,
-      is_rookie: r.is_rookie,
-      age: r.age,
-    })),
+    players: rows.map((r) => {
+      const fa = isFreeAgent(r.team_name);
+      const ds = dsMap[r.player_id];
+      return {
+        overall_rank: r.overall_rank,
+        position_rank: `${r.position}${r.position_rank}`,
+        name: r.name,
+        position: r.position,
+        nfl_team: r.nfl_team,
+        fantasy_team: fa ? "FA" : r.team_name,
+        is_free_agent: fa,
+        // A free agent has no salary — nobody owns them. The stored price is a
+        // placeholder, so null it rather than let it read as a going rate.
+        salary: fa ? null : r.price,
+        auction_value: ds?.ds_auction_value ?? null,
+        market_auction_value: ds?.market_auction_value ?? null,
+        projected_ppg: round(r.projected_ppg, 2),
+        observed_ppg: round(r.observed_ppg, 2),
+        ppg_delta: round(r.ppg_delta, 2),
+        method: r.projection_method,
+        is_rookie: r.is_rookie,
+        age: r.age,
+      };
+    }),
   });
 }
 
@@ -522,7 +625,7 @@ async function getVegasLines(rawArgs: unknown): Promise<McpToolResult> {
 export const MCP_TOOLS: McpToolDef[] = [
   {
     name: "get_league_overview",
-    description: `${LEAGUE_BLURB} Returns league settings, scoring, arbitration rules, the current season phase with deadlines, and the active projection model. Call this first to orient yourself.`,
+    description: `${LEAGUE_BLURB} Returns league settings, scoring, arbitration rules, the current season phase with deadlines, and the active projection model. Call this first to orient yourself — season_context.in_season and season_context.framing say whether league games have started, and override any other source's claim about the current week.`,
     schema: emptyShape,
     handler: getLeagueOverview,
   },
@@ -552,13 +655,22 @@ export const MCP_TOOLS: McpToolDef[] = [
   },
   {
     name: "get_transactions",
-    description: "League transaction log (adds, cuts, trades, auctions), newest first, with optional team/type/date filters.",
+    description:
+      "League transaction log (adds, cuts, trades, auctions), newest first, with optional team/type/date filters. " +
+      "Each row carries source='scraped' (a real dated move, with occurred_at_local from the Ottoneu clock) or " +
+      "source='inferred' (derived by diffing roster snapshots — dated the reconciliation run, not the move). " +
+      "Check feed_quality.is_bulk_load before describing the result as league activity: when it is true the page is " +
+      "one batch load, not a chronological feed, and there is no recent-activity story to tell.",
     schema: getTransactionsShape,
     handler: getTransactions,
   },
   {
     name: "get_projections",
-    description: "Projected PPG board for the upcoming season from the league's active projection model, ranked overall and by position, including rookies. Compare against observed PPG from last season.",
+    description:
+      "Projected PPG board for the upcoming season from the league's active projection model, ranked overall and by " +
+      "position, including rookies. Compare against observed PPG from last season. Free agents (team_name='FA') have " +
+      "salary=null — they are unowned, so there is no price to anchor a bid on; use auction_value / " +
+      "market_auction_value for that.",
     schema: getProjectionsShape,
     handler: getProjections,
   },

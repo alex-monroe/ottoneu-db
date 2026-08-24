@@ -134,6 +134,72 @@ def test_build_transaction_rows_types_and_skips_unresolved():
         assert "inferred from /csv/rosters" in r["raw_description"]
 
 
+def test_build_transaction_rows_skips_moves_the_card_scrape_already_logged():
+    """An inference dated the run day must not duplicate a real dated move.
+
+    `scrape_player_cards` writes `transactions`; this script writes
+    `league_prices`. Neither writes the other's table, so a move the card scrape
+    already logged still shows up as a price diff here the next day and used to
+    be filed a second time under the run date.
+    """
+    events = [
+        Event("add", "u1", "Already Scraped", "Team A", None, 3),
+        Event("trade", "u2", "Also Scraped", "Team B", "Team A", 10),
+        Event("cut", "u3", "Genuinely New", None, "Team A", 5),
+    ]
+    already = {
+        ("u1", "add", 3, "Team A"),
+        ("u2", "move (from Team A)", 10, "Team B"),
+    }
+    rows = build_transaction_rows(events, date(2026, 8, 23), league_id=309,
+                                  already_scraped=already)
+    assert [r["player_id"] for r in rows] == ["u3"]
+
+
+def test_build_transaction_rows_keeps_moves_differing_in_salary_or_team():
+    """Dedupe matches the whole move, not just the player."""
+    events = [
+        Event("add", "u1", "Same Player Diff Price", "Team A", None, 7),
+        Event("add", "u2", "Same Player Diff Team", "Team C", None, 3),
+    ]
+    already = {("u1", "add", 3, "Team A"), ("u2", "add", 3, "Team A")}
+    rows = build_transaction_rows(events, date(2026, 8, 23), league_id=309,
+                                  already_scraped=already)
+    assert {r["player_id"] for r in rows} == {"u1", "u2"}
+
+
+def test_already_scraped_ignores_previously_inferred_rows():
+    """Only real card rows suppress an inference — not this script's own output.
+
+    Otherwise the first reconciliation's rows would suppress every later one for
+    the same move, and a genuine repeat would go unrecorded.
+    """
+    captured = {}
+
+    def fake_fetch(sb, table, select, filters=None):
+        captured["table"] = table
+        captured["filters"] = filters
+        return [
+            {"player_id": "u1", "transaction_type": "add", "salary": 3,
+             "team_name": "Team A", "raw_description": "Aug 22, 2026 9:26 PM | Team A | add | $3"},
+            {"player_id": "u2", "transaction_type": "add", "salary": 4,
+             "team_name": "Team B",
+             "raw_description": "Aug 22, 2026 | Team B | add | $4 | "
+                                "inferred from /csv/rosters reconciliation 2026-08-22"},
+        ]
+
+    original = rr.fetch_all_rows
+    rr.fetch_all_rows = fake_fetch
+    try:
+        keys = rr._already_scraped(object(), 309, date(2026, 8, 23))
+    finally:
+        rr.fetch_all_rows = original
+
+    assert keys == {("u1", "add", 3, "Team A")}
+    assert captured["table"] == "transactions"
+    assert ("gte", "transaction_date", "2026-08-09") in captured["filters"]
+
+
 # --- fetch guards --------------------------------------------------------
 
 class _FakeResp:
