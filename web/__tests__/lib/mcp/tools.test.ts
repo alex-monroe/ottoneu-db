@@ -27,6 +27,7 @@ jest.mock("@/lib/data", () => ({
     fetchPlayersEndOfSeason: jest.fn(),
     fetchPlayersPreArb: jest.fn(),
     fetchActiveProjectionModel: jest.fn(),
+    fetchDraftSharksMap: jest.fn(),
 }));
 jest.mock("@/lib/analysis", () => ({
     fetchProjectionBoard: jest.fn(),
@@ -52,6 +53,8 @@ import {
     fetchDraftSharksValue,
     fetchPlayersEndOfSeason,
     fetchPlayersPreArb,
+    fetchActiveProjectionModel,
+    fetchDraftSharksMap,
 } from "@/lib/data";
 import { fetchProjectionBoard } from "@/lib/analysis";
 import { fetchRosterData } from "@/lib/roster-reconstruction";
@@ -65,6 +68,8 @@ const mockEndOfSeason = fetchPlayersEndOfSeason as jest.MockedFunction<typeof fe
 const mockPreArb = fetchPlayersPreArb as jest.MockedFunction<typeof fetchPlayersPreArb>;
 const mockBoard = fetchProjectionBoard as jest.MockedFunction<typeof fetchProjectionBoard>;
 const mockRosterData = fetchRosterData as jest.MockedFunction<typeof fetchRosterData>;
+const mockActiveModel = fetchActiveProjectionModel as jest.MockedFunction<typeof fetchActiveProjectionModel>;
+const mockDraftSharksMap = fetchDraftSharksMap as jest.MockedFunction<typeof fetchDraftSharksMap>;
 
 function tool(name: string) {
     const def = MCP_TOOLS.find((t) => t.name === name);
@@ -149,6 +154,7 @@ function buildPool(): Player[] {
 beforeEach(() => {
     jest.clearAllMocks();
     mockSeasonContext.mockResolvedValue(SEASON_CTX);
+    mockDraftSharksMap.mockResolvedValue({});
 });
 
 describe("registry", () => {
@@ -320,6 +326,94 @@ describe("get_projections", () => {
         const body = payload(await tool("get_projections").handler({ team_name: "FA" }));
         const players = body.players as { name: string }[];
         expect(players.map((p) => p.name)).toEqual(["WR One"]);
+    });
+});
+
+describe("get_projections free-agent pricing", () => {
+    test("nulls the FA salary and offers auction values as the bid anchor", async () => {
+        // A free agent's league_prices row is a $1 placeholder, not a price —
+        // emitting it as `salary` reads as a number to bid against.
+        mockDraftSharksMap.mockResolvedValue({
+            p2: { ds_auction_value: 34, market_auction_value: 29 },
+        });
+        const body = payload(await tool("get_projections").handler({ team_name: "FA" }));
+        const fa = (body.players as Record<string, unknown>[])[0];
+        expect(fa.name).toBe("WR One");
+        expect(fa.is_free_agent).toBe(true);
+        expect(fa.salary).toBeNull();
+        expect(fa.fantasy_team).toBe("FA");
+        expect(fa.auction_value).toBe(34);
+        expect(fa.market_auction_value).toBe(29);
+        expect(body.salary_note).toContain("salary is null for free agents");
+    });
+
+    test("leaves a rostered player's real salary intact", async () => {
+        const body = payload(await tool("get_projections").handler({ position: "QB" }));
+        const rostered = (body.players as Record<string, unknown>[])[0];
+        expect(rostered.is_free_agent).toBe(false);
+        expect(rostered.salary).toBe(40);
+    });
+
+    test("reports null auction values rather than omitting the fields", async () => {
+        const body = payload(await tool("get_projections").handler({ team_name: "FA" }));
+        const fa = (body.players as Record<string, unknown>[])[0];
+        expect(fa.auction_value).toBeNull();
+        expect(fa.market_auction_value).toBeNull();
+    });
+});
+
+describe("search_players free-agent pricing", () => {
+    test("nulls the salary for an unrostered player", async () => {
+        mockPlayerList.mockResolvedValue([
+            makeListItem({ id: "p1", name: "Rostered Guy", team_name: "Team A", price: 12 }),
+            makeListItem({ id: "p2", name: "Unrostered Guy", team_name: null, price: 1 }),
+        ]);
+        const body = payload(await tool("search_players").handler({ query: "guy" }));
+        const byName = Object.fromEntries(
+            (body.players as { name: string }[]).map((p) => [p.name, p as Record<string, unknown>])
+        );
+        expect(byName["Rostered Guy"].salary).toBe(12);
+        expect(byName["Unrostered Guy"].salary).toBeNull();
+        expect(byName["Unrostered Guy"].is_free_agent).toBe(true);
+    });
+});
+
+describe("get_league_overview season framing", () => {
+    beforeEach(() => {
+        mockActiveModel.mockResolvedValue(null);
+    });
+
+    test("says in as many words that games have not started", async () => {
+        mockSeasonContext.mockResolvedValue({
+            ...SEASON_CTX,
+            phase: "pre_draft",
+            deadlines: { regular_season_start: "2026-09-04" },
+        });
+        const body = payload(await tool("get_league_overview").handler({}));
+        const ctx = body.season_context as Record<string, unknown>;
+        expect(ctx.in_season).toBe(false);
+        expect(ctx.regular_season_start).toBe("2026-09-04");
+        expect(ctx.framing).toContain("PRE-SEASON");
+        expect(ctx.framing).toContain("2026-09-04");
+        // An aggregator claiming a current week must be overridable.
+        expect(ctx.framing).toContain("stale or misconfigured");
+        expect(body.as_of_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+
+    test("switches to weekly framing once the season is underway", async () => {
+        mockSeasonContext.mockResolvedValue({ ...SEASON_CTX, phase: "in_season" });
+        const body = payload(await tool("get_league_overview").handler({}));
+        const ctx = body.season_context as Record<string, unknown>;
+        expect(ctx.in_season).toBe(true);
+        expect(ctx.framing).toContain("underway");
+    });
+
+    test("still frames pre-season when the calendar has no kickoff date", async () => {
+        mockSeasonContext.mockResolvedValue({ ...SEASON_CTX, phase: "pre_keeper", deadlines: {} });
+        const body = payload(await tool("get_league_overview").handler({}));
+        const ctx = body.season_context as Record<string, unknown>;
+        expect(ctx.regular_season_start).toBeNull();
+        expect(ctx.framing).toContain("has not opened yet");
     });
 });
 
