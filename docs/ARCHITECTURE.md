@@ -37,7 +37,7 @@ dispatches them. Two task types remain:
 
 Jobs support dependencies, retries (up to 3 attempts), and batch grouping.
 
-> The Playwright roster/player-card scrape (`scrape_roster`, `scrape_player_card`, `ottoneu_scraper.py`) was removed in favor of the HTTP tools above. Playwright is still used by the standalone FanGraphs/Draft-Sharks/calendar scrapers.
+> The Playwright roster/player-card scrape (`scrape_roster`, `scrape_player_card`, `ottoneu_scraper.py`) was removed in favor of the HTTP tools above. Playwright is still used by the standalone FanGraphs and Draft-Sharks scrapers; `scrape_league_calendar.py` moved to plain HTTP in #700 (the FanGraphs login was unnecessary — the Calendar section renders for anonymous clients — and a spoofed browser UA was tripping Cloudflare).
 
 **Player identity across the college→NFL transition.** One human can hold multiple Ottoneu IDs over their lifecycle: a college prospect is backfilled with a placeholder `ottoneu_id` (and often a `draft_capital` row), then gets a *new* real id once drafted and rostered. `reconcile_roster.py` reconciles this when it first sees a rostered id (`choose_prospect_to_adopt`, in `scripts/prospect_adopt.py`): when no row owns the incoming real id, it adopts a same-`(name, position)` prospect record — one with a synthetic negative id **or** carrying draft capital — by updating its id, instead of creating a duplicate. (The one-off `scripts/merge_duplicate_drafted_players.py` reconciled the existing dupes; the guard prevents recurrence. See GH #483.)
 
