@@ -44,6 +44,12 @@ export const PHASE_UI: Record<Phase, PhaseUi> = {
     featuredGroup: "Projections",
     featuredLinks: ["/projections", "/rosters"],
   },
+  post_draft: {
+    label: "Post-Draft",
+    blurb: "The auction is done and rosters are set — review what the league paid and tune the roster before kickoff.",
+    featuredGroup: "Value",
+    featuredLinks: ["/rosters", "/value", "/players"],
+  },
 };
 
 /** Friendly labels for each league_calendar deadline key. */

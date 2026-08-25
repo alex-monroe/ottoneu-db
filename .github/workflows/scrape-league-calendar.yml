@@ -1,5 +1,14 @@
 name: Scrape League Calendar
 
+# Scrapes the Ottoneu finances page Calendar section into `league_calendar`, the
+# source of truth for the season-cycle resolver (scripts/season.py, web/lib/season.ts).
+#
+# Plain HTTP, no browser and no login: the finances page is public, and it is
+# reachable from GitHub-hosted runners as long as we send an HONEST User-Agent —
+# impersonating a browser is what trips Cloudflare's challenge, not the datacenter
+# IP. Same lesson as pull-roster-csv.yml. OTTONEU_COOKIE is an optional escape
+# hatch only needed if the page is ever gated behind a session.
+
 on:
   # Manual trigger
   workflow_dispatch:
@@ -29,36 +38,24 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install --only-binary pandas,numpy playwright supabase python-dotenv pandas numpy
+          pip install requests beautifulsoup4 supabase python-dotenv
           # Install this repo as a package so `import scripts.*` resolves
           pip install -e . --no-deps
-
-      - name: Install Playwright browsers
-        run: playwright install --with-deps chromium
 
       - name: Create .env
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-          FANGRAPHS_USERNAME: ${{ secrets.FANGRAPHS_USERNAME }}
-          FANGRAPHS_PASSWORD: ${{ secrets.FANGRAPHS_PASSWORD }}
         run: |
           python -c "
           import os
-          keys = ['SUPABASE_URL', 'SUPABASE_KEY', 'FANGRAPHS_USERNAME', 'FANGRAPHS_PASSWORD']
+          keys = ['SUPABASE_URL', 'SUPABASE_KEY']
           with open('.env', 'w') as f:
               for k in keys:
                   f.write(f'{k}={os.environ[k]}\n')
           "
 
       - name: Scrape league calendar
+        env:
+          OTTONEU_COOKIE: ${{ secrets.OTTONEU_COOKIE }}
         run: python scripts/scrape_league_calendar.py
-
-      - name: Upload debug artifacts on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-screenshots
-          path: debug/
-          retention-days: 7
-          if-no-files-found: ignore
