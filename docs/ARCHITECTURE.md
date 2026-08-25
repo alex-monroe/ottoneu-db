@@ -101,7 +101,7 @@ There is no static "current season" constant. Both sides resolve the active
 Ottoneu season label, projection year, stats year, arbitration year, and current
 phase (`pre_arb` / `pre_keeper` / `pre_draft` / `post_draft` / `in_season`) at runtime from the
 `league_calendar` table, which `scripts/scrape_league_calendar.py` refreshes
-weekly from the Ottoneu finances page. Python consumers go through
+weekly from the Ottoneu finances page (plain HTTP, honest User-Agent, no login). Python consumers go through
 `scripts/season.py` (`league_season`, `projection_season`, `stats_season`,
 `arbitration_season`); the web app goes through `web/lib/season.ts`
 (`getSeasonContextNow`, `getStatsSeason`, `getProjectionSeason`,

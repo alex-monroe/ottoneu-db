@@ -161,9 +161,19 @@ automatic.
 
 ## Wiring
 
-- Scraper logs in via FanGraphs (`FANGRAPHS_USERNAME`/`PASSWORD`), parses the
-  finances Calendar section, upserts one row per season label. Add to the cron
-  pipeline alongside the other scrapers.
+- Scraper fetches the finances page over **plain HTTP with an honest
+  User-Agent** (no browser, no login — the page is public, and a spoofed browser
+  UA is what trips Cloudflare), parses the Calendar section's
+  `<li><strong>Label</strong> - value</li>` markup, and upserts one row per
+  season label. Runs weekly via `.github/workflows/scrape-league-calendar.yml`.
+  `just scrape-calendar --file finances.html` re-parses a saved page offline.
+- **Auction-date format trap.** Ottoneu prints the fixed deadlines with an
+  explicit year ("July 31, 2026 11:59 PM EDT") but the auction date without one
+  ("Aug 22, 8:00 PM EDT"). A parser requiring `, \d{4}` reads the auction date
+  as null — which is exactly the field the mid-cycle run exists to capture. The
+  year is inferred from the season label, whose window is a calendar year.
+- Labels with no column (Ottoneu added "End of Season" mid-2026) are still kept
+  in the `raw` jsonb map, so a new label survives until it earns a column.
 - Resolvers read `league_calendar` (web via Supabase client, Python via the
   shared client) with an in-memory fallback so a missing/partial row degrades to
   month-based phase inference rather than hard-failing.
