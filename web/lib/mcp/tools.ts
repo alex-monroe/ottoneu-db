@@ -122,12 +122,20 @@ function seasonFraming(phase: string, kickoff: string | null, today: string): st
     return "The league season is underway; weekly matchup and live-scoring framing applies.";
   }
   const when = kickoff ? `does not open until ${kickoff}` : "has not opened yet";
+  // Post-draft is still pre-season, but the auction is behind us: pointing an
+  // agent at "auction prep" there would be advice for a draft that already ran.
+  const focus =
+    phase === "post_draft"
+      ? "The auction draft is COMPLETE and rosters are set, so frame output around the " +
+        "rosters as drafted — what the league paid, surplus value, and pre-kickoff " +
+        "waiver/trade tuning — not auction or keeper prep."
+      : "Frame output around roster construction, projections, and auction/keeper prep, " +
+        "not weekly results.";
   return (
     `PRE-SEASON as of ${today} (phase "${phase}"): the league season ${when}, so no ` +
     "games have been played and there are no weeks, matchups, starters, or live scores. " +
     "If another source reports a current week or in-progress games for this league, it is " +
-    "stale or misconfigured — this calendar is authoritative. Frame output around roster " +
-    "construction, projections, and auction/keeper prep, not weekly results."
+    `stale or misconfigured — this calendar is authoritative. ${focus}`
   );
 }
 

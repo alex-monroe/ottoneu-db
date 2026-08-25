@@ -63,6 +63,38 @@ describe("getSeasonContext", () => {
     expect(ctx.statsSeason).toBe(2025);
   });
 
+  // Ottoneu shows "Draft day has not been set yet" until the auction is
+  // scheduled, so the whole keeper->kickoff window stays pre_draft without one.
+  it("keeps the whole keeper-to-kickoff window pre_draft with no auction date", () => {
+    expect(getSeasonContext(CAL, "2026-09-03").phase).toBe("pre_draft");
+  });
+
+  describe("with a scheduled auction date", () => {
+    const DRAFTED = [{ ...CAL_2026, auction_date: "2026-08-22" }, CAL_2027];
+
+    it("stays pre_draft before the auction, and on auction day itself", () => {
+      expect(getSeasonContext(DRAFTED, "2026-08-15").phase).toBe("pre_draft");
+      expect(getSeasonContext(DRAFTED, "2026-08-22").phase).toBe("pre_draft");
+    });
+
+    it("resolves post_draft from the day after the auction until kickoff", () => {
+      const ctx = getSeasonContext(DRAFTED, "2026-08-24");
+      expect(ctx.phase).toBe("post_draft");
+      expect(ctx.leagueSeason).toBe(2026);
+      expect(ctx.statsSeason).toBe(2025); // still no 2026 NFL games
+      expect(ctx.arbWindowOpen).toBe(false);
+    });
+
+    it("gives way to in_season at kickoff", () => {
+      expect(getSeasonContext(DRAFTED, "2026-09-04").phase).toBe("in_season");
+    });
+  });
+
+  it("accepts post_draft as a PHASE_OVERRIDE", () => {
+    process.env.PHASE_OVERRIDE = "post_draft";
+    expect(getSeasonContext(CAL, "2026-06-01").phase).toBe("post_draft");
+  });
+
   it("resolves in_season once NFL games start; stats flip to leagueSeason", () => {
     const ctx = getSeasonContext(CAL, "2026-10-01");
     expect(ctx.phase).toBe("in_season");

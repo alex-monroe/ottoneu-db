@@ -1,6 +1,7 @@
 jest.mock("@/lib/supabase", () => ({ supabase: {} }));
 
 import { describeNextBoundary, PHASE_UI } from "@/lib/season-ui";
+import { PHASES } from "@/lib/season";
 import { buildRosterSnapshots } from "@/lib/roster-reconstruction";
 
 const DEADLINES = {
@@ -29,7 +30,7 @@ describe("describeNextBoundary", () => {
 
 describe("PHASE_UI", () => {
   it("defines a label and featured links for every phase", () => {
-    for (const phase of ["in_season", "pre_arb", "pre_keeper", "pre_draft"] as const) {
+    for (const phase of PHASES) {
       expect(PHASE_UI[phase].label).toBeTruthy();
       expect(PHASE_UI[phase].featuredLinks.length).toBeGreaterThan(0);
     }
@@ -59,6 +60,40 @@ describe("buildRosterSnapshots", () => {
       "2026-08-20"
     );
     expect(cfg.defaultDate).toBe("2026-09-03");
+  });
+
+  it("anchors Pre-Draft to the auction and adds Post-Draft once it has run", () => {
+    const cfg = buildRosterSnapshots(
+      {
+        phase: "post_draft",
+        leagueSeason: 2026,
+        deadlines: { ...DEADLINES, auction_date: "2026-08-22" },
+      },
+      "2026-08-24"
+    );
+    // Post-draft the pre-auction snapshot is no longer the interesting view.
+    expect(cfg.defaultDate).toBe("2026-08-24");
+    expect(cfg.quickDates).toEqual([
+      { label: "Pre-Draft", date: "2026-08-21" },
+      { label: "Post-Draft", date: "2026-08-22" },
+      { label: "Wk 1", date: "2026-09-04" },
+      { label: "Wk 8", date: "2026-10-23" },
+      { label: "Wk 16", date: "2026-12-18" },
+      { label: "Today", date: "2026-08-24" },
+    ]);
+  });
+
+  it("omits the Post-Draft jump while the auction is still ahead", () => {
+    const cfg = buildRosterSnapshots(
+      {
+        phase: "pre_draft",
+        leagueSeason: 2026,
+        deadlines: { ...DEADLINES, auction_date: "2026-08-22" },
+      },
+      "2026-08-15"
+    );
+    expect(cfg.defaultDate).toBe("2026-08-21");
+    expect(cfg.quickDates.map((q) => q.label)).not.toContain("Post-Draft");
   });
 
   it("degrades gracefully when calendar dates are missing", () => {

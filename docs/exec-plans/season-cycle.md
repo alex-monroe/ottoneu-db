@@ -49,7 +49,7 @@ year at **Start of Season**. Everything else derives:
 | `statsSeason` | = `leagueSeason` if NFL games have started (≥ `regular_season_start`), else `leagueSeason − 1` (last completed) |
 | `arbitrationSeason` | = `leagueSeason` |
 
-### Phases (4, matching the offseason → in-season cycle)
+### Phases (5, matching the offseason → in-season cycle)
 
 Within season label Y:
 
@@ -57,10 +57,31 @@ Within season label Y:
 |---|---|---|---|
 | `pre_arb` | `season_start` → `arb_end` | today | arbitration planner (`arbWindowOpen` once ≥ `arb_start`) |
 | `pre_keeper` | `arb_end` → `keeper_deadline` | today | keeper / cut tools |
-| `pre_draft` | `keeper_deadline` → `regular_season_start` | **pre-draft** | auction / draft tools |
+| `pre_draft` | `keeper_deadline` → `auction_date` | **pre-draft** | auction / draft tools |
+| `post_draft` | `auction_date` → `regular_season_start` | today | rosters-as-drafted / value |
 | `in_season` | `regular_season_start` → next `season_start` | today | live VORP / standings |
 
 Snapshot flips to "pre-draft" exactly at the keeper deadline, per the spec.
+
+**`post_draft` and the auction date.** Ottoneu prints "Draft day has not been
+set yet" until the league schedules its auction, so `auction_date` is null for
+most of the year. The split is therefore conditional: `post_draft` is returned
+only once `auction_date` is both set *and* strictly in the past (auction day
+itself is still `pre_draft` — the draft is running). With no auction date the
+whole `keeper_deadline` → kickoff window stays `pre_draft`, exactly as before
+the phase existed, so leagues that never publish a draft date are unaffected.
+
+The distinction matters because the two halves of that window are opposite
+situations: before the auction, rosters are speculative and the useful framing
+is auction prep; after it, rosters are settled and the useful framing is what
+the league paid plus pre-kickoff tuning. `statsSeason` stays at Y−1 across both
+(no NFL games yet). The MCP `get_league_overview` `framing` line branches on
+this too, so agents stop being told to prep for a draft that already ran.
+
+The "Pre-Draft" roster quick-jump anchors to `auction_date − 1` when an auction
+date is known (the last state before the draft reshuffled things), falling back
+to kickoff − 1 otherwise, and a "Post-Draft" jump at `auction_date` appears once
+the auction has run.
 `arbitrationSeason` data resets for free at rollover: arb tables are
 season-scoped, so the resolver simply repoints to the new `leagueSeason`; the
 prior season persists as history.
