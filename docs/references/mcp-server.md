@@ -138,6 +138,11 @@ assuming in-season framing, so `get_league_overview` now also returns
 `framing` line that states outright that no games have been played and that any
 other source's current-week claim is stale.
 
+The `framing` line also branches on `post_draft`: once the auction has run but
+kickoff has not arrived, it says the draft is COMPLETE and points the agent at
+the rosters as drafted (what the league paid, surplus, pre-kickoff tuning)
+instead of the auction/keeper prep it recommends earlier in the offseason.
+
 ## Connecting a client
 
 **Claude Code:**

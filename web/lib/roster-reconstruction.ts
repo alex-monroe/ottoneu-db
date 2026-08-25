@@ -317,6 +317,12 @@ function addDays(iso: string, days: number): string {
  * the context server-side and passes the result down. Weeks are anchored to the
  * league season's kickoff; the default snapshot flips to "Pre-Draft" once the
  * keeper deadline has passed (the pre_draft phase), per the season-cycle spec.
+ *
+ * The "Pre-Draft" quick-jump anchors to the day before the auction when Ottoneu
+ * has published an auction date — that is the last roster state before the
+ * draft reshuffles it. Without one it falls back to the day before kickoff.
+ * Once the auction has happened (post_draft) the default is "Today", since the
+ * pre-auction snapshot is no longer the interesting view.
  */
 export function buildRosterSnapshots(
   ctx: Pick<SeasonContext, "phase" | "leagueSeason" | "deadlines">,
@@ -324,10 +330,15 @@ export function buildRosterSnapshots(
 ): RosterSnapshotConfig {
   const kickoff = ctx.deadlines.regular_season_start ?? null;
   const seasonStart = ctx.deadlines.season_start ?? null;
-  const preDraftDate = kickoff ? addDays(kickoff, -1) : null;
+  const auctionDate = ctx.deadlines.auction_date ?? null;
+  const preDraftAnchor = auctionDate ?? kickoff;
+  const preDraftDate = preDraftAnchor ? addDays(preDraftAnchor, -1) : null;
 
   const quickDates: RosterSnapshot[] = [];
   if (preDraftDate) quickDates.push({ label: "Pre-Draft", date: preDraftDate });
+  if (auctionDate && auctionDate <= today) {
+    quickDates.push({ label: "Post-Draft", date: auctionDate });
+  }
   if (kickoff) {
     quickDates.push({ label: "Wk 1", date: kickoff });
     quickDates.push({ label: "Wk 8", date: addDays(kickoff, 49) });

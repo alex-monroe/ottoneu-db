@@ -408,6 +408,21 @@ describe("get_league_overview season framing", () => {
         expect(ctx.framing).toContain("underway");
     });
 
+    test("tells the agent the auction is done once the phase is post_draft", async () => {
+        mockSeasonContext.mockResolvedValue({
+            ...SEASON_CTX,
+            phase: "post_draft",
+            deadlines: { auction_date: "2026-08-22", regular_season_start: "2026-09-04" },
+        });
+        const body = payload(await tool("get_league_overview").handler({}));
+        const ctx = body.season_context as Record<string, unknown>;
+        expect(ctx.in_season).toBe(false);
+        expect(ctx.framing).toContain("PRE-SEASON");
+        expect(ctx.framing).toContain("COMPLETE");
+        // Pointing an agent at auction prep after the auction is stale advice.
+        expect(ctx.framing).not.toContain("auction/keeper prep");
+    });
+
     test("still frames pre-season when the calendar has no kickoff date", async () => {
         mockSeasonContext.mockResolvedValue({ ...SEASON_CTX, phase: "pre_keeper", deadlines: {} });
         const body = payload(await tool("get_league_overview").handler({}));

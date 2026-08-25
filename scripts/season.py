@@ -13,8 +13,14 @@ label itself, so the season is never inferred when calendar data exists.
 Phases (within season label Y):
     pre_arb      season_start      -> arb_end              (arbitration window)
     pre_keeper   arb_end           -> keeper_deadline      (keep/cut decisions)
-    pre_draft    keeper_deadline   -> regular_season_start (auction draft)
+    pre_draft    keeper_deadline   -> auction_date          (auction draft ahead)
+    post_draft   auction_date      -> regular_season_start (rosters set, pre-kickoff)
     in_season    regular_season_start -> next season_start (NFL games played)
+
+`post_draft` only appears once Ottoneu has published an auction date and it has
+passed; while `auction_date` is unset or still ahead, the window stays
+`pre_draft` (Ottoneu shows "Draft day has not been set yet" until it is
+scheduled).
 
 Override: SEASON_OVERRIDE / PHASE_OVERRIDE env vars short-circuit the result
 (testing or off-schedule events). Date-driven by default, manual escape hatch
@@ -29,7 +35,7 @@ from typing import Optional
 
 from scripts.config import LEAGUE_ID
 
-PHASES = ("pre_arb", "pre_keeper", "pre_draft", "in_season")
+PHASES = ("pre_arb", "pre_keeper", "pre_draft", "post_draft", "in_season")
 
 
 def _as_date(value) -> Optional[date]:
@@ -44,12 +50,17 @@ def _phase_from_row(today: date, row: dict) -> str:
     """Phase within the active calendar row, using its milestone dates."""
     arb_end = _as_date(row.get("arb_end"))
     keeper_deadline = _as_date(row.get("keeper_deadline"))
+    auction_date = _as_date(row.get("auction_date"))
     regular_season_start = _as_date(row.get("regular_season_start"))
     if arb_end and today < arb_end:
         return "pre_arb"
     if keeper_deadline and today < keeper_deadline:
         return "pre_keeper"
     if regular_season_start and today < regular_season_start:
+        # The auction splits this window: rosters are speculative before it and
+        # settled after. Unset/future auction_date keeps the whole window pre_draft.
+        if auction_date and today > auction_date:
+            return "post_draft"
         return "pre_draft"
     return "in_season"
 

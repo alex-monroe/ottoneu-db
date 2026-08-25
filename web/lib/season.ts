@@ -12,8 +12,13 @@
  * Phases (within season label Y):
  *   pre_arb      season_start         -> arb_end              (arbitration window)
  *   pre_keeper   arb_end              -> keeper_deadline      (keep/cut decisions)
- *   pre_draft    keeper_deadline      -> regular_season_start (auction draft)
+ *   pre_draft    keeper_deadline      -> auction_date          (auction draft ahead)
+ *   post_draft   auction_date         -> regular_season_start (rosters set, pre-kickoff)
  *   in_season    regular_season_start -> next season_start    (NFL games played)
+ *
+ * `post_draft` only appears once Ottoneu has published an auction date and it
+ * has passed; while `auction_date` is unset or still ahead the window stays
+ * `pre_draft` (Ottoneu shows "Draft day has not been set yet" until scheduled).
  *
  * Override: SEASON_OVERRIDE / PHASE_OVERRIDE env vars short-circuit the result.
  */
@@ -22,7 +27,7 @@ import { cache } from "react";
 import { supabase } from "./supabase";
 import { LEAGUE_ID } from "./config";
 
-export const PHASES = ["pre_arb", "pre_keeper", "pre_draft", "in_season"] as const;
+export const PHASES = ["pre_arb", "pre_keeper", "pre_draft", "post_draft", "in_season"] as const;
 export type Phase = (typeof PHASES)[number];
 
 export interface LeagueCalendarRow {
@@ -63,10 +68,15 @@ function todayISO(now: Date | string = new Date()): string {
 function phaseFromRow(today: string, row: LeagueCalendarRow): Phase {
   const arbEnd = asDate(row.arb_end);
   const keeper = asDate(row.keeper_deadline);
+  const auction = asDate(row.auction_date);
   const rss = asDate(row.regular_season_start);
   if (arbEnd && today < arbEnd) return "pre_arb";
   if (keeper && today < keeper) return "pre_keeper";
-  if (rss && today < rss) return "pre_draft";
+  if (rss && today < rss) {
+    // The auction splits this window: rosters are speculative before it and
+    // settled after. Unset/future auction_date keeps the whole window pre_draft.
+    return auction && today > auction ? "post_draft" : "pre_draft";
+  }
   return "in_season";
 }
 
