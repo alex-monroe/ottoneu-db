@@ -15,6 +15,13 @@
  * mock-draft-live.ts; see docs/references/mock-draft.md.
  */
 
+import {
+  lognormalNoise,
+  NO_VALUATION_NOISE,
+  valuationMultiplier,
+  type ValuationNoise,
+} from "@/lib/valuation-noise";
+
 export type Pos = "QB" | "RB" | "WR" | "TE" | "K";
 export const POS_LIST: Pos[] = ["QB", "RB", "WR", "TE", "K"];
 
@@ -79,60 +86,18 @@ export const startableCount = (t: DraftTeam, pos: Pos) =>
 export const committed = (t: DraftTeam) =>
   t.roster.reduce((a, p) => a + p.salary, 0);
 
-/** lognormal(0, sigma) multiplier via Box–Muller. */
-function lognormalNoise(sigma: number): number {
-  const u1 = Math.random() || 1e-9;
-  const u2 = Math.random();
-  const n = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-  return Math.exp(sigma * n);
-}
-
 const taste = () => lognormalNoise(TASTE_SIGMA);
 
 // ── private manager valuations ──
-/**
- * How far a manager's private valuation of a player may stray from Draft Sharks
- * market value. `spread` is a fraction (0.9 = ±90%); `seed` makes one draft's
- * opinions differ from the next while staying stable *within* a draft.
- */
-export interface ValuationNoise {
-  spread: number;
-  seed: number;
-}
-
-export const MAX_VALUATION_SPREAD = 0.9;
-
-export const NO_VALUATION_NOISE: ValuationNoise = { spread: 0, seed: 0 };
-
-/** A fresh seed for a draft's set of private valuations. */
-export const randomValuationSeed = () => Math.floor(Math.random() * 2 ** 31);
-
-/** FNV-1a — a cheap, stable string hash (unsigned 32-bit). */
-function hash32(s: string): number {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 0x01000193);
-  }
-  return h >>> 0;
-}
-
-/**
- * One manager's private multiplier on a player's market value: uniform in
- * [1 - spread, 1 + spread], deterministic in (seed, team, player). Deterministic
- * matters — a manager who is high on a player stays high on him all draft, and
- * across every bid within a single lot.
- */
-export function valuationMultiplier(
-  teamName: string,
-  playerId: string,
-  { spread, seed }: ValuationNoise,
-): number {
-  const s = Math.max(0, Math.min(MAX_VALUATION_SPREAD, spread));
-  if (s === 0) return 1;
-  const u = hash32(`${seed}|${teamName}|${playerId}`) / 2 ** 32; // [0, 1)
-  return 1 + s * (2 * u - 1);
-}
+// The noise primitives are shared with the snake-draft tool; re-exported here
+// so this module's public API is unchanged. See lib/valuation-noise.ts.
+export {
+  MAX_VALUATION_SPREAD,
+  NO_VALUATION_NOISE,
+  randomValuationSeed,
+  valuationMultiplier,
+} from "@/lib/valuation-noise";
+export type { ValuationNoise } from "@/lib/valuation-noise";
 
 /** What `team` privately thinks `p` is worth (market value when noise is off). */
 export function privateValue(
