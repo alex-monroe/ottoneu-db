@@ -8,18 +8,20 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import SnakeDraftClient from "@/app/snake-draft/SnakeDraftClient";
 import type { MarketPlayer, Pos } from "@/lib/snake-draft-engine";
 
+/** Replacement lands on rank 12 at every position — see the engine tests. */
 const pool: MarketPlayer[] = (["QB", "RB", "WR", "TE"] as Pos[]).flatMap((pos) =>
   Array.from({ length: 30 }, (_, i) => ({
     id: `${pos}${i}`,
     name: `${pos} Player ${i}`,
     pos,
-    mv: 100 - i * 2,
-    nflTeam: "SF",
+    points: 100 - i * 2,
+    vorp: 100 - i * 2 - 78,
+    bye: 6,
   })),
 );
 
 function setup() {
-  render(<SnakeDraftClient pool={pool} season={2026} />);
+  render(<SnakeDraftClient pool={pool} />);
 }
 
 /**
@@ -47,7 +49,7 @@ describe("SnakeDraftClient", () => {
 
   it("reports replacement level and moves it when superflex is selected", () => {
     setup();
-    expect(screen.getByText(/QB12 · RB29 · WR30 · TE13/)).toBeInTheDocument();
+    expect(screen.getByText(/QB12 · RB12 · WR12 · TE12/)).toBeInTheDocument();
     fireEvent.click(screen.getByText("Superflex"));
     expect(screen.getByText(/QB22 ·/)).toBeInTheDocument();
   });
@@ -75,7 +77,7 @@ describe("SnakeDraftClient", () => {
     fireEvent.click(within(firstRow).getByText("Draft"));
 
     const roster = screen.getByText(/My roster/).closest("div")!;
-    expect(within(roster).getByText(name.replace("SF", "").trim())).toBeInTheDocument();
+    expect(within(roster).getByText(name)).toBeInTheDocument();
     expect(screen.getByText(/is picking…/)).toBeInTheDocument(); // clock moved on
   });
 

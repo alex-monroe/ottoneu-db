@@ -28,6 +28,8 @@ const PUBLIC_LINKS = [
   { href: "/", label: "Home" },
   { href: "/players", label: "Players" },
   { href: "/rosters", label: "Rosters" },
+  // Runs entirely in the browser off a static board — no sign-in, no database.
+  { href: "/snake-draft", label: "Snake Draft" },
 ];
 
 const SOFA_LEAGUE_LINK = {
@@ -66,7 +68,6 @@ const PRIVATE_GROUPS = [
       { href: "/arb-progress", label: "Arb Progress" },
       { href: "/arb-planner-public", label: "Arb Planner" },
       { href: "/mock-draft", label: "Mock Draft" },
-      { href: "/snake-draft", label: "Snake Draft" },
     ],
   },
 ];

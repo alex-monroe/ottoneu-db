@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { MAX_VALUATION_SPREAD, randomValuationSeed } from "@/lib/valuation-noise";
+import { SOURCE_FORMAT } from "@/lib/data/athletic-vorp";
 import {
+  athleticPool,
   autoPick,
   DEFAULT_SETTINGS,
   isComplete,
@@ -23,6 +25,7 @@ import {
   scoreTeams,
   simToEnd,
   simToUser,
+  SOURCE_LINEUP,
   startingLineup,
   suggestedPick,
   upcomingPicks,
@@ -35,8 +38,8 @@ import {
 } from "@/lib/snake-draft-engine";
 
 interface Props {
-  pool: MarketPlayer[];
-  season: number;
+  /** Defaults to the published board; injected in tests. */
+  pool?: MarketPlayer[];
 }
 
 /** How long a bot "thinks" before its pick lands, per pace setting. */
@@ -76,7 +79,8 @@ function PosBadge({ pos }: { pos: Pos }) {
 const sameLineup = (a: LineupSettings, b: LineupSettings) =>
   LINEUP_FIELDS.every((f) => a[f.key] === b[f.key]);
 
-export default function SnakeDraftClient({ pool, season }: Props) {
+export default function SnakeDraftClient({ pool: injected }: Props = {}) {
+  const [pool] = useState<MarketPlayer[]>(() => injected ?? athleticPool());
   const [settings, setSettings] = useState<DraftSettings>(DEFAULT_SETTINGS);
   const [noisePct, setNoisePct] = useState(0);
   const [pace, setPace] = useState<PaceKey>("fast");
@@ -116,15 +120,22 @@ export default function SnakeDraftClient({ pool, season }: Props) {
 
   // ── setup ──
   if (!draft) {
-    const repl = replacementRanks(settings);
+    const repl = replacementRanks(pool, settings);
+    // does the configured format match the board's own, i.e. values as published?
+    const atSource =
+      settings.teams === SOURCE_FORMAT.teams && sameLineup(settings.lineup, SOURCE_LINEUP);
     return (
       <div className="mx-auto max-w-2xl px-4 py-10">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Snake Draft</h1>
         <p className="mt-3 text-slate-600 dark:text-slate-300">
           A practice snake draft for any redraft league — this one is not tied to the Ottoneu
-          league. Pick the size of the league, where you draft, and what a starting lineup looks
-          like; the AI teams draft against you off the {season} half-PPR consensus board, re-priced
-          as value over replacement for the format you chose.
+          league, and needs no sign-in. Pick the size of the league, where you draft, and what a
+          starting lineup looks like, then draft against AI opponents off{" "}
+          <span className="font-medium text-slate-800 dark:text-slate-200">
+            {SOURCE_FORMAT.label}
+          </span>{" "}
+          value-over-replacement rankings. Change the format and each position&rsquo;s replacement
+          baseline moves with it.
         </p>
 
         <div className="mt-6 space-y-5 rounded-lg border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-900">
@@ -208,9 +219,10 @@ export default function SnakeDraftClient({ pool, season }: Props) {
             </div>
             <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
               Replacement level for this format:{" "}
-              {POS_LIST.map((p) => `${p}${repl[p]}`).join(" · ")} — a player is worth what he beats
-              that baseline by, which is why quarterbacks climb the board the moment you add a
-              superflex slot.
+              {POS_LIST.map((p) => `${p}${repl[p]}`).join(" · ")}
+              {atSource
+                ? " — the board's own baselines, so values are exactly as published."
+                : " — shifted from the published baselines, so values are adjusted for your format."}
             </p>
           </div>
 
@@ -388,8 +400,9 @@ export default function SnakeDraftClient({ pool, season }: Props) {
                       <th className="px-3 py-2">#</th>
                       <th className="px-3 py-2">Player</th>
                       <th className="px-3 py-2">Pos</th>
-                      <th className="px-3 py-2 text-right">Value</th>
-                      <th className="px-3 py-2 text-right">Market</th>
+                      <th className="px-3 py-2 text-right">Bye</th>
+                      <th className="px-3 py-2 text-right">VORP</th>
+                      <th className="px-3 py-2 text-right">Pts</th>
                       <th className="px-3 py-2" />
                     </tr>
                   </thead>
@@ -399,17 +412,19 @@ export default function SnakeDraftClient({ pool, season }: Props) {
                         <td className="px-3 py-1.5 font-mono text-xs text-slate-400">{p.rank}</td>
                         <td className="px-3 py-1.5 font-medium text-slate-900 dark:text-white">
                           {p.name}
-                          <span className="ml-2 text-xs text-slate-400">{p.nflTeam}</span>
                         </td>
                         <td className="px-3 py-1.5">
                           <PosBadge pos={p.pos} />
                           <span className="ml-1 font-mono text-xs text-slate-400">{p.posRank}</span>
                         </td>
+                        <td className="px-3 py-1.5 text-right font-mono text-xs text-slate-400">
+                          {p.bye}
+                        </td>
                         <td className="px-3 py-1.5 text-right font-mono text-slate-700 dark:text-slate-300">
-                          {p.value.toFixed(0)}
+                          {p.value.toFixed(1)}
                         </td>
                         <td className="px-3 py-1.5 text-right font-mono text-xs text-slate-400">
-                          ${p.mv}
+                          {p.points.toFixed(0)}
                         </td>
                         <td className="px-3 py-1.5 text-right">
                           <button

@@ -1,7 +1,7 @@
 /**
  * Snake-draft engine — a generic (non-Ottoneu) mock snake draft against AI
- * opponents. Pure & framework-free (no React, no Supabase) so it runs in the
- * browser and is unit-tested directly.
+ * opponents. Pure & framework-free (no React, no Supabase, no database) so it
+ * runs in the browser and is unit-tested directly.
  *
  * This is deliberately NOT the Ottoneu keeper auction in mock-draft-engine.ts:
  * there is no salary cap, no keeper roster to seed from, and no league. You
@@ -9,15 +9,16 @@
  * length, and the bots draft against you snake-style. The only shared machinery
  * is the private-valuation noise (lib/valuation-noise.ts).
  *
- * The board is built from Draft Sharks' half-PPR *superflex* consensus auction
- * values, re-expressed as value over replacement for the lineup you configured
- * — which is what makes it format-aware: with one QB slot and 12 teams the QB
- * replacement level is QB12 and quarterbacks fall down the board; add a
- * superflex slot and replacement moves to ~QB22 and they climb back up.
+ * The board is The Athletic's published VORP board for a 12-team, 1-QB, PPR
+ * league (lib/data/athletic-vorp.ts), used as published. A different league
+ * format is handled by shifting each position's replacement baseline in points
+ * space — a correction that is exactly zero at the format the board was built
+ * for, so at 12-team 1QB you are drafting off their numbers and their order.
  *
  * See docs/references/snake-draft.md.
  */
 
+import { ATHLETIC_BOARD, SOURCE_FORMAT } from "@/lib/data/athletic-vorp";
 import {
   lognormalNoise,
   NO_VALUATION_NOISE,
@@ -28,18 +29,19 @@ import {
 export type Pos = "QB" | "RB" | "WR" | "TE";
 export const POS_LIST: Pos[] = ["QB", "RB", "WR", "TE"];
 
-/** A player as the market prices him, before any league format is applied. */
+/** A player as the source board publishes him, before any format correction. */
 export interface MarketPlayer {
   id: string;
   name: string;
   pos: Pos;
-  mv: number; // half-PPR superflex consensus auction value ($400 scale)
-  nflTeam?: string | null;
+  points: number; // projected season points, in the source board's scoring
+  vorp: number; // the publisher's value over replacement, at SOURCE_FORMAT
+  bye: number;
 }
 
 /** …and after: `value` is what the board is actually sorted and drafted on. */
 export interface BoardPlayer extends MarketPlayer {
-  value: number; // value over replacement for the configured lineup
+  value: number; // VORP, corrected to the configured format
   rank: number; // overall board rank, 1 = best
   posRank: number; // rank within position
 }
@@ -66,15 +68,88 @@ export const MAX_TEAMS = 20;
 export const MIN_ROUNDS = 1;
 export const MAX_ROUNDS = 30;
 
-export const LINEUP_1QB: LineupSettings = { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 1, SF: 0 };
-export const LINEUP_SUPERFLEX: LineupSettings = { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 1, SF: 1 };
+/** The lineup the published board is calibrated for. */
+export const SOURCE_LINEUP: LineupSettings = { ...SOURCE_FORMAT.lineup };
+export const LINEUP_1QB: LineupSettings = { ...SOURCE_LINEUP };
+export const LINEUP_SUPERFLEX: LineupSettings = { ...SOURCE_LINEUP, SF: 1 };
 
+/** Defaults match SOURCE_FORMAT, so an untouched setup drafts off it verbatim. */
 export const DEFAULT_SETTINGS: DraftSettings = {
-  teams: 12,
+  teams: SOURCE_FORMAT.teams,
   rounds: 15,
   slot: 1,
-  lineup: { ...LINEUP_1QB },
+  lineup: { ...SOURCE_LINEUP },
 };
+
+/** The published board as a draftable pool. */
+export function athleticPool(): MarketPlayer[] {
+  return ATHLETIC_BOARD.map(([name, pos, posRank, bye, points, vorp]) => ({
+    id: `${pos}${posRank}`, // stable within the board, and the noise hash's key
+    name,
+    pos,
+    points,
+    vorp,
+    bye,
+  }));
+}
+
+export interface BoardStats {
+  /** Positional rank the publisher's replacement level sits at (12 teams). */
+  replRank: Record<Pos, number>;
+  /** Projected points of the player at that rank. */
+  baseline: Record<Pos, number>;
+  /** VORP gained per projected point, fitted from the published values. */
+  slope: Record<Pos, number>;
+}
+
+const _statsCache = new WeakMap<object, BoardStats>();
+
+/**
+ * What a published board says about its own baselines, read back out of the
+ * numbers rather than hardcoded.
+ *
+ * `replRank` is where VORP crosses zero; `baseline` is that player's projected
+ * points (so the format correction is exactly zero at SOURCE_FORMAT, by
+ * construction); `slope` is the least-squares VORP-per-point. The slope is 1.00
+ * at WR and TE and 0.80 at RB, which is exact — the publisher's VORP is affine
+ * in points at those positions. At QB it is not (their implied baseline climbs
+ * from ~247 for the QB1 to ~330 for the QB40, which reads as a streaming-aware
+ * replacement), so the fitted 1.16 is an approximation, used only to price a
+ * change of format away from 1 QB.
+ */
+export function boardStats(pool: MarketPlayer[]): BoardStats {
+  const cached = _statsCache.get(pool);
+  if (cached) return cached;
+
+  const replRank = {} as Record<Pos, number>;
+  const baseline = {} as Record<Pos, number>;
+  const slope = {} as Record<Pos, number>;
+
+  for (const pos of POS_LIST) {
+    const at = pool.filter((p) => p.pos === pos).sort((a, b) => b.vorp - a.vorp);
+    if (at.length === 0) {
+      replRank[pos] = 1;
+      baseline[pos] = 0;
+      slope[pos] = 1;
+      continue;
+    }
+    const points = at.map((p) => p.points);
+    const vorps = at.map((p) => p.vorp);
+
+    const n = Math.max(1, at.filter((p) => p.vorp >= 0).length);
+    replRank[pos] = n;
+    baseline[pos] = points[Math.min(n, points.length) - 1];
+
+    const mx = points.reduce((a, b) => a + b, 0) / points.length;
+    const my = vorps.reduce((a, b) => a + b, 0) / vorps.length;
+    const cov = points.reduce((a, x, i) => a + (x - mx) * (vorps[i] - my), 0);
+    const varx = points.reduce((a, x) => a + (x - mx) ** 2, 0);
+    slope[pos] = varx === 0 ? 1 : cov / varx;
+  }
+  const stats = { replRank, baseline, slope };
+  _statsCache.set(pool, stats);
+  return stats;
+}
 
 const FLEX_POS: Pos[] = ["RB", "WR", "TE"];
 const SF_POS: Pos[] = ["QB", "RB", "WR", "TE"];
@@ -96,59 +171,88 @@ const SF_NEED_POS: Pos[] = ["QB", "RB", "WR"];
 const FLEX_SHARE: Record<Pos, number> = { QB: 0, RB: 0.4, WR: 0.5, TE: 0.1 };
 const SF_SHARE: Record<Pos, number> = { QB: 0.85, RB: 0.05, WR: 0.08, TE: 0.02 };
 
-/**
- * Value retained by a player priced below replacement, as a fraction of his
- * market value. Their value-over-replacement is zero or negative, but the board
- * still has to order them against each other — this keeps that ordering (and
- * keeps the bots' multiplicative valuation noise meaningful down there).
- */
-const BELOW_REPL_FLOOR = 0.1;
-
 const SNAKE_TASTE_SIGMA = 0.08; // per-pick jitter, on top of the noise slider
+
+/**
+ * Floor on the value a bot *scores* a player at. Real VORP goes negative below
+ * replacement, and the scoring model is multiplicative — a negative value would
+ * invert both the need discount and the manager's private multiplier, so a bot
+ * would start preferring positions it has no room for. Clamping to a small
+ * positive number leaves every below-replacement player effectively tied, and
+ * the board's own order (which the scan follows) breaks the tie. Displayed and
+ * scored values are untouched; this only affects who gets picked.
+ */
+const MIN_PICK_VALUE = 0.1;
+
+/** What a bot's scoring model treats a player as worth (see MIN_PICK_VALUE). */
+const pickValue = (p: BoardPlayer) => Math.max(p.value, MIN_PICK_VALUE);
 
 // ── board construction ──
 
+/** Starting slots one team fills at a position, flex/superflex share included. */
+function startersPerTeam(lineup: LineupSettings, pos: Pos): number {
+  return lineup[pos] + lineup.FLEX * FLEX_SHARE[pos] + lineup.SF * SF_SHARE[pos];
+}
+
 /**
- * The rank, within each position, of the last starter the league will roster —
- * i.e. where replacement level sits. Dedicated slots plus that position's share
- * of the flex and superflex slots, times the number of teams.
+ * Where replacement level sits at each position, as a rank within that
+ * position, for a given format.
+ *
+ * This is anchored on the source board's *own* baselines rather than derived
+ * from scratch. The publisher draws replacement level deeper than "last
+ * starter" — at 12 teams it lands on WR60, RB44, TE21, QB16, i.e. the last
+ * player anyone rosters, not the last one anyone starts. Re-deriving it would
+ * silently re-rank their board, so instead the source ranks are scaled for
+ * league size and shifted by the difference in starting slots between the
+ * configured lineup and theirs. At SOURCE_FORMAT this returns their ranks
+ * exactly, and the whole correction below vanishes.
  */
-export function replacementRanks(s: DraftSettings): Record<Pos, number> {
+export function replacementRanks(pool: MarketPlayer[], s: DraftSettings): Record<Pos, number> {
+  const src = boardStats(pool);
   const out = {} as Record<Pos, number>;
   for (const pos of POS_LIST) {
-    const perTeam =
-      s.lineup[pos] + s.lineup.FLEX * FLEX_SHARE[pos] + s.lineup.SF * SF_SHARE[pos];
-    out[pos] = Math.max(1, Math.round(s.teams * perTeam));
+    const scaled = src.replRank[pos] * (s.teams / SOURCE_FORMAT.teams);
+    const lineupShift =
+      s.teams * (startersPerTeam(s.lineup, pos) - startersPerTeam(SOURCE_LINEUP, pos));
+    out[pos] = Math.max(1, Math.round(scaled + lineupShift));
   }
   return out;
 }
 
 /**
- * Re-price the market pool for one league's format and rank it.
+ * Apply the configured format to the published board and rank it.
  *
- * A player's board value is his market value less the market value of the last
- * startable player at his position (`replacementRanks`) — the standard VORP
- * transform, which is what makes the same underlying superflex board usable for
- * a 1-QB league. Below replacement, value falls back to `BELOW_REPL_FLOOR × mv`
- * so late-round players stay ordered sensibly.
+ * The published VORP is used as-is; only the *baseline* moves. If the format
+ * pushes replacement level deeper at a position, every player there is worth
+ * more by the points between the two baselines, converted into VORP by that
+ * position's published VORP-per-point slope (`sourceBoard`). A 12-team, 1-QB
+ * league moves nothing and reproduces the publisher's board exactly.
+ *
+ * The clearest case is superflex: QB starters go from 1.0 to ~1.85 per team, so
+ * QB replacement falls from QB16 to about QB26 and every quarterback gains the
+ * ~50 points between them — which is what lifts the QB1 from the back of round
+ * 2 to the top of round 1, where a superflex draft actually takes him.
  */
 export function buildBoard(pool: MarketPlayer[], s: DraftSettings): BoardPlayer[] {
-  const repl = replacementRanks(s);
-  const replValue = {} as Record<Pos, number>;
+  const src = boardStats(pool);
+  const repl = replacementRanks(pool, s);
+
+  const shift = {} as Record<Pos, number>;
   for (const pos of POS_LIST) {
     const atPos = pool
       .filter((p) => p.pos === pos)
-      .map((p) => p.mv)
+      .map((p) => p.points)
       .sort((a, b) => b - a);
-    replValue[pos] = atPos.length === 0 ? 0 : (atPos[Math.min(repl[pos], atPos.length) - 1] ?? 0);
+    // points of the player now at replacement level (the deepest one we have,
+    // if the format reaches past the end of the published board)
+    const baseline =
+      atPos.length === 0 ? src.baseline[pos] : atPos[Math.min(repl[pos], atPos.length) - 1];
+    shift[pos] = src.slope[pos] * (src.baseline[pos] - baseline);
   }
 
   const valued = pool
-    .map((p) => ({
-      ...p,
-      value: Math.max(p.mv - replValue[p.pos], p.mv * BELOW_REPL_FLOOR),
-    }))
-    .sort((a, b) => b.value - a.value || b.mv - a.mv || a.name.localeCompare(b.name));
+    .map((p) => ({ ...p, value: p.vorp + shift[p.pos] }))
+    .sort((a, b) => b.value - a.value || b.points - a.points || a.name.localeCompare(b.name));
 
   const posSeen = { QB: 0, RB: 0, WR: 0, TE: 0 } as Record<Pos, number>;
   return valued.map((p, i) => ({ ...p, rank: i + 1, posRank: ++posSeen[p.pos] }));
@@ -353,7 +457,7 @@ export function botPick(
 
   for (const p of d.board) {
     const need = needMultiplier(t, p, d.settings.lineup);
-    const priv = p.value * valuationMultiplier(t.name, p.id, d.valuation);
+    const priv = pickValue(p) * valuationMultiplier(t.name, p.id, d.valuation);
     const score = priv * (noise ? lognormalNoise(SNAKE_TASTE_SIGMA) : 1);
     if (score > bestFallbackScore) {
       bestFallbackScore = score;
@@ -380,7 +484,7 @@ export function suggestedPick(d: SnakeDraft): BoardPlayer | null {
   let best: BoardPlayer | null = null;
   let bestScore = -Infinity;
   for (const p of d.board) {
-    const score = p.value * needMultiplier(t, p, d.settings.lineup);
+    const score = pickValue(p) * needMultiplier(t, p, d.settings.lineup);
     if (score > bestScore) {
       bestScore = score;
       best = p;
