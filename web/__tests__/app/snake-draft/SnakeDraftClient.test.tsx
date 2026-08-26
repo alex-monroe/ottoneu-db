@@ -81,6 +81,37 @@ describe("SnakeDraftClient", () => {
     expect(screen.getByText(/is picking…/)).toBeInTheDocument(); // clock moved on
   });
 
+  it("marks where my upcoming picks should land on the board", () => {
+    setup();
+    fireEvent.change(screen.getByLabelText("Teams"), { target: { value: "12" } });
+    fireEvent.click(screen.getByText("Start draft")); // slot 1 of 12: I own #1, #24, #25
+
+    const board = screen.getByRole("table");
+    const marker = within(board).getByText(/My pick #24/);
+    expect(marker).toBeInTheDocument();
+    expect(within(board).getByText(/My pick #25/)).toBeInTheDocument();
+    // …and #1 gets no marker: it is the pick on the clock
+    expect(within(board).queryByText(/My pick #1$/)).not.toBeInTheDocument();
+
+    // 23 players are expected gone before #24, so the marker sits after 23 rows
+    const bodyRows = within(board).getAllByRole("row").slice(1); // drop the header
+    expect(bodyRows.indexOf(marker.closest("tr")!)).toBe(23);
+  });
+
+  it("moves the markers up as picks come off the board", () => {
+    setup();
+    fireEvent.change(screen.getByLabelText("My draft slot"), { target: { value: "12" } });
+    fireEvent.click(screen.getByText("Start draft"));
+    const rowOf = (label: RegExp) => {
+      const board = screen.getByRole("table");
+      const rows = within(board).getAllByRole("row").slice(1);
+      return rows.indexOf(within(board).getByText(label).closest("tr")!);
+    };
+    const before = rowOf(/My pick #12/);
+    tick(3); // three bots pick
+    expect(rowOf(/My pick #12/)).toBe(before - 3);
+  });
+
   it("auto-drafts the remainder and shows the standings", () => {
     setup();
     fireEvent.change(screen.getByLabelText("Rounds"), { target: { value: "3" } });

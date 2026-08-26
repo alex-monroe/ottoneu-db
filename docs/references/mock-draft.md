@@ -82,7 +82,10 @@ The **Manager valuation noise** slider (0 → ±90%, in 5% steps) instead gives 
 private value = market value × uniform(1 − spread, 1 + spread)
 ```
 
-The multiplier is a deterministic FNV-1a hash of `(seed, team name, player id)`
+The multiplier is a deterministic hash of `(seed, team name, player id)` (FNV-1a
+plus a MurmurHash3 finalizer — the finalizer was added for the snake draft, whose
+structured player ids exposed how poorly plain FNV-1a mixes its last byte; this
+board's UUID ids were never affected)
 (`valuationMultiplier` / `privateValue` in `mock-draft-engine.ts`), which buys two
 properties that matter:
 

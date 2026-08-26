@@ -174,18 +174,91 @@ const SF_SHARE: Record<Pos, number> = { QB: 0.85, RB: 0.05, WR: 0.08, TE: 0.02 }
 const SNAKE_TASTE_SIGMA = 0.08; // per-pick jitter, on top of the noise slider
 
 /**
- * Floor on the value a bot *scores* a player at. Real VORP goes negative below
- * replacement, and the scoring model is multiplicative — a negative value would
- * invert both the need discount and the manager's private multiplier, so a bot
- * would start preferring positions it has no room for. Clamping to a small
- * positive number leaves every below-replacement player effectively tied, and
- * the board's own order (which the scan follows) breaks the tie. Displayed and
- * scored values are untouched; this only affects who gets picked.
+ * Apply a taste/opinion multiplier to a VORP, without the sign trap.
+ *
+ * VORP goes negative below replacement, where a plain `value * m` inverts: a
+ * manager who is 40% *high* on a −30 player would price him at −42, i.e. lower.
+ * Scaling the deviation by the magnitude instead gives `value * m` exactly
+ * wherever value is positive, and the intended direction below zero (a manager
+ * who likes a −30 player prices him at −18).
  */
-const MIN_PICK_VALUE = 0.1;
+export function applyMultiplier(value: number, m: number): number {
+  return value + (m - 1) * Math.abs(value);
+}
 
-/** What a bot's scoring model treats a player as worth (see MIN_PICK_VALUE). */
-const pickValue = (p: BoardPlayer) => Math.max(p.value, MIN_PICK_VALUE);
+// ── roster need, in board points ──
+/**
+ * Need is a *bonus*, not a multiplier.
+ *
+ * VORP is an interval scale — the gap between two players is meaningful, the
+ * ratio is not — so multiplying it by a need factor is unsound, and it broke
+ * badly in practice. Late in a draft every player left is below replacement;
+ * with values clamped positive to keep the multiplication working, the value
+ * term went flat and *need alone* decided every pick. Since all twelve teams
+ * have near-identical needs at that point they all wanted the same position,
+ * and the draft produced runs of a dozen straight running backs.
+ *
+ * Adding a bonus in board points keeps the board's own ordering alive all the
+ * way down the tail (where values are still spread over tens of points) and
+ * still makes a bot prefer a starter it can field over a marginally better
+ * bench body.
+ */
+export const STARTER_BONUS = 22; // fills an empty slot at his own position
+const FLEX_BONUS = 12; // …or an empty FLEX/superflex slot, which is fungible
+
+/**
+ * Charged per body already stacked behind the starters, and steeper at the
+ * positions where a bench player is close to useless. A sixth receiver still
+ * covers byes and flexes in; a third tight end in a one-TE league does neither,
+ * and a flat penalty made him the *modal* pick — the board prices tight ends
+ * off a deep replacement level (TE21), so their raw values stay competitive
+ * long after a roster has stopped needing one.
+ */
+const DEPTH_PENALTY: Record<Pos, number> = { QB: 26, RB: 8, WR: 7, TE: 22 };
+
+/**
+ * What a team's roster shape adds to (or takes off) a player's board value.
+ * `null` means it will not draft him at all — the positional ceiling.
+ */
+export function needBonus(
+  t: SnakeTeam,
+  p: MarketPlayer,
+  lineup: LineupSettings,
+): number | null {
+  const have = posCount(t, p.pos);
+  if (have >= maxAtPos(lineup, p.pos)) return null;
+
+  const open = startingLineup(t, lineup).filter((sl) => !sl.player);
+  if (open.some((sl) => sl.slot === p.pos)) return STARTER_BONUS;
+  const flexOpen =
+    open.some((sl) => sl.slot === "FLEX" && FLEX_POS.includes(p.pos)) ||
+    open.some((sl) => sl.slot === "SF" && SF_NEED_POS.includes(p.pos));
+  if (flexOpen) return FLEX_BONUS;
+
+  // he would be body number `have + 1`; the lineup can use `lineup[pos]` of
+  // them at this position (the flex/superflex cases returned above), so this is
+  // how far past useful he sits — a first backup is already one deep
+  const depth = have + 1 - lineup[p.pos];
+  return -DEPTH_PENALTY[p.pos] * Math.max(0, depth);
+}
+
+// ── positional taste ──
+/**
+ * Every manager is a bit irrational about positions: one always leaves with
+ * four running backs, another cannot stop taking receivers. This gives each
+ * team a private, draft-stable multiplier per position — the same deterministic
+ * hash the per-player noise uses, keyed on the position instead of the player.
+ *
+ * It is always on and independent of the noise slider. The slider governs
+ * whether managers disagree about *players*; this is whether they disagree
+ * about *positions*, and without it a room of bots holding identical rosters
+ * wants identical things and drafts in lockstep.
+ */
+export const POS_BIAS_SPREAD = 0.3;
+
+export function positionalBias(teamName: string, pos: Pos, seed: number): number {
+  return valuationMultiplier(teamName, `pos:${pos}`, { spread: POS_BIAS_SPREAD, seed });
+}
 
 // ── board construction ──
 
@@ -356,6 +429,42 @@ export function upcomingPicks(d: SnakeDraft, slot: number): number[] {
   return out;
 }
 
+export interface PickMarker {
+  overall: number;
+  round: number;
+  pickInRound: number;
+  /** How many players are expected to be gone by then — an index into `board`. */
+  boardIndex: number;
+}
+
+/**
+ * Where a slot's upcoming picks are expected to land on the board.
+ *
+ * The model is deliberately the simple one: assume players come off the board
+ * in board order, so the `n` picks between now and yours consume the top `n`
+ * players and the best thing left for you is at index `n`. That is only an
+ * estimate — the bots weight by roster need and their own private valuations,
+ * so runs at a position push value down the board and a quiet position pushes
+ * it up — but it is the estimate the ranking itself supports, and it moves
+ * honestly as the draft actually unfolds.
+ *
+ * The pick on the clock is skipped (its marker would sit at the top of the
+ * board, which tells you nothing).
+ */
+export function pickMarkers(d: SnakeDraft, slot: number, limit = 4): PickMarker[] {
+  const onTheClock = d.picks.length + 1;
+  const teams = d.settings.teams;
+  return upcomingPicks(d, slot)
+    .map((overall) => ({
+      overall,
+      round: Math.floor((overall - 1) / teams) + 1,
+      pickInRound: ((overall - 1) % teams) + 1,
+      boardIndex: overall - onTheClock,
+    }))
+    .filter((m) => m.boardIndex > 0 && m.boardIndex < d.board.length)
+    .slice(0, limit);
+}
+
 // ── roster shape & needs ──
 
 export interface LineupSlot {
@@ -386,11 +495,16 @@ export const posCount = (t: SnakeTeam, pos: Pos) =>
 
 /**
  * Hard ceiling on how many of a position anyone will roster: the slots it can
- * fill plus a position-appropriate bench. Nobody carries a third tight end in a
- * one-TE league however the board is priced.
+ * fill plus a position-appropriate bench.
+ *
+ * This is a backstop against absurdity, not the thing that shapes a roster —
+ * `needBonus` and each manager's positional taste do that. Cinching it tighter
+ * (it once held tight ends to the slots they could start) made every team in
+ * the room finish with an identical positional split, because the cap bound
+ * before taste ever got a say.
  */
 export function maxAtPos(lineup: LineupSettings, pos: Pos): number {
-  const bench: Record<Pos, number> = { QB: 1, RB: 4, WR: 5, TE: 0 };
+  const bench: Record<Pos, number> = { QB: 2, RB: 4, WR: 5, TE: 1 };
   const flexable = FLEX_POS.includes(pos) ? lineup.FLEX : 0;
   const sfable = SF_NEED_POS.includes(pos) ? lineup.SF : 0;
   return lineup[pos] + flexable + sfable + bench[pos];
@@ -411,22 +525,6 @@ export function fillsAStarterSlot(t: SnakeTeam, p: MarketPlayer, lineup: LineupS
 /** How many starting slots this roster still cannot fill. */
 export const openStarterSlots = (t: SnakeTeam, lineup: LineupSettings) =>
   startingLineup(t, lineup).filter((s) => !s.player).length;
-
-/**
- * How much a team wants a position right now, as a multiplier on value.
- *
- * A starter it cannot yet field is worth full value; a backup is worth
- * progressively less the deeper the team already is at the position; past the
- * positional ceiling it is worth nothing. This is what stops a bot from taking
- * its fifth quarterback just because the board says he is the best player left.
- */
-export function needMultiplier(t: SnakeTeam, p: MarketPlayer, lineup: LineupSettings): number {
-  const have = posCount(t, p.pos);
-  if (have >= maxAtPos(lineup, p.pos)) return 0;
-  if (fillsAStarterSlot(t, p, lineup)) return 1;
-  const depth = have - lineup[p.pos]; // bodies already behind the starters
-  return 0.6 * 0.8 ** Math.max(0, depth);
-}
 
 // ── bot picks ──
 
@@ -456,16 +554,21 @@ export function botPick(
   let bestFallbackScore = -Infinity;
 
   for (const p of d.board) {
-    const need = needMultiplier(t, p, d.settings.lineup);
-    const priv = pickValue(p) * valuationMultiplier(t.name, p.id, d.valuation);
-    const score = priv * (noise ? lognormalNoise(SNAKE_TASTE_SIGMA) : 1);
-    if (score > bestFallbackScore) {
-      bestFallbackScore = score;
+    // what this manager privately thinks he is worth: the board value, bent by
+    // his opinion of the player, his taste for the position, and a little jitter
+    const opinion =
+      valuationMultiplier(t.name, p.id, d.valuation) *
+      positionalBias(t.name, p.pos, d.valuation.seed) *
+      (noise ? lognormalNoise(SNAKE_TASTE_SIGMA) : 1);
+    const priv = applyMultiplier(p.value, opinion);
+    if (priv > bestFallbackScore) {
+      bestFallbackScore = priv;
       bestFallback = p;
     }
-    if (need <= 0) continue;
+    const bonus = needBonus(t, p, d.settings.lineup);
+    if (bonus === null) continue; // no room at the position
     if (mustFill && !fillsAStarterSlot(t, p, d.settings.lineup)) continue;
-    const scored = score * need;
+    const scored = priv + bonus;
     if (scored > bestScore) {
       bestScore = scored;
       best = p;
@@ -484,7 +587,9 @@ export function suggestedPick(d: SnakeDraft): BoardPlayer | null {
   let best: BoardPlayer | null = null;
   let bestScore = -Infinity;
   for (const p of d.board) {
-    const score = pickValue(p) * needMultiplier(t, p, d.settings.lineup);
+    const bonus = needBonus(t, p, d.settings.lineup);
+    if (bonus === null) continue;
+    const score = p.value + bonus;
     if (score > bestScore) {
       bestScore = score;
       best = p;

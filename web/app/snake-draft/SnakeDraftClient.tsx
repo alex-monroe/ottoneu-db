@@ -19,6 +19,7 @@ import {
   newDraft,
   onClock,
   openStarterSlots,
+  pickMarkers,
   POS_LIST,
   posCount,
   replacementRanks,
@@ -33,9 +34,15 @@ import {
   type DraftSettings,
   type LineupSettings,
   type MarketPlayer,
+  type PickMarker,
   type Pos,
   type SnakeDraft,
 } from "@/lib/snake-draft-engine";
+
+/** One line of the draft board: an available player, or one of my pick markers. */
+type BoardRow =
+  | { kind: "player"; player: BoardPlayer }
+  | { kind: "marker"; marker: PickMarker };
 
 interface Props {
   /** Defaults to the published board; injected in tests. */
@@ -101,12 +108,32 @@ export default function SnakeDraftClient({ pool: injected }: Props = {}) {
     return () => clearTimeout(id);
   }, [draft, pace]);
 
-  const board = useMemo(() => {
+  /**
+   * The visible board, with the user's upcoming picks threaded in as markers.
+   *
+   * Marker positions are indexes into the *whole* board, so they stay honest
+   * under a position filter: with WRs showing, "your pick #23" lands above the
+   * best receiver expected to survive that long, not above the 23rd receiver.
+   */
+  const rows = useMemo((): BoardRow[] => {
     if (!draft) return [];
     const q = query.trim().toLowerCase();
-    return draft.board
-      .filter((p) => (filter === "ALL" || p.pos === filter) && (!q || p.name.toLowerCase().includes(q)))
-      .slice(0, 200);
+    const markers = pickMarkers(draft, draft.settings.slot);
+    const out: BoardRow[] = [];
+    let next = 0; // markers are in pick order, so one pointer walks them
+    let shown = 0;
+
+    for (let i = 0; i < draft.board.length && shown < 200; i++) {
+      const p = draft.board[i];
+      if (filter !== "ALL" && p.pos !== filter) continue;
+      if (q && !p.name.toLowerCase().includes(q)) continue;
+      while (next < markers.length && markers[next].boardIndex <= i) {
+        out.push({ kind: "marker", marker: markers[next++] });
+      }
+      out.push({ kind: "player", player: p });
+      shown++;
+    }
+    return out;
   }, [draft, filter, query]);
 
   function start() {
@@ -407,36 +434,18 @@ export default function SnakeDraftClient({ pool: injected }: Props = {}) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {board.map((p) => (
-                      <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-900">
-                        <td className="px-3 py-1.5 font-mono text-xs text-slate-400">{p.rank}</td>
-                        <td className="px-3 py-1.5 font-medium text-slate-900 dark:text-white">
-                          {p.name}
-                        </td>
-                        <td className="px-3 py-1.5">
-                          <PosBadge pos={p.pos} />
-                          <span className="ml-1 font-mono text-xs text-slate-400">{p.posRank}</span>
-                        </td>
-                        <td className="px-3 py-1.5 text-right font-mono text-xs text-slate-400">
-                          {p.bye}
-                        </td>
-                        <td className="px-3 py-1.5 text-right font-mono text-slate-700 dark:text-slate-300">
-                          {p.value.toFixed(1)}
-                        </td>
-                        <td className="px-3 py-1.5 text-right font-mono text-xs text-slate-400">
-                          {p.points.toFixed(0)}
-                        </td>
-                        <td className="px-3 py-1.5 text-right">
-                          <button
-                            onClick={() => pick(p)}
-                            disabled={!myTurn}
-                            className="rounded border border-indigo-300 px-2 py-0.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 disabled:opacity-30 dark:border-indigo-800 dark:text-indigo-300 dark:hover:bg-indigo-950/50"
-                          >
-                            Draft
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {rows.map((row) =>
+                      row.kind === "marker" ? (
+                        <PickMarkerRow key={`m${row.marker.overall}`} marker={row.marker} />
+                      ) : (
+                        <PlayerRow
+                          key={row.player.id}
+                          p={row.player}
+                          canDraft={myTurn}
+                          onDraft={() => pick(row.player)}
+                        />
+                      ),
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -535,6 +544,73 @@ export default function SnakeDraftClient({ pool: injected }: Props = {}) {
 }
 
 // ── small presentational helpers ──
+
+/** One available player on the draft board. */
+function PlayerRow({
+  p,
+  canDraft,
+  onDraft,
+}: {
+  p: BoardPlayer;
+  canDraft: boolean;
+  onDraft: () => void;
+}) {
+  return (
+    <tr className="hover:bg-slate-50 dark:hover:bg-slate-900">
+      <td className="px-3 py-1.5 font-mono text-xs text-slate-400">{p.rank}</td>
+      <td className="px-3 py-1.5 font-medium text-slate-900 dark:text-white">{p.name}</td>
+      <td className="px-3 py-1.5">
+        <PosBadge pos={p.pos} />
+        <span className="ml-1 font-mono text-xs text-slate-400">{p.posRank}</span>
+      </td>
+      <td className="px-3 py-1.5 text-right font-mono text-xs text-slate-400">{p.bye}</td>
+      <td className="px-3 py-1.5 text-right font-mono text-slate-700 dark:text-slate-300">
+        {p.value.toFixed(1)}
+      </td>
+      <td className="px-3 py-1.5 text-right font-mono text-xs text-slate-400">
+        {p.points.toFixed(0)}
+      </td>
+      <td className="px-3 py-1.5 text-right">
+        <button
+          onClick={onDraft}
+          disabled={!canDraft}
+          className="rounded border border-indigo-300 px-2 py-0.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 disabled:opacity-30 dark:border-indigo-800 dark:text-indigo-300 dark:hover:bg-indigo-950/50"
+        >
+          Draft
+        </button>
+      </td>
+    </tr>
+  );
+}
+
+/**
+ * A rule across the board showing where one of my upcoming picks is expected to
+ * land — everything below it is what the ranking says should still be there.
+ */
+function PickMarkerRow({ marker }: { marker: PickMarker }) {
+  return (
+    <tr className="bg-indigo-50/60 dark:bg-indigo-950/30">
+      <td colSpan={7} className="px-3 py-1">
+        <div
+          className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300"
+          title="Assumes players come off the board in ranking order — a run at one position will push this line around."
+        >
+          <span className="whitespace-nowrap">
+            My pick #{marker.overall}
+            <span className="ml-1.5 font-mono font-normal opacity-70">
+              {"· "}
+              {marker.round}.{String(marker.pickInRound).padStart(2, "0")}
+            </span>
+          </span>
+          <span className="h-px flex-1 bg-indigo-300 dark:bg-indigo-700" />
+          <span className="whitespace-nowrap font-normal normal-case opacity-70">
+            likely available from here
+          </span>
+        </div>
+      </td>
+    </tr>
+  );
+}
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (

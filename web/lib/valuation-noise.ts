@@ -27,13 +27,29 @@ export const NO_VALUATION_NOISE: ValuationNoise = { spread: 0, seed: 0 };
 /** A fresh seed for a draft's set of private valuations. */
 export const randomValuationSeed = () => Math.floor(Math.random() * 2 ** 31);
 
-/** FNV-1a — a cheap, stable string hash (unsigned 32-bit). */
+/**
+ * FNV-1a plus a MurmurHash3 finalizer — a cheap, stable string hash (unsigned
+ * 32-bit) whose output actually avalanches.
+ *
+ * The finalizer is not optional here. Plain FNV-1a barely mixes the last byte:
+ * two keys differing only in a trailing character land about `0x01000193` apart
+ * — 0.4% of the 32-bit range — so keys like "…|WR1" and "…|WR2" produced almost
+ * the same number. That is invisible with UUID player ids (the auction board)
+ * and fatal with structured ones (the snake board's "WR1", "WR2", …): every
+ * manager ended up with the *same* opinion of every player, and the valuation
+ * noise slider quietly did nothing.
+ */
 export function hash32(s: string): number {
   let h = 0x811c9dc5;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);
     h = Math.imul(h, 0x01000193);
   }
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x85ebca6b);
+  h ^= h >>> 13;
+  h = Math.imul(h, 0xc2b2ae35);
+  h ^= h >>> 16;
   return h >>> 0;
 }
 

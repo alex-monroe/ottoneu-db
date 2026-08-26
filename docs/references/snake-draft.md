@@ -92,61 +92,130 @@ The setup screen previews the overall pick numbers your slot owns (`#3 · #18 ·
 #23 · …`). Two lineup presets — **1 QB** and **Superflex** — set the lineup in
 one click.
 
+## Where my picks land
+
+The board shows a rule across it for each of my upcoming picks — everything
+below the line is what should still be there when that pick comes around.
+
+The model is the simple one, and the one the ranking itself supports: assume
+players come off the board in board order, so the `n` picks between now and mine
+consume the top `n` players and the best thing left for me sits at index `n`.
+The line moves up as the draft actually unfolds, and the pick on the clock gets
+no marker (it would sit at the top of the board and tell you nothing).
+
+Marker positions are indexes into the **whole** board, so they stay honest under
+a position filter: with WRs showing, "my pick #17" lands above the best receiver
+expected to survive that long, not above the 17th receiver. It is an estimate —
+a run at one position pushes value down the board, a quiet position pushes it up.
+
 ## How the bots draft
 
 Every bot scores the whole remaining board and takes the best thing on it:
 
 ```
-score = value × managerMultiplier × needMultiplier × taste
+score = value, bent by his opinion of the player and his taste for the position
+      + what his roster needs
 ```
 
-- **`managerMultiplier`** is the noise slider — a private, draft-stable opinion
-  of each player (below).
-- **`needMultiplier`** is roster construction. A player who steps straight into
-  an empty starting slot is worth full value; a backup is worth `0.6 × 0.8^depth`
-  behind the starters already rostered; past the positional ceiling
-  (`maxAtPos` — slots the position can fill, plus a bench of QB 1 · RB 4 · WR 5 ·
-  TE 0) he is worth nothing. This is what stops a bot from taking its fifth
-  quarterback because the board says he is the best player left.
-- **`taste`** is a small per-pick lognormal jitter (σ = 0.08), so two bots with
-  identical rosters don't make identical picks.
+### Need is a bonus, not a multiplier
 
-**Real VORP goes negative below replacement, and this model is multiplicative.**
-A negative value would invert both the need discount and the manager's private
-multiplier — a bot would start *preferring* positions it had no room for. So the
-value a bot scores with is floored at `MIN_PICK_VALUE` (0.1), which leaves every
-below-replacement player effectively tied and lets the board's own order break
-the tie. Displayed values and the final standings are untouched.
+VORP is an **interval** scale — the gap between two players means something, the
+ratio does not — so roster need is added in board points rather than multiplied:
 
-**Roster crunch.** Once a team has no more picks than it has unfillable starting
-slots (`picksLeft ≤ openStarterSlots`), it stops taking best available and only
-drafts players who fill a hole — the behaviour real drafters show in the last
-couple of rounds. If nothing on the board fills a hole (or everything left is
-capped out), it takes the best body available rather than forfeit the pick.
+| Situation | Adjustment |
+|---|---|
+| Steps into an empty slot at his own position | **+22** |
+| Fills an empty FLEX / superflex slot (fungible) | **+12** |
+| Bench body, `depth` deep behind the starters | **−(QB 26 · RB 8 · WR 7 · TE 22) × depth** |
+| Past the positional ceiling (`maxAtPos`) | won't draft him |
 
-**The superflex slot is planned as a QB slot.** Any position may legally *start*
-there — `startingLineup` and the final standings honour that — but roster
-planning uses a narrower list (QB · RB · WR). Counting TE as a superflex starter
-gave bots a phantom starting job and left them holding a third tight end in a
-one-TE league.
+Multiplying was tried first and broke badly. Late in a draft every player left
+is below replacement, so their VORP is negative; the values were clamped
+positive to keep the multiplication working, which flattened the value term and
+left **need alone** deciding every pick. All twelve teams have near-identical
+needs at that point, so they all wanted the same position — and the draft
+produced runs of a dozen straight running backs. Adding a bonus keeps the
+board's own ordering alive down the tail, where the values are still spread over
+tens of points.
+
+The depth penalty is steeper at QB and TE because a bench player there is close
+to useless. A sixth receiver still covers byes and flexes in; a third tight end
+in a one-TE league does neither — and the board prices tight ends off a deep
+replacement level (TE21), so their raw values stay competitive long after a
+roster has stopped needing one. With a flat penalty, a third TE became the
+*modal* outcome.
+
+`maxAtPos` (slots the position can fill, plus a bench of QB 2 · RB 4 · WR 5 · TE
+1) is a backstop against absurdity, not the thing that shapes a roster. Cinching
+it tighter — it once held tight ends to the slots they could start — made every
+team in the room finish with an identical positional split, because the ceiling
+bound before taste ever got a say.
+
+### Positional taste
+
+Every manager is a bit irrational about positions: one always leaves with four
+running backs, another cannot stop taking receivers. `positionalBias` gives each
+team a private, draft-stable multiplier per position (±30%), from the same
+deterministic hash the per-player noise uses, keyed on the position instead of
+the player.
+
+It is **always on and independent of the noise slider**. The slider governs
+whether managers disagree about *players*; this is whether they disagree about
+*positions*. Without it a room of bots holding identical rosters wants identical
+things and drafts in lockstep — the same failure the need multiplier caused, from
+the other direction. Measured over ten 12-team drafts, it is the difference
+between every team finishing on the same positional split and ten or eleven
+distinct ones.
+
+### Sign-safe opinions
+
+Every multiplier — the noise slider, positional taste, the per-pick jitter —
+goes through `applyMultiplier(value, m) = value + (m − 1) × |value|`. A plain
+`value × m` inverts below replacement: a manager 40% *high* on a −30 player
+would price him at −42, i.e. lower. This gives exactly `value × m` wherever
+value is positive and the intended direction below zero.
+
+### Roster crunch
+
+Once a team has no more picks than it has unfillable starting slots
+(`picksLeft ≤ openStarterSlots`), it stops taking best available and only drafts
+players who fill a hole — the behaviour real drafters show in the last couple of
+rounds. If nothing on the board fills a hole (or everything left is capped out),
+it takes the best body available rather than forfeit the pick. Across 144
+simulated rosters, none finished unable to field a lineup.
+
+### The superflex slot is planned as a QB slot
+
+Any position may legally *start* there — `startingLineup` and the final standings
+honour that — but roster planning uses a narrower list (QB · RB · WR). Counting
+TE as a superflex starter gave bots a phantom starting job and left them holding
+a third tight end in a one-TE league.
 
 ## Manager valuation noise
 
-Identical to the slider on `/mock-draft`, and the same code
-(`valuationMultiplier` in `web/lib/valuation-noise.ts`): each rival gets a
-private multiplier on every player, uniform in `[1 − spread, 1 + spread]`,
-derived from a deterministic FNV-1a hash of `(seed, team name, player id)`.
+Each rival gets a private multiplier on every player, uniform in
+`[1 − spread, 1 + spread]`, from a deterministic hash of `(seed, team name,
+player id)` (`valuationMultiplier` in `web/lib/valuation-noise.ts`, shared with
+`/mock-draft`).
 
 - **Stable within a draft** — a manager who is 40% high on a receiver stays 40%
   high on him in every round.
 - **Fresh between drafts** — a new seed is drawn each time you start one.
 
-At 0 the room ranks the board exactly as it is shown to you, and every bot wants
-the same player. Turn it up for a messier room: more reaches, and more of your
-targets sliding to you.
+At 0 the room prices every *player* exactly as the board does, and only
+positional taste separates the managers. Turn it up for a messier room: more
+reaches, and more of your targets sliding to you.
+
+> **The hash needs a finalizer.** Plain FNV-1a barely mixes its last byte: two
+> keys differing only in a trailing character land ~0.4% of the range apart. That
+> is invisible with the auction board's UUID player ids and fatal with this
+> board's structured ones (`WR1`, `WR2`, …) — every manager got nearly the same
+> opinion of every player and the slider quietly did nothing. `hash32` now runs a
+> MurmurHash3 finalizer over the FNV output, and
+> `__tests__/lib/valuation-noise.test.ts` asserts the avalanche.
 
 Your side of the draft is never noised. **Take best available** recommends the
-highest `value × needMultiplier` on the board, at published value.
+highest `value + needBonus` on the board, at published value.
 
 ## Running the draft
 
@@ -165,10 +234,11 @@ mostly insurance.
 |------|------|
 | `web/lib/data/athletic-vorp.ts` | The published board: 300 rows + the format it was built for |
 | `web/lib/valuation-noise.ts` | Private per-manager valuations, shared with `/mock-draft` |
-| `web/lib/snake-draft-engine.ts` | Pure engine: board stats + format correction, snake order, bot picks, lineups, scoring |
+| `web/lib/snake-draft-engine.ts` | Pure engine: board stats + format correction, snake order, bot picks, pick markers, lineups, scoring |
 | `web/app/snake-draft/page.tsx` | Server page — no gate, no data fetch |
 | `web/app/snake-draft/SnakeDraftClient.tsx` | Setup screen, draft room, standings |
 | `web/__tests__/lib/snake-draft-engine.test.ts` | Engine unit tests (including the published-board regression) |
+| `web/__tests__/lib/valuation-noise.test.ts` | Noise primitives, including the hash-avalanche regression |
 | `web/__tests__/app/snake-draft/SnakeDraftClient.test.tsx` | Component test: setup → bots pick → user picks → standings |
 
 ## Updating the board
@@ -194,7 +264,9 @@ baselines, so a bad paste fails loudly.
   is zero); away from 1 QB it prices the baseline move approximately.
 - **Values are static.** No injuries, no depth-chart moves, no news since the
   download.
-- **The bots have no draft strategy beyond value and need.** They don't run on
-  positional tiers, don't anticipate a run, don't reach for their handcuff, and
-  don't adjust to what the room is doing. The noise slider makes the room
-  *disagree*; it does not give any bot a coherent plan.
+- **The bots have no draft strategy beyond value, need and positional taste.**
+  They don't run on positional tiers, don't anticipate a run, don't reach for
+  their handcuff, and don't adjust to what the room is doing. Taste makes a
+  manager lean on a position all draft; it is not a coherent plan.
+- **The pick markers assume board order.** They are where your picks land if
+  nothing surprising happens, which is not how drafts go.
