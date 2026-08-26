@@ -149,6 +149,7 @@ roster room.
 
 | File | Role |
 |------|------|
+| `web/lib/valuation-noise.ts` | The private per-manager valuations, shared with [`/snake-draft`](snake-draft.md) |
 | `web/lib/mock-draft-engine.ts` | Pure engine: AI valuation (incl. private per-manager valuations), sealed-bid resolution, roster/lineup helpers, nomination order |
 | `web/lib/mock-draft-live.ts` | Real-time English-auction layer on top of it (clock, bid feed, proxy bids, pause) |
 | `web/lib/mock-draft.ts` | Server-side seed: rosters + caps from `league_prices`, FA pool from `draft_sharks_values` |
@@ -172,6 +173,9 @@ roster room.
 - Budget pressure is a `/mock-draft` addition — `scripts/auction_simulator.py` has not been
   given the same treatment, so its bots still leave cash on the table. The two are no longer
   a strict port of each other.
+- For a **snake** draft in a league that isn't this one, see
+  [snake-draft.md](snake-draft.md) — a separate tool with its own engine, sharing
+  only the valuation-noise module.
 - For the batch/offline version of the same model — thousands of simulated auctions to
   price a target list rather than one interactive draft — see
   [auction-simulator.md](auction-simulator.md).

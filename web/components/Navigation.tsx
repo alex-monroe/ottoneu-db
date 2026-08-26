@@ -66,6 +66,7 @@ const PRIVATE_GROUPS = [
       { href: "/arb-progress", label: "Arb Progress" },
       { href: "/arb-planner-public", label: "Arb Planner" },
       { href: "/mock-draft", label: "Mock Draft" },
+      { href: "/snake-draft", label: "Snake Draft" },
     ],
   },
 ];
