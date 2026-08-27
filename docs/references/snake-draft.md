@@ -223,6 +223,11 @@ Bots pick on a timer (instant / 250ms / 700ms per pick) so the draft reads like
 a draft. **Skip to my pick** fast-forwards the bots instantly; **Auto-draft
 rest** runs the remainder including your own picks, on the same heuristic.
 
+The **Draft history** panel in the sidebar keeps *every* pick, newest first,
+with the running count in its heading; it scrolls inside a fixed-height box
+rather than growing the page or dropping older picks. (It previously rendered
+only the last 12, so earlier rounds were unrecoverable once the draft moved on.)
+
 When the board empties or the last round ends, the standings replace the board:
 every roster ranked by the value of the starting lineup it can actually field
 (`scoreTeams`), which is the honest way to grade a snake draft — bench value is

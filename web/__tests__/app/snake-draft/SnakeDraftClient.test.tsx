@@ -112,6 +112,20 @@ describe("SnakeDraftClient", () => {
     expect(rowOf(/My pick #12/)).toBe(before - 3);
   });
 
+  it("keeps every pick in the draft history, oldest still reachable", () => {
+    setup();
+    fireEvent.click(screen.getByText("Start draft")); // slot 1: we are up immediately
+    const board = screen.getByRole("table");
+    const firstRow = within(board).getAllByRole("row")[1];
+    fireEvent.click(within(firstRow).getByText("Draft"));
+    tick(14); // 15 picks total — more than the panel used to keep
+
+    const history = screen.getByText(/Draft history/).closest("div")!;
+    expect(within(history).getAllByRole("listitem")).toHaveLength(15);
+    expect(screen.getByText("Draft history (15)")).toBeInTheDocument();
+    expect(within(history).getByText("1.01")).toBeInTheDocument(); // the very first pick
+  });
+
   it("auto-drafts the remainder and shows the standings", () => {
     setup();
     fireEvent.change(screen.getByLabelText("Rounds"), { target: { value: "3" } });

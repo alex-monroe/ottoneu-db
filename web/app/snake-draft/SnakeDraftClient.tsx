@@ -320,7 +320,7 @@ export default function SnakeDraftClient({ pool: injected }: Props = {}) {
   const bench = me.roster.filter((p) => !lineup.some((s) => s.player?.id === p.id));
   const suggestion = myTurn ? suggestedPick(draft) : null;
   const myNext = upcomingPicks(draft, draft.settings.slot);
-  const recent = [...draft.picks].reverse().slice(0, 12);
+  const history = [...draft.picks].reverse();
   const scores = done ? scoreTeams(draft) : [];
 
   const pick = (p: BoardPlayer) => setDraft((d) => (d ? makePick(d, p) : d));
@@ -511,12 +511,16 @@ export default function SnakeDraftClient({ pool: injected }: Props = {}) {
             )}
           </Panel>
 
-          <Panel title="Recent picks">
-            {recent.length === 0 ? (
+          <Panel
+            title={
+              history.length > 0 ? `Draft history (${history.length})` : "Draft history"
+            }
+          >
+            {history.length === 0 ? (
               <p className="text-sm italic text-slate-400">No picks yet.</p>
             ) : (
-              <ol className="space-y-1 text-sm">
-                {recent.map((p) => (
+              <ol className="max-h-96 space-y-1 overflow-y-auto pr-1 text-sm">
+                {history.map((p) => (
                   <li key={p.overall} className="flex items-baseline gap-2">
                     <span className="w-10 shrink-0 font-mono text-xs text-slate-400">
                       {p.round}.{String(p.pickInRound).padStart(2, "0")}
