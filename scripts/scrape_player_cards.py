@@ -38,6 +38,7 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 from scripts.config import LEAGUE_ID, fetch_all_rows, get_supabase_client
+from scripts.transaction_dedupe import recent_purge
 
 PLAYER_CARD_URL_TEMPLATE = (
     "https://ottoneu.fangraphs.com/football/{league_id}/player_card/{level}/{ottoneu_id}"
@@ -216,9 +217,18 @@ def scrape_all(sb, league_id: int, apply: bool, run_date: date,
         if (i + 1) % 100 == 0:
             print(f"  … {i + 1}/{len(targets)} processed")
 
+    # This scrape is the authority on move dates. reconcile_roster runs earlier in
+    # the day and files a *guessed* date for anything it cannot see history for, so
+    # the same move can exist twice. Now that the real rows are in, drop the
+    # inferences they supersede — this is what makes the two writers converge
+    # regardless of which one ran first (see scripts/transaction_dedupe.py).
+    purged = 0
+    if apply:
+        purged = recent_purge(sb, league_id, run_date)["deleted"]
+
     return {
         "targets": len(targets), "fetched": fetched, "skipped_no_card": skipped,
-        "failed": failed, "transactions": txns_written,
+        "failed": failed, "transactions": txns_written, "purged_inferred": purged,
     }
 
 
@@ -251,6 +261,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  fetch failures:    {summary['failed']}")
     print(f"  transactions:      {summary['transactions']}"
           + ("" if args.apply else " (dry-run — not written)"))
+    print(f"  inferred dupes purged: {summary['purged_inferred']}")
     if not args.apply:
         print("\nDry-run only. Re-run with --apply to write.")
     return 0

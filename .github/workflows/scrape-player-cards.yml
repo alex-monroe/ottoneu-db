@@ -8,6 +8,14 @@ name: Scrape Player Cards
 # Sends an honest User-Agent (impersonating a browser is what trips Cloudflare —
 # not the datacenter IP), so this runs fine on stock GitHub-hosted runners.
 
+# ORDERING: this job is scheduled AFTER pull-roster-csv (06:17) on purpose.
+# reconcile_roster runs first because it discovers/creates new player rows that this
+# scrape then needs; the cost is that its inferred transactions are filed before the
+# real card rows exist, so the same move lands twice. This scrape ends by deleting the
+# inferences its real rows supersede (scripts/transaction_dedupe.py), which is what
+# makes the pair converge. Don't drop that purge or reorder these two without reading
+# docs/references/roster-csv-reconciliation.md.
+
 on:
   workflow_dispatch:
   schedule:

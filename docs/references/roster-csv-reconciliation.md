@@ -36,27 +36,59 @@ string) and carry an `inferred from /csv/rosters reconciliation` provenance mark
 `(player_id, league_id, transaction_type, transaction_date, salary)` makes re-runs
 idempotent.
 
-### Inferences never duplicate a scraped move
+### Deduping against the player-card scrape
 
 This script owns `league_prices`; `scrape_player_cards.py` owns `transactions`.
 Neither writes the other's table — so after the card scrape logs a move *with its
 real timestamp*, the next reconciliation still sees a stale price row, re-derives
 the same move, and (since the uniqueness key includes `transaction_date`) files a
 second copy under the run date. That is how the 2026-08-23 run wrote 86 rows that
-each duplicated a card row from 2026-08-22, burying real activity under what
-looked like a day of frantic trading.
+each duplicated a card row from 2026-08-22, burying the auction under what looked
+like a day of frantic trading.
 
-So before inferring, `_already_scraped` reads back the last
-`TXN_DEDUPE_LOOKBACK_DAYS` (14) of **non-inferred** transactions and skips any
-event already recorded there, matching on the whole move
-(`player_id, type, salary, team`) rather than just the player. An inference dated
-the run day is strictly worse than the same move with its true timestamp. The
-lookback ignores this script's own prior output, so a genuine repeat (add → cut →
-re-add at the same price) is still recorded, and a lagging or failed card-scrape
-run still gets covered. `_print_summary` reports the skipped count.
+Two mechanisms handle it, in order.
 
-The rows already written before this fix are suppressed on read instead, by
-`web/lib/mcp/transactions.ts` — see
+**1. The pre-filter (cheap path).** Before inferring, `_already_scraped` reads
+back the last `TXN_DEDUPE_LOOKBACK_DAYS` (14) of **non-inferred** transactions and
+skips any event already recorded there, matching on the whole move
+(`player_id, type, salary, team`) rather than just the player. It ignores this
+script's own prior output, so a genuine repeat (add → cut → re-add at the same
+price) is still recorded. `_print_summary` reports the skipped count.
+
+This only catches moves the card scrape has **already** written, so it does
+nothing for an overnight move: the roster-CSV job is scheduled at 06:17 UTC and
+the card scrape at 06:40, so on the morning after a move the card row does not
+exist yet. That ordering is deliberate — reconciliation discovers and creates the
+new player rows the card scrape then needs — which is why the pre-filter alone was
+not enough to stop the auction duplicates.
+
+**2. The purge (the guarantee).** `scripts/transaction_dedupe.py` runs at the end
+of every `scrape_player_cards.py --apply`, once the authoritative rows are in, and
+deletes each inferred row that a real card row supersedes. A card row supersedes
+an inference when it describes the same move and is dated **on or before** it,
+within 14 days:
+
+- The direction matters. An inference is always filed on or after the move it
+  describes, so a card row dated *later* is a separate, later occurrence and is
+  left alone.
+- Card rows are never deleted, only inferences.
+- An inference with no card counterpart is **kept** — it is the only record of
+  that move. Cuts are the common case: a cut player leaves the roster CSV, and
+  the card scrape does not always carry the row either.
+
+This makes the two writers converge regardless of which ran first, or if the card
+scrape fails and catches up days later. Run it by hand with:
+
+```bash
+just dedupe-transactions            # dry run — reports what it would delete
+just dedupe-transactions --verbose  # list each affected row
+just dedupe-transactions --apply
+```
+
+The 98 duplicate rows written between 2026-08-22 and 2026-08-27 (86 of them from
+the auction night itself) were cleaned up with this command.
+
+Rows are additionally suppressed on read by `web/lib/mcp/transactions.ts` — see
 [the MCP server reference](mcp-server.md#reading-the-transaction-feed).
 
 ## Usage
