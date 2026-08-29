@@ -1,0 +1,102 @@
+name: Pull Weekly Projections
+
+on:
+  # Manual trigger — also the way to backfill a specific week.
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "NFL week to ingest (blank = current week)"
+        required: false
+      season:
+        description: "NFL season (blank = current)"
+        required: false
+
+  # Daily at 11:00 UTC (~7am ET). Not weekly: the source revises projections all
+  # week as injury and snap news lands, so a single Tuesday pull would be stale
+  # by Sunday. The in-season gate below makes this a no-op for the seven months
+  # the league spends in the offseason.
+  schedule:
+    - cron: "0 11 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # Plain HTTP against a public JSON API — no Playwright, no browser, so
+      # this workflow stays much lighter than the scraping ones.
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install requests pandas supabase python-dotenv
+          # Install this repo as a package so `import scripts.*` resolves
+          pip install -e . --no-deps
+
+      - name: Create .env
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_SECRET_KEY }}" >> .env
+
+      # Gate on whether NFL games are actually being played, NOT on the league
+      # phase from scripts/season.py. The two disagree at the end of the year:
+      # Ottoneu rolls its league season in early January and the phase becomes
+      # `pre_arb`, but Week 18 is played a day or two later — a phase gate would
+      # silently skip the final week. A manual run skips the gate entirely so a
+      # week can be backfilled at any time.
+      - name: Check whether NFL games are being played
+        id: gate
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual run — skipping the in-season gate."
+            echo "in_season=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          LIVE=$(python -c "from scripts.nfl_week import is_nfl_week_live; print(is_nfl_week_live())")
+          SEASON_WEEK=$(python -c "from scripts.nfl_week import current_nfl_week; print(current_nfl_week())")
+          echo "NFL week live: $LIVE  (season, week) = $SEASON_WEEK"
+          if [ "$LIVE" = "True" ]; then
+            echo "in_season=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "in_season=false" >> "$GITHUB_OUTPUT"
+            echo "No NFL regular-season week in progress — nothing to ingest."
+          fi
+
+      # The upcoming slate. Week rolls over on Tuesday morning ET.
+      - name: Ingest this week's projections
+        if: steps.gate.outputs.in_season == 'true'
+        run: |
+          ARGS=""
+          [ -n "${{ inputs.week }}" ] && ARGS="$ARGS --week ${{ inputs.week }}"
+          [ -n "${{ inputs.season }}" ] && ARGS="$ARGS --season ${{ inputs.season }}"
+          python -m scripts.weekly_projections.ingest $ARGS
+
+      # Backfill the previous week's results, so a played week shows the
+      # projection next to what actually happened. Non-fatal: in Week 1 there is
+      # no previous week, and a source can lag on posting final stats.
+      - name: Backfill last week's actuals
+        if: steps.gate.outputs.in_season == 'true' && inputs.week == ''
+        continue-on-error: true
+        run: |
+          PREV=$(python -c "
+          from scripts.nfl_week import display_weeks
+          w = display_weeks()['previous']
+          print(w if w else '')
+          ")
+          if [ -n "$PREV" ]; then
+            echo "Backfilling actuals for week $PREV"
+            python -m scripts.weekly_projections.ingest --actuals --week "$PREV"
+          else
+            echo "No previous week to backfill."
+          fi

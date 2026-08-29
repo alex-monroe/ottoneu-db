@@ -262,6 +262,63 @@ class TestDependencyDirection:
 
 
 # ===========================================================================
+# Rule 4b: Weekly projections must never reach the seasonal model
+# ===========================================================================
+
+class TestNoWeeklyProjectionsInModel:
+    """The projection model must not consume weekly projections.
+
+    WHY: scripts/weekly_projections/ ingests a THIRD PARTY's market-aware,
+    per-game forecasts. scripts/feature_projections/ is this site's own
+    season-long model, and its whole value proposition is being an early,
+    market-free projection — the reason FantasyPros and ADP are eval-time
+    comparators only, never inputs. Reading weekly_projections from inside the
+    model would leak market information into it and silently invalidate every
+    held-out evaluation, because the "held-out" seasons would carry a signal
+    derived from what the market already knew.
+
+    FIX: If the model needs a signal, derive it from our own tables
+    (player_stats, nfl_stats, depth_charts, ...). Weekly projections are for
+    display and the MCP surface only.
+    """
+
+    def test_feature_projections_does_not_import_weekly(self):
+        violations = []
+        pattern = re.compile(r"(?:from|import)\s+scripts\.weekly_projections")
+        for pyfile in _python_files(SCRIPTS_DIR / "feature_projections"):
+            for lineno, line in enumerate(pyfile.read_text().splitlines(), 1):
+                if line.strip().startswith("#"):
+                    continue
+                if pattern.search(line):
+                    rel = pyfile.relative_to(PROJECT_ROOT)
+                    violations.append(f"  {rel}:{lineno}: {line.strip()}")
+
+        assert not violations, (
+            "The seasonal projection model must not import scripts.weekly_projections.\n"
+            "FIX: weekly projections are a third party's market-aware forecast; feeding them\n"
+            "into the model leaks market information and invalidates the held-out harness.\n"
+            "Derive the signal from our own tables instead.\n"
+            "Violations:\n" + "\n".join(violations)
+        )
+
+    def test_feature_projections_does_not_query_the_table(self):
+        violations = []
+        for pyfile in _python_files(SCRIPTS_DIR / "feature_projections"):
+            for lineno, line in enumerate(pyfile.read_text().splitlines(), 1):
+                if line.strip().startswith("#"):
+                    continue
+                if "weekly_projections" in line:
+                    rel = pyfile.relative_to(PROJECT_ROOT)
+                    violations.append(f"  {rel}:{lineno}: {line.strip()}")
+
+        assert not violations, (
+            "The seasonal projection model must not read the weekly_projections table.\n"
+            "FIX: see TestNoWeeklyProjectionsInModel — weekly projections are display-only.\n"
+            "Violations:\n" + "\n".join(violations)
+        )
+
+
+# ===========================================================================
 # Rule 5: No wildcard imports
 # ===========================================================================
 

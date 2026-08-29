@@ -1108,6 +1108,59 @@ export type Database = {
           },
         ]
       }
+      weekly_projections: {
+        Row: {
+          actual_points: number | null
+          actual_stats: Json | null
+          id: string
+          opponent: string | null
+          player_id: string
+          projected_at: string
+          projected_points: number | null
+          projected_stats: Json | null
+          season: number
+          source: string
+          updated_at: string
+          week: number
+        }
+        Insert: {
+          actual_points?: number | null
+          actual_stats?: Json | null
+          id?: string
+          opponent?: string | null
+          player_id: string
+          projected_at?: string
+          projected_points?: number | null
+          projected_stats?: Json | null
+          season: number
+          source?: string
+          updated_at?: string
+          week: number
+        }
+        Update: {
+          actual_points?: number | null
+          actual_stats?: Json | null
+          id?: string
+          opponent?: string | null
+          player_id?: string
+          projected_at?: string
+          projected_points?: number | null
+          projected_stats?: Json | null
+          season?: number
+          source?: string
+          updated_at?: string
+          week?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_projections_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       oauth_authorization_codes: {
         Row: {
           client_id: string

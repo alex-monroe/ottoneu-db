@@ -1,4 +1,7 @@
 import { fetchPlayerDetail, fetchPlayerProjection, fetchDraftSharksValue } from "@/lib/data";
+import { fetchPlayerWeeklyProjections, fetchWeeklyAsOf } from "@/lib/weekly-projections";
+import { getDisplayWeeks } from "@/lib/nfl-week";
+import WeeklyProjectionCard from "@/components/WeeklyProjectionCard";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -38,6 +41,22 @@ export default async function PlayerCardPage({
               fetchDraftSharksValue(player.id),
           ])
         : [null, null];
+
+    // Weekly (per-game) projections: the upcoming slate plus the one just
+    // played, so a finished week's projection stays visible next to its result.
+    // Gated behind projections access, same as the seasonal projection above.
+    const displayWeeks = await getDisplayWeeks();
+    const weeklyWeeks = [displayWeeks.upcoming, displayWeeks.previous].filter(
+        (w): w is number => w != null,
+    );
+    const [weeklyRows, weeklyAsOf] =
+        user?.hasProjectionsAccess && displayWeeks.season != null && weeklyWeeks.length > 0
+            ? await Promise.all([
+                  fetchPlayerWeeklyProjections(player.id, displayWeeks.season, weeklyWeeks),
+                  fetchWeeklyAsOf(displayWeeks.season, weeklyWeeks[0]),
+              ])
+            : [new Map(), null];
+    const weeklySource = [...weeklyRows.values()][0]?.source ?? "Sleeper";
 
     const posColor = POSITION_COLORS[player.position as Position] ?? "#6B7280";
 
@@ -141,6 +160,17 @@ export default async function PlayerCardPage({
                         </a>
                     </div>
                 </div>
+
+                {/* ===== Weekly Projections ===== */}
+                {user?.hasProjectionsAccess && weeklyRows.size > 0 && (
+                    <WeeklyProjectionCard
+                        upcoming={displayWeeks.upcoming}
+                        previous={displayWeeks.previous}
+                        rows={weeklyRows}
+                        source={weeklySource}
+                        asOf={weeklyAsOf}
+                    />
+                )}
 
                 {/* ===== Season Stats ===== */}
                 {player.seasonStats.length > 0 && (

@@ -270,6 +270,18 @@ seed-win-totals *args:
 scrape-draft-sharks *args:
     {{python}} scripts/scrape_draft_sharks.py {{args}}
 
+# Ingest the week's per-game projections from Sleeper into weekly_projections.
+# Defaults to the current NFL week (Tuesday flip). Add --actuals to backfill a
+# played week's results. e.g. just weekly-projections --week 3 --season 2025 --dry-run
+weekly-projections *args:
+    {{python}} -m scripts.weekly_projections.ingest {{args}}
+
+# Dump a live Sleeper payload and save a fixture, to confirm the stat-key mapping.
+# The endpoint is permitted but undocumented, so run this after any parse failure.
+# e.g. just weekly-projections-probe --season 2025 --week 1
+weekly-projections-probe *args:
+    {{python}} -m scripts.weekly_projections.ingest --probe {{args}}
+
 # Scrape the Ottoneu finances Calendar into league_calendar (drives the season-cycle resolver)
 scrape-calendar *args:
     {{python}} scripts/scrape_league_calendar.py {{args}}
