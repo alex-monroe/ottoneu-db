@@ -44,6 +44,22 @@ jest.mock("@/lib/vegas-lines", () => ({
     fetchAvailableSeasons: jest.fn(),
     fetchVegasLinesForSeason: jest.fn(),
 }));
+jest.mock("@/lib/weekly-projections", () => ({
+    fetchWeeklyBoard: jest.fn(),
+    fetchWeeklyAsOf: jest.fn(),
+    fetchAvailableWeeks: jest.fn(),
+    fetchPlayerWeeklyProjections: jest.fn(),
+}));
+jest.mock("@/lib/nfl-week", () => ({
+    // Default to "no NFL week resolved" — the offseason case — so tests written
+    // before the weekly feature exercise get_player unchanged. Tests that care
+    // about weekly context override this.
+    getDisplayWeeks: jest.fn().mockResolvedValue({
+        season: null,
+        upcoming: null,
+        previous: null,
+    }),
+}));
 
 import { getSeasonContextNow } from "@/lib/season";
 import {
@@ -58,6 +74,21 @@ import {
 } from "@/lib/data";
 import { fetchProjectionBoard } from "@/lib/analysis";
 import { fetchRosterData } from "@/lib/roster-reconstruction";
+import {
+    fetchWeeklyBoard,
+    fetchWeeklyAsOf,
+    fetchAvailableWeeks,
+    fetchPlayerWeeklyProjections,
+} from "@/lib/weekly-projections";
+import { getDisplayWeeks } from "@/lib/nfl-week";
+
+const mockWeeklyBoard = fetchWeeklyBoard as jest.MockedFunction<typeof fetchWeeklyBoard>;
+const mockWeeklyAsOf = fetchWeeklyAsOf as jest.MockedFunction<typeof fetchWeeklyAsOf>;
+const mockAvailableWeeks = fetchAvailableWeeks as jest.MockedFunction<typeof fetchAvailableWeeks>;
+const mockPlayerWeekly = fetchPlayerWeeklyProjections as jest.MockedFunction<
+    typeof fetchPlayerWeeklyProjections
+>;
+const mockDisplayWeeks = getDisplayWeeks as jest.MockedFunction<typeof getDisplayWeeks>;
 
 const mockSeasonContext = getSeasonContextNow as jest.MockedFunction<typeof getSeasonContextNow>;
 const mockPlayerList = fetchPlayerList as jest.MockedFunction<typeof fetchPlayerList>;
@@ -462,5 +493,187 @@ describe("get_arbitration_analysis", () => {
         await tool("get_arbitration_analysis").handler({});
         expect(mockPreArb).toHaveBeenCalled();
         expect(mockEndOfSeason).not.toHaveBeenCalled();
+    });
+});
+
+describe("get_weekly_projections", () => {
+    function weeklyRow(overrides: Record<string, unknown> = {}) {
+        return {
+            player_id: "p1",
+            season: 2025,
+            week: 3,
+            source: "sleeper",
+            opponent: "LAC",
+            projected_points: 14.2,
+            projected_stats: { rushing_yards: 82, receptions: 3 },
+            actual_points: null,
+            actual_stats: null,
+            projected_at: "2025-09-17T11:00:00Z",
+            name: "Some Player",
+            position: "RB",
+            nfl_team: "KC",
+            ...overrides,
+        };
+    }
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockDisplayWeeks.mockResolvedValue({ season: 2025, upcoming: 3, previous: 2 });
+        mockWeeklyAsOf.mockResolvedValue("2025-09-17T11:00:00Z");
+        mockAvailableWeeks.mockResolvedValue([3, 2, 1]);
+        mockPlayerList.mockResolvedValue([makeListItem({ id: "p1", price: 23, team_name: "Team A" })]);
+        mockWeeklyBoard.mockResolvedValue([weeklyRow()]);
+    });
+
+    it("defaults to the upcoming week", async () => {
+        const body = payload(await tool("get_weekly_projections").handler({}));
+        expect(body.week).toBe(3);
+        expect(body.season).toBe(2025);
+        expect(mockWeeklyBoard).toHaveBeenCalledWith(2025, 3);
+    });
+
+    it("honours an explicit week", async () => {
+        await tool("get_weekly_projections").handler({ week: 1 });
+        expect(mockWeeklyBoard).toHaveBeenCalledWith(2025, 1);
+    });
+
+    it("carries source, as_of and scoring provenance", async () => {
+        const body = payload(await tool("get_weekly_projections").handler({}));
+        expect(body.source).toBe("sleeper");
+        expect(body.as_of).toBe("2025-09-17T11:00:00Z");
+        expect(body.scoring).toBe("ottoneu_half_ppr");
+    });
+
+    it("tells a consuming agent not to confuse it with the seasonal model", async () => {
+        const body = payload(await tool("get_weekly_projections").handler({}));
+        expect(String(body.note)).toContain("get_projections");
+    });
+
+    it("reports per-game points, never a per-game-average PPG field", async () => {
+        const body = payload(await tool("get_weekly_projections").handler({}));
+        const player = (body.players as Record<string, unknown>[])[0];
+        expect(player.projected_points).toBe(14.2);
+        // The seasonal tool's field name must not leak into this payload — the
+        // distinct names are what keep the two numbers from being compared.
+        expect(player).not.toHaveProperty("projected_ppg");
+    });
+
+    it("joins salary and fantasy team from the roster", async () => {
+        const body = payload(await tool("get_weekly_projections").handler({}));
+        const player = (body.players as Record<string, unknown>[])[0];
+        expect(player.salary).toBe(23);
+        expect(player.fantasy_team).toBe("Team A");
+        expect(player.is_free_agent).toBe(false);
+    });
+
+    it("nulls the salary for a free agent", async () => {
+        mockPlayerList.mockResolvedValue([makeListItem({ id: "p1", price: 5, team_name: null })]);
+        const body = payload(await tool("get_weekly_projections").handler({}));
+        const player = (body.players as Record<string, unknown>[])[0];
+        expect(player.salary).toBeNull();
+        expect(player.is_free_agent).toBe(true);
+    });
+
+    it("filters by position", async () => {
+        mockWeeklyBoard.mockResolvedValue([
+            weeklyRow({ position: "RB" }),
+            weeklyRow({ player_id: "p2", position: "WR", name: "Wide Out" }),
+        ]);
+        const body = payload(await tool("get_weekly_projections").handler({ position: "WR" }));
+        expect(body.count).toBe(1);
+        expect((body.players as Record<string, unknown>[])[0].name).toBe("Wide Out");
+    });
+
+    it("filters by min_points", async () => {
+        mockWeeklyBoard.mockResolvedValue([
+            weeklyRow({ projected_points: 14.2 }),
+            weeklyRow({ player_id: "p2", name: "Scrub", projected_points: 3.1 }),
+        ]);
+        const body = payload(await tool("get_weekly_projections").handler({ min_points: 10 }));
+        expect(body.count).toBe(1);
+    });
+
+    it("filters to free agents with team_name FA", async () => {
+        mockPlayerList.mockResolvedValue([
+            makeListItem({ id: "p1", team_name: null }),
+            makeListItem({ id: "p2", team_name: "Team A" }),
+        ]);
+        mockWeeklyBoard.mockResolvedValue([
+            weeklyRow({ player_id: "p1", name: "Waiver Guy" }),
+            weeklyRow({ player_id: "p2", name: "Rostered Guy" }),
+        ]);
+        const body = payload(await tool("get_weekly_projections").handler({ team_name: "FA" }));
+        expect((body.players as Record<string, unknown>[]).map((p) => p.name)).toEqual([
+            "Waiver Guy",
+        ]);
+    });
+
+    it("surfaces the actual result once a week has been played", async () => {
+        mockWeeklyBoard.mockResolvedValue([weeklyRow({ actual_points: 18.6 })]);
+        const body = payload(await tool("get_weekly_projections").handler({}));
+        expect((body.players as Record<string, unknown>[])[0].actual_points).toBe(18.6);
+    });
+
+    it("falls back to the last week once the regular season is over", async () => {
+        mockDisplayWeeks.mockResolvedValue({ season: 2025, upcoming: null, previous: 18 });
+        await tool("get_weekly_projections").handler({});
+        expect(mockWeeklyBoard).toHaveBeenCalledWith(2025, 18);
+    });
+
+    it("explains itself rather than returning an empty list out of season", async () => {
+        mockWeeklyBoard.mockResolvedValue([]);
+        const result = await tool("get_weekly_projections").handler({});
+        expect(result.content[0].text).toContain("ingested during the NFL season");
+    });
+});
+
+describe("get_player weekly context", () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockSeasonContext.mockResolvedValue(SEASON_CTX);
+        mockPlayerDetail.mockResolvedValue({
+            id: "p1",
+            ottoneu_id: 100,
+            name: "Some Player",
+            position: "RB",
+            nfl_team: "KC",
+            birth_date: null,
+            price: 23,
+            team_name: "Team A",
+            seasonStats: [],
+            transactions: [],
+        } as never);
+        mockPlayerProjection.mockResolvedValue({ projected_ppg: 11.8, projection_method: "v33" });
+        mockDraftSharks.mockResolvedValue(null);
+        mockDisplayWeeks.mockResolvedValue({ season: 2025, upcoming: 3, previous: 2 });
+    });
+
+    it("nests weekly rows separately from the seasonal projection", async () => {
+        mockPlayerWeekly.mockResolvedValue(
+            new Map([
+                [3, { week: 3, source: "sleeper", projected_points: 14.2, actual_points: null,
+                      opponent: "LAC", projected_at: "2025-09-17T11:00:00Z" } as never],
+                [2, { week: 2, source: "sleeper", projected_points: 12.0, actual_points: 19.4,
+                      opponent: "DEN", projected_at: "2025-09-10T11:00:00Z" } as never],
+            ]),
+        );
+        const body = payload(await tool("get_player").handler({ ottoneu_id: 100 }));
+
+        // The seasonal model stays where it was, in its own units.
+        expect((body.projection as Record<string, unknown>).projected_ppg).toBe(11.8);
+
+        const weekly = body.weekly_projections as Record<string, Record<string, unknown>>;
+        expect(weekly.upcoming.projected_points).toBe(14.2);
+        // Last week keeps its projection next to what actually happened.
+        expect(weekly.previous.projected_points).toBe(12.0);
+        expect(weekly.previous.actual_points).toBe(19.4);
+    });
+
+    it("marks a week with no row as a bye or inactive rather than zero", async () => {
+        mockPlayerWeekly.mockResolvedValue(new Map());
+        const body = payload(await tool("get_player").handler({ ottoneu_id: 100 }));
+        const weekly = body.weekly_projections as Record<string, Record<string, unknown>>;
+        expect(weekly.upcoming.projection).toBeNull();
+        expect(String(weekly.upcoming.note)).toContain("bye or inactive");
     });
 });

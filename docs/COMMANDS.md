@@ -160,6 +160,8 @@ just backfill-red-zone [--seasons ...] [--dry-run]     # Backfill red_zone_usage
 just backfill-ngs [--seasons ...] [--dry-run]          # Backfill ngs_passing (QB Next Gen Stats: CPOE, aggressiveness, air-yards-to-sticks, …) from nflverse — issue #674
 just seed-win-totals --season YYYY                     # Upsert preseason sportsbook win totals (implied_total left NULL until schedule drops)
 just scrape-draft-sharks [--season YYYY] [--positions qb rb wr te] [--dry-run]  # Scrape Draft Sharks Half-PPR Superflex auction values (stored ×2 for the $400 cap)
+just weekly-projections [--week N] [--season YYYY] [--actuals] [--dry-run]      # Ingest per-game projections from Sleeper into weekly_projections (defaults to the current week)
+just weekly-projections-probe --season YYYY --week N                            # Dump a live Sleeper payload + save a fixture, to confirm the stat-key mapping
 just scrape-calendar [--dry-run]                      # Scrape the Ottoneu finances Calendar into league_calendar (drives the season-cycle resolver)
 
 # Ad-hoc DB queries
@@ -180,6 +182,7 @@ equivalent self-hosted setup would look like.
 | `pull-roster-csv.yml` | Daily 06:17 UTC + `workflow_dispatch` | `curl` the `/csv/rosters` export → `scripts/reconcile_roster.py --apply --infer-transactions` — lighter-weight roster-state sync (ownership + salary + inferred transactions; no FAs/history). Works from GitHub-hosted runners with an honest User-Agent (a browser-spoof UA, not the datacenter IP, is what trips Cloudflare); `OTTONEU_COOKIE` is an optional fallback. See docs/references/roster-csv-reconciliation.md |
 | `scrape-arbitration-progress.yml` | Every 6h (gated to Jan–Mar + Apr 1) + `workflow_dispatch` | `scripts/scrape_arbitration_progress.py` — pulls per-team allocation status via FanGraphs login (`FANGRAPHS_USERNAME` / `FANGRAPHS_PASSWORD`) |
 | `scrape-draft-sharks.yml` | Mondays 08:00 UTC + `workflow_dispatch` | `scripts/scrape_draft_sharks.py` — Draft Sharks Half-PPR Superflex auction values (no in-season gate; ×2 for the $400 cap) |
+| `pull-weekly-projections.yml` | Daily 11:00 UTC (~7am ET) + `workflow_dispatch` | `scripts/weekly_projections/ingest.py` — per-game projections from Sleeper, plus a backfill of last week's actuals. **Gated on season phase `in_season`**, so it no-ops all offseason; a manual run skips the gate |
 | `scrape-league-calendar.yml` | Mondays 12:00 UTC + `workflow_dispatch` | `scripts/scrape_league_calendar.py` — refreshes `league_calendar`, the source of truth for the season-cycle resolver. Plain HTTP with an honest User-Agent; no browser, no login. |
 | `update-projections.yml` | `workflow_dispatch` only (push trigger removed in #622 — promotion is a deliberate local action via `just promote`) | `scripts/update_projections.py` — re-runs the active model and promotes its outputs into `player_projections` |
 | `offseason-data-refresh.yml` | Daily 09:00 UTC (Apr–Sep) + `workflow_dispatch` | Refreshes the upcoming season's evolving inputs — `backfill_depth_charts.py --current` (depth charts) + `backfill_vegas_lines.py --current` (Vegas lines) — then `update_projections.py` to re-project. Idempotent; no-ops until the season's nflverse data appears. GH #555 |

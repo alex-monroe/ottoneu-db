@@ -55,6 +55,13 @@ import {
   fetchDepthChartsForSeason,
 } from "../depth-charts";
 import { fetchAvailableSeasons, fetchVegasLinesForSeason } from "../vegas-lines";
+import {
+  fetchWeeklyBoard,
+  fetchWeeklyAsOf,
+  fetchAvailableWeeks,
+  fetchPlayerWeeklyProjections,
+} from "../weekly-projections";
+import { getDisplayWeeks } from "../nfl-week";
 import { round, clampLimit, jsonResult, errorResult, type McpToolResult } from "./format";
 import {
   buildTransactionFeed,
@@ -73,6 +80,7 @@ import {
   getArbitrationAnalysisShape,
   getDepthChartShape,
   getVegasLinesShape,
+  getWeeklyProjectionsShape,
 } from "./schemas";
 
 export interface McpToolDef {
@@ -301,10 +309,36 @@ async function getPlayer(rawArgs: unknown): Promise<McpToolResult> {
   const detail = await fetchPlayerDetail(ottoneuId);
   if (!detail) return errorResult(`No player with ottoneu_id ${ottoneuId}.`);
 
-  const [projection, draftSharks] = await Promise.all([
+  const display = await getDisplayWeeks();
+  const [projection, draftSharks, weekly] = await Promise.all([
     fetchPlayerProjection(detail.id),
     fetchDraftSharksValue(detail.id),
+    display.season == null
+      ? Promise.resolve(new Map())
+      : fetchPlayerWeeklyProjections(
+          detail.id,
+          display.season,
+          [display.upcoming, display.previous].filter((w): w is number => w != null),
+        ),
   ]);
+
+  // The upcoming slate plus the one just played, so a single lookup carries
+  // weekly context without a second call. Deliberately nested under its own key
+  // with its own source/units — never merged into `projection`, which is this
+  // site's season-long model.
+  const weeklyWeek = (week: number | null) => {
+    if (week == null) return null;
+    const row = weekly.get(week);
+    if (!row) return { week, projection: null, note: "no projection (bye or inactive)" };
+    return {
+      week,
+      source: row.source,
+      as_of: row.projected_at,
+      opponent: row.opponent,
+      projected_points: round(row.projected_points, 2),
+      actual_points: round(row.actual_points, 2),
+    };
+  };
 
   const fa = isFreeAgent(detail.team_name);
   return jsonResult({
@@ -320,6 +354,13 @@ async function getPlayer(rawArgs: unknown): Promise<McpToolResult> {
     projection: projection
       ? { projected_ppg: round(projection.projected_ppg, 2), method: projection.projection_method }
       : null,
+    weekly_projections: {
+      note:
+        "Third-party per-game projections, scored under this league's rules. Different units and " +
+        "a different source from `projection` above (our season-long PPG model) — do not combine them.",
+      upcoming: weeklyWeek(display.upcoming),
+      previous: weeklyWeek(display.previous),
+    },
     auction_values: draftSharks,
     season_stats: detail.seasonStats.map((s) => ({
       season: s.season,
@@ -628,6 +669,90 @@ async function getVegasLines(rawArgs: unknown): Promise<McpToolResult> {
   });
 }
 
+async function getWeeklyProjections(rawArgs: unknown): Promise<McpToolResult> {
+  const args = z.object(getWeeklyProjectionsShape).parse(rawArgs);
+  const limit = clampLimit(args.limit, 50, 200);
+
+  const display = await getDisplayWeeks();
+  const season = args.season ?? display.season;
+  if (season == null) return errorResult("No NFL season resolved for weekly projections.");
+
+  // Default to the upcoming slate. Once the regular season ends there is no
+  // upcoming week, so fall back to the final one rather than returning nothing.
+  let week = args.week ?? display.upcoming ?? display.previous;
+  if (week == null) {
+    const available = await fetchAvailableWeeks(season);
+    week = available[0];
+  }
+  if (week == null) {
+    return errorResult(
+      `No weekly projections available for ${season}. They are ingested during the NFL season only.`,
+    );
+  }
+
+  const [board, asOf, players] = await Promise.all([
+    fetchWeeklyBoard(season, week),
+    fetchWeeklyAsOf(season, week),
+    fetchPlayerList(),
+  ]);
+
+  if (board.length === 0) {
+    return errorResult(
+      `No weekly projections stored for ${season} week ${week}. ` +
+        "They are ingested during the NFL season only.",
+    );
+  }
+
+  const rosterById = new Map(players.map((p) => [p.id, p]));
+
+  const rows = board
+    .filter((r) => {
+      if (args.position && r.position !== args.position) return false;
+      if (args.min_points != null && (r.projected_points ?? -Infinity) < args.min_points) {
+        return false;
+      }
+      if (args.team_name !== undefined) {
+        const teamName = rosterById.get(r.player_id)?.team_name ?? null;
+        return args.team_name === "FA"
+          ? isFreeAgent(teamName)
+          : sameTeam(teamName, args.team_name);
+      }
+      return true;
+    })
+    .slice(0, limit);
+
+  return jsonResult({
+    season,
+    week,
+    source: board[0].source,
+    as_of: asOf,
+    scoring: "ottoneu_half_ppr",
+    note:
+      "Third-party per-game projections for ONE NFL week, re-scored under this league's rules. " +
+      "Distinct from get_projections, which returns this site's own season-long PPG model — do not " +
+      "compare or combine the two numbers. A player missing from this list has no projection for " +
+      "the week (bye or inactive).",
+    salary_note: FA_SALARY_NOTE,
+    count: rows.length,
+    players: rows.map((r) => {
+      const roster = rosterById.get(r.player_id);
+      const fa = isFreeAgent(roster?.team_name);
+      return {
+        name: r.name,
+        position: r.position,
+        nfl_team: r.nfl_team,
+        opponent: r.opponent,
+        projected_points: round(r.projected_points, 2),
+        actual_points: round(r.actual_points, 2),
+        projected_stats: r.projected_stats,
+        fantasy_team: fa ? "FA" : roster?.team_name ?? null,
+        is_free_agent: fa,
+        salary: fa ? null : roster?.price ?? null,
+      };
+    }),
+  });
+}
+
 // ─── Registry ────────────────────────────────────────────────────────────────
 
 export const MCP_TOOLS: McpToolDef[] = [
@@ -705,6 +830,13 @@ export const MCP_TOOLS: McpToolDef[] = [
     description: "Opening-day NFL depth chart tiers (1 = starter) with prior-season tier and projected PPG, filterable by NFL team or position.",
     schema: getDepthChartShape,
     handler: getDepthChart,
+  },
+  {
+    name: "get_weekly_projections",
+    description:
+      "Per-game fantasy projections for a single NFL week, from a third-party source (Sleeper), re-scored under this league's rules. Use this for start/sit and waiver decisions during the season. Defaults to the upcoming week, which rolls over every Tuesday; a played week keeps its projection alongside the actual result. This is NOT the same as get_projections, which returns this site's own season-long PPG model built for auction and keeper valuation — the two numbers measure different things and must not be compared or combined.",
+    schema: getWeeklyProjectionsShape,
+    handler: getWeeklyProjections,
   },
   {
     name: "get_vegas_lines",
