@@ -60,6 +60,11 @@ ottoneu.fangraphs.com
 www.draftsharks.com
 www.fantasypros.com
 
+# Weekly projections (scripts/weekly_projections) — Sleeper's public read-only
+# API. docs.sleeper.com grants free non-commercial use; no key, no login, and we
+# send an honest identifying User-Agent (no browser spoofing).
+api.sleeper.com
+
 # Supabase (project ref rbinbcwinchphipvcfqk)
 # Data plane (PostgREST/REST — the anon-key path the Next.js app uses):
 rbinbcwinchphipvcfqk.supabase.co
