@@ -51,6 +51,7 @@ from scripts.config import (
     get_supabase_client,
 )
 from scripts.prospect_adopt import choose_prospect_to_adopt
+from scripts.transaction_dedupe import INFERRED_MARKER, SUPERSEDE_WINDOW_DAYS
 
 ROSTER_CSV_URL_TEMPLATE = "https://ottoneu.fangraphs.com/football/{league_id}/csv/rosters"
 
@@ -72,12 +73,13 @@ _FA_LABELS = {"", "FA", "Free Agent"}
 # Stamped into `raw_description` so a row inferred here is distinguishable from
 # one the player-card scrape recorded with a real timestamp — both on re-read
 # (web/lib/mcp/transactions.ts) and when deduping the next run's inferences.
-_INFERRED_MARKER = "inferred from /csv/rosters reconciliation"
+# Shared with the post-scrape purge (scripts/transaction_dedupe.py).
+_INFERRED_MARKER = INFERRED_MARKER
 
 # How far back to look for a card-scraped copy of a move before inferring it.
 # Wide enough to cover a lagging or failed card-scrape run, narrow enough that a
 # genuine repeat (add → cut → re-add at the same price) is not swallowed.
-TXN_DEDUPE_LOOKBACK_DAYS = 14
+TXN_DEDUPE_LOOKBACK_DAYS = SUPERSEDE_WINDOW_DAYS
 
 # Safety floor: refuse to apply a suspiciously small CSV (a truncated/garbled
 # fetch must never mass-cut real rosters). A real league is ~12 teams / 150+ rows.
@@ -338,6 +340,13 @@ def _already_scraped(sb, league_id: int, run_date: date,
     2026-08-22, burying real activity under a bulk load.
 
     So look back a window and skip any event a card already accounts for.
+
+    This filter only fires for moves the card scrape has **already** recorded, so
+    it depends on the card scrape running first — which is why the workflows are
+    ordered that way. It cannot catch an overnight move on a day the card scrape
+    lags or fails, so ``scripts.transaction_dedupe`` runs after that scrape and
+    deletes any inference its real rows superseded. This filter is the cheap
+    path; that purge is the guarantee.
     """
     since = (run_date - timedelta(days=lookback_days)).isoformat()
     rows = fetch_all_rows(

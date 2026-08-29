@@ -1,0 +1,156 @@
+name: Pull Weekly Projections
+
+on:
+  # Manual trigger — also the way to backfill a specific week.
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "NFL week to ingest (blank = current week)"
+        required: false
+      season:
+        description: "NFL season (blank = current)"
+        required: false
+
+  schedule:
+    # Daily at 11:00 UTC (~7am ET) — the main refresh. Not weekly: the source
+    # revises projections all week as injury and snap news lands, so a single
+    # Tuesday pull would be stale by Sunday. At 7am ET no game is in progress
+    # (Sunday's games are final, Monday night's has not started), which is why
+    # this is the run that also pulls actuals.
+    - cron: "0 11 * * *"
+    # Sundays at 16:00 UTC (12pm EDT / 11am EST) — a pre-kickoff refresh, after
+    # inactives are announced ~90 minutes before the 1pm ET window. This is the
+    # most valuable projection update of the week for start/sit calls, and the
+    # daily 7am run is far too early to catch it. Projections only: see the
+    # actuals gate below.
+    - cron: "0 16 * * 0"
+
+permissions:
+  contents: read
+
+# A pre-kickoff run and the daily run must never write the same rows at once.
+concurrency:
+  group: weekly-projections
+  cancel-in-progress: false
+
+env:
+  PRE_KICKOFF_CRON: "0 16 * * 0"
+
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # Plain HTTP against a public JSON API — no Playwright, no browser, so
+      # this workflow stays much lighter than the scraping ones.
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install requests pandas supabase python-dotenv
+          # Install this repo as a package so `import scripts.*` resolves
+          pip install -e . --no-deps
+
+      - name: Create .env
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_SECRET_KEY }}" >> .env
+
+      # Gate on whether NFL games are actually being played, NOT on the league
+      # phase from scripts/season.py. The two disagree at the end of the year:
+      # Ottoneu rolls its league season in early January and the phase becomes
+      # `pre_arb`, but Week 18 is played a day or two later — a phase gate would
+      # silently skip the final week. A manual run skips the gate entirely so a
+      # week can be backfilled at any time.
+      - name: Check whether NFL games are being played
+        id: gate
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual run — skipping the in-season gate."
+            echo "in_season=true" >> "$GITHUB_OUTPUT"
+          else
+            LIVE=$(python -c "from scripts.nfl_week import is_nfl_week_live; print(is_nfl_week_live())")
+            SEASON_WEEK=$(python -c "from scripts.nfl_week import current_nfl_week; print(current_nfl_week())")
+            echo "NFL week live: $LIVE  (season, week) = $SEASON_WEEK"
+            if [ "$LIVE" = "True" ]; then
+              echo "in_season=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "in_season=false" >> "$GITHUB_OUTPUT"
+              echo "No NFL regular-season week in progress — nothing to ingest."
+            fi
+          fi
+
+          # Actuals are pulled on every run EXCEPT the Sunday pre-kickoff one,
+          # which fires while games are being played. Writing actuals then would
+          # store a half-finished stat line that renders as a settled "Actual"
+          # next to the projection. The daily 7am ET run picks those same games
+          # up once they are final.
+          if [ "${{ github.event.schedule }}" = "$PRE_KICKOFF_CRON" ]; then
+            echo "Pre-kickoff refresh — projections only (games in progress)."
+            echo "actuals=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "actuals=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          # An explicit --week means "backfill exactly this week"; the automatic
+          # current/previous week passes below would fight it.
+          if [ -n "${{ inputs.week }}" ]; then
+            echo "targeted=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "targeted=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Ingest this week's projections
+        if: steps.gate.outputs.in_season == 'true'
+        run: |
+          ARGS=""
+          [ -n "${{ inputs.week }}" ] && ARGS="$ARGS --week ${{ inputs.week }}"
+          [ -n "${{ inputs.season }}" ] && ARGS="$ARGS --season ${{ inputs.season }}"
+          python -m scripts.weekly_projections.ingest $ARGS
+
+      # Results for the week now in progress. Without this a played week shows
+      # its projection with no result until the following Tuesday — so all
+      # Sunday night and Monday, exactly when people want to see how it went,
+      # the card would say "—". Non-fatal: early in the week nobody has played
+      # yet and there is simply nothing to write.
+      - name: Pull this week's actuals
+        if: steps.gate.outputs.in_season == 'true' && steps.gate.outputs.actuals == 'true' && steps.gate.outputs.targeted == 'false'
+        continue-on-error: true
+        run: python -m scripts.weekly_projections.ingest --actuals
+
+      # The just-finished week, re-pulled so late stat corrections and Monday
+      # night's game land. Non-fatal: in Week 1 there is no previous week.
+      - name: Backfill last week's actuals
+        if: steps.gate.outputs.in_season == 'true' && steps.gate.outputs.actuals == 'true' && steps.gate.outputs.targeted == 'false'
+        continue-on-error: true
+        run: |
+          PREV=$(python -c "
+          from scripts.nfl_week import display_weeks
+          w = display_weeks()['previous']
+          print(w if w else '')
+          ")
+          if [ -n "$PREV" ]; then
+            echo "Backfilling actuals for week $PREV"
+            python -m scripts.weekly_projections.ingest --actuals --week "$PREV"
+          else
+            echo "No previous week to backfill."
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Weekly projections"
+            echo ""
+            echo "- Trigger: \`${{ github.event_name }}\` ${{ github.event.schedule && format('(`{0}`)', github.event.schedule) || '' }}"
+            echo "- NFL week live: \`${{ steps.gate.outputs.in_season }}\`"
+            echo "- Actuals pulled: \`${{ steps.gate.outputs.actuals }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

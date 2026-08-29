@@ -91,6 +91,12 @@ scrape-player-cards *args:
 reconcile-roster *args:
     {{python}} scripts/reconcile_roster.py {{args}}
 
+# Delete inferred transactions that a real player-card row supersedes (dry-run by default).
+# Runs automatically after just scrape-player-cards --apply; this is the manual/backfill path.
+# e.g. just dedupe-transactions --verbose ; just dedupe-transactions --apply
+dedupe-transactions *args:
+    {{python}} -m scripts.transaction_dedupe {{args}}
+
 # Update player projections (VORP/surplus/arbitration now computed in the web UI)
 analyze:
     {{python}} scripts/update_projections.py
@@ -263,6 +269,18 @@ seed-win-totals *args:
 # Scrape Draft Sharks auction values (x2 for the $400 cap)  (e.g. just scrape-draft-sharks --season 2026 --dry-run)
 scrape-draft-sharks *args:
     {{python}} scripts/scrape_draft_sharks.py {{args}}
+
+# Ingest the week's per-game projections from Sleeper into weekly_projections.
+# Defaults to the current NFL week (Tuesday flip). Add --actuals to backfill a
+# played week's results. e.g. just weekly-projections --week 3 --season 2025 --dry-run
+weekly-projections *args:
+    {{python}} -m scripts.weekly_projections.ingest {{args}}
+
+# Dump a live Sleeper payload and save a fixture, to confirm the stat-key mapping.
+# The endpoint is permitted but undocumented, so run this after any parse failure.
+# e.g. just weekly-projections-probe --season 2025 --week 1
+weekly-projections-probe *args:
+    {{python}} -m scripts.weekly_projections.ingest --probe {{args}}
 
 # Scrape the Ottoneu finances Calendar into league_calendar (drives the season-cycle resolver)
 scrape-calendar *args:

@@ -1,6 +1,6 @@
 # Database Schema
 
-Twenty-eight tables owned by this project. Most have UUID primary keys; the OAuth code/token tables are keyed by the SHA-256 hash of their secret instead.
+Twenty-nine tables owned by this project. Most have UUID primary keys; the OAuth code/token tables are keyed by the SHA-256 hash of their secret instead.
 
 ## Shared Database — Hands Off `fp_*`
 
@@ -37,6 +37,7 @@ The Supabase project (`OttoneuDB`, ref `rbinbcwinchphipvcfqk`) is **shared with 
 | `arbitration_allocation_details` | Per-team individual allocation breakdowns (which team allocated how much to which player) | `(league_id, season, ottoneu_id, allocating_team_name)` |
 | `draft_capital` | NFL draft pick metadata sourced from nflverse `draft_picks` (FK -> `players`) | `(player_id)` |
 | `draft_sharks_values` | Draft Sharks Half-PPR Superflex auction values, scraped per player per season by `scripts/scrape_draft_sharks.py` and stored at $400-cap scale (site values are ×2). Columns: `ds_auction_value`, `market_auction_value` (FK -> `players`) | `(player_id, season)` |
+| `weekly_projections` | In-season **per-game** projections for one NFL week, ingested from Sleeper by `scripts/weekly_projections/ingest.py` and re-scored under Ottoneu rules. Columns: `projected_points`, `projected_stats` (jsonb), `opponent`, `actual_points`, `actual_stats`, `source`. Actuals share the row so a played week shows projection vs result. Retention: current season only. Distinct from `player_projections` (our season-long PPG model) and must never feed it (FK -> `players`) | `(player_id, season, week, source)` |
 | `league_calendar` | Per-season Ottoneu boundary dates (`season_start`, `arb_start`, `arb_end`, `keeper_deadline`, `auction_date`, `regular_season_start`, `trade_deadline`, `last_auction_date`, `raw` jsonb). Scraped from the league finances page by `scripts/scrape_league_calendar.py`; the source of truth for the season-cycle resolver (`scripts/season.py`, `web/lib/season.ts`). | `(league_id, season)` |
 | `team_vegas_lines` | Per-team-season Vegas implied total + win total. `implied_total` is aggregated per-game from nflverse `games.csv` and is **nullable** (migration 025) — preseason win totals publish months before the NFL schedule, so the column stays NULL until per-game lines are available. `win_total` is Pythagorean (back-calculated from per-game implied totals) for past seasons, or the sportsbook preseason consensus seeded via `scripts/seed_preseason_win_totals.py` for upcoming seasons. | `(team, season)` |
 | `team_coaching` | Per-team-season season-opening head coach + offseason coaching-change signal, derived from nflverse `games.csv` (`home_coach`/`away_coach`) by `scripts/backfill_team_coaching.py`. Columns: `head_coach`, `head_coach_changed` (boolean, NULL when no prior season to compare), `coach_tenure_years`. A leakage-free forward signal (hires complete by Jan–Feb) for the `coaching_change_raw` / `coach_tenure_raw` features (spike #651). Python-only read (service key); RLS enabled, no anon policy. | `(team, season)` |
@@ -98,7 +99,7 @@ Advanced receiving (added in migration 022, populated for 2018+ via nflverse `st
 
 All public tables have RLS enabled. Server-side code uses the Supabase **service key** (Python via `scripts.config.get_supabase_client()`, Next.js writes via `web/lib/supabase.supabaseAdmin`) which bypasses RLS. The anon key is restricted to read-only access on a curated set of public reference data.
 
-**Tables with an anon SELECT policy** (web reads via the anon client): `players`, `player_stats`, `nfl_stats`, `league_prices`, `transactions`, `surplus_adjustments`, `player_projections`, `projection_models`, `model_projections`, `backtest_results`, `arbitration_progress`, `arbitration_progress_teams`, `arbitration_allocation_details`, `team_vegas_lines`, `draft_sharks_values`, `league_calendar`, `depth_charts`.
+**Tables with an anon SELECT policy** (web reads via the anon client): `players`, `player_stats`, `nfl_stats`, `league_prices`, `transactions`, `surplus_adjustments`, `player_projections`, `projection_models`, `model_projections`, `backtest_results`, `arbitration_progress`, `arbitration_progress_teams`, `arbitration_allocation_details`, `team_vegas_lines`, `draft_sharks_values`, `league_calendar`, `depth_charts`, `weekly_projections`.
 
 **Tables with no anon policy** (server-only, anon fully blocked): `users`, `arbitration_plans`, `arbitration_plan_allocations`, `scraper_jobs`, `draft_capital`, `team_coaching`, `red_zone_usage`, `ngs_passing`, `oauth_clients`, `oauth_authorization_codes`, `oauth_refresh_tokens`.
 

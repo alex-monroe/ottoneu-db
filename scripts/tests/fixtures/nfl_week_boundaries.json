@@ -1,0 +1,209 @@
+{
+  "_comment": [
+    "Shared boundary table for the NFL-week resolver twins:",
+    "  scripts/nfl_week.py   <- scripts/tests/test_nfl_week.py",
+    "  web/lib/nfl-week.ts   <- web/__tests__/lib/nfl-week.test.ts",
+    "Both suites read THIS file, so the Python and TypeScript implementations",
+    "cannot drift apart without one of them going red.",
+    "",
+    "regular_season_start is the Thursday of Week 1 (2026-09-10, the Thursday",
+    "after Labor Day). The week boundary is the Tuesday two days earlier,",
+    "2026-09-08, so Monday-night games stay in their own week and the slate",
+    "flips on Tuesday morning.",
+    "",
+    "season_cases exercise resolve_window / resolveWindow against a MULTI-SEASON",
+    "calendar. The NFL season is taken from which kickoff we sit between, not",
+    "from the active league-calendar row: Ottoneu rolls its league season in",
+    "early January while NFL Week 18 is played a day or two later.",
+    "",
+    "anchor_cases pin the anchor derivation. Ottoneu's regular_season_start is",
+    "NOT reliably the Thursday kickoff \u2014 the real 2026 value is Wednesday",
+    "2026-09-09 while Week 1 Thursday is 2026-09-10. Every weekday in the",
+    "kickoff week must resolve to the SAME Tuesday, or Monday-night games fall",
+    "into the wrong week."
+  ],
+  "regular_season_start": "2026-09-10",
+  "anchor_tuesday": "2026-09-08",
+  "weeks": 18,
+  "cases": [
+    {
+      "date": "2026-08-20",
+      "week": 1,
+      "why": "well before kickoff \u2014 upcoming week is Week 1"
+    },
+    {
+      "date": "2026-09-07",
+      "week": 1,
+      "why": "Labor Day Monday, day before the anchor"
+    },
+    {
+      "date": "2026-09-08",
+      "week": 1,
+      "why": "anchor Tuesday \u2014 Week 1 opens"
+    },
+    {
+      "date": "2026-09-10",
+      "week": 1,
+      "why": "Week 1 Thursday kickoff"
+    },
+    {
+      "date": "2026-09-13",
+      "week": 1,
+      "why": "Week 1 Sunday"
+    },
+    {
+      "date": "2026-09-14",
+      "week": 1,
+      "why": "Week 1 Monday night stays in Week 1"
+    },
+    {
+      "date": "2026-09-15",
+      "week": 2,
+      "why": "Tuesday flip \u2014 Week 2 becomes upcoming"
+    },
+    {
+      "date": "2026-09-21",
+      "week": 2,
+      "why": "Week 2 Monday night"
+    },
+    {
+      "date": "2026-09-22",
+      "week": 3,
+      "why": "Tuesday flip to Week 3"
+    },
+    {
+      "date": "2026-11-24",
+      "week": 12,
+      "why": "mid-season Tuesday"
+    },
+    {
+      "date": "2027-01-05",
+      "week": 18,
+      "why": "Week 18 opens"
+    },
+    {
+      "date": "2027-01-11",
+      "week": 18,
+      "why": "final Monday of the regular season"
+    },
+    {
+      "date": "2027-01-12",
+      "week": null,
+      "why": "regular season over \u2014 no current week"
+    },
+    {
+      "date": "2027-03-01",
+      "week": null,
+      "why": "deep offseason \u2014 no current week"
+    }
+  ],
+  "display_cases": [
+    {
+      "date": "2026-09-10",
+      "upcoming": 1,
+      "previous": null,
+      "why": "Week 1 has no previous week"
+    },
+    {
+      "date": "2026-09-15",
+      "upcoming": 2,
+      "previous": 1,
+      "why": "Week 1 result stays visible alongside Week 2"
+    },
+    {
+      "date": "2027-01-05",
+      "upcoming": 18,
+      "previous": 17,
+      "why": "final week"
+    },
+    {
+      "date": "2027-01-12",
+      "upcoming": null,
+      "previous": 18,
+      "why": "season over \u2014 Week 18 stays on the card"
+    }
+  ],
+  "calendar": [
+    {
+      "season": 2026,
+      "regular_season_start": "2026-09-10"
+    },
+    {
+      "season": 2027,
+      "regular_season_start": "2027-09-09"
+    }
+  ],
+  "season_cases": [
+    {
+      "date": "2026-08-20",
+      "season": 2026,
+      "week": 1,
+      "live": false,
+      "why": "preseason \u2014 upcoming is 2026 Week 1, not last year's season"
+    },
+    {
+      "date": "2026-09-08",
+      "season": 2026,
+      "week": 1,
+      "live": true,
+      "why": "Week 1 opens"
+    },
+    {
+      "date": "2026-09-15",
+      "season": 2026,
+      "week": 2,
+      "live": true,
+      "why": "Tuesday flip"
+    },
+    {
+      "date": "2027-01-05",
+      "season": 2026,
+      "week": 18,
+      "live": true,
+      "why": "Week 18 belongs to 2026 even though the league season rolled Jan 3"
+    },
+    {
+      "date": "2027-01-11",
+      "season": 2026,
+      "week": 18,
+      "live": true,
+      "why": "final Monday still 2026"
+    },
+    {
+      "date": "2027-01-12",
+      "season": 2027,
+      "week": 1,
+      "live": false,
+      "why": "2026 is over \u2014 the next slate is 2027 Week 1"
+    },
+    {
+      "date": "2027-03-01",
+      "season": 2027,
+      "week": 1,
+      "live": false,
+      "why": "offseason \u2014 pointing at the next kickoff, no games being played"
+    }
+  ],
+  "anchor_cases": [
+    {
+      "start": "2026-09-07",
+      "anchor": "2026-09-08",
+      "why": "Monday (Labor Day)"
+    },
+    {
+      "start": "2026-09-08",
+      "anchor": "2026-09-08",
+      "why": "Tuesday \u2014 already the anchor"
+    },
+    {
+      "start": "2026-09-09",
+      "anchor": "2026-09-08",
+      "why": "Wednesday \u2014 the real Ottoneu 2026 value"
+    },
+    {
+      "start": "2026-09-10",
+      "anchor": "2026-09-08",
+      "why": "Thursday kickoff itself"
+    }
+  ]
+}

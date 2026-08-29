@@ -30,6 +30,7 @@ export const POSITIONS = config.POSITIONS as unknown as readonly ["QB", "RB", "W
 export const COLLEGE_POSITIONS: readonly string[] = config.COLLEGE_POSITIONS;
 export const SCORING_SETTINGS = config.SCORING_SETTINGS;
 export const MIN_GAMES = config.MIN_GAMES;
+export const NFL_REGULAR_SEASON_WEEKS = config.NFL_REGULAR_SEASON_WEEKS;
 export const REPLACEMENT_LEVEL: Record<string, number> = config.REPLACEMENT_LEVEL;
 export const SALARY_REPLACEMENT_PERCENTILE = config.SALARY_REPLACEMENT_PERCENTILE;
 export const MIN_SALARY_PLAYERS = config.MIN_SALARY_PLAYERS;

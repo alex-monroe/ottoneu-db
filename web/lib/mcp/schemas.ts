@@ -74,3 +74,14 @@ export const getDepthChartShape = {
 export const getVegasLinesShape = {
   season: z.number().int().optional().describe("NFL season (defaults to the most recent with data)"),
 } satisfies z.ZodRawShape;
+
+export const getWeeklyProjectionsShape = {
+  week: z.number().int().min(1).max(18).optional()
+    .describe("NFL week 1-18 (defaults to the current/upcoming week, which rolls over on Tuesday)"),
+  season: z.number().int().optional().describe("NFL season (defaults to the current one)"),
+  position: positionEnum.optional(),
+  team_name: z.string().optional()
+    .describe("Filter to one fantasy team's players (exact name); use 'FA' for free agents"),
+  min_points: z.number().optional().describe("Only players projected at or above this many points"),
+  limit: limitParam(50, 200),
+} satisfies z.ZodRawShape;

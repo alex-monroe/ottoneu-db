@@ -59,6 +59,25 @@ matches players by `(normalized name, position)`. It runs standalone via `just s
 `Scrape Draft Sharks Auction Values` GitHub Action. The web app surfaces these values on
 player cards and hover cards for users with projections access.
 
+### Weekly Projections (Sleeper, in-season per-game)
+
+`weekly_projections` stores third-party per-game projections for one NFL week, ingested from
+Sleeper's public read-only API by `scripts/weekly_projections/ingest.py` and re-scored under
+Ottoneu's Half PPR rules (rather than trusting Sleeper's own point total — kickers differ,
+Ottoneu pays a 3/4/5 distance ladder where most sites pay a flat 3). Deliberately kept
+distinct from the season-long `player_projections`: `projected_points` (one game, third-party,
+market-aware) vs `projected_ppg` (season-long, ours, market-free). **Weekly projections must
+never feed `scripts/feature_projections/`** — enforced by `TestNoWeeklyProjectionsInModel`.
+
+The NFL-week primitive lives in twin resolvers (`scripts/nfl_week.py` + `web/lib/nfl-week.ts`)
+reading a shared boundary fixture so they cannot drift; the week rolls every **Tuesday 00:00 ET**,
+anchored on the first Thursday on or after `league_calendar.regular_season_start`. Retention is
+current season only (~11k rows), purged on ingest. Surfaces: `/weekly` board,
+`WeeklyProjectionCard` on the player page, MCP `get_weekly_projections`, and nested weekly
+context inside `get_player`. Refresh cadence: daily 11:00 UTC (projections + in-progress and
+previous-week actuals) plus Sunday 16:00 UTC (projections-only after inactives drop — #705).
+See [docs/references/weekly-projections.md](references/weekly-projections.md).
+
 ### Worker Task Modules (`scripts/tasks/`)
 
 Each task type lives in its own module (`pull_nfl_stats`, `pull_player_stats`). `__init__.py` defines the task-type constants and the `TaskResult` dataclass. The worker no longer launches a browser (the Ottoneu scraping moved to the HTTP tools above).

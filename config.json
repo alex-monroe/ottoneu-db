@@ -21,6 +21,7 @@
     "pat_made": 1
   },
   "MIN_GAMES": 4,
+  "NFL_REGULAR_SEASON_WEEKS": 18,
   "REPLACEMENT_LEVEL": {
     "QB": 24,
     "RB": 30,

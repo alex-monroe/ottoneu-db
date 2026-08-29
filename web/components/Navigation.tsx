@@ -48,6 +48,10 @@ const PRIVATE_GROUPS = [
     links: [
       { href: "/projected-salary", label: "Projected Salary" },
       { href: "/projections", label: "Projections" },
+      // Per-game, third-party, in-season — a different thing entirely from the
+      // season-long model behind "Projections" above. Labelled "Weekly" so the
+      // distinction is visible in the menu itself.
+      { href: "/weekly", label: "Weekly (per-game)" },
       { href: "/projection-accuracy", label: "Proj. Accuracy" },
       { href: "/vegas-lines", label: "Vegas Lines" },
     ],

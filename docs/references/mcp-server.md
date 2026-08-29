@@ -80,6 +80,7 @@ All tools are read-only and use the anon Supabase client (every table touched ha
 | `get_arbitration_progress` | Live scraped arb state: team completion, top raises with projected finals, per-team spending. |
 | `get_depth_chart` | Opening-day NFL depth tiers with prior-season tier + projected PPG. |
 | `get_vegas_lines` | Preseason implied totals + win totals per NFL team. |
+| `get_weekly_projections` | Per-game projections for one NFL week from a third-party source (Sleeper), re-scored under league rules. Defaults to the upcoming week (rolls over Tuesdays); a played week keeps its projection beside the actual result. Filters: `week`, `season`, `position`, `team_name` (`"FA"`), `min_points`. **Not** the same as `get_projections` — the response carries a `note` saying so, plus `source`, `as_of`, and `scoring`. |
 
 Responses are JSON text content with rounded numbers and capped list sizes (token-friendly for LLM consumers). The tool handlers only *compose* the existing data layer (`web/lib/data.ts`, `analysis.ts`, `roster-reconstruction.ts`) and pure calculators (`surplus.ts`, `arb-progress.ts`) — no math is duplicated.
 
