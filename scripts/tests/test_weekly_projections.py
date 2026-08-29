@@ -286,3 +286,43 @@ class TestDedupeAndFiltering:
         )
         assert len(records) == 1
         assert records[0]["projected_points"] == 1.23
+
+
+class TestEmptyStatsIsNotAnError:
+    """An unplayed week returns zero /stats rows — normal, not a schema break.
+
+    Sleeper's /stats endpoint is empty for a week whose games have not been
+    played, which is the state every day between the Tuesday rollover and Sunday
+    kickoff. Raising there would put a red step on most scheduled runs and blur
+    the line between "no games yet" and "the response shape changed".
+    """
+
+    def _patched_fetch_raw(self, monkeypatch, payload):
+        monkeypatch.setattr(sleeper, "fetch_raw", lambda *a, **k: payload)
+
+    def test_empty_stats_returns_no_rows(self, monkeypatch):
+        self._patched_fetch_raw(monkeypatch, [])
+        assert sleeper.fetch(2026, 1, kind="stats", delay=0) == []
+
+    def test_empty_projections_still_raises(self, monkeypatch):
+        # Sleeper always projects an upcoming week, so an empty projections
+        # payload means something is genuinely wrong.
+        self._patched_fetch_raw(monkeypatch, [])
+        with pytest.raises(sleeper.SleeperSchemaError, match="zero rows"):
+            sleeper.fetch(2026, 1, kind="projections", delay=0)
+
+    def test_malformed_stats_payload_still_raises(self, monkeypatch):
+        # Non-empty but unrecognised is a real schema break, even for stats.
+        self._patched_fetch_raw(
+            monkeypatch, [_sleeper_row("X Y", "QB", "BUF", {"totally_renamed": 1})]
+        )
+        with pytest.raises(sleeper.SleeperSchemaError, match="none of the expected stat keys"):
+            sleeper.fetch(2026, 1, kind="stats", delay=0)
+
+    def test_populated_stats_parse_normally(self, monkeypatch):
+        self._patched_fetch_raw(
+            monkeypatch, [_sleeper_row("Josh Allen", "QB", "BUF", {"pass_yd": 300, "pass_td": 3})]
+        )
+        rows = sleeper.fetch(2026, 1, kind="stats", delay=0)
+        assert len(rows) == 1
+        assert score_stat_line(rows[0].stats) == 24.0

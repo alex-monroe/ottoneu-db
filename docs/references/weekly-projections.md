@@ -209,11 +209,52 @@ just weekly-projections --week 1 --season 2025 --dry-run
 just weekly-projections-probe --season 2025 --week 1 # confirm the payload shape
 ```
 
-Automated by `.github/workflows/pull-weekly-projections.yml`: daily at 11:00 UTC
-(~7am ET), **gated on `is_nfl_week_live()`** so it is a no-op all offseason
-(and, unlike a league-phase gate, still runs through Week 18). Each scheduled run ingests the current week's projections and
-backfills the previous week's actuals. A `workflow_dispatch` run skips the gate
-so a specific week can be backfilled at any time.
+## Refresh schedule
+
+Automated by `.github/workflows/pull-weekly-projections.yml`. Two schedules,
+because the week has two moments that matter:
+
+| Cron (UTC) | Local | What it does | Why |
+| --- | --- | --- | --- |
+| `0 11 * * *` | ~7am ET, daily | Projections for the current week, **plus actuals** for the current and previous week | Sleeper revises all week as injury and snap news lands, so a single Tuesday pull is stale by Sunday. 7am ET is the one time no game is in progress — Sunday's are final, Monday night's has not started — which is why this is the run that writes actuals. |
+| `0 16 * * 0` | 12pm EDT / 11am EST, Sundays | Projections only | Inactives are announced ~90 minutes before the 1pm ET window. This is the most valuable projection update of the week for start/sit, and the 7am run is far too early to catch it. |
+
+Both are **gated on `is_nfl_week_live()`**, so they no-op all offseason — and,
+unlike a league-phase gate, still run through Week 18. A `workflow_dispatch` run
+skips the gate entirely so any week can be backfilled at any time; passing an
+explicit `week` also suppresses the automatic current/previous passes, so a
+targeted backfill does exactly what you asked and nothing else.
+
+A `concurrency` group stops a pre-kickoff run and a daily run from writing the
+same rows at once.
+
+### Why the Sunday run does not pull actuals
+
+It fires while games are in progress. Writing actuals then would store a
+half-finished stat line that renders on the card as a settled "Actual" beside
+the projection. The daily 7am ET run picks those same games up once they are
+final.
+
+### Why actuals are pulled for the *current* week, not just the previous one
+
+Results for week N used to arrive only on the following Tuesday, when N became
+`previous`. That left every card showing week N's projection with no result all
+Sunday night and Monday — exactly when people want to see how it went. The daily
+run now pulls the in-progress week's actuals too, so Monday morning shows
+Sunday's results; Monday-night games land Tuesday.
+
+An empty `/stats` response is **normal, not an error**: Sleeper returns zero rows
+for a week whose games have not been played, which is the state from the Tuesday
+rollover until kickoff. `fetch` returns `[]` there and the ingest exits cleanly.
+An empty *projections* response still raises, because Sleeper always projects an
+upcoming week.
+
+### If the cron stops firing
+
+GitHub disables scheduled workflows on a repository with no activity for 60
+days. `/admin/workflows` shows a per-day grid of every scheduled workflow (it
+auto-discovers them — no registration needed), so a silently disabled job is
+visible there as a gap.
 
 ## Surfaces
 
