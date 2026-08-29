@@ -35,6 +35,9 @@ export const LEAGUE_TZ = "America/New_York";
 /** Days from the Thursday of Week 1 back to the Tuesday that opens that week. */
 const THURSDAY_TO_TUESDAY = 2;
 
+/** Date.getUTCDay(): Sunday is 0, so Thursday is 4. */
+const THURSDAY = 4;
+
 const MS_PER_DAY = 86_400_000;
 
 /**
@@ -65,6 +68,25 @@ function addDays(iso: string, days: number): string {
     .slice(0, 10);
 }
 
+/**
+ * The Tuesday opening Week 1, from whatever date Ottoneu calls the start.
+ *
+ * Do NOT just subtract two days. Ottoneu's `regular_season_start` is not
+ * reliably the Thursday kickoff — for 2026 it is Wednesday 2026-09-09, while
+ * the NFL's Week 1 Thursday is 2026-09-10. Subtracting blindly would put the
+ * boundary on a Monday and push Week 1's Monday-night game into Week 2, which
+ * is precisely what the Tuesday rule exists to prevent.
+ *
+ * So snap forward to the first Thursday on or after the recorded start, then
+ * step back to that week's Tuesday — the same anchor whether Ottoneu records
+ * the Monday, Tuesday, Wednesday, or the Thursday itself.
+ */
+export function anchorFromStart(start: string): string {
+  const day = new Date(`${start}T00:00:00Z`).getUTCDay();
+  const toThursday = (THURSDAY - day + 7) % 7;
+  return addDays(start, toThursday - THURSDAY_TO_TUESDAY);
+}
+
 export interface CalendarRow {
   season: number;
   regular_season_start?: string | null;
@@ -79,7 +101,7 @@ function anchors(calendarRows: CalendarRow[]): { anchor: string; season: number 
   return (calendarRows ?? [])
     .filter((r) => r.regular_season_start && r.season != null)
     .map((r) => ({
-      anchor: addDays(String(r.regular_season_start).slice(0, 10), -THURSDAY_TO_TUESDAY),
+      anchor: anchorFromStart(String(r.regular_season_start).slice(0, 10)),
       season: Number(r.season),
     }))
     .sort((a, b) => (a.anchor < b.anchor ? -1 : 1));

@@ -103,8 +103,14 @@ propagates without a code edit.
 The repo previously had no notion of an NFL week. `scripts/nfl_week.py` and its
 TypeScript twin `web/lib/nfl-week.ts` are the single source of truth.
 
-- **Anchor:** `league_calendar.regular_season_start` — the Thursday of Week 1 —
-  already scraped by `scripts/scrape_league_calendar.py`.
+- **Anchor:** derived from `league_calendar.regular_season_start`, but **not by
+  subtracting two days**. Ottoneu's recorded start is not reliably the Thursday
+  kickoff — the real 2026 value is **Wednesday 2026-09-09** while Week 1 Thursday
+  is 2026-09-10. `_anchor_from_start` snaps forward to the first Thursday on or
+  after the recorded date, then steps back to that week's Tuesday, so Monday,
+  Tuesday, Wednesday and Thursday values all resolve to the same anchor. A blind
+  subtraction would put the boundary on a Monday and push Week 1's Monday-night
+  game into Week 2.
 - **Boundary: Tuesday 00:00 America/New_York.** An NFL week's games run Thursday
   night through Monday night, so the slate flips the morning after the
   Monday-nighter:
@@ -148,6 +154,43 @@ workflow uses `is_nfl_week_live`.
 **both** test suites, so the Python and TypeScript twins cannot drift apart
 without one of them going red. It covers the single-season week boundaries and
 the multi-season season-attribution cases above.
+
+## Data quality
+
+Three behaviours worth knowing, all found by running the first real ingest and
+all covered by tests:
+
+- **Players with no projected stats are skipped.** Sleeper returns its whole
+  player universe (~3,200 rows for QB/RB/WR/TE/K), most of it not actually
+  projected. On a real slate these split cleanly: every row with a scoring stat
+  also carries an opponent, and every row without one has neither. Week 1 of 2025
+  was 344 real projections out of 869 candidate rows. Writing the rest would
+  roughly triple the table with `0.0` rows that read as real projections on the
+  board, and would make "missing = bye or inactive" — which the UI and the MCP
+  note both promise — untrue.
+- **Duplicate matches are collapsed, keeping the highest-scoring row.** Sleeper
+  carries duplicate, retired, and practice-squad records under the same name, and
+  the fuzzy matcher lands them on one `player_id` (29 collisions in 2025 Week 1).
+  PostgREST rejects such a batch outright — *"ON CONFLICT DO UPDATE command
+  cannot affect row a second time"* — so the whole week fails to write unless
+  they are collapsed first.
+- **Only players with `ottoneu_id > 0` are matched.** The `players` table holds
+  ~2,500 historical placeholder rows with negative ids, many of them duplicates
+  of a real player carrying a stale NFL team. Matching against them produced
+  ~780 bogus rows pointing at records the web layer filters out and whose player
+  pages do not exist. This is the same filter `fetchPlayerList` and
+  `fetchRosterData` already use.
+
+### Expected coverage
+
+About **84% of rostered players** have a projection in a live week (2026 Week 1).
+The rest are genuinely unprojected: suspended players, backup QBs, PUP/injured,
+and players not in the NFL that season. Backtesting an old season against a
+current roster scores lower (72% for 2025 Week 1) for the same reason — several
+rostered players had not entered the league yet.
+
+Validated against 2025 Week 1 actuals: **correlation 0.73, MAE 3.6 points**,
+which is the expected range for weekly fantasy projections.
 
 ## Retention
 

@@ -14,7 +14,13 @@
     "season_cases exercise resolve_window / resolveWindow against a MULTI-SEASON",
     "calendar. The NFL season is taken from which kickoff we sit between, not",
     "from the active league-calendar row: Ottoneu rolls its league season in",
-    "early January while NFL Week 18 is played a day or two later."
+    "early January while NFL Week 18 is played a day or two later.",
+    "",
+    "anchor_cases pin the anchor derivation. Ottoneu's regular_season_start is",
+    "NOT reliably the Thursday kickoff \u2014 the real 2026 value is Wednesday",
+    "2026-09-09 while Week 1 Thursday is 2026-09-10. Every weekday in the",
+    "kickoff week must resolve to the SAME Tuesday, or Monday-night games fall",
+    "into the wrong week."
   ],
   "regular_season_start": "2026-09-10",
   "anchor_tuesday": "2026-09-08",
@@ -176,6 +182,28 @@
       "week": 1,
       "live": false,
       "why": "offseason \u2014 pointing at the next kickoff, no games being played"
+    }
+  ],
+  "anchor_cases": [
+    {
+      "start": "2026-09-07",
+      "anchor": "2026-09-08",
+      "why": "Monday (Labor Day)"
+    },
+    {
+      "start": "2026-09-08",
+      "anchor": "2026-09-08",
+      "why": "Tuesday \u2014 already the anchor"
+    },
+    {
+      "start": "2026-09-09",
+      "anchor": "2026-09-08",
+      "why": "Wednesday \u2014 the real Ottoneu 2026 value"
+    },
+    {
+      "start": "2026-09-10",
+      "anchor": "2026-09-08",
+      "why": "Thursday kickoff itself"
     }
   ]
 }

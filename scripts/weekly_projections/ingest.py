@@ -36,13 +36,26 @@ SOURCES = {"sleeper": sleeper}
 
 
 def _players_index(supabase):
-    """Position-keyed index of our players, for name matching."""
+    """Position-keyed index of our players, for name matching.
+
+    Filtered to `ottoneu_id > 0` — the same filter the web data layer uses
+    (fetchPlayerList, fetchRosterData). The players table also holds ~2.5k
+    historical placeholder rows with negative ottoneu_ids, and many of those are
+    duplicates of a real player (DeAndre Hopkins appears twice) carrying stale
+    NFL teams. Without this filter those duplicates make `match_player` see two
+    exact name matches, fail the team cross-check against the stale team, and
+    skip the player as ambiguous — silently dropping hundreds of real,
+    currently-rostered players from the board.
+    """
     import pandas as pd
 
-    players = fetch_all_rows(supabase, "players", "id, name, position, nfl_team")
-    # College prospects share the players table; they never have NFL projections.
-    df = pd.DataFrame(players)
-    return build_player_index(df)
+    players = fetch_all_rows(
+        supabase,
+        "players",
+        "id, name, position, nfl_team",
+        filters=[("gte", "ottoneu_id", 1)],
+    )
+    return build_player_index(pd.DataFrame(players))
 
 
 def build_records(
@@ -71,6 +84,14 @@ def build_records(
             continue
 
         stats = normalised_stats(row.stats)
+        # Skip players the source carries but is not actually projecting. On a
+        # real slate these split cleanly: every row with a scoring stat also has
+        # an opponent, and every row without one has neither. Storing them would
+        # roughly triple the table with 0.0 rows that read as real projections on
+        # the board, and would make "missing = bye or inactive" — which is what
+        # the UI and the MCP note both promise — untrue.
+        if not stats:
+            continue
         points = score_stat_line(row.stats)
 
         record = {
@@ -90,7 +111,29 @@ def build_records(
             record["projected_at"] = now
         records.append(record)
 
-    return records, unmatched
+    return _dedupe(records, actuals), unmatched
+
+
+def _dedupe(records: list[dict], actuals: bool) -> list[dict]:
+    """Collapse records that share a (player_id, season, week, source) key.
+
+    Two Sleeper entries can resolve to the same player of ours: the source
+    carries duplicate, retired, and practice-squad records under the same name,
+    and the fuzzy matcher lands them on one player_id. PostgREST rejects such a
+    batch outright — "ON CONFLICT DO UPDATE command cannot affect row a second
+    time" — so the whole week fails to write unless we collapse them first.
+
+    The duplicates are almost always a real projection plus one or more 0.0
+    stubs (the inactive record), so we keep the highest-scoring row.
+    """
+    points_key = "actual_points" if actuals else "projected_points"
+    best: dict[tuple, dict] = {}
+    for record in records:
+        key = (record["player_id"], record["season"], record["week"], record["source"])
+        current = best.get(key)
+        if current is None or (record.get(points_key) or 0) > (current.get(points_key) or 0):
+            best[key] = record
+    return list(best.values())
 
 
 def purge_old_seasons(supabase, current_season: int, dry_run: bool = False) -> None:

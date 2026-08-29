@@ -46,6 +46,9 @@ LEAGUE_TZ = ZoneInfo("America/New_York")
 # Days from the Thursday of Week 1 back to the Tuesday that opens that week.
 _THURSDAY_TO_TUESDAY = 2
 
+# date.weekday(): Monday is 0, so Thursday is 3.
+_THURSDAY = 3
+
 
 def today_in_league_tz(now: Optional[datetime] = None) -> date:
     """Today's date in the league's timezone.
@@ -80,8 +83,25 @@ def _anchors(calendar_rows: list[dict]) -> list[tuple[date, int]]:
         season = row.get("season")
         if start is None or season is None:
             continue
-        out.append((start - timedelta(days=_THURSDAY_TO_TUESDAY), int(season)))
+        out.append((_anchor_from_start(start), int(season)))
     return sorted(out)
+
+
+def _anchor_from_start(start: date) -> date:
+    """The Tuesday opening Week 1, from whatever date Ottoneu calls the start.
+
+    Do NOT just subtract two days. Ottoneu's `regular_season_start` is not
+    reliably the Thursday kickoff — for 2026 it is Wednesday 2026-09-09, while
+    the NFL's Week 1 Thursday is 2026-09-10. Subtracting blindly would put the
+    boundary on a Monday and push Week 1's Monday-night game into Week 2, which
+    is precisely what the Tuesday rule exists to prevent.
+
+    So snap forward to the first Thursday on or after the recorded start, then
+    step back to that week's Tuesday. This lands on the same anchor whether
+    Ottoneu records the Monday, Tuesday, Wednesday, or the Thursday itself.
+    """
+    thursday = start + timedelta(days=(_THURSDAY - start.weekday()) % 7)
+    return thursday - timedelta(days=_THURSDAY_TO_TUESDAY)
 
 
 def resolve_window(

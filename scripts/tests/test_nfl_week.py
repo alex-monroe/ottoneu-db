@@ -15,6 +15,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from scripts.nfl_week import (
+    _anchor_from_start,
     current_nfl_week,
     display_weeks,
     is_nfl_week_live,
@@ -155,3 +156,28 @@ class TestSeasonResolution:
 
     def test_no_calendar_resolves_to_nothing(self):
         assert resolve_window(date(2026, 9, 15), []) == (None, None)
+
+
+class TestAnchorDerivation:
+    """Ottoneu's regular_season_start is not reliably the Thursday kickoff.
+
+    The real 2026 value is Wednesday 2026-09-09 while Week 1 Thursday is
+    2026-09-10. Blindly subtracting two days would put the boundary on a Monday
+    and push Week 1's Monday-night game into Week 2 — the exact thing the
+    Tuesday rule exists to prevent. Every weekday in the kickoff week must
+    resolve to the same Tuesday. Shared with the TypeScript twin.
+    """
+
+    @pytest.mark.parametrize("case", FIXTURE["anchor_cases"], ids=lambda c: f"{c['start']}-{c['why']}")
+    def test_shared_anchor_table(self, case):
+        got = _anchor_from_start(date.fromisoformat(case["start"]))
+        assert got == date.fromisoformat(case["anchor"])
+        assert got.weekday() == 1, "anchor must always be a Tuesday"
+
+    def test_monday_night_stays_in_its_week_with_the_real_ottoneu_date(self):
+        # The regression this guards: Ottoneu says the season starts Wed Sep 9.
+        calendar = [{"season": 2026, "regular_season_start": "2026-09-09"}]
+        # Week 1's Monday-night game.
+        assert current_nfl_week(today=date(2026, 9, 14), calendar_rows=calendar) == (2026, 1)
+        # And the slate flips the next morning, not a day early.
+        assert current_nfl_week(today=date(2026, 9, 15), calendar_rows=calendar) == (2026, 2)

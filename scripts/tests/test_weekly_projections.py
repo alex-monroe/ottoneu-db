@@ -222,3 +222,67 @@ class TestBuildRecords:
         assert unmatched == []
         assert records[0]["player_id"] == "uuid-wr"
         assert records[0]["projected_points"] == 11.0
+
+
+class TestDedupeAndFiltering:
+    """Regressions found verifying the first ingest against the live API."""
+
+    PLAYER_INDEX = {
+        "WR": [
+            {"id": "uuid-wr", "name": "DeVonta Smith", "norm_name": "devonta smith", "nfl_team": "PHI"}
+        ],
+    }
+
+    def _row(self, stats, name="DeVonta Smith"):
+        return WeeklyRow(name=name, position="WR", team="PHI", week=1, season=2025,
+                         stats=stats, opponent="DAL")
+
+    def test_duplicate_matches_collapse_to_one_record(self):
+        # Sleeper carries duplicate/retired/practice-squad records under the same
+        # name, and the fuzzy matcher lands them on one player_id. PostgREST
+        # rejects the whole batch with "ON CONFLICT DO UPDATE command cannot
+        # affect row a second time", so the entire week fails to write.
+        rows = [
+            self._row({"receptions": 5, "receiving_yards": 65}),   # the real one
+            self._row({"receptions": 0.0}),                        # inactive stub
+        ]
+        records, _ = build_records(rows, self.PLAYER_INDEX, "sleeper", actuals=False)
+        assert len(records) == 1
+
+    def test_dedupe_keeps_the_higher_scoring_row(self):
+        rows = [
+            self._row({"receptions": 1}),
+            self._row({"receptions": 5, "receiving_yards": 65}),
+        ]
+        records, _ = build_records(rows, self.PLAYER_INDEX, "sleeper", actuals=False)
+        assert records[0]["projected_points"] == 9.0  # 5*0.5 + 65*0.1
+
+    def test_dedupe_uses_actual_points_on_the_actuals_pass(self):
+        rows = [
+            self._row({"receptions": 8, "receiving_yards": 100}),
+            self._row({"receptions": 1}),
+        ]
+        records, _ = build_records(rows, self.PLAYER_INDEX, "sleeper", actuals=True)
+        assert len(records) == 1
+        assert records[0]["actual_points"] == 14.0
+
+    def test_players_with_no_projected_stats_are_skipped(self):
+        # On a real slate these split cleanly: every row with a scoring stat also
+        # carries an opponent, and every row without one has neither. Writing
+        # them would triple the table with 0.0 rows that read as real
+        # projections, and break the "missing = bye or inactive" promise the UI
+        # and the MCP note both make.
+        records, unmatched = build_records(
+            [self._row({})], self.PLAYER_INDEX, "sleeper", actuals=False
+        )
+        assert records == []
+        # Skipped for having no projection, NOT reported as a matching failure.
+        assert unmatched == []
+
+    def test_a_tiny_but_real_projection_is_kept(self):
+        records, _ = build_records(
+            [self._row({"receptions": 0.86, "receiving_yards": 7.99})],
+            self.PLAYER_INDEX, "sleeper", actuals=False,
+        )
+        assert len(records) == 1
+        assert records[0]["projected_points"] == 1.23

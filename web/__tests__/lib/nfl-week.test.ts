@@ -4,6 +4,7 @@ jest.mock("@/lib/supabase", () => ({ supabase: {} }));
 import { readFileSync } from "fs";
 import { join } from "path";
 import {
+  anchorFromStart,
   currentNflWeek,
   displayWeeks,
   isNflWeekLive,
@@ -33,6 +34,7 @@ const FIXTURE = JSON.parse(
     why: string;
   }[];
   calendar: CalendarRow[];
+  anchor_cases: { start: string; anchor: string; why: string }[];
   season_cases: {
     date: string;
     season: number;
@@ -176,5 +178,23 @@ describe("season resolution across a multi-season calendar", () => {
 
   it("points preseason at the coming season, not the last one", () => {
     expect(currentNflWeek(CALENDAR, "2026-08-20")).toEqual({ season: 2026, week: 1 });
+  });
+});
+
+describe("anchor derivation", () => {
+  // Ottoneu's regular_season_start is not reliably the Thursday kickoff: the
+  // real 2026 value is Wednesday 2026-09-09 while Week 1 Thursday is
+  // 2026-09-10. Blindly subtracting two days would put the boundary on a Monday
+  // and push Week 1's Monday-night game into Week 2.
+  it.each(FIXTURE.anchor_cases)("$start → $anchor ($why)", ({ start, anchor }) => {
+    expect(anchorFromStart(start)).toBe(anchor);
+    // Always a Tuesday (getUTCDay: Tuesday is 2).
+    expect(new Date(`${anchorFromStart(start)}T00:00:00Z`).getUTCDay()).toBe(2);
+  });
+
+  it("keeps Monday night in its own week with the real Ottoneu date", () => {
+    const calendar = [{ season: 2026, regular_season_start: "2026-09-09" }];
+    expect(currentNflWeek(calendar, "2026-09-14").week).toBe(1);
+    expect(currentNflWeek(calendar, "2026-09-15").week).toBe(2);
   });
 });
