@@ -184,9 +184,15 @@ describe("nominationOrder", () => {
   });
 
   it("is jittered, not strictly by value, but still value-weighted", () => {
+    // Math.random is seeded per test in jest.setup.ts, so this is deterministic.
+    // The run count is 200 rather than 40 on purpose: the top player lands in
+    // the first quartile on ~66% of draws, so at 40 runs the "> half" threshold
+    // sat only ~1.9 standard deviations out and the test failed ~3% of the time
+    // whenever the seeding was absent. 200 keeps the assertion clear of the
+    // noise band on its own merits, not just by choice of seed.
     let strictCount = 0;
     let topInFirstQuartileCount = 0;
-    const runs = 40;
+    const runs = 200;
     for (let r = 0; r < runs; r++) {
       const ordered = nominationOrder(pool);
       const isStrict = ordered.every((p, i) => i === 0 || ordered[i - 1].mv >= p.mv);
