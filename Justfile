@@ -91,6 +91,12 @@ scrape-player-cards *args:
 reconcile-roster *args:
     {{python}} scripts/reconcile_roster.py {{args}}
 
+# Delete inferred transactions that a real player-card row supersedes (dry-run by default).
+# Runs automatically after just scrape-player-cards --apply; this is the manual/backfill path.
+# e.g. just dedupe-transactions --verbose ; just dedupe-transactions --apply
+dedupe-transactions *args:
+    {{python}} -m scripts.transaction_dedupe {{args}}
+
 # Update player projections (VORP/surplus/arbitration now computed in the web UI)
 analyze:
     {{python}} scripts/update_projections.py
