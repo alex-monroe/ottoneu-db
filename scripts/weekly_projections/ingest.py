@@ -181,6 +181,13 @@ def ingest(
     rows = provider.fetch(season, week, kind=kind)
     print(f"  {len(rows)} rows returned")
 
+    if not rows and actuals:
+        # Expected between the Tuesday rollover and kickoff: the games simply
+        # have not been played. Not a failure — the daily job re-runs and picks
+        # them up once they are final.
+        print(f"  No results posted yet for {season} week {week}; nothing to backfill.")
+        return 0
+
     print("Matching players...")
     records, unmatched = build_records(rows, _players_index(supabase), source, actuals)
     print(f"  {len(records)} matched, {len(unmatched)} unmatched")

@@ -126,6 +126,8 @@ def validate_payload(payload: list[dict], url_hint: str = "") -> None:
     Guards the failure mode that actually matters: a renamed stat key would
     otherwise map to nothing, score every player at 0.0, and quietly overwrite a
     good week with zeroes.
+
+    Callers must not use this on an empty `/stats` payload — see `fetch`.
     """
     where = f" ({url_hint})" if url_hint else ""
 
@@ -219,8 +221,21 @@ def fetch(
     positions: Iterable[str] = POSITIONS,
     delay: float = 1.0,
 ) -> list[WeeklyRow]:
-    """Fetch, validate, and normalise one week from Sleeper."""
+    """Fetch, validate, and normalise one week from Sleeper.
+
+    An empty `/stats` response is normal, not an error: the endpoint returns
+    zero rows for a week whose games have not been played, which is the state
+    every day between the Tuesday rollover and Sunday kickoff. Treating that as
+    a schema failure would put a red step on most scheduled runs and, worse,
+    blur the line between "no games yet" and "the response shape changed" — the
+    distinction validate_payload exists to preserve. An empty *projections*
+    response stays an error, because Sleeper always projects an upcoming week.
+    """
     payload = fetch_raw(season, week, kind=kind, positions=positions)
+
+    if not payload and kind == "stats":
+        return []
+
     validate_payload(payload, url_hint=_url(kind, season, week))
     rows = parse(payload, season, week)
     if delay:
