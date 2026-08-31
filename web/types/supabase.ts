@@ -607,6 +607,56 @@ export type Database = {
           },
         ]
       }
+      player_contracts: {
+        Row: {
+          apy: number | null
+          apy_cap_pct: number | null
+          created_at: string
+          guaranteed: number | null
+          id: string
+          player_id: string
+          position: string
+          updated_at: string
+          value: number | null
+          year_signed: number
+          years: number | null
+        }
+        Insert: {
+          apy?: number | null
+          apy_cap_pct?: number | null
+          created_at?: string
+          guaranteed?: number | null
+          id?: string
+          player_id: string
+          position: string
+          updated_at?: string
+          value?: number | null
+          year_signed: number
+          years?: number | null
+        }
+        Update: {
+          apy?: number | null
+          apy_cap_pct?: number | null
+          created_at?: string
+          guaranteed?: number | null
+          id?: string
+          player_id?: string
+          position?: string
+          updated_at?: string
+          value?: number | null
+          year_signed?: number
+          years?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_contracts_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_projections: {
         Row: {
           created_at: string

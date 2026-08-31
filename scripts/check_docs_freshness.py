@@ -5,9 +5,11 @@ Inspired by harness engineering: periodically scan for stale or inconsistent
 documentation that could mislead AI agents or humans.
 
 This script checks:
-1. Documentation files referenced in AGENTS.md actually exist
-2. No orphan docs exist that aren't referenced anywhere
-3. Key files mentioned in CODE_ORGANIZATION.md still exist at the stated paths
+1. File paths referenced in README.md, AGENTS.md and CLAUDE.md actually exist
+2. Every `just <recipe>` named in a doc actually exists in the Justfile
+3. CLAUDE.md stays a thin pointer at AGENTS.md rather than drifting into a copy
+4. No orphan docs exist that aren't referenced anywhere
+5. Key files mentioned in CODE_ORGANIZATION.md still exist at the stated paths
 
 Usage:
     python scripts/check_docs_freshness.py          # Check and report
@@ -28,57 +30,141 @@ YELLOW = "\033[93m"
 GREEN = "\033[92m"
 RESET = "\033[0m"
 
+# Docs whose markdown links are validated against the filesystem. README.md is the
+# human entry point and AGENTS.md the agent entry point; both rotted in the past
+# precisely because nothing checked them (see docs/ONBOARDING.md).
+LINK_CHECKED_DOCS = ["README.md", "AGENTS.md", "CLAUDE.md"]
 
-def check_agents_md_links() -> list[str]:
-    """Verify that all file paths referenced in AGENTS.md exist."""
-    issues = []
-    agents_md = PROJECT_ROOT / "AGENTS.md"
-    if not agents_md.exists():
-        return ["AGENTS.md is missing entirely!"]
+# Docs scanned for `just <recipe>` mentions. Recipes get renamed and removed; a doc
+# telling a newcomer to run a recipe that no longer exists is worse than no doc.
+RECIPE_CHECKED_DOCS = [
+    "README.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "docs/ONBOARDING.md",
+    "docs/COMMANDS.md",
+    "docs/TESTING.md",
+    "docs/SUBSYSTEMS.md",
+]
 
-    content = agents_md.read_text()
-    # Match markdown links like [text](path) and bare paths in code blocks
-    link_pattern = re.compile(r"\[.*?\]\(([^)]+)\)")
-    for match in link_pattern.finditer(content):
+# CLAUDE.md is deliberately a pointer at AGENTS.md (the two were ~95% duplicated and
+# had already drifted apart by seven subsystems). Anything longer means someone
+# started copying content back in.
+CLAUDE_MD_MAX_LINES = 60
+
+
+def _markdown_link_targets(content: str) -> list[str]:
+    """Local file paths linked from a markdown document, anchors stripped."""
+    targets = []
+    for match in re.finditer(r"\[.*?\]\(([^)]+)\)", content):
         target = match.group(1)
-        # Skip URLs
-        if target.startswith("http://") or target.startswith("https://"):
+        if target.startswith(("http://", "https://", "#", "mailto:")):
             continue
-        # Skip anchor links
-        if target.startswith("#"):
+        targets.append(target)
+    return targets
+
+
+def check_entry_point_links() -> list[str]:
+    """Verify that every local path linked from an entry-point doc exists."""
+    issues = []
+    for doc in LINK_CHECKED_DOCS:
+        doc_path = PROJECT_ROOT / doc
+        if not doc_path.exists():
+            issues.append(f"{doc} is missing entirely!")
             continue
-        # Strip anchor from target path
-        target_clean = target.split("#")[0]
-        target_path = PROJECT_ROOT / target_clean
-        if not target_path.exists():
-            issues.append(
-                f"AGENTS.md references '{target}' but the file does not exist.\n"
-                f"  FIX: Either create {target} or update the link in AGENTS.md."
-            )
+
+        for target in _markdown_link_targets(doc_path.read_text()):
+            if not (PROJECT_ROOT / target.split("#")[0]).exists():
+                issues.append(
+                    f"{doc} references '{target}' but the file does not exist.\n"
+                    f"  FIX: Either create {target} or update the link in {doc}."
+                )
     return issues
 
 
-def check_claude_md_links() -> list[str]:
-    """Verify that all file paths referenced in CLAUDE.md exist."""
+def _justfile_recipes() -> set[str]:
+    """Recipe names declared in the Justfile.
+
+    Parsed directly rather than shelling out to `just --summary` so this check stays
+    offline and works even when the build runner isn't installed.
+    """
+    justfile = PROJECT_ROOT / "Justfile"
+    if not justfile.exists():
+        return set()
+
+    # A recipe line starts at column 0: `name`, `name *args:`, `name arg="default":`.
+    # Parameter defaults can contain `=`, so only `:` terminates the signature; the
+    # negative lookahead then skips variable assignments (`python := "venv/bin/..."`).
+    recipe_pattern = re.compile(r"^([a-z][a-z0-9-]*)(?:\s+[^:\n]*)?:(?!=)", re.MULTILINE)
+    return set(recipe_pattern.findall(justfile.read_text()))
+
+
+def _code_spans(content: str) -> list[str]:
+    """Inline-code spans and fenced code blocks from a markdown document.
+
+    Recipe mentions are only checked inside code, because prose legitimately uses
+    "just" as an adverb ("just above the query", "just learn what...").
+    """
+    spans = re.findall(r"```.*?```", content, re.DOTALL)
+    without_fences = re.sub(r"```.*?```", "", content, flags=re.DOTALL)
+    spans.extend(re.findall(r"`([^`\n]+)`", without_fences))
+    return spans
+
+
+def check_just_recipes() -> list[str]:
+    """Verify that every `just <recipe>` mentioned in a doc exists in the Justfile."""
+    recipes = _justfile_recipes()
+    if not recipes:
+        return ["Could not parse any recipes out of the Justfile — is it missing?"]
+
     issues = []
+    mention_pattern = re.compile(r"\bjust\s+([a-z][a-z0-9-]*)")
+
+    for doc in RECIPE_CHECKED_DOCS:
+        doc_path = PROJECT_ROOT / doc
+        if not doc_path.exists():
+            continue
+
+        seen = set()
+        for span in _code_spans(doc_path.read_text()):
+            for match in mention_pattern.finditer(span):
+                name = match.group(1)
+                if name in recipes or name in seen:
+                    continue
+                seen.add(name)
+                issues.append(
+                    f"{doc} tells the reader to run `just {name}`, "
+                    f"but no such recipe exists in the Justfile.\n"
+                    f"  FIX: Update {doc}, or add the recipe. `just --list` shows what exists."
+                )
+    return issues
+
+
+def check_claude_md_is_pointer() -> list[str]:
+    """Verify CLAUDE.md still delegates to AGENTS.md instead of duplicating it."""
     claude_md = PROJECT_ROOT / "CLAUDE.md"
     if not claude_md.exists():
         return ["CLAUDE.md is missing entirely!"]
 
     content = claude_md.read_text()
-    link_pattern = re.compile(r"\[.*?\]\(([^)]+)\)")
-    for match in link_pattern.finditer(content):
-        target = match.group(1)
-        if target.startswith("http") or target.startswith("#"):
-            continue
-        # Strip anchor from target path
-        target_clean = target.split("#")[0]
-        target_path = PROJECT_ROOT / target_clean
-        if not target_path.exists():
-            issues.append(
-                f"CLAUDE.md references '{target}' but the file does not exist.\n"
-                f"  FIX: Either create {target} or update the link in CLAUDE.md."
-            )
+    issues = []
+
+    if "AGENTS.md" not in content:
+        issues.append(
+            "CLAUDE.md no longer points at AGENTS.md.\n"
+            "  FIX: CLAUDE.md is a pointer — the canonical agent instructions live in\n"
+            "  AGENTS.md. Add the pointer back rather than duplicating content."
+        )
+
+    line_count = len(content.splitlines())
+    if line_count > CLAUDE_MD_MAX_LINES:
+        issues.append(
+            f"CLAUDE.md is {line_count} lines, over the {CLAUDE_MD_MAX_LINES}-line budget.\n"
+            f"  FIX: CLAUDE.md should only hold Claude Code-specific notes and a pointer\n"
+            f"  at AGENTS.md. Move shared guidance into AGENTS.md instead — the two files\n"
+            f"  were previously near-duplicates and silently drifted apart."
+        )
+
     return issues
 
 
@@ -107,32 +193,33 @@ def check_code_organization_paths() -> list[str]:
 
 
 def check_orphan_docs() -> list[str]:
-    """Find doc files in docs/ not referenced by AGENTS.md or CLAUDE.md."""
+    """Find doc files in docs/ not referenced from an entry point."""
     issues = []
     docs_dir = PROJECT_ROOT / "docs"
     if not docs_dir.exists():
         return []
 
-    # Gather all references from AGENTS.md and CLAUDE.md
+    # Gather all references from the entry points and the maps they own.
     referenced = set()
-    for md_file in ["AGENTS.md", "CLAUDE.md"]:
+    for md_file in LINK_CHECKED_DOCS + ["docs/SUBSYSTEMS.md", "docs/ONBOARDING.md"]:
         md_path = PROJECT_ROOT / md_file
-        if md_path.exists():
-            content = md_path.read_text()
-            for match in re.finditer(r"\[.*?\]\(([^)]+)\)", content):
-                referenced.add(match.group(1))
-            # Also match bare paths in code blocks
-            for match in re.finditer(r"(?:^|\s)(docs/\S+\.md)", content):
-                referenced.add(match.group(1))
+        if not md_path.exists():
+            continue
+        content = md_path.read_text()
+        for target in _markdown_link_targets(content):
+            referenced.add(target.split("#")[0])
+        # Also match bare paths in code blocks
+        for match in re.finditer(r"(?:^|\s)(docs/\S+\.md)", content):
+            referenced.add(match.group(1))
 
-    # Check all .md files in docs/
     for md_file in docs_dir.rglob("*.md"):
         rel_path = str(md_file.relative_to(PROJECT_ROOT))
         if rel_path not in referenced:
             issues.append(
-                f"'{rel_path}' exists but is not referenced in AGENTS.md or CLAUDE.md.\n"
-                f"  FIX: Either add a link to this file in AGENTS.md/CLAUDE.md,\n"
-                f"  or delete it if it's no longer needed."
+                f"'{rel_path}' exists but is not referenced from README.md, AGENTS.md,\n"
+                f"  CLAUDE.md, docs/SUBSYSTEMS.md or docs/ONBOARDING.md.\n"
+                f"  FIX: Either add a link to this file from one of those, or delete it\n"
+                f"  if it's no longer needed."
             )
 
     return issues
@@ -145,8 +232,9 @@ def main():
     print("Checking documentation freshness...\n")
 
     checks = [
-        ("AGENTS.md link targets", check_agents_md_links),
-        ("CLAUDE.md link targets", check_claude_md_links),
+        ("Entry-point link targets (README/AGENTS/CLAUDE)", check_entry_point_links),
+        ("just recipes named in docs", check_just_recipes),
+        ("CLAUDE.md is a pointer, not a copy", check_claude_md_is_pointer),
         ("CODE_ORGANIZATION.md paths", check_code_organization_paths),
         ("Orphan documentation files", check_orphan_docs),
     ]

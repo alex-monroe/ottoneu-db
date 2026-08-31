@@ -215,8 +215,10 @@ compare models season="2024":
     {{python}} scripts/feature_projections/cli.py compare --models {{models}} --season {{season}}
 
 # List all available model definitions
-list-models:
-    {{python}} scripts/feature_projections/cli.py list
+# Grouped by lifecycle status; archived experiments are hidden by default.
+# e.g. just list-models --all ; just list-models --check  (label vs DB is_active)
+list-models *args:
+    {{python}} scripts/feature_projections/cli.py list {{args}}
 
 # ──────────────────────────────────────────────
 # Projection CLI — variadic passthrough
