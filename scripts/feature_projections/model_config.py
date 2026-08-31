@@ -27,6 +27,20 @@ class ModelDefinition:
     features: list[str]
     weights: dict[str, float] = field(default_factory=dict)
     is_baseline: bool = False
+
+    # Lifecycle label, so a reader can tell load-bearing definitions from the
+    # experiment history. 55 models are defined here and one is served.
+    #
+    #   "production" — intended to be the live model
+    #   "baseline"   — deliberately simple control kept for comparison
+    #   "external"   — third-party projections, ingested as a comparator
+    #   "archived"   — a superseded experiment; see docs/generated/experiment-log.md
+    #
+    # This is documentation, NOT the switch. The live model is whichever row has
+    # is_active=True in the projection_models table, set by `just promote`;
+    # update_projections.py reads that at runtime. `just list-models --check`
+    # verifies the label here still agrees with the database.
+    status: str = "archived"
     position_overrides: dict[str, PositionOverride] = field(default_factory=dict)
     combiner_type: str = "additive"  # "additive" | "learned" | "residual"
     interaction_terms: list[str] = field(default_factory=list)
@@ -67,6 +81,7 @@ class ModelDefinition:
 MODELS: dict[str, ModelDefinition] = {
     "v1_baseline_weighted_ppg": ModelDefinition(
         name="v1_baseline_weighted_ppg",
+        status="baseline",
         version=1,
         description="Exact port of existing WeightedAveragePPG + RookieTrajectoryPPG. Control baseline.",
         features=["weighted_ppg"],
@@ -591,6 +606,7 @@ MODELS: dict[str, ModelDefinition] = {
     ),
     "v33_tuned_base": ModelDefinition(
         name="v33_tuned_base",
+        status="archived",  # previous production model, superseded by v44 (2026-07-25)
         version=1,
         description=(
             "v31_depth_chart with the base feature swapped to "
@@ -714,6 +730,7 @@ MODELS: dict[str, ModelDefinition] = {
     ),
     "v44_eb_pooling_perpos": ModelDefinition(
         name="v44_eb_pooling_perpos",
+        status="production",
         version=1,
         description=(
             "Per-position empirical-Bayes pooling (spike #667, L3 follow-up): "
@@ -1194,6 +1211,7 @@ MODELS: dict[str, ModelDefinition] = {
     ),
     "naive_prior_season_ppg": ModelDefinition(
         name="naive_prior_season_ppg",
+        status="baseline",
         version=1,
         description=(
             "Naïve floor (GH #575): next season = most recent prior season's PPG, "
@@ -1204,6 +1222,7 @@ MODELS: dict[str, ModelDefinition] = {
     ),
     "position_mean_baseline": ModelDefinition(
         name="position_mean_baseline",
+        status="baseline",
         version=1,
         description=(
             "Zero-information floor (GH #575): every player projected at their "
@@ -1214,6 +1233,7 @@ MODELS: dict[str, ModelDefinition] = {
     ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
+        status="external",
         version=1,
         description="FantasyPros consensus seasonal projections (stat-line → Ottoneu Half-PPR PPG)",
         features=["external"],
@@ -1265,6 +1285,7 @@ for _name, _spec, _blurb in [
             "gap. v33 stays active."
         ),
         sample_weight_spec=_spec,
+        status="archived",  # inherits from _V33 otherwise; verdict was NEGATIVE
     )
 
 
@@ -1294,6 +1315,7 @@ for _name, _eps in [
             "is the wrong direction; squared loss is right. v33 stays active."
         ),
         regressor_spec={"type": "huber", "epsilon": _eps},
+        status="archived",  # inherits from _V33 otherwise; verdict was NEGATIVE
     )
 
 

@@ -133,15 +133,81 @@ def cmd_segment_analysis(args: argparse.Namespace) -> None:
             print(f"    {row['segment_value']:<20} {row['model']:<40} MAE={row['mae']:.3f} Bias={row['bias']:+.3f} R²={r2} N={row['n']}")
 
 
+_STATUS_ORDER = ["production", "baseline", "external", "archived"]
+
+_STATUS_BLURB = {
+    "production": "served to the website",
+    "baseline": "deliberately simple controls, kept for comparison",
+    "external": "third-party projections, ingested as comparators",
+    "archived": "superseded experiments — see docs/generated/experiment-log.md",
+}
+
+
 def cmd_list(args: argparse.Namespace) -> None:
+    """List model definitions grouped by lifecycle status.
+
+    Most of these 55 definitions are history. Grouping keeps the handful that are
+    load-bearing at the top, so a reader isn't left ranking them all equally.
+    """
     from scripts.feature_projections.model_config import MODELS
 
-    print(f"\n{'Name':<35} {'Ver':>3} {'Features':<50} {'Baseline':>8}")
-    print("-" * 100)
-    for name, m in MODELS.items():
-        features_str = ", ".join(m.features)
-        baseline = "YES" if m.is_baseline else ""
-        print(f"{name:<35} {m.version:>3} {features_str:<50} {baseline:>8}")
+    wanted = getattr(args, "status", None)
+    show_archived = getattr(args, "all", False) or wanted == "archived"
+
+    for status in _STATUS_ORDER:
+        models = [(n, m) for n, m in MODELS.items() if m.status == status]
+        if not models or (wanted and wanted != status):
+            continue
+
+        print(f"\n{status.upper()} — {_STATUS_BLURB[status]}  ({len(models)})")
+
+        if status == "archived" and not show_archived:
+            print("  (hidden; pass --all or --status archived to list them)")
+            continue
+
+        print(f"  {'Name':<33} {'Ver':>3}  Features")
+        print("  " + "-" * 96)
+        for name, m in models:
+            print(f"  {name:<33} {m.version:>3}  {', '.join(m.features)}")
+
+    if getattr(args, "check", False):
+        _check_status_against_db(MODELS)
+    else:
+        print(
+            "\nThe live model is whichever projection_models row has is_active=True — "
+            "verify with: just list-models --check"
+        )
+
+
+def _check_status_against_db(models: dict) -> None:
+    """Report whether the `production` label still matches the database.
+
+    The label in model_config.py is documentation; `projection_models.is_active`
+    is the switch. They drift whenever a promote happens without a code update,
+    so this makes the disagreement visible instead of silently misleading.
+    """
+    from scripts.config import get_supabase_client
+
+    labelled = sorted(n for n, m in models.items() if m.status == "production")
+    rows = (
+        get_supabase_client()
+        .table("projection_models")
+        .select("name")
+        .eq("is_active", True)
+        .execute()
+        .data
+    )  # pagination-safe: at most one model is active
+    active = sorted(r["name"] for r in rows)
+
+    print(f"\nLabelled production: {', '.join(labelled) or '(none)'}")
+    print(f"Active in database:  {', '.join(active) or '(none)'}")
+    if labelled == active:
+        print("OK — the label matches the database.")
+    else:
+        print(
+            "MISMATCH — update the `status=` labels in "
+            "scripts/feature_projections/model_config.py to match the database."
+        )
 
 
 def main() -> None:
@@ -207,6 +273,14 @@ def main() -> None:
 
     # list
     list_parser = subparsers.add_parser("list", help="List available model definitions")
+    list_parser.add_argument("--all", action="store_true", help="Include archived experiments")
+    list_parser.add_argument(
+        "--status", choices=_STATUS_ORDER, help="Show only models with this status"
+    )
+    list_parser.add_argument(
+        "--check", action="store_true",
+        help="Verify the `production` label still matches projection_models.is_active (needs DB access)",
+    )
     list_parser.set_defaults(func=cmd_list)
 
     args = parser.parse_args()
