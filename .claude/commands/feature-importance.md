@@ -8,13 +8,12 @@ place, cross-check with held-out ablation (`/ablation`, #588), not these numbers
 
 // turbo
 
-1. **Identify the learned model** (default: the active model
-   `v44_eb_pooling_perpos` as of 2026-07 — always confirm from
-   `projection_models.is_active` — itself a learned Ridge model whose
-   coefficients are inspectable). Only the additive models — e.g.
-   `v14_qb_starter` — have no learned coefficients to inspect; pick a learned
-   model if the user names an additive one. Use the user-specified model if
-   given.
+1. **Identify the learned model** (default: the active model — confirm with
+   `just list-models --check`, which reads `projection_models.is_active` and
+   flags any label drift; itself a learned Ridge model whose coefficients are
+   inspectable). Only the additive models — e.g. `v14_qb_starter` — have no
+   learned coefficients to inspect; pick a learned model if the user names an
+   additive one. Use the user-specified model if given.
 
 2. **Run the feature analysis script** (use `venv/bin/python` directly — no
    `source venv/bin/activate`, which fails in worktrees):

@@ -45,7 +45,7 @@ python scripts/scrape_arbitration_progress.py        # Scrape Ottoneu arbitratio
 python scripts/auction_simulator.py                  # Monte-Carlo keeper-auction sim (400 sims by default; see docs/references/auction-simulator.md)
 python scripts/auction_simulator.py --full           # One full-league roster dump across all 12 teams
 python scripts/auction_simulator.py --steals         # 6 sample drafts with your below-market steals flagged
-python scripts/auction_simulator.py --sample        # One quick sample of just your buys
+python scripts/auction_simulator.py --sample        # One quick sample of only the user's buys
 python scripts/auction_simulator.py --refresh       # Re-pull league_prices/players/draft_sharks_values from Supabase first (after a re-scrape)
 
 # Feature-based Projections
@@ -129,7 +129,7 @@ just league-explorer <cmd>    # Explore other public Ottoneu leagues → local S
 just oauth-client <cmd> [...] # Manage MCP OAuth clients (create | list | revoke) — only for clients that can't self-register via DCR (e.g. Gemini Spark's "Advanced features" path); see docs/references/mcp-server.md
 
 # Projection CLI
-just list-models                                    # List available models
+just list-models [--all] [--check]                  # List available model definitions grouped by lifecycle status (production/baseline/external/archived — archived hidden by default; --all shows them). --check confirms each model's label against projection_models.is_active (#706)
 just project <model> [seasons]                      # Generate projections
 just backtest <model> [seasons]                     # Backtest against actuals
 just rookie-backtest [--seasons ...] [--output ...] # Backtest rookie (0-history) path vs baselines
