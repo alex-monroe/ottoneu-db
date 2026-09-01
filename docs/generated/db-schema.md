@@ -1,6 +1,6 @@
 # Database Schema
 
-Twenty-nine tables owned by this project. Most have UUID primary keys; the OAuth code/token tables are keyed by the SHA-256 hash of their secret instead.
+Thirty tables owned by this project, grouped into the six subsystems of [SUBSYSTEMS.md](../SUBSYSTEMS.md). Most have UUID primary keys; the OAuth code/token tables are keyed by the SHA-256 hash of their secret instead.
 
 ## Shared Database — Hands Off `fp_*`
 
@@ -36,6 +36,7 @@ The Supabase project (`OttoneuDB`, ref `rbinbcwinchphipvcfqk`) is **shared with 
 | `arbitration_progress_teams` | Per-team arbitration completion status | `(league_id, season, team_name)` |
 | `arbitration_allocation_details` | Per-team individual allocation breakdowns (which team allocated how much to which player) | `(league_id, season, ottoneu_id, allocating_team_name)` |
 | `draft_capital` | NFL draft pick metadata sourced from nflverse `draft_picks` (FK -> `players`) | `(player_id)` |
+| `player_contracts` | NFL contract history from OverTheCap — per player per signing: `position`, `year_signed`, `years`, `value`, `apy`, `guaranteed`, `apy_cap_pct`. Money in whole dollars. The role-securing signal from spike #651 §3 (a team that just guaranteed a receiver $50M has said something about his role that his stat line has not). Migration 036 — retroactive: the table was created directly on 2026-06-14 and went undocumented until 2026-08-31. **Not yet wired into any projection feature.** Python-only read (service key); RLS enabled, no anon policy (FK -> `players`) | -- |
 | `draft_sharks_values` | Draft Sharks Half-PPR Superflex auction values, scraped per player per season by `scripts/scrape_draft_sharks.py` and stored at $400-cap scale (site values are ×2). Columns: `ds_auction_value`, `market_auction_value` (FK -> `players`) | `(player_id, season)` |
 | `weekly_projections` | In-season **per-game** projections for one NFL week, ingested from Sleeper by `scripts/weekly_projections/ingest.py` and re-scored under Ottoneu rules. Columns: `projected_points`, `projected_stats` (jsonb), `opponent`, `actual_points`, `actual_stats`, `source`. Actuals share the row so a played week shows projection vs result. Retention: current season only. Distinct from `player_projections` (our season-long PPG model) and must never feed it (FK -> `players`) | `(player_id, season, week, source)` |
 | `league_calendar` | Per-season Ottoneu boundary dates (`season_start`, `arb_start`, `arb_end`, `keeper_deadline`, `auction_date`, `regular_season_start`, `trade_deadline`, `last_auction_date`, `raw` jsonb). Scraped from the league finances page by `scripts/scrape_league_calendar.py`; the source of truth for the season-cycle resolver (`scripts/season.py`, `web/lib/season.ts`). | `(league_id, season)` |
@@ -101,7 +102,7 @@ All public tables have RLS enabled. Server-side code uses the Supabase **service
 
 **Tables with an anon SELECT policy** (web reads via the anon client): `players`, `player_stats`, `nfl_stats`, `league_prices`, `transactions`, `surplus_adjustments`, `player_projections`, `projection_models`, `model_projections`, `backtest_results`, `arbitration_progress`, `arbitration_progress_teams`, `arbitration_allocation_details`, `team_vegas_lines`, `draft_sharks_values`, `league_calendar`, `depth_charts`, `weekly_projections`.
 
-**Tables with no anon policy** (server-only, anon fully blocked): `users`, `arbitration_plans`, `arbitration_plan_allocations`, `scraper_jobs`, `draft_capital`, `team_coaching`, `red_zone_usage`, `ngs_passing`, `oauth_clients`, `oauth_authorization_codes`, `oauth_refresh_tokens`.
+**Tables with no anon policy** (server-only, anon fully blocked): `users`, `arbitration_plans`, `arbitration_plan_allocations`, `scraper_jobs`, `draft_capital`, `team_coaching`, `red_zone_usage`, `ngs_passing`, `player_contracts`, `oauth_clients`, `oauth_authorization_codes`, `oauth_refresh_tokens`.
 
 When adding a new table, decide upfront: does the web frontend read from it via the anon `supabase` client (see `web/lib/supabase.ts`)? If yes, the migration must `ENABLE ROW LEVEL SECURITY` *and* add a `FOR SELECT TO anon USING (true)` policy. If no, just enable RLS — server writes via the service key still work, and anon is locked out. The Supabase advisor (`mcp__supabase__get_advisors --type security`) will flag `rls_disabled_in_public` as a critical ERROR if either step is skipped. See migrations 015 and 026 for the canonical pattern.
 
