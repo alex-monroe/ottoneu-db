@@ -1,16 +1,18 @@
 # Roster CSV Reconciliation
 
-A lighter-weight path to keep `league_prices` current when the Playwright roster
-scrape is Cloudflare-blocked (see the "Authentication / Cloudflare" section of the
-`scraper-logic` skill). Instead of crawling the search page, it ingests Ottoneu's
-official **CSV roster export** and reconciles it into the database.
+The primary roster-state ingest for `league_prices`, since PR #691 removed the
+Playwright search-page scrape entirely. It ingests Ottoneu's official
+**CSV roster export** (fetched over plain HTTP with an honest User-Agent — see the
+"Cloudflare" section of the `scraper-logic` skill) and reconciles it into the
+database. Complementary to `scripts/scrape_player_cards.py`, which handles the
+per-player transaction history over plain HTTP.
 
 - **Module / CLI:** [scripts/reconcile_roster.py](../../scripts/reconcile_roster.py)
 - **Recipe:** `just reconcile-roster [args]`
 - **Workflow:** [.github/workflows/pull-roster-csv.yml](../../.github/workflows/pull-roster-csv.yml)
-- **Shared helper:** prospect adoption lives in
-  [scripts/prospect_adopt.py](../../scripts/prospect_adopt.py) (used by both this
-  and `scripts/tasks/scrape_roster.py`).
+- **Prospect adoption helper:** [scripts/prospect_adopt.py](../../scripts/prospect_adopt.py)
+  — new rostered ids adopt a matching prospect record when one exists (see
+  `choose_prospect_to_adopt`).
 
 ## What it does
 
@@ -107,28 +109,32 @@ Flags: `--file` (read a local CSV instead of fetching), `--url` (override), `--c
 **Safety floor:** the tool refuses to apply a CSV with fewer than 20 rows or fewer
 than 2 teams, so a truncated/garbled fetch can never mass-cut real rosters.
 
-## Limitations — NOT a full scrape replacement
+## Limitations
 
 The CSV lists **only current rostered players**:
 
-- **No free agents.** The search-page scrape captures the whole FA universe
-  (`team_name="FA"`); the CSV cannot. Existing FA rows go stale but are preserved,
-  and newly-cut players land at the `$1` FA placeholder (no FA average salary).
-- **No transaction history.** Real per-move dates/types come from the player-card
-  scrape; this tool *infers* them at run time (accurate only for same-day daily runs).
+- **No free agents / FA average salary.** The removed Playwright search-page scrape
+  used to capture the whole FA universe (`team_name="FA"` with an FA average salary).
+  The CSV cannot. Existing FA rows go stale but are preserved; newly-cut players land
+  at the `$1` FA placeholder. **There is currently no automated FA-average-salary
+  refresh path** — this is the biggest gap left by #691.
+- **No transaction history.** Real per-move dates / types come from
+  `scripts/scrape_player_cards.py` (daily via `scrape-player-cards.yml`); this tool
+  only *infers* transactions at run time (accurate only for same-day daily runs).
 
-So the CSV path augments/replaces **roster-state** syncing but does not replace the
-Playwright pipeline for FA pricing or historical transactions. It runs **alongside**
-the existing `Scrape Player Data` workflow, not instead of it.
+So the CSV path is the source of truth for **roster-state** (team + salary), and
+`scrape_player_cards.py` supplies the transaction history — they run alongside each
+other daily. FA universe / FA-average-salary refresh remains an open gap.
 
 ## Cloudflare: send an honest User-Agent (counter-intuitive)
 
-Unlike the Playwright search-page scrape, the `/csv/rosters` endpoint is reachable
-from **datacenter IPs, including GitHub-hosted runners** — the datacenter IP is *not*
-the blocker. What trips Cloudflare's interactive challenge (403 "Just a moment…") is
-**impersonating a browser**: a request whose User-Agent claims to be Chrome but has
-none of a real browser's TLS/JS fingerprint reads as a bot. An honest automated client
-sails through:
+The `/csv/rosters` endpoint is reachable from **datacenter IPs, including
+GitHub-hosted runners** — the datacenter IP is *not* the blocker. What trips
+Cloudflare's interactive challenge (403 "Just a moment…") is **impersonating a
+browser**: a request whose User-Agent claims to be Chrome but has none of a real
+browser's TLS/JS fingerprint reads as a bot. An honest automated client sails
+through (this is the same lesson that let #691 replace the Playwright player-card
+scrape with a plain-HTTP one):
 
 | User-Agent sent | Result |
 |---|---|

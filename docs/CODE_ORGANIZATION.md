@@ -19,6 +19,8 @@
 | Components | `web/components/` | Reusable React components |
 | Pages | `web/app/` | Next.js App Router pages |
 | Feature projections | `scripts/feature_projections/` | Feature-based projection system (features, combiner, runner, backtest, CLI) |
+| Weekly projections | `scripts/weekly_projections/` | In-season per-game projections: Sleeper ingest + Ottoneu re-scoring → `weekly_projections`. Deliberately separate from `feature_projections/` (never feeds the model — enforced by `TestNoWeeklyProjectionsInModel`). See [references/weekly-projections.md](references/weekly-projections.md) |
+| NFL week resolver | `scripts/nfl_week.py` + `web/lib/nfl-week.ts` | Twin resolvers (Python + TS) for the current NFL week, anchored on `league_calendar.regular_season_start` with the Tuesday 00:00 ET boundary. Both suites read a shared boundary fixture so they cannot drift |
 | Data files | `data/` | Manual config data (QB starters, etc.) |
 | CI/CD | `.github/workflows/` | GitHub Actions (tests, scraping, projections) |
 

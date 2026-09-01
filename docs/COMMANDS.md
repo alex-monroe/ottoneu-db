@@ -42,6 +42,11 @@ python scripts/worker.py --poll                      # Process jobs continuously
 # scripts have been removed; only the projection update step remains on the backend.
 python scripts/update_projections.py                 # Update player projections (runs active model + promote + rookie fallback)
 python scripts/scrape_arbitration_progress.py        # Scrape Ottoneu arbitration progress (allocations + team status)
+python scripts/auction_simulator.py                  # Monte-Carlo keeper-auction sim (400 sims by default; see docs/references/auction-simulator.md)
+python scripts/auction_simulator.py --full           # One full-league roster dump across all 12 teams
+python scripts/auction_simulator.py --steals         # 6 sample drafts with your below-market steals flagged
+python scripts/auction_simulator.py --sample        # One quick sample of only the user's buys
+python scripts/auction_simulator.py --refresh       # Re-pull league_prices/players/draft_sharks_values from Supabase first (after a re-scrape)
 
 # Feature-based Projections
 python scripts/feature_projections/cli.py list                                              # List available model definitions
@@ -107,7 +112,8 @@ just test-python        # Python tests with coverage
 just test-web           # Jest tests with coverage
 just test-web-file <path>  # Run a single web test file (e.g. just test-web-file __tests__/lib/session.test.ts)
 just scrape-player-cards [--apply] [--player-id N]  # Transaction history via HTTP per DB player id (replaces the Playwright scrape); see docs/references/roster-csv-reconciliation.md
-just reconcile-roster [--file f.csv] [--apply] [--infer-transactions]  # Sync league_prices from the /csv/rosters export (Cloudflare-blocked-scrape fallback); see docs/references/roster-csv-reconciliation.md
+just reconcile-roster [--file f.csv] [--apply] [--infer-transactions]  # Sync league_prices from the /csv/rosters export (primary roster ingest since #691 removed the Playwright scrape); see docs/references/roster-csv-reconciliation.md
+just dedupe-transactions [--apply] [--verbose]  # Purge inferred transactions that a real player-card row now supersedes (dry-run by default; runs automatically after `just scrape-player-cards --apply` — this is the manual/backfill path; see #702)
 just analyze            # Update player projections (active model + promote + rookie fallback)
 just check-db           # Verify database contents
 just check-arch         # Architectural/structural tests (includes check-migrations)
@@ -120,9 +126,10 @@ just install-hooks      # Install the opt-in pre-push hook that runs `just prefl
 just ci                 # Full CI suite (lint + typecheck + tests + doc checks)
 just roster-context [season]  # Build the roster-question context pack (live league data); season defaults to 2026
 just league-explorer <cmd>    # Explore other public Ottoneu leagues → local SQLite (scan | discover | scrape | report | query); see docs/references/league-explorer.md
+just oauth-client <cmd> [...] # Manage MCP OAuth clients (create | list | revoke) — only for clients that can't self-register via DCR (e.g. Gemini Spark's "Advanced features" path); see docs/references/mcp-server.md
 
 # Projection CLI
-just list-models                                    # List available models
+just list-models [--all] [--check]                  # List available model definitions grouped by lifecycle status (production/baseline/external/archived — archived hidden by default; --all shows them). --check confirms each model's label against projection_models.is_active (#706)
 just project <model> [seasons]                      # Generate projections
 just backtest <model> [seasons]                     # Backtest against actuals
 just rookie-backtest [--seasons ...] [--output ...] # Backtest rookie (0-history) path vs baselines

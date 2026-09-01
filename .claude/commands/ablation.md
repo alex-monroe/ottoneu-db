@@ -8,8 +8,9 @@ arbitrary-band decisions Finding 2 condemned — do not use it for verdicts.
 
 // turbo
 
-1. **Identify the target model** (default: the active model `v33_tuned_base`). If the
-   user specifies a model, use that.
+1. **Identify the target model** (default: the active model — confirm with
+   `just list-models --check`, which reads `projection_models.is_active` and
+   flags any label drift). If the user specifies a model, use that.
 
 2. **List the model's features** from `scripts/feature_projections/model_config.py`.
    Identify the base feature (cannot be removed) and the adjustment features.
