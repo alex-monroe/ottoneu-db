@@ -167,6 +167,23 @@ function isRealTeam(team: string | null | undefined): team is string {
   return team != null && team !== "" && team !== "FA";
 }
 
+/** A transaction that takes the player off the roster. */
+function isRelease(type: string): boolean {
+  return type.includes("cut") || type.includes("drop");
+}
+
+/**
+ * A re-pricing of a roster spot the team already holds, not a change of hands.
+ *
+ * Ottoneu logs both the January season-rollover raise and the April arbitration
+ * results as `increase` rows (and `decrease` for the rare reduction) carrying
+ * the player's *new* salary. They must never overwrite the acquisition — doing
+ * so made every kept player read as "acquired" on arbitration day.
+ */
+function isSalaryChange(type: string): boolean {
+  return type.includes("increase") || type.includes("decrease");
+}
+
 export function reconstructRostersAtDate(
   transactions: RawTransaction[],
   players: RawPlayer[],
@@ -182,18 +199,29 @@ export function reconstructRostersAtDate(
     const playerMap = new Map<string, RawPlayer>(players.map((p) => [p.id, p]));
     const statsMap = new Map<string, RawStats>(stats.map((s) => [s.player_id, s]));
 
-    // Find the latest transaction per player for acquired_date/acquisition_type
+    // Latest *acquisition* per player for acquired_date/acquisition_type. Salary
+    // events are excluded (see isSalaryChange) and kept only as a fallback: for a
+    // player whose tenure began before the history we hold, the earliest raise we
+    // saw is the oldest date we can prove he was on that roster.
     const latestTxnMap = new Map<string, { acquired_date: string; acquisition_type: string }>();
+    const earliestRepriceMap = new Map<string, { acquired_date: string; acquisition_type: string }>();
     for (const txn of transactions) {
       if (!txn.transaction_date) continue;
       const type = txn.transaction_type.toLowerCase();
-      if (type.includes("cut") || type.includes("drop")) continue;
+      if (isRelease(type)) continue;
+      const info = {
+        acquired_date: txn.transaction_date,
+        acquisition_type: txn.transaction_type,
+      };
+      if (isSalaryChange(type)) {
+        if (!earliestRepriceMap.has(txn.player_id)) {
+          earliestRepriceMap.set(txn.player_id, info);
+        }
+        continue;
+      }
       const existing = latestTxnMap.get(txn.player_id);
       if (!existing || txn.transaction_date >= existing.acquired_date) {
-        latestTxnMap.set(txn.player_id, {
-          acquired_date: txn.transaction_date,
-          acquisition_type: txn.transaction_type,
-        });
+        latestTxnMap.set(txn.player_id, info);
       }
     }
 
@@ -203,7 +231,7 @@ export function reconstructRostersAtDate(
       const player = playerMap.get(lp.player_id);
       if (!player) continue;
       const pStats = statsMap.get(lp.player_id);
-      const txnInfo = latestTxnMap.get(lp.player_id);
+      const txnInfo = latestTxnMap.get(lp.player_id) ?? earliestRepriceMap.get(lp.player_id);
 
       const entry: RosterEntry = {
         player_id: lp.player_id,
@@ -247,18 +275,17 @@ export function reconstructRostersAtDate(
 
     const type = txn.transaction_type.toLowerCase();
 
-    if (type.includes("cut") || type.includes("drop")) {
+    if (isRelease(type)) {
       playerStateMap.set(txn.player_id, {
         team: null,
         salary: txn.salary ?? 0,
         acquired_date: txn.transaction_date,
         acquisition_type: txn.transaction_type,
       });
-    } else if (type.includes("increase") || type.includes("decrease")) {
-      // Ottoneu logs the season-rollover raise and arbitration as their own
-      // event carrying the player's *new* salary, not the delta. Re-price the
-      // roster spot and keep the acquisition we already know about; if history
-      // starts mid-tenure the row itself still names the team holding him.
+    } else if (isSalaryChange(type)) {
+      // Re-price the roster spot and keep the acquisition we already know
+      // about; if history starts mid-tenure the row itself still names the
+      // team holding him.
       const prior = playerStateMap.get(txn.player_id);
       const held = prior && isRealTeam(prior.team) ? prior : null;
       const team = held?.team ?? txn.team_name;
