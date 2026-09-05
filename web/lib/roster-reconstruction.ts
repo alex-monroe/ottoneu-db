@@ -1,6 +1,6 @@
 import { supabase, fetchAllRows } from "./supabase";
-import { LEAGUE_ID, CAP_PER_TEAM } from "./config";
-import { getLeagueSeason, getStatsSeason, type SeasonContext } from "./season";
+import { LEAGUE_ID, CAP_PER_TEAM, NFL_REGULAR_SEASON_WEEKS } from "./config";
+import { getSeasonContextNow, type SeasonContext } from "./season";
 
 // === Types ===
 
@@ -68,13 +68,50 @@ export interface RosterData {
 
 // === Data Fetching ===
 
-export async function fetchRosterData(): Promise<RosterData> {
-  // Transactions follow the league season we're managing (the roster timeline);
-  // player stats follow the most recent completed NFL season (PPG context).
-  const [leagueSeason, statsSeason] = await Promise.all([
-    getLeagueSeason(),
-    getStatsSeason(),
-  ]);
+/**
+ * League seasons we hold roster history for, newest first.
+ *
+ * Derived from the oldest and newest `season` in `transactions` rather than a
+ * DISTINCT scan — PostgREST has no DISTINCT, and a league logs moves every
+ * season once it starts, so two one-row queries beat paginating the column.
+ */
+export async function fetchRosterSeasons(): Promise<number[]> {
+  const bound = (ascending: boolean) =>
+    supabase
+      .from("transactions")
+      .select("season")
+      .eq("league_id", LEAGUE_ID)
+      .order("season", { ascending })
+      .limit(1);
+  const [newest, oldest] = await Promise.all([bound(false), bound(true)]);
+  const max = (newest.data as { season: number }[] | null)?.[0]?.season;
+  const min = (oldest.data as { season: number }[] | null)?.[0]?.season;
+  if (max == null || min == null) return [];
+  const seasons: number[] = [];
+  for (let s = Number(max); s >= Number(min); s--) seasons.push(s);
+  return seasons;
+}
+
+/**
+ * Roster inputs for one league season's timeline.
+ *
+ * `season` selects which season's timeline to end on and defaults to the one
+ * we're currently managing. Transactions are fetched **cumulatively** (every
+ * season up to and including it), because a keeper league's roster state is
+ * carried across the January rollover: a player added in the 2025 auction and
+ * never cut has no 2026 acquisition row at all. Replaying a single season in
+ * isolation therefore starts from an empty league and only ever finds that
+ * season's own adds — which is why a mid-2026 date used to show two rostered
+ * players league-wide instead of ~230.
+ */
+export async function fetchRosterData(season?: number): Promise<RosterData> {
+  const ctx = await getSeasonContextNow();
+  const leagueSeason = season ?? ctx.leagueSeason;
+  // Player stats give the PPG context: the current season shows the most
+  // recent completed NFL season (pre-kickoff there is nothing else to show),
+  // while a past season shows its own — those games are in the books.
+  const statsSeason =
+    leagueSeason === ctx.leagueSeason ? ctx.statsSeason : leagueSeason;
   // Paginate the league-wide reads (players ~1,252, league_prices ~1,252, and
   // transactions which can approach the cap) past PostgREST's 1000-row default.
   const [transactions, players, stats, leaguePrices] = await Promise.all([
@@ -83,7 +120,7 @@ export async function fetchRosterData(): Promise<RosterData> {
         .from("transactions")
         .select("player_id, transaction_type, team_name, salary, transaction_date")
         .eq("league_id", LEAGUE_ID)
-        .eq("season", leagueSeason)
+        .lte("season", leagueSeason)
         .order("transaction_date", { ascending: true })
         .order("id").range(from, to),
     ),
@@ -217,6 +254,22 @@ export function reconstructRostersAtDate(
         acquired_date: txn.transaction_date,
         acquisition_type: txn.transaction_type,
       });
+    } else if (type.includes("increase") || type.includes("decrease")) {
+      // Ottoneu logs the season-rollover raise and arbitration as their own
+      // event carrying the player's *new* salary, not the delta. Re-price the
+      // roster spot and keep the acquisition we already know about; if history
+      // starts mid-tenure the row itself still names the team holding him.
+      const prior = playerStateMap.get(txn.player_id);
+      const held = prior && isRealTeam(prior.team) ? prior : null;
+      const team = held?.team ?? txn.team_name;
+      if (isRealTeam(team)) {
+        playerStateMap.set(txn.player_id, {
+          team,
+          salary: txn.salary ?? held?.salary ?? 0,
+          acquired_date: held?.acquired_date ?? txn.transaction_date,
+          acquisition_type: held?.acquisition_type ?? txn.transaction_type,
+        });
+      }
     } else if (
       type.includes("move") ||
       type.includes("add") ||
@@ -304,29 +357,92 @@ export interface RosterSnapshotConfig {
   defaultDate: string;
 }
 
+export interface RosterSnapshotOptions {
+  /** League season being viewed; defaults to the one currently being managed. */
+  season?: number;
+  /** Earliest transaction date on record, which bounds how far back we can replay. */
+  earliestDate?: string | null;
+}
+
 /** Add `days` to a YYYY-MM-DD date, returning a YYYY-MM-DD string. */
 function addDays(iso: string, days: number): string {
   return new Date(Date.parse(iso) + days * 86_400_000).toISOString().slice(0, 10);
 }
 
+/** Whichever of two YYYY-MM-DD dates comes first / last. */
+const earlier = (a: string, b: string) => (a < b ? a : b);
+const later = (a: string, b: string) => (a > b ? a : b);
+
 /**
- * Build the season-aware roster-snapshot scaffolding (date range, quick-jump
- * buttons, and the phase-appropriate default) from the resolved season context.
+ * NFL Week 1's Thursday kickoff for a season we have no calendar row for.
+ *
+ * Ottoneu's finances page only publishes the *current* season's calendar, so a
+ * past season's boundary dates can never be scraped after the fact. The NFL's
+ * own rule fills the gap: Week 1 kicks off the Thursday after Labor Day (the
+ * first Monday in September). Verified against 2019-2026.
+ */
+export function nflKickoff(season: number): string {
+  const sept1 = `${season}-09-01`;
+  const toMonday = (1 - new Date(`${sept1}T00:00:00Z`).getUTCDay() + 7) % 7;
+  return addDays(sept1, toMonday + 3);
+}
+
+/**
+ * One quick-jump per NFL week that has actually begun, anchored to kickoff.
+ *
+ * Weeks past `latest` are omitted rather than rendered dead: a button for a
+ * game that has not been played can only show today's roster, which reads as a
+ * bug. Week N is that week's Thursday, so the snapshot is the roster the teams
+ * carried into the slate.
+ */
+function weekQuickDates(kickoff: string | null, latest: string): RosterSnapshot[] {
+  if (!kickoff) return [];
+  const weeks: RosterSnapshot[] = [];
+  for (let w = 1; w <= NFL_REGULAR_SEASON_WEEKS; w++) {
+    const date = addDays(kickoff, (w - 1) * 7);
+    if (date > latest) break;
+    weeks.push({ label: `Wk ${w}`, date });
+  }
+  return weeks;
+}
+
+/**
+ * Build the roster-snapshot scaffolding (date range, quick-jump buttons, and
+ * the default snapshot) for the league season being viewed.
  *
  * Pure (no DB access) so it stays client-bundle-safe; the rosters page resolves
- * the context server-side and passes the result down. Weeks are anchored to the
- * league season's kickoff; the default snapshot flips to "Pre-Draft" once the
- * keeper deadline has passed (the pre_draft phase), per the season-cycle spec.
+ * the context server-side and passes the result down. `opts.season` picks the
+ * season — omit it for the one we're currently managing, which is the only one
+ * with published calendar dates and a live "Today".
  *
- * The "Pre-Draft" quick-jump anchors to the day before the auction when Ottoneu
- * has published an auction date — that is the last roster state before the
- * draft reshuffles it. Without one it falls back to the day before kickoff.
- * Once the auction has happened (post_draft) the default is "Today", since the
- * pre-auction snapshot is no longer the interesting view.
+ * Current season: weeks are anchored to Ottoneu's `regular_season_start`, and
+ * the default snapshot flips to "Pre-Draft" once the keeper deadline has passed
+ * (the pre_draft phase), per the season-cycle spec. The "Pre-Draft" quick-jump
+ * anchors to the day before the auction when Ottoneu has published an auction
+ * date — that is the last roster state before the draft reshuffles it. Without
+ * one it falls back to the day before kickoff. Once the auction has happened
+ * (post_draft) the default is "Today", since the pre-auction snapshot is no
+ * longer the interesting view.
+ *
+ * Past season: there is no calendar row (see {@link nflKickoff}) and no
+ * "Today", so weeks anchor to the NFL's own kickoff rule, the window closes the
+ * day the next season began, and the default is that closing day — the roster
+ * as the season finished.
  */
 export function buildRosterSnapshots(
   ctx: Pick<SeasonContext, "phase" | "leagueSeason" | "deadlines">,
   today: string = new Date().toISOString().slice(0, 10),
+  opts: RosterSnapshotOptions = {},
+): RosterSnapshotConfig {
+  const season = opts.season ?? ctx.leagueSeason;
+  return season === ctx.leagueSeason
+    ? currentSeasonSnapshots(ctx, today)
+    : pastSeasonSnapshots(ctx, season, today, opts.earliestDate ?? null);
+}
+
+function currentSeasonSnapshots(
+  ctx: Pick<SeasonContext, "phase" | "leagueSeason" | "deadlines">,
+  today: string,
 ): RosterSnapshotConfig {
   const kickoff = ctx.deadlines.regular_season_start ?? null;
   const seasonStart = ctx.deadlines.season_start ?? null;
@@ -339,11 +455,7 @@ export function buildRosterSnapshots(
   if (auctionDate && auctionDate <= today) {
     quickDates.push({ label: "Post-Draft", date: auctionDate });
   }
-  if (kickoff) {
-    quickDates.push({ label: "Wk 1", date: kickoff });
-    quickDates.push({ label: "Wk 8", date: addDays(kickoff, 49) });
-    quickDates.push({ label: "Wk 16", date: addDays(kickoff, 105) });
-  }
+  quickDates.push(...weekQuickDates(kickoff, today));
   quickDates.push({ label: "Today", date: today });
 
   const min = seasonStart ?? preDraftDate ?? `${ctx.leagueSeason}-01-01`;
@@ -351,4 +463,27 @@ export function buildRosterSnapshots(
     ctx.phase === "pre_draft" && preDraftDate ? preDraftDate : today;
 
   return { dateRange: { min, max: today }, quickDates, defaultDate };
+}
+
+function pastSeasonSnapshots(
+  ctx: Pick<SeasonContext, "leagueSeason" | "deadlines">,
+  season: number,
+  today: string,
+  earliestDate: string | null,
+): RosterSnapshotConfig {
+  // A season runs until the next one starts. We know that date only for the
+  // season immediately before the current one (it is the live calendar row's
+  // `season_start`); older seasons fall back to the calendar year.
+  const successorStart =
+    season + 1 === ctx.leagueSeason ? ctx.deadlines.season_start ?? null : null;
+  const seasonEnd = successorStart ? addDays(successorStart, -1) : `${season}-12-31`;
+  const max = earlier(seasonEnd, today);
+  // Nothing is reconstructible before the first move we hold, but that bound is
+  // only relevant while it falls inside the season being viewed.
+  const min = earliestDate ? later(earliestDate, `${season}-01-01`) : `${season}-01-01`;
+
+  const quickDates = weekQuickDates(nflKickoff(season), max);
+  quickDates.push({ label: "Season End", date: max });
+
+  return { dateRange: { min: earlier(min, max), max }, quickDates, defaultDate: max };
 }

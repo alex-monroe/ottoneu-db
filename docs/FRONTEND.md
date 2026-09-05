@@ -12,7 +12,7 @@ Several formerly-standalone pages were consolidated into **tabbed routes** using
 |-------|-------------|
 | `/` | **Landing hub** — phase-aware overview with a "Right now" banner + countdown, a featured-for-this-phase section, and grouped quick-access cards (gated groups show a sign-in card to anonymous visitors) |
 | `/players` | Tabbed: **Directory** (searchable player list) + **Efficiency** (PPG/PPS-vs-salary scatter, formerly `/`) |
-| `/rosters` | League-wide roster view |
+| `/rosters` | League-wide roster view — pick a **season** (`?season=YYYY`) and any date within it; quick-jumps for every NFL week that has been played, plus Pre-Draft/Post-Draft/Today. Rosters are replayed from the cumulative transaction log |
 | `/lineup` | Lineup planner: build a starting lineup from any team's current roster and see the projected total (by projected PPG or last-season PPG) |
 | `/arb-progress` | Public arbitration progress: team completion status and allocation details |
 | `/arb-planner-public` | Public (read-only) arbitration planner view |
