@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   reconstructRostersAtDate,
   type RosterData,
@@ -16,15 +17,22 @@ export default function RostersClient({
   stats,
   leaguePrices,
   hoverDataMap,
+  season,
+  seasons,
+  statsSeason,
   quickDates,
   dateRange,
   defaultDate,
 }: RosterData & {
   hoverDataMap?: Record<string, PlayerHoverData> | null;
+  season: number;
+  seasons: number[];
+  statsSeason: number;
   quickDates: RosterSnapshot[];
   dateRange: { min: string; max: string };
   defaultDate: string;
 }) {
+  const router = useRouter();
   const { min, max } = dateRange;
   const [selectedDate, setSelectedDate] = useState(defaultDate);
 
@@ -47,33 +55,56 @@ export default function RostersClient({
             Roster Snapshots
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2">
-            View all 12 league rosters at any point in the season.
+            View all {NUM_TEAMS} league rosters at any point in the {season} season.
+            PPG and PPS are {statsSeason} season numbers.
           </p>
         </header>
 
         {/* Date Picker */}
         <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-5 border border-slate-200 dark:border-slate-800">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <label
-                htmlFor="roster-date"
-                className="text-sm font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap"
-              >
-                Date:
-              </label>
-              <input
-                id="roster-date"
-                type="date"
-                min={min}
-                max={max}
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="px-3 py-1.5 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <label
+                  htmlFor="roster-season"
+                  className="text-sm font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap"
+                >
+                  Season:
+                </label>
+                <select
+                  id="roster-season"
+                  value={season}
+                  onChange={(e) => router.push(`/rosters?season=${e.target.value}`)}
+                  className="px-3 py-1.5 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {seasons.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <label
+                  htmlFor="roster-date"
+                  className="text-sm font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap"
+                >
+                  Date:
+                </label>
+                <input
+                  id="roster-date"
+                  type="date"
+                  min={min}
+                  max={max}
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="px-3 py-1.5 text-sm rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm text-slate-500 dark:text-slate-400">
-                Quick:
+                Jump to:
               </span>
               {quickDates.map(({ label, date }) => (
                 <button
