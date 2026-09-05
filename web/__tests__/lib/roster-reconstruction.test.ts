@@ -162,6 +162,56 @@ describe("reconstructRostersAtDate", () => {
         expect(teamB!.players[0].salary).toBe(31);
     });
 
+    it("re-prices a roster spot on a salary event without resetting the acquisition", () => {
+        // Ottoneu logs the January raise and arbitration as their own events
+        // carrying the *new* salary, not a delta.
+        const transactions = [
+            { player_id: "p1", transaction_type: "Add", team_name: "Team A", salary: 16, transaction_date: "2025-08-24" },
+            { player_id: "p1", transaction_type: "increase", team_name: "Team A", salary: 20, transaction_date: "2026-01-05" },
+            { player_id: "p1", transaction_type: "increase", team_name: "Team A", salary: 31, transaction_date: "2026-04-01" },
+        ];
+        const before = getRosterForTeam(
+            reconstructRostersAtDate(transactions, makePlayers(), makeStats(), "2026-01-04"),
+            "Team A",
+        );
+        expect(before!.players[0].salary).toBe(16);
+
+        const after = getRosterForTeam(
+            reconstructRostersAtDate(transactions, makePlayers(), makeStats(), "2026-05-01"),
+            "Team A",
+        );
+        expect(after!.players[0].salary).toBe(31);
+        // The raise is not an acquisition — the add is still what put him here.
+        expect(after!.players[0].acquired_date).toBe("2025-08-24");
+        expect(after!.players[0].acquisition_type).toBe("Add");
+    });
+
+    it("keeps a player rostered across the season rollover with no new add", () => {
+        // A keeper carried into the next season has no acquisition row that
+        // season, so a replay that started at the rollover would lose him.
+        const transactions = [
+            { player_id: "p1", transaction_type: "Add", team_name: "Team A", salary: 16, transaction_date: "2025-08-24" },
+            { player_id: "p2", transaction_type: "Add", team_name: "Team A", salary: 30, transaction_date: "2025-08-24" },
+            { player_id: "p2", transaction_type: "cut", team_name: "Team A", salary: 30, transaction_date: "2026-02-10" },
+        ];
+        const result = getRosterForTeam(
+            reconstructRostersAtDate(transactions, makePlayers(), makeStats(), "2026-06-01"),
+            "Team A",
+        );
+        expect(result!.players.map((p) => p.name)).toEqual(["Josh Allen"]);
+    });
+
+    it("treats a salary event as evidence of tenure when history starts mid-stream", () => {
+        const transactions = [
+            { player_id: "p1", transaction_type: "increase", team_name: "Team A", salary: 20, transaction_date: "2026-01-05" },
+        ];
+        const result = getRosterForTeam(
+            reconstructRostersAtDate(transactions, makePlayers(), makeStats(), "2026-06-01"),
+            "Team A",
+        );
+        expect(result!.players[0].salary).toBe(20);
+    });
+
     it("falls back to transaction replay for historical dates even with league_prices", () => {
         const leaguePrices = [
             { player_id: "p1", price: 54, team_name: "Team A" },

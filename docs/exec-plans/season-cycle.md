@@ -129,6 +129,17 @@ automatic.
      the keeper deadline has passed** (the `pre_draft` phase) — otherwise
      "Today". The rosters page resolves the context server-side and passes the
      config to `RostersClient`.
+   - **Past seasons (`/rosters?season=Y`):** `fetchRosterSeasons()` lists the
+     seasons `transactions` covers and `fetchRosterData(season)` replays
+     **cumulatively** (`season <= Y`), because a keeper carried across the
+     January rollover has no acquisition row in the new season — replaying one
+     season in isolation started from an empty league and showed only that
+     season's own adds. Ottoneu publishes calendar dates for the current season
+     only, so a past season's weeks anchor to `nflKickoff(season)` (the Thursday
+     after Labor Day) and its window closes the day the next season started.
+     Salary events (`increase` / `decrease`, which carry the *new* salary) are
+     replayed too, so historical salaries survive the rollover raise and
+     arbitration.
 4. **Python ingestion + arbitration-season alignment (done):**
    - Python convenience accessors in `scripts/season.py` (`league_season`,
      `projection_season`, `stats_season`, `arbitration_season`) mirroring the TS
