@@ -52,6 +52,11 @@ from scripts.config import (
 )
 from scripts.prospect_adopt import choose_prospect_to_adopt
 from scripts.transaction_dedupe import INFERRED_MARKER, SUPERSEDE_WINDOW_DAYS
+from scripts.transaction_state_machine import (
+    Move,
+    ownership_from_log,
+    would_violate,
+)
 
 ROSTER_CSV_URL_TEMPLATE = "https://ottoneu.fangraphs.com/football/{league_id}/csv/rosters"
 
@@ -85,6 +90,15 @@ TXN_DEDUPE_LOOKBACK_DAYS = SUPERSEDE_WINDOW_DAYS
 # fetch must never mass-cut real rosters). A real league is ~12 teams / 150+ rows.
 MIN_ROSTER_ROWS = 20
 MIN_TEAMS = 2
+
+# Blast-radius ceiling on inference. A daily diff of a 12-team league is a handful
+# of moves; the day it is a quarter of the league, `league_prices` has desynced and
+# every "move" is the reconciler discovering a roster it had simply never seen. The
+# 2026-07-31 run filed 80 such rows — 80 phantom adds, cuts and trades that read as
+# a day of frantic trading — because nothing stopped it. Ownership still gets
+# reconciled when this trips (that is the fix); only the story about how it changed
+# is withheld, because at that volume the story is fiction.
+MAX_INFERRED_SHARE = 0.25
 
 _NON_DIGIT = re.compile(r"[^\d]")
 
@@ -360,18 +374,52 @@ def _already_scraped(sb, league_id: int, run_date: date,
     }
 
 
+def _log_state(sb, league_id: int) -> dict[str, str]:
+    """Each player's ownership as the *player-card* history tells it.
+
+    Deliberately excludes this script's own inferences (``ownership_from_log``
+    defaults to testimony only): letting a guess vouch for the next guess is how
+    a desync becomes permanent.
+    """
+    rows = fetch_all_rows(
+        sb, "transactions",
+        "id, player_id, transaction_type, team_name, salary, transaction_date, raw_description",
+        filters=[("eq", "league_id", league_id)],
+    )
+    return ownership_from_log(rows)
+
+
 def build_transaction_rows(events: list[Event], run_date: date, league_id: int,
-                           already_scraped: set[tuple] | None = None) -> list[dict]:
+                           already_scraped: set[tuple] | None = None,
+                           log_state: dict[str, str] | None = None) -> list[dict]:
     """Build ``transactions`` rows from move events, dated ``run_date``.
 
     Follows the scraper's stored convention: ``cut``, ``add``, and
     ``move (from <old team>)`` type strings; ``from_team`` left null (the source
     team is encoded in the ``move (from …)`` type). Skips events without a
-    resolved ``player_id`` (dry-run creates), and events already recorded by the
-    player-card scrape (see ``_already_scraped``) — an inference dated the run
-    day is strictly worse than the same move with its real timestamp.
+    resolved ``player_id`` (dry-run creates).
+
+    Two filters drop an inference before it is written, and they answer different
+    questions:
+
+    * ``already_scraped`` — "did the card scrape already log *this exact move*
+      today?" Cheap, exact, and only sees a 14-day window.
+    * ``log_state`` — "is this move even *possible*?" A move is inferred from a
+      ``league_prices`` diff, so a stale price row makes the reconciler describe a
+      transfer that never happened: a player who has sat on the same roster since
+      last August looks freshly added the first time we see him. Replaying the
+      card history gives his real status, and ``would_violate`` rejects any event
+      that contradicts it — a second ``add`` for a player already owned, a ``cut``
+      of someone already a free agent, a trade out of a team that does not hold
+      him. This is the same rulebook ``just check-transactions`` audits with, so
+      the guard and the audit can never disagree.
+
+    A suppressed event still updates ``league_prices`` (see
+    ``apply_reconciliation``) — we drop the false *story*, not the corrected
+    ownership.
     """
     already_scraped = already_scraped or set()
+    log_state = log_state or {}
     date_iso = run_date.isoformat()
     date_label = f"{run_date:%b} {run_date.day}, {run_date.year}"
     season = run_date.year
@@ -386,6 +434,14 @@ def build_transaction_rows(events: list[Event], run_date: date, league_id: int,
         else:
             ttype, team = "add", e.team
         if (e.player_id, ttype, e.salary, team) in already_scraped:
+            continue
+        candidate = Move(
+            row_id="", player_id=e.player_id, day=date_iso, clock=None,
+            kind={"cut": "cut", "trade": "move"}.get(e.kind, "add"),
+            team=team or "", from_team=e.from_team if e.kind == "trade" else None,
+            salary=e.salary, inferred=True, raw="",
+        )
+        if would_violate(log_state.get(e.player_id, None), candidate):
             continue
         rows.append({
             "player_id": e.player_id,
@@ -429,11 +485,20 @@ def reconcile(sb, csv_text: str, league_id: int, apply: bool,
 
     txn_rows: list[dict] = []
     inferred_skipped = 0
+    inference_withheld = False
     if infer_transactions:
         already = _already_scraped(sb, league_id, run_date)
         resolved = sum(1 for e in events if e.player_id is not None)
-        txn_rows = build_transaction_rows(events, run_date, league_id, already)
+        # Skip the log read on a no-change day, which is most days.
+        log_state = _log_state(sb, league_id) if resolved else {}
+        txn_rows = build_transaction_rows(events, run_date, league_id, already,
+                                          log_state=log_state)
         inferred_skipped = resolved - len(txn_rows)
+        # See MAX_INFERRED_SHARE: past this share of the league, the diff is a
+        # `league_prices` desync wearing a transaction log's clothes.
+        if len(txn_rows) > MAX_INFERRED_SHARE * len(csv_rows):
+            inference_withheld = True
+            txn_rows = []
         if apply:
             _write_transactions(sb, txn_rows)
 
@@ -451,6 +516,7 @@ def reconcile(sb, csv_text: str, league_id: int, apply: bool,
         "creates": len(recon.creates),
         "transactions_written": len(txn_rows) if apply else 0,
         "transactions_skipped_as_scraped": inferred_skipped,
+        "inference_withheld": inference_withheld,
         "events": events,
     }
 
@@ -469,7 +535,13 @@ def _print_summary(summary: dict, apply: bool, infer: bool) -> None:
               if apply else "  transactions:   (dry-run — not written)")
         if summary["transactions_skipped_as_scraped"]:
             print(f"  skipped:        {summary['transactions_skipped_as_scraped']} already "
-                  "recorded by the player-card scrape (real timestamps)")
+                  "recorded by the player-card scrape, or impossible against the "
+                  "card history (see build_transaction_rows)")
+        if summary["inference_withheld"]:
+            print(f"  WITHHELD:       inferred moves exceeded {MAX_INFERRED_SHARE:.0%} of the "
+                  "league — league_prices had desynced, so no transactions were written.")
+            print("                  Ownership WAS reconciled. Let the player-card scrape "
+                  "supply the real history: just scrape-player-cards --apply")
     for e in summary["events"]:
         if e.kind == "trade":
             print(f"    trade  {e.name:24} {e.from_team} → {e.team}  ${e.salary}")
