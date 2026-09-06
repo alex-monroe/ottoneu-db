@@ -71,6 +71,18 @@ export const getDepthChartShape = {
   season: z.number().int().optional().describe("NFL season (defaults to the most recent with data)"),
 } satisfies z.ZodRawShape;
 
+export const getScoreboardShape = {
+  week: z.number().int().min(1).max(20).optional()
+    .describe("League week (defaults to the week being played, or the next unfinished one)"),
+  season: z.number().int().optional().describe("League season (defaults to the most recent with a schedule)"),
+  all_weeks: z.boolean().optional()
+    .describe("Return every week's games instead of just one — the full season game log"),
+} satisfies z.ZodRawShape;
+
+export const getStandingsShape = {
+  season: z.number().int().optional().describe("League season (defaults to the most recent with a schedule)"),
+} satisfies z.ZodRawShape;
+
 export const getVegasLinesShape = {
   season: z.number().int().optional().describe("NFL season (defaults to the most recent with data)"),
 } satisfies z.ZodRawShape;

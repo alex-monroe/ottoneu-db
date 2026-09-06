@@ -16,11 +16,15 @@ import {
   ArrowRight,
   CalendarClock,
   Network,
+  Swords,
   type LucideIcon,
 } from "lucide-react";
 import { getSeasonContextNow } from "@/lib/season";
 import { PHASE_UI, describeNextBoundary } from "@/lib/season-ui";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { getLeagueStatus } from "@/lib/matchups";
+import ScoreboardCard from "@/components/ScoreboardCard";
+import StandingsTable from "@/components/StandingsTable";
 import { LEAGUE_ID } from "@/lib/config";
 
 export const revalidate = 3600; // Revalidate every hour
@@ -48,6 +52,7 @@ const HUB_GROUPS: HubGroup[] = [
   {
     label: "Explore",
     links: [
+      { href: "/scoreboard", title: "Scoreboard", description: "Every week's matchups, the standings, and the playoff picture.", icon: Swords },
       { href: "/players", title: "Players", description: "Search the directory or view the salary-vs-production chart.", icon: Users },
       { href: "/rosters", title: "Rosters", description: "League-wide roster view with salaries and values.", icon: ClipboardList },
       { href: "/lineup", title: "Lineup", description: "Build a starting lineup from any team and see its projected total.", icon: LayoutGrid },
@@ -118,9 +123,10 @@ function HubCard({ link, href, muted }: { link: HubLink; href?: string; muted?: 
 }
 
 export default async function Home() {
-  const [ctx, user] = await Promise.all([
+  const [ctx, user, league] = await Promise.all([
     getSeasonContextNow(),
     getAuthenticatedUser(),
+    getLeagueStatus(),
   ]);
   const ui = PHASE_UI[ctx.phase];
   const boundary = describeNextBoundary(ctx);
@@ -180,6 +186,38 @@ export default async function Home() {
             </a>
           </div>
         </header>
+
+        {/* League status — scoreboard + standings, straight off the game log */}
+        {league && (
+          <section>
+            <h2 className="mb-3 flex flex-wrap items-baseline justify-between gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              <span className="flex items-center gap-2">
+                <Swords size={14} aria-hidden="true" />
+                {league.season} · {league.week != null ? `Week ${league.week}` : "Season"}
+              </span>
+              <Link
+                href="/scoreboard"
+                className="text-xs font-medium normal-case tracking-normal text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                Full scoreboard &amp; playoff picture →
+              </Link>
+            </h2>
+            <div className="grid gap-4 lg:grid-cols-3">
+              <div className="lg:col-span-2">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {league.matchups
+                    .filter((m) => m.week === league.week)
+                    .map((m) => (
+                      <ScoreboardCard key={m.game_id} matchup={m} />
+                    ))}
+                </div>
+              </div>
+              <div>
+                <StandingsTable playoffs={league.playoffs} compact />
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Featured for this phase */}
         {featured.length > 0 && (

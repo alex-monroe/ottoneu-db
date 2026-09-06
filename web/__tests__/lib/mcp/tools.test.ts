@@ -10,6 +10,12 @@ import type { McpToolResult } from "@/lib/mcp/format";
 import type { Player, PlayerListItem } from "@/lib/types";
 import type { SeasonContext } from "@/lib/season";
 import type { ProjectionBoardRow } from "@/lib/analysis";
+import type { LeagueStatus } from "@/lib/matchups";
+import {
+    computePlayoffPicture,
+    computeStandings,
+    type Matchup,
+} from "@/lib/standings";
 
 jest.mock("@/lib/supabase", () => ({
     supabase: {},
@@ -50,6 +56,9 @@ jest.mock("@/lib/weekly-projections", () => ({
     fetchAvailableWeeks: jest.fn(),
     fetchPlayerWeeklyProjections: jest.fn(),
 }));
+jest.mock("@/lib/matchups", () => ({
+    fetchLeagueStatus: jest.fn(),
+}));
 jest.mock("@/lib/nfl-week", () => ({
     // Default to "no NFL week resolved" — the offseason case — so tests written
     // before the weekly feature exercise get_player unchanged. Tests that care
@@ -73,6 +82,7 @@ import {
     fetchDraftSharksMap,
 } from "@/lib/data";
 import { fetchProjectionBoard } from "@/lib/analysis";
+import { fetchLeagueStatus } from "@/lib/matchups";
 import { fetchRosterData } from "@/lib/roster-reconstruction";
 import {
     fetchWeeklyBoard,
@@ -101,6 +111,7 @@ const mockBoard = fetchProjectionBoard as jest.MockedFunction<typeof fetchProjec
 const mockRosterData = fetchRosterData as jest.MockedFunction<typeof fetchRosterData>;
 const mockActiveModel = fetchActiveProjectionModel as jest.MockedFunction<typeof fetchActiveProjectionModel>;
 const mockDraftSharksMap = fetchDraftSharksMap as jest.MockedFunction<typeof fetchDraftSharksMap>;
+const mockLeagueStatus = fetchLeagueStatus as jest.MockedFunction<typeof fetchLeagueStatus>;
 
 function tool(name: string) {
     const def = MCP_TOOLS.find((t) => t.name === name);
@@ -675,5 +686,146 @@ describe("get_player weekly context", () => {
         const weekly = body.weekly_projections as Record<string, Record<string, unknown>>;
         expect(weekly.upcoming.projection).toBeNull();
         expect(String(weekly.upcoming.note)).toContain("bye or inactive");
+    });
+});
+
+
+// ─── Scoreboard & standings ──────────────────────────────────────────────────
+
+describe("get_scoreboard / get_standings", () => {
+    /** A league status built from the pure calculators, as fetchLeagueStatus does. */
+    function status(matchups: Matchup[], overrides: Partial<LeagueStatus> = {}): LeagueStatus {
+        const standings = computeStandings(matchups);
+        return {
+            season: 2026,
+            matchups,
+            standings,
+            playoffs: computePlayoffPicture(standings, 2),
+            week: 1,
+            weeks: [...new Set(matchups.map((m) => m.week))].sort((a, b) => a - b),
+            asOf: "2026-09-14T11:00:00Z",
+            started: matchups.some((m) => m.status !== "scheduled"),
+            ...overrides,
+        };
+    }
+
+    function matchup(over: Partial<Matchup> = {}): Matchup {
+        return {
+            game_id: 1,
+            season: 2026,
+            week: 1,
+            home_team_id: 1,
+            home_team_name: "The Witchcraft",
+            home_score: null,
+            away_team_id: 2,
+            away_team_name: "Irish Invasion",
+            away_score: null,
+            status: "scheduled",
+            game_type: "regular",
+            starts_on: "2026-09-09",
+            ends_on: "2026-09-15",
+            status_label: "Sep 9",
+            ...over,
+        };
+    }
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    it("returns the current week's games with a winner on the finals", async () => {
+        mockLeagueStatus.mockResolvedValue(
+            status([
+                matchup({ game_id: 1, home_score: 120.5, away_score: 99.25, status: "final",
+                          status_label: "Final" }),
+                matchup({ game_id: 2, week: 2 }),
+            ]),
+        );
+        const body = payload(await tool("get_scoreboard").handler({}));
+        const games = body.games as Record<string, unknown>[];
+
+        expect(body.week).toBe(1);
+        expect(games).toHaveLength(1);
+        expect(games[0].winner).toBe("The Witchcraft");
+        expect(games[0].home_score).toBe(120.5);
+        expect(body.weeks_available).toEqual([1, 2]);
+    });
+
+    it("nulls a scheduled game's scores rather than passing 0 through", async () => {
+        // Ottoneu's export prints 0.00 before kickoff; handed to a model as 0 it
+        // reads as a scoreless game in progress.
+        mockLeagueStatus.mockResolvedValue(status([matchup({ home_score: 0, away_score: 0 })]));
+        const games = payload(await tool("get_scoreboard").handler({}))
+            .games as Record<string, unknown>[];
+
+        expect(games[0].home_score).toBeNull();
+        expect(games[0].away_score).toBeNull();
+        expect(games[0].winner).toBeNull();
+    });
+
+    it("does not name a winner while a game is still in progress", async () => {
+        mockLeagueStatus.mockResolvedValue(
+            status([matchup({ home_score: 60, away_score: 12, status: "in_progress" })]),
+        );
+        const games = payload(await tool("get_scoreboard").handler({}))
+            .games as Record<string, unknown>[];
+        expect(games[0].winner).toBeNull();
+        expect(games[0].home_score).toBe(60);
+    });
+
+    it("returns every week when asked for the full log", async () => {
+        mockLeagueStatus.mockResolvedValue(
+            status([matchup({ game_id: 1 }), matchup({ game_id: 2, week: 2 })]),
+        );
+        const body = payload(await tool("get_scoreboard").handler({ all_weeks: true }));
+        expect((body.games as unknown[]).length).toBe(2);
+        expect(body.week).toBeNull();
+    });
+
+    it("says so plainly when no schedule is stored", async () => {
+        mockLeagueStatus.mockResolvedValue(null);
+        const body = payload(await tool("get_scoreboard").handler({}));
+        expect(body.games).toEqual([]);
+        expect(String(body.note)).toContain("No schedule");
+    });
+
+    it("flags a postseason game as not counting toward the standings", async () => {
+        mockLeagueStatus.mockResolvedValue(
+            status([matchup({ game_type: "playoff", home_score: 100, away_score: 90,
+                             status: "final" })]),
+        );
+        const games = payload(await tool("get_scoreboard").handler({}))
+            .games as Record<string, unknown>[];
+        expect(games[0].counts_toward_standings).toBe(false);
+    });
+
+    it("returns standings with the seeding and the record shorthand", async () => {
+        mockLeagueStatus.mockResolvedValue(
+            status([
+                matchup({ game_id: 1, home_score: 120, away_score: 99, status: "final" }),
+                matchup({ game_id: 2, week: 2, home_score: 80, away_score: 130,
+                          status: "final" }),
+            ]),
+        );
+        const body = payload(await tool("get_standings").handler({}));
+        const rows = body.standings as Record<string, unknown>[];
+
+        expect(body.playoff_slots).toBe(2);
+        expect(rows).toHaveLength(2);
+        expect(rows[0].record).toBe("1-1");
+        expect(rows[0].playoff_seed).toBe(1);
+        expect(String(body.methodology)).toContain("points for");
+    });
+
+    it("seeds nobody before the season has started", async () => {
+        // Otherwise an agent reads "seed 1" off a 0-0 league and reports the
+        // alphabetically first team as the top seed.
+        mockLeagueStatus.mockResolvedValue(status([matchup()]));
+        const body = payload(await tool("get_standings").handler({}));
+        const rows = body.standings as Record<string, unknown>[];
+
+        expect(body.season_started).toBe(false);
+        expect(rows.every((r) => r.playoff_seed === null)).toBe(true);
+        expect(rows.every((r) => r.in_playoff_field === false)).toBe(true);
     });
 });

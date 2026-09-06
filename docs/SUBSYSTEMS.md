@@ -24,17 +24,18 @@ happened. Pulled over plain HTTP with an honest User-Agent; no browser.
 
 | | |
 |---|---|
-| **Tables** | `players` · `league_prices` · `transactions` · `league_calendar` · `arbitration_progress` · `arbitration_progress_teams` · `arbitration_allocation_details` |
-| **Ingestion** | `scripts/reconcile_roster.py` (roster CSV → salaries) · `scripts/scrape_player_cards.py` (transaction history) · `scripts/scrape_league_calendar.py` (season boundary dates) · `scripts/scrape_arbitration_progress.py` |
-| **Support** | `scripts/prospect_adopt.py` (college→NFL identity merge) · `scripts/transaction_dedupe.py` · `scripts/season.py` + `web/lib/season.ts` (season-cycle resolver) |
-| **Commands** | `just reconcile-roster` · `just scrape-player-cards` · `just scrape-calendar` · `just dedupe-transactions` |
-| **Routes** | `/rosters` · `/arb-progress` |
-| **Docs** | [references/roster-csv-reconciliation.md](references/roster-csv-reconciliation.md) · [exec-plans/season-cycle.md](exec-plans/season-cycle.md) · [references/ottoneu-rules.md](references/ottoneu-rules.md) |
+| **Tables** | `players` · `league_prices` · `transactions` · `league_calendar` · `league_matchups` · `arbitration_progress` · `arbitration_progress_teams` · `arbitration_allocation_details` |
+| **Ingestion** | `scripts/reconcile_roster.py` (roster CSV → salaries) · `scripts/scrape_player_cards.py` (transaction history) · `scripts/scrape_league_calendar.py` (season boundary dates) · `scripts/scrape_matchups.py` (schedule + results) · `scripts/scrape_arbitration_progress.py` |
+| **Support** | `scripts/prospect_adopt.py` (college→NFL identity merge) · `scripts/transaction_dedupe.py` · `scripts/season.py` + `web/lib/season.ts` (season-cycle resolver) · `scripts/ottoneu_http.py` (honest-UA fetch) · `web/lib/standings.ts` (standings/seeding, derived) |
+| **Commands** | `just reconcile-roster` · `just scrape-player-cards` · `just scrape-calendar` · `just scrape-matchups` · `just dedupe-transactions` |
+| **Routes** | `/rosters` · `/scoreboard` · `/arb-progress` |
+| **Docs** | [references/roster-csv-reconciliation.md](references/roster-csv-reconciliation.md) · [references/matchups-and-standings.md](references/matchups-and-standings.md) · [exec-plans/season-cycle.md](exec-plans/season-cycle.md) · [references/ottoneu-rules.md](references/ottoneu-rules.md) |
 
 **Watch out:** one human can hold several Ottoneu IDs across the college→NFL transition.
 `prospect_adopt.py` reconciles this; don't create a second `players` row for a drafted
 prospect. The current season is resolved at runtime from `league_calendar` — never
-hardcode a year.
+hardcode a year. Standings are **derived** from `league_matchups`, not stored — do not add
+a standings table; see [references/matchups-and-standings.md](references/matchups-and-standings.md).
 
 ---
 

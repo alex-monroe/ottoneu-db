@@ -25,6 +25,7 @@ export const LEAGUE_ID = config.LEAGUE_ID;
 export const MY_TEAM = config.MY_TEAM;
 export const HISTORICAL_SEASONS = config.HISTORICAL_SEASONS;
 export const NUM_TEAMS = config.NUM_TEAMS;
+export const PLAYOFF_TEAMS = config.PLAYOFF_TEAMS;
 export const CAP_PER_TEAM = config.CAP_PER_TEAM;
 export const POSITIONS = config.POSITIONS as unknown as readonly ["QB", "RB", "WR", "TE", "K"];
 export const COLLEGE_POSITIONS: readonly string[] = config.COLLEGE_POSITIONS;

@@ -71,6 +71,8 @@ All tools are read-only and use the anon Supabase client (every table touched ha
 | `get_league_overview` | League settings, scoring, arb rules, current season phase + deadlines, active projection model. Call first — `season_context.in_season` / `.framing` settle whether games have started. |
 | `get_league_calendar` | All season boundary dates (arb window, keeper deadline, auction, kickoff, trade deadline). |
 | `get_rosters` | All rosters (or one team), current or as-of-date via transaction replay, with salaries + cap space. |
+| `get_scoreboard` | Head-to-head matchups for one league week (or the whole season with `all_weeks`): opponents, live/final scores, winner. Defaults to the week being played. A **scheduled** game returns `null` scores, not Ottoneu's placeholder `0.00` — handed a `0` a model reports a scoreless game in progress. Check `season_started` before framing anything as live. |
+| `get_standings` | Standings + playoff picture: record, PF/PA, streak, seed, games back, and conservative `clinched`/`eliminated` flags. Derived from final regular-season matchups (see [matchups-and-standings.md](matchups-and-standings.md)), so it moves as games finish. |
 | `search_players` | Name-substring player search with position/rostered filters. |
 | `get_player` | Full player card: stats by season, projection, auction values, recent transactions. By `ottoneu_id` or name. |
 | `get_transactions` | League transaction log, newest first (real clock order), with team/type/date filters. Rows carry `source` + `feed_quality`; see [Reading the transaction feed](#reading-the-transaction-feed). |
