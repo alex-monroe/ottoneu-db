@@ -97,6 +97,14 @@ reconcile-roster *args:
 dedupe-transactions *args:
     {{python}} -m scripts.transaction_dedupe {{args}}
 
+# Audit the transaction log against the roster state machine: a player can be added
+# only from FA, cut only by his owner, traded only out of the team that holds him.
+# Dry-run by default; --apply deletes the INFERRED rows that break it (card rows are
+# only ever reported). Exits nonzero if a card row violates the machine.
+# e.g. just check-transactions --verbose ; just check-transactions --apply
+check-transactions *args:
+    {{python}} -m scripts.transaction_state_machine {{args}}
+
 # Update player projections (VORP/surplus/arbitration now computed in the web UI)
 analyze:
     {{python}} scripts/update_projections.py
@@ -287,6 +295,12 @@ weekly-projections-probe *args:
 # Scrape the Ottoneu finances Calendar into league_calendar (drives the season-cycle resolver)
 scrape-calendar *args:
     {{python}} scripts/scrape_league_calendar.py {{args}}
+
+# Scrape the league schedule + live/final scores into league_matchups (drives the
+# scoreboard, standings and playoff picture). Safe to re-run: it upserts on game id.
+# e.g. just scrape-matchups --dry-run ; just scrape-matchups --week 3
+scrape-matchups *args:
+    {{python}} scripts/scrape_matchups.py {{args}}
 
 # ──────────────────────────────────────────────
 # Ad-hoc DB queries

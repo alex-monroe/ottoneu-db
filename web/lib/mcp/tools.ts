@@ -62,6 +62,8 @@ import {
   fetchPlayerWeeklyProjections,
 } from "../weekly-projections";
 import { getDisplayWeeks } from "../nfl-week";
+import { fetchLeagueStatus } from "../matchups";
+import { formatRecord, type Matchup } from "../standings";
 import { round, clampLimit, jsonResult, errorResult, type McpToolResult } from "./format";
 import {
   buildTransactionFeed,
@@ -81,6 +83,8 @@ import {
   getDepthChartShape,
   getVegasLinesShape,
   getWeeklyProjectionsShape,
+  getScoreboardShape,
+  getStandingsShape,
 } from "./schemas";
 
 export interface McpToolDef {
@@ -753,6 +757,114 @@ async function getWeeklyProjections(rawArgs: unknown): Promise<McpToolResult> {
   });
 }
 
+/**
+ * Shape one game for an LLM consumer.
+ *
+ * A scheduled game's scores are nulled rather than passed through as Ottoneu's
+ * placeholder 0.00 — a model handed `home_score: 0` for next Sunday will report
+ * it as a scoreless game in progress, which is exactly the kind of confident
+ * wrong answer the FA-salary nulling elsewhere in this file exists to prevent.
+ */
+function shapeMatchup(m: Matchup) {
+  const played = m.status !== "scheduled";
+  return {
+    game_id: m.game_id,
+    week: m.week,
+    status: m.status,
+    status_label: m.status_label,
+    game_type: m.game_type,
+    counts_toward_standings: m.game_type === "regular",
+    week_start: m.starts_on,
+    week_end: m.ends_on,
+    home_team: m.home_team_name,
+    home_score: played ? round(m.home_score, 2) : null,
+    away_team: m.away_team_name,
+    away_score: played ? round(m.away_score, 2) : null,
+    winner:
+      m.status === "final" && m.home_score != null && m.away_score != null
+        ? m.home_score === m.away_score
+          ? "tie"
+          : m.home_score > m.away_score
+            ? m.home_team_name
+            : m.away_team_name
+        : null,
+  };
+}
+
+async function getScoreboard(args: unknown): Promise<McpToolResult> {
+  const { week, season, all_weeks } = z.object(getScoreboardShape).parse(args);
+  const status = await fetchLeagueStatus(season);
+  if (!status) {
+    return jsonResult({
+      league_id: LEAGUE_ID,
+      season: season ?? null,
+      games: [],
+      note: "No schedule is stored for this league season yet.",
+    });
+  }
+
+  const resolved = week != null && status.weeks.includes(week) ? week : status.week;
+  const games = all_weeks
+    ? status.matchups
+    : status.matchups.filter((m) => m.week === resolved);
+
+  return jsonResult({
+    league_id: LEAGUE_ID,
+    season: status.season,
+    week: all_weeks ? null : resolved,
+    weeks_available: status.weeks,
+    season_started: status.started,
+    as_of: status.asOf,
+    games: games.map(shapeMatchup),
+    note: status.started
+      ? "Scores update through the week; status is 'scheduled', 'in_progress' or 'final'. A scheduled game has null scores, not 0."
+      : "The season has not started: this is the schedule as drawn, with no scores yet.",
+  });
+}
+
+async function getStandings(args: unknown): Promise<McpToolResult> {
+  const { season } = z.object(getStandingsShape).parse(args);
+  const status = await fetchLeagueStatus(season);
+  if (!status) {
+    return jsonResult({
+      league_id: LEAGUE_ID,
+      season: season ?? null,
+      standings: [],
+      note: "No schedule is stored for this league season yet.",
+    });
+  }
+
+  return jsonResult({
+    league_id: LEAGUE_ID,
+    season: status.season,
+    season_started: status.playoffs.started,
+    playoff_slots: status.playoffs.slots,
+    as_of: status.asOf,
+    standings: status.playoffs.seeds.map((row) => ({
+      rank: row.rank,
+      team_name: row.team_name,
+      record: formatRecord(row),
+      wins: row.wins,
+      losses: row.losses,
+      ties: row.ties,
+      points_for: round(row.points_for, 2),
+      points_against: round(row.points_against, 2),
+      games_remaining: row.games_remaining,
+      streak: row.streak,
+      playoff_seed: row.seed,
+      in_playoff_field: row.in_field,
+      games_back: row.games_back,
+      clinched: row.clinched,
+      eliminated: row.eliminated,
+    })),
+    methodology:
+      "Derived from final regular-season games in the league's own schedule; playoff and " +
+      "consolation games do not count. Ties in the standings are broken by points for. " +
+      "clinched/eliminated are arithmetic-only and deliberately conservative — a team not " +
+      "flagged may still be settled on tiebreakers.",
+  });
+}
+
 // ─── Registry ────────────────────────────────────────────────────────────────
 
 export const MCP_TOOLS: McpToolDef[] = [
@@ -767,6 +879,25 @@ export const MCP_TOOLS: McpToolDef[] = [
     description: "All season boundary dates for the league (season start, arbitration window, keeper deadline, auction date, regular season start, trade deadline), one row per season.",
     schema: emptyShape,
     handler: getLeagueCalendar,
+  },
+  {
+    name: "get_scoreboard",
+    description:
+      "Head-to-head matchups for one league week (or the whole season with all_weeks): who plays whom, " +
+      "live or final scores, and the winner. Defaults to the week being played. This is the league's own " +
+      "game log, scraped from Ottoneu — use it for 'how did I do this week', 'who is winning', and " +
+      "matchup previews. Check season_started before describing anything as in progress.",
+    schema: getScoreboardShape,
+    handler: getScoreboard,
+  },
+  {
+    name: "get_standings",
+    description:
+      "League standings with the playoff picture: record, points for/against, streak, current playoff seed, " +
+      "games back, and conservative clinched/eliminated flags. Derived from final regular-season matchups, " +
+      "so it reflects games as they finish rather than a once-a-day snapshot.",
+    schema: getStandingsShape,
+    handler: getStandings,
   },
   {
     name: "get_rosters",

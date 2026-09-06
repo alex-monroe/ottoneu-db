@@ -63,8 +63,21 @@ export interface FeedQuality {
   note: string;
 }
 
-/** Marker the roster-CSV reconciliation writes into `raw_description`. */
-const INFERRED_MARKER = "inferred from /csv/rosters reconciliation";
+/**
+ * Markers the roster-CSV reconciliation writes into `raw_description`.
+ *
+ * Every wording we have ever written, current first. A marker is a contract with
+ * the rows already in the table, so the second entry is not dead weight: 80 rows
+ * from the 2026-07-31 backfill carry the older phrasing, and a reader that knows
+ * only the current one classifies all of them as scraped player-card testimony —
+ * which is exactly how a bulk load of inferred moves came to read as a real day
+ * of league activity. Keep in sync with `INFERRED_MARKERS` in
+ * scripts/transaction_dedupe.py.
+ */
+const INFERRED_MARKERS = [
+  "inferred from /csv/rosters reconciliation",
+  "inferred from CSV roster reconciliation",
+];
 
 /** Leading "Aug 22, 2026 9:26 PM" on a scraped card row. */
 const CARD_CLOCK =
@@ -101,7 +114,10 @@ export function parseCardClock(rawDescription: string | null): string | null {
 }
 
 export function classifySource(rawDescription: string | null): TransactionSource {
-  return (rawDescription ?? "").includes(INFERRED_MARKER) ? "inferred" : "scraped";
+  const description = rawDescription ?? "";
+  return INFERRED_MARKERS.some((marker) => description.includes(marker))
+    ? "inferred"
+    : "scraped";
 }
 
 /** Split the scraper's `move (from X)` convention into a plain type + origin team. */

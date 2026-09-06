@@ -39,6 +39,7 @@ from dotenv import load_dotenv
 
 from scripts.config import LEAGUE_ID, fetch_all_rows, get_supabase_client
 from scripts.transaction_dedupe import recent_purge
+from scripts.transaction_state_machine import purge_inferred_violations
 
 PLAYER_CARD_URL_TEMPLATE = (
     "https://ottoneu.fangraphs.com/football/{league_id}/player_card/{level}/{ottoneu_id}"
@@ -222,13 +223,24 @@ def scrape_all(sb, league_id: int, apply: bool, run_date: date,
     # the same move can exist twice. Now that the real rows are in, drop the
     # inferences they supersede — this is what makes the two writers converge
     # regardless of which one ran first (see scripts/transaction_dedupe.py).
-    purged = 0
+    purged = impossible = 0
+    unexplained: list = []
     if apply:
         purged = recent_purge(sb, league_id, run_date)["deleted"]
+        # Second pass, over the *whole* log rather than a window: an exact-match
+        # purge only catches an inference that restates a real move, and the worse
+        # failure is an inference that contradicts one — a phantom add for a player
+        # who never left his roster. Replaying the state machine finds those, and
+        # it has to replay from the beginning, because a player's status at any
+        # moment is the sum of everything before it (scripts/transaction_state_machine.py).
+        state = purge_inferred_violations(sb, league_id)
+        impossible = state["deleted"]
+        unexplained = state["unrepairable"]
 
     return {
         "targets": len(targets), "fetched": fetched, "skipped_no_card": skipped,
         "failed": failed, "transactions": txns_written, "purged_inferred": purged,
+        "purged_impossible": impossible, "unexplained": unexplained,
     }
 
 
@@ -262,6 +274,13 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  transactions:      {summary['transactions']}"
           + ("" if args.apply else " (dry-run — not written)"))
     print(f"  inferred dupes purged: {summary['purged_inferred']}")
+    print(f"  impossible moves purged: {summary.get('purged_impossible', 0)}")
+    # A card row that breaks the state machine is Ottoneu's own history contradicting
+    # itself, which means our parse or our model of the league is wrong. Never
+    # deleted, always surfaced.
+    for v in summary.get("unexplained", []):
+        print(f"  !! card row violates the state machine: {v.day} {v.kind} "
+              f"${v.salary} — {v.detail}")
     if not args.apply:
         print("\nDry-run only. Re-run with --apply to write.")
     return 0

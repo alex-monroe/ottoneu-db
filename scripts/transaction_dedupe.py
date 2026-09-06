@@ -48,6 +48,16 @@ from scripts.config import LEAGUE_ID, fetch_all_rows, get_supabase_client
 # when deduping the next run's inferences, and when purging here.
 INFERRED_MARKER = "inferred from /csv/rosters reconciliation"
 
+# Earlier phrasings of that stamp. A marker is a *contract with the rows already
+# written*, so changing the wording silently reclassified every older inference as
+# card-scraped testimony — 80 rows from the 2026-07-31 backfill, which then read as
+# real league history, were exempt from this purge, and were trusted by
+# `reconcile_roster._already_scraped` as proof a move had really happened. Writers
+# use INFERRED_MARKER; readers must use `is_inferred`, never the constant.
+LEGACY_INFERRED_MARKERS = ("inferred from CSV roster reconciliation",)
+
+INFERRED_MARKERS = (INFERRED_MARKER, *LEGACY_INFERRED_MARKERS)
+
 # How far before an inferred row to look for the real card row it duplicates.
 # Wide enough to cover a card scrape that lagged or failed for a few days, narrow
 # enough that a genuine repeat (add → cut → re-add at the same price) survives.
@@ -61,8 +71,13 @@ _SELECT = ("id, player_id, transaction_type, team_name, salary, "
 
 
 def is_inferred(row: dict) -> bool:
-    """True if ``row`` was written by reconcile_roster rather than the card scrape."""
-    return INFERRED_MARKER in (row.get("raw_description") or "")
+    """True if ``row`` was written by reconcile_roster rather than the card scrape.
+
+    Recognises every marker wording we have ever written, current and legacy —
+    this is the single reader that decides whether a row is testimony or a guess.
+    """
+    description = row.get("raw_description") or ""
+    return any(marker in description for marker in INFERRED_MARKERS)
 
 
 def move_key(row: dict) -> tuple:

@@ -26,6 +26,9 @@ function mobileItemClass(isActive: boolean): string {
 
 const PUBLIC_LINKS = [
   { href: "/", label: "Home" },
+  // Matchup results and standings are league-wide facts anyone can read off
+  // Ottoneu, so the scoreboard is ungated like Players and Rosters.
+  { href: "/scoreboard", label: "Scoreboard" },
   { href: "/players", label: "Players" },
   { href: "/rosters", label: "Rosters" },
   // Runs entirely in the browser off a static board — no sign-in, no database.

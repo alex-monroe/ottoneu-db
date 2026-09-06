@@ -114,6 +114,7 @@ just test-web-file <path>  # Run a single web test file (e.g. just test-web-file
 just scrape-player-cards [--apply] [--player-id N]  # Transaction history via HTTP per DB player id (replaces the Playwright scrape); see docs/references/roster-csv-reconciliation.md
 just reconcile-roster [--file f.csv] [--apply] [--infer-transactions]  # Sync league_prices from the /csv/rosters export (primary roster ingest since #691 removed the Playwright scrape); see docs/references/roster-csv-reconciliation.md
 just dedupe-transactions [--apply] [--verbose]  # Purge inferred transactions that a real player-card row now supersedes (dry-run by default; runs automatically after `just scrape-player-cards --apply` — this is the manual/backfill path; see #702)
+just check-transactions [--apply] [--verbose]   # Replay the roster state machine over transactions (a rostered player cannot be added again); --apply deletes the inferred rows that break it (see #710)
 just analyze            # Update player projections (active model + promote + rookie fallback)
 just check-db           # Verify database contents
 just check-arch         # Architectural/structural tests (includes check-migrations)
@@ -170,6 +171,7 @@ just scrape-draft-sharks [--season YYYY] [--positions qb rb wr te] [--dry-run]  
 just weekly-projections [--week N] [--season YYYY] [--actuals] [--dry-run]      # Ingest per-game projections from Sleeper into weekly_projections (defaults to the current week)
 just weekly-projections-probe --season YYYY --week N                            # Dump a live Sleeper payload + save a fixture, to confirm the stat-key mapping
 just scrape-calendar [--dry-run]                      # Scrape the Ottoneu finances Calendar into league_calendar (drives the season-cycle resolver)
+just scrape-matchups [--week N] [--dry-run]           # Scrape the league schedule + live/final scores into league_matchups (drives /scoreboard, standings, playoff picture)
 
 # Ad-hoc DB queries
 just py "<python-snippet>"                          # Run a one-off Python snippet against the project venv (read-only diagnostics)
@@ -189,6 +191,7 @@ equivalent self-hosted setup would look like.
 | `pull-roster-csv.yml` | Daily 06:17 UTC + `workflow_dispatch` | `curl` the `/csv/rosters` export → `scripts/reconcile_roster.py --apply --infer-transactions` — lighter-weight roster-state sync (ownership + salary + inferred transactions; no FAs/history). Works from GitHub-hosted runners with an honest User-Agent (a browser-spoof UA, not the datacenter IP, is what trips Cloudflare); `OTTONEU_COOKIE` is an optional fallback. See docs/references/roster-csv-reconciliation.md |
 | `scrape-arbitration-progress.yml` | Every 6h (gated to Jan–Mar + Apr 1) + `workflow_dispatch` | `scripts/scrape_arbitration_progress.py` — pulls per-team allocation status via FanGraphs login (`FANGRAPHS_USERNAME` / `FANGRAPHS_PASSWORD`) |
 | `scrape-draft-sharks.yml` | Mondays 08:00 UTC + `workflow_dispatch` | `scripts/scrape_draft_sharks.py` — Draft Sharks Half-PPR Superflex auction values (no in-season gate; ×2 for the $400 cap) |
+| `pull-matchups.yml` | Daily 11:00 UTC + every 30 min through the Sunday afternoon/evening and the Sunday- and Monday-night windows + `workflow_dispatch` | `scripts/scrape_matchups.py` — the league schedule and live/final scores into `league_matchups`. Deliberately **not** gated on the season: the schedule page is public and cheap year-round, and the daily off-season run is what catches next season's schedule the day it posts |
 | `pull-weekly-projections.yml` | Daily 11:00 UTC (~7am ET) + Sundays 16:00 UTC (pre-kickoff) + `workflow_dispatch` | `scripts/weekly_projections/ingest.py` — per-game projections from Sleeper. The daily run also pulls actuals for the current and previous week; the Sunday run is projections-only (games in progress). **Gated on `is_nfl_week_live()`**, so it no-ops all offseason but still covers Week 18; a manual run skips the gate |
 | `scrape-league-calendar.yml` | Mondays 12:00 UTC + `workflow_dispatch` | `scripts/scrape_league_calendar.py` — refreshes `league_calendar`, the source of truth for the season-cycle resolver. Plain HTTP with an honest User-Agent; no browser, no login. |
 | `update-projections.yml` | `workflow_dispatch` only (push trigger removed in #622 — promotion is a deliberate local action via `just promote`) | `scripts/update_projections.py` — re-runs the active model and promotes its outputs into `player_projections` |
