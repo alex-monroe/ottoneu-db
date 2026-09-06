@@ -270,3 +270,112 @@ def test_reconcile_refuses_tiny_csv():
     with pytest.raises(RuntimeError, match="safety floor"):
         rr.reconcile(sb=None, csv_text=tiny, league_id=309,
                      apply=False, infer_transactions=False, run_date=date.today())
+
+
+# --- the state-machine write guard ---------------------------------------
+
+def test_build_transaction_rows_drops_a_phantom_add_for_an_owned_player():
+    """The Jonathon Brooks case, blocked at the point of writing.
+
+    He had sat on Tinseltown's roster since 2025-08-24. When `league_prices`
+    lost his row, the CSV diff read "not owned → owned" and inferred an add.
+    The card history says he never left, so the move is impossible and is not
+    written; `league_prices` is still corrected either way.
+    """
+    events = [Event("add", "brooks", "Jonathon Brooks", "Tinseltown", None, 2)]
+    rows = build_transaction_rows(events, date(2026, 7, 31), league_id=309,
+                                  log_state={"brooks": "Tinseltown"})
+    assert rows == []
+
+
+def test_build_transaction_rows_drops_a_cut_of_a_known_free_agent():
+    events = [Event("cut", "u1", "Already Gone", None, "Team A", 5)]
+    rows = build_transaction_rows(events, date(2026, 8, 1), league_id=309,
+                                  log_state={"u1": "FA"})
+    assert rows == []
+
+
+def test_build_transaction_rows_drops_a_trade_out_of_a_team_that_lost_him():
+    """A stale price row names the wrong origin; a wrong trade is worse than a gap."""
+    events = [Event("trade", "u1", "Swift", "The Roseman Empire", "Irish Invasion", 32)]
+    rows = build_transaction_rows(events, date(2026, 7, 31), league_id=309,
+                                  log_state={"u1": "The Roseman Empire"})
+    assert rows == []
+
+
+def test_build_transaction_rows_writes_genuinely_new_moves():
+    """The guard rejects the impossible, not the merely recent."""
+    events = [
+        Event("add", "u1", "Real Add", "Team A", None, 3),        # log says FA
+        Event("cut", "u2", "Real Cut", None, "Team B", 5),        # log says Team B
+        Event("trade", "u3", "Real Trade", "Team C", "Team B", 9),  # log says Team B
+        Event("add", "u4", "Unknown To The Log", "Team A", None, 1),
+    ]
+    rows = build_transaction_rows(
+        events, date(2026, 8, 23), league_id=309,
+        log_state={"u1": "FA", "u2": "Team B", "u3": "Team B"})
+    assert {r["player_id"] for r in rows} == {"u1", "u2", "u3", "u4"}
+
+
+def test_build_transaction_rows_without_a_log_state_is_unchanged():
+    """No history to check against must not mean "reject everything"."""
+    events = [Event("add", "u1", "Someone", "Team A", None, 3)]
+    assert len(build_transaction_rows(events, date(2026, 8, 23), league_id=309)) == 1
+
+
+# --- blast-radius ceiling -------------------------------------------------
+
+def _wide_csv(n_players: int) -> str:
+    header = ('"Team ID","Team Name","Player ID","Pro Player","Player Name",'
+              '"Pro Team",Position(s),Salary\n')
+    lines = [f'{2500 + (i % 12)},"Team {i % 12}",{20000 + i},true,"Player {i}",HOU,QB,$1'
+             for i in range(n_players)]
+    return header + "\n".join(lines) + "\n"
+
+
+def test_reconcile_withholds_inference_when_the_diff_is_league_wide(monkeypatch):
+    """80 phantom moves in one run is a desync, not a day of trading.
+
+    Ownership is still reconciled — only the fabricated history is withheld.
+    """
+    csv_text = _wide_csv(120)
+    monkeypatch.setattr(rr, "fetch_all_rows", lambda *a, **k: [])
+    monkeypatch.setattr(rr, "_already_scraped", lambda *a, **k: set())
+    monkeypatch.setattr(rr, "_log_state", lambda *a, **k: {})
+    written = []
+    monkeypatch.setattr(rr, "_write_transactions", lambda sb, rows: written.extend(rows))
+    monkeypatch.setattr(rr, "_resolve_or_create_player", lambda sb, row: f"p{row.ottoneu_id}")
+    monkeypatch.setattr(rr, "_upsert_price", lambda *a, **k: None)
+
+    summary = rr.reconcile(sb=object(), csv_text=csv_text, league_id=309, apply=True,
+                           infer_transactions=True, run_date=date(2026, 7, 31))
+
+    assert summary["inference_withheld"] is True
+    assert summary["transactions_written"] == 0
+    assert written == []
+    assert summary["adds"] == 120  # league_prices was still reconciled
+
+
+def test_reconcile_writes_inference_below_the_ceiling(monkeypatch):
+    csv_text = _wide_csv(120)
+    players = [{"id": f"p{20000 + i}", "ottoneu_id": 20000 + i, "name": f"Player {i}"}
+               for i in range(120)]
+    # All but three already priced on the right team → only three inferred moves.
+    prices = [{"player_id": f"p{20000 + i}", "price": 1, "team_name": f"Team {i % 12}"}
+              for i in range(3, 120)]
+
+    def fake_fetch(sb, table, select, filters=None):
+        return players if table == "players" else prices
+
+    monkeypatch.setattr(rr, "fetch_all_rows", fake_fetch)
+    monkeypatch.setattr(rr, "_already_scraped", lambda *a, **k: set())
+    monkeypatch.setattr(rr, "_log_state", lambda *a, **k: {})
+    written = []
+    monkeypatch.setattr(rr, "_write_transactions", lambda sb, rows: written.extend(rows))
+    monkeypatch.setattr(rr, "_upsert_price", lambda *a, **k: None)
+
+    summary = rr.reconcile(sb=object(), csv_text=csv_text, league_id=309, apply=True,
+                           infer_transactions=True, run_date=date(2026, 8, 23))
+
+    assert summary["inference_withheld"] is False
+    assert len(written) == 3

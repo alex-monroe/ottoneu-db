@@ -84,6 +84,17 @@ describe("classifySource", () => {
     expect(classifySource(CARD("Aug 22, 2026 9:26 PM"))).toBe("scraped");
     expect(classifySource(null)).toBe("scraped");
   });
+
+  test("still recognises the marker's earlier wording", () => {
+    // 80 rows from the 2026-07-31 backfill carry it. Reading them as scraped
+    // presents a bulk load of inferences as a real day of league activity.
+    expect(
+      classifySource(
+        "Jul 31, 2026 | The Witchcraft | add | $11 | " +
+          "inferred from CSV roster reconciliation 2026-07-31",
+      ),
+    ).toBe("inferred");
+  });
 });
 
 describe("splitMoveType", () => {

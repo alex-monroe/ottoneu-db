@@ -97,6 +97,14 @@ reconcile-roster *args:
 dedupe-transactions *args:
     {{python}} -m scripts.transaction_dedupe {{args}}
 
+# Audit the transaction log against the roster state machine: a player can be added
+# only from FA, cut only by his owner, traded only out of the team that holds him.
+# Dry-run by default; --apply deletes the INFERRED rows that break it (card rows are
+# only ever reported). Exits nonzero if a card row violates the machine.
+# e.g. just check-transactions --verbose ; just check-transactions --apply
+check-transactions *args:
+    {{python}} -m scripts.transaction_state_machine {{args}}
+
 # Update player projections (VORP/surplus/arbitration now computed in the web UI)
 analyze:
     {{python}} scripts/update_projections.py
