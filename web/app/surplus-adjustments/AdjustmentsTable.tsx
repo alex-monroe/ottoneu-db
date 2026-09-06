@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { MY_TEAM } from "@/lib/arb-logic";
 import { SurplusPlayer, PlayerHoverData } from "@/lib/types";
 import PlayerHoverCard from "@/components/PlayerHoverCard";
 
@@ -22,6 +21,8 @@ interface AdjustmentsTableProps {
   dollarPerVorp: number;
   hoverDataMap?: Record<string, PlayerHoverData> | null;
   projectionSeason: number;
+  /** The signed-in viewer's team, badged in the table. Null = badge none. */
+  viewerTeam?: string | null;
 }
 
 const POSITIONS = ["ALL", "QB", "RB", "WR", "TE"];
@@ -61,6 +62,7 @@ export default function AdjustmentsTable({
   dollarPerVorp,
   hoverDataMap,
   projectionSeason,
+  viewerTeam = null,
 }: AdjustmentsTableProps) {
   const [adjustments, setAdjustments] = useState<Record<string, AdjustmentEntry>>(() => {
     const init: Record<string, AdjustmentEntry> = {};
@@ -445,7 +447,7 @@ export default function AdjustmentsTable({
                     ) : (
                       player.name
                     )}
-                    {player.team_name === MY_TEAM && (
+                    {viewerTeam != null && player.team_name === viewerTeam && (
                       <span className="ml-1 text-xs text-blue-600 dark:text-blue-400">★</span>
                     )}
                   </td>

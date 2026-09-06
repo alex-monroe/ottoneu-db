@@ -3,6 +3,7 @@ import { getStatsSeason, getProjectionSeason } from "@/lib/season";
 import { computeDollarPerVorp } from "@/lib/surplus";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { getViewerTeam } from "@/lib/viewer-team";
 import AdjustmentsTable from "@/app/surplus-adjustments/AdjustmentsTable";
 import Link from "next/link";
 
@@ -11,7 +12,7 @@ import Link from "next/link";
  * page; no page chrome of its own.
  */
 export default async function AdjustmentsSection() {
-  const user = await getAuthenticatedUser();
+  const [user, viewerTeam] = await Promise.all([getAuthenticatedUser(), getViewerTeam()]);
   const [statsSeason, projectionSeason] = await Promise.all([
     getStatsSeason(),
     getProjectionSeason(),
@@ -98,6 +99,7 @@ export default async function AdjustmentsSection() {
         dollarPerVorp={dollarPerVorp}
         hoverDataMap={hoverDataMap}
         projectionSeason={projectionSeason}
+        viewerTeam={viewerTeam}
       />
     </div>
   );

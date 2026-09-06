@@ -16,6 +16,28 @@ interface Props {
   searchParams: Promise<{ from?: string }>;
 }
 
+/**
+ * Which team the account is bound to. "My team" is per-user now
+ * (web/lib/viewer-team.ts), so an unbound account gets neutral pages rather
+ * than somebody else's roster — worth saying plainly.
+ */
+function TeamLine({ teamName }: { teamName: string | null }) {
+  return (
+    <p className="text-sm text-slate-500 dark:text-slate-400">
+      {teamName ? (
+        <>
+          Your team: <strong className="text-slate-700 dark:text-slate-200">{teamName}</strong>
+        </>
+      ) : (
+        <>
+          Your account isn&apos;t linked to a team yet, so pages like Lineup and Salary
+          Analysis won&apos;t know which roster is yours. An admin can link it.
+        </>
+      )}
+    </p>
+  );
+}
+
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <main className="min-h-screen bg-white dark:bg-black px-6 py-16">
@@ -119,6 +141,7 @@ export default async function AccessPage({ searchParams }: Props) {
             Projections access is enabled for <strong>{state.email}</strong>. If you were
             just granted it, continue below to refresh this browser&apos;s session.
           </p>
+          <TeamLine teamName={state.teamName} />
           <AccessActions mode="continue" returnTo={returnTo} />
         </Card>
       </Shell>

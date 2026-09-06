@@ -11,14 +11,18 @@ interface User {
   created_at: string;
   /** When they asked for projections access; null = never asked. */
   access_requested_at: string | null;
+  /** Ottoneu team this account manages; null = unbound. */
+  team_name: string | null;
 }
 
 interface AdminPanelProps {
   users: User[];
   currentUserId: string;
+  /** Team names currently holding a roster, for the per-user team picker. */
+  leagueTeams: string[];
 }
 
-export default function AdminPanel({ users, currentUserId }: AdminPanelProps) {
+export default function AdminPanel({ users, currentUserId, leagueTeams }: AdminPanelProps) {
   const router = useRouter();
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -26,6 +30,7 @@ export default function AdminPanel({ users, currentUserId }: AdminPanelProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState("");
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [savingTeamId, setSavingTeamId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
@@ -47,6 +52,29 @@ export default function AdminPanel({ users, currentUserId }: AdminPanelProps) {
       setError("Failed to update user");
     }
     setTogglingId(null);
+  };
+
+  // Binding an account to a team is what makes "my team" mean the viewer's own
+  // roster rather than the operator's — see web/lib/viewer-team.ts.
+  const handleSetTeam = async (userId: string, teamName: string) => {
+    setSavingTeamId(userId);
+    setError("");
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ team_name: teamName }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || "Failed to set team");
+      } else {
+        router.refresh();
+      }
+    } catch {
+      setError("Failed to set team");
+    }
+    setSavingTeamId(null);
   };
 
   const handleDelete = async (userId: string) => {
@@ -117,6 +145,7 @@ export default function AdminPanel({ users, currentUserId }: AdminPanelProps) {
             <tr>
               <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Email</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Role</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Team</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Projections Access</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Created</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
@@ -146,6 +175,27 @@ export default function AdminPanel({ users, currentUserId }: AdminPanelProps) {
                   ) : (
                     <span className="text-slate-500 dark:text-slate-400">User</span>
                   )}
+                </td>
+                <td className="px-4 py-3 text-sm">
+                  <select
+                    aria-label={`Team for ${u.email}`}
+                    value={u.team_name ?? ""}
+                    disabled={savingTeamId === u.id}
+                    onChange={(e) => handleSetTeam(u.id, e.target.value)}
+                    className="rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-sm text-slate-900 dark:text-white disabled:opacity-50"
+                  >
+                    <option value="">— none —</option>
+                    {/* A team that no longer holds a roster still shows, so an
+                        existing binding is never silently dropped. */}
+                    {(u.team_name && !leagueTeams.includes(u.team_name)
+                      ? [u.team_name, ...leagueTeams]
+                      : leagueTeams
+                    ).map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
                 </td>
                 <td className="px-4 py-3 text-sm">
                   <button

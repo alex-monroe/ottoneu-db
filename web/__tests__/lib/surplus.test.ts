@@ -131,9 +131,13 @@ describe("computeDollarPerVorp", () => {
 });
 
 describe("analyzeProjectedSalary", () => {
-    test("returns empty array when MY_TEAM has no roster", () => {
+    test("returns empty array when the viewer's team has no roster", () => {
         const players = buildPool(); // uses "Team 0" … "Team 11", not MY_TEAM
-        expect(analyzeProjectedSalary(players)).toEqual([]);
+        expect(analyzeProjectedSalary(players, MY_TEAM)).toEqual([]);
+    });
+
+    test("returns empty array when the viewer has no team bound", () => {
+        expect(analyzeProjectedSalary(buildPool(), null)).toEqual([]);
     });
 
     test("classifies players based on surplus thresholds", () => {
@@ -159,7 +163,7 @@ describe("analyzeProjectedSalary", () => {
                 total_points: 96,
             })
         );
-        const result = analyzeProjectedSalary(pool);
+        const result = analyzeProjectedSalary(pool, MY_TEAM);
         const valid = new Set(["Strong Keep", "Keep", "Borderline", "Cut Candidate"]);
         for (const p of result) {
             expect(valid.has(p.recommendation)).toBe(true);

@@ -6,6 +6,7 @@ import {
 import { fetchHoverExtras } from "@/lib/analysis";
 import { getSeasonContextNow } from "@/lib/season";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { getViewerTeam } from "@/lib/viewer-team";
 import type { PlayerHoverData } from "@/lib/types";
 import RostersClient from "./RostersClient";
 
@@ -14,11 +15,12 @@ interface Props {
 }
 
 export default async function RostersPage({ searchParams }: Props) {
-  const [params, seasons, user, ctx] = await Promise.all([
+  const [params, seasons, user, ctx, viewerTeam] = await Promise.all([
     searchParams,
     fetchRosterSeasons(),
     getAuthenticatedUser(),
     getSeasonContextNow(),
+    getViewerTeam(),
   ]);
 
   // Unknown/absent ?season falls back to the newest season we hold history for.
@@ -73,6 +75,7 @@ export default async function RostersPage({ searchParams }: Props) {
       key={season}
       {...data}
       hoverDataMap={hoverDataMap}
+      viewerTeam={viewerTeam}
       season={season}
       seasons={seasons}
       statsSeason={season === ctx.leagueSeason ? ctx.statsSeason : season}

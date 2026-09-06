@@ -1,6 +1,6 @@
 # UX: Key User Journeys and Improvement Plan
 
-Status: **proposed** · Created 2026-09-06 · Owner: @alexrmonroe
+Status: **in progress** — Phase 0 shipped (#711), Phase 1 shipped · Created 2026-09-06 · Owner: @alexrmonroe
 
 The site grew subsystem by subsystem — projections, value, arbitration, matchups,
 drafting — and each arrived as its own route with its own page-level conventions.
@@ -323,7 +323,7 @@ Separately, `/snake-draft` sits in the nav despite belonging to no journey here 
 Sequenced so each phase unblocks the next. Phases 0–2 are the ones that change how the
 site *feels*; 3–5 are where it becomes genuinely good.
 
-### Phase 0 — Fix what's broken (small, do first)
+### Phase 0 — Fix what's broken (small, do first) — ✅ **SHIPPED** (#711)
 Bug-grade, independently shippable, no design work.
 
 | # | Work | Files |
@@ -349,7 +349,7 @@ session back to itself.
 > to go through unit tests plus the Node-runtime page components until it's fixed —
 > tracked separately.
 
-### Phase 1 — Make "your team" real
+### Phase 1 — Make "your team" real — ✅ **SHIPPED**
 The unlock. Everything downstream depends on it.
 
 | # | Work |

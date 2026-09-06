@@ -8,6 +8,7 @@ import {
 import { getStatsSeason, getProjectionSeason } from "@/lib/season";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { getViewerTeam } from "@/lib/viewer-team";
 import SimulationControls from "@/app/arbitration-simulation/SimulationControls";
 import ModeToggle, { ValueMode } from "@/components/ModeToggle";
 
@@ -19,10 +20,11 @@ export default async function SimulationSection({ mode }: { mode: ValueMode }) {
   const isAdjusted = mode === "adjusted";
   const isProjected = mode === "projected";
 
-  const [user, statsSeason, projectionSeason] = await Promise.all([
+  const [user, statsSeason, projectionSeason, viewerTeam] = await Promise.all([
     getAuthenticatedUser(),
     getStatsSeason(),
     getProjectionSeason(),
+    getViewerTeam(),
   ]);
   const [rawPlayers, adjRes] = await Promise.all([
     isProjected
@@ -88,6 +90,7 @@ export default async function SimulationSection({ mode }: { mode: ValueMode }) {
         initialPlayers={rawPlayers}
         initialAdjustments={initialAdjustments}
         hoverDataMap={hoverDataMap}
+        viewerTeam={viewerTeam}
       />
     </div>
   );

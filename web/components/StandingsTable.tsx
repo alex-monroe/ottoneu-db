@@ -1,4 +1,3 @@
-import { MY_TEAM } from "@/lib/config";
 import { formatRecord, formatStreak, type PlayoffPicture } from "@/lib/standings";
 
 /**
@@ -12,6 +11,8 @@ import { formatRecord, formatStreak, type PlayoffPicture } from "@/lib/standings
 interface Props {
   playoffs: PlayoffPicture;
   compact?: boolean;
+  /** The signed-in viewer's team, bolded in the table. Null = highlight none. */
+  viewerTeam?: string | null;
 }
 
 function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
@@ -26,7 +27,7 @@ function Th({ children, right }: { children: React.ReactNode; right?: boolean })
   );
 }
 
-export default function StandingsTable({ playoffs, compact = false }: Props) {
+export default function StandingsTable({ playoffs, compact = false, viewerTeam = null }: Props) {
   const { seeds, slots, started } = playoffs;
 
   return (
@@ -44,7 +45,7 @@ export default function StandingsTable({ playoffs, compact = false }: Props) {
         </thead>
         <tbody>
           {seeds.map((row) => {
-            const isMine = row.team_name.trim() === MY_TEAM;
+            const isMine = viewerTeam != null && row.team_name.trim() === viewerTeam;
             // The line sits under the last team currently in the field, so a
             // reader can see at a glance who is in and who is chasing.
             const cutLine = started && row.rank === slots && seeds.length > slots;

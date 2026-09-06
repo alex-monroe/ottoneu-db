@@ -2,11 +2,11 @@ import {
   fetchHoverExtras,
   buildHoverDataMap,
   calculateSurplus,
-  MY_TEAM,
 } from "@/lib/analysis";
 import { getStatsSeason } from "@/lib/season";
 import { fetchPlayersEndOfSeason } from "@/lib/data";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { getViewerTeam } from "@/lib/viewer-team";
 import SurplusTables from "./SurplusTables";
 
 /**
@@ -15,10 +15,11 @@ import SurplusTables from "./SurplusTables";
  * SurplusTables (which builds the function-bearing columns).
  */
 export default async function SurplusSection() {
-  const [allPlayers, user, statsSeason] = await Promise.all([
+  const [allPlayers, user, statsSeason, viewerTeam] = await Promise.all([
     fetchPlayersEndOfSeason(),
     getAuthenticatedUser(),
     getStatsSeason(),
+    getViewerTeam(),
   ]);
   const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
   const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap);
@@ -45,9 +46,9 @@ export default async function SurplusSection() {
     .sort((a, b) => a.surplus - b.surplus)
     .slice(0, 20);
 
-  // My team
+  // The viewer's own team (empty when their account isn't bound to one).
   const myTeam = rostered
-    .filter((p) => p.team_name === MY_TEAM)
+    .filter((p) => viewerTeam != null && p.team_name === viewerTeam)
     .sort((a, b) => b.surplus - a.surplus);
   const myTotals = {
     salary: myTeam.reduce((s, p) => s + p.price, 0),
@@ -112,6 +113,7 @@ export default async function SurplusSection() {
         freeAgents={freeAgents}
         teamSummary={teamSummary}
         hoverDataMap={hoverDataMap}
+        viewerTeam={viewerTeam}
       />
     </div>
   );

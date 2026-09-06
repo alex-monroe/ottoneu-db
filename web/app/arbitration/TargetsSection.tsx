@@ -17,6 +17,7 @@ import {
 import { getStatsSeason, getProjectionSeason } from "@/lib/season";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { getViewerTeam } from "@/lib/viewer-team";
 import ArbitrationTeams from "./ArbitrationTeams";
 import ArbTargetsTable, { type ProjectedTarget } from "./ArbTargetsTable";
 import ActiveModelCard from "@/components/ActiveModelCard";
@@ -31,10 +32,11 @@ export default async function TargetsSection({ mode }: { mode: ValueMode }) {
   const isAdjusted = mode === "adjusted";
 
   // Fetch adjustments in all modes (needed for indicator dot)
-  const [user, statsSeason, projectionSeason] = await Promise.all([
+  const [user, statsSeason, projectionSeason, viewerTeam] = await Promise.all([
     getAuthenticatedUser(),
     getStatsSeason(),
     getProjectionSeason(),
+    getViewerTeam(),
   ]);
   const adjRes = user
     ? await getSupabaseAdmin()
@@ -66,7 +68,7 @@ export default async function TargetsSection({ mode }: { mode: ValueMode }) {
   const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
   const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap);
 
-  const targets = analyzeArbitration(allPlayers, adjustments) as ProjectedTarget[];
+  const targets = analyzeArbitration(allPlayers, viewerTeam, adjustments) as ProjectedTarget[];
 
   if (targets.length === 0) {
     return (
