@@ -17,6 +17,31 @@ founding case: Jonathon Brooks, added by Tinseltown Little Gold Men on
 2025-08-24, carried a second ``add`` by the same team on 2026-07-31 while he had
 never left the roster.
 
+**The salary axis.** Ownership is only half of what an edge carries; each one also
+says something about the money, and the league's own history shows those claims
+are just as strict (every count below is over the full log, with zero exceptions):
+
+* A **trade** moves the contract intact — 114 trades, not one changed the salary.
+* An **increase** must actually increase it.
+* A **cut** records the *cap penalty*, ``ceil(salary / 2)`` — not the salary. That
+  holds on all 317 card cuts, which makes it a **checksum on the salary the log
+  believes he carries**: if a raise went missing, the penalty will not line up.
+
+That last one is a different instrument from the rest. The ownership rules find
+rows that should not be there; the cut checksum finds rows that **are not** — a
+gap no amount of deleting can close. So salary findings are report-only
+(``SALARY_RULES``), while ownership findings on an inferred row are repaired
+(``OWNERSHIP_RULES``). See ``Violation.repairable``.
+
+The two axes are also known independently: a history that opens mid-stream can
+establish a salary before it establishes an owner, so ``would_violate`` gates them
+separately rather than bailing out on the first unknown.
+
+Rules considered and **rejected**: Ottoneu blocks a team from re-acquiring a
+player it cut for 30 days, but the annual auction cuts straight through it — four
+of the league's re-adds are 22–26 days after the cut, all landing on auction day.
+A rule with real exceptions is worse than no rule in a pipeline that deletes.
+
 **Why the log drifts.** Two jobs write ``transactions`` and only one of them
 watched the move happen. ``scrape_player_cards.py`` reads Ottoneu's own
 Transaction History, so its rows are testimony. ``reconcile_roster.py
@@ -39,7 +64,9 @@ The same replay serves three callers:
 * ``ownership_from_log`` — the *write-time* guard. ``reconcile_roster`` asks what
   the card log says a player's status is before filing an inference about him,
   which is how a phantom add stops being written in the first place. Detecting
-  the bug and preventing it are then the same code, and cannot disagree.
+  the bug and preventing it are then the same code, and cannot disagree. It
+  passes no salary, so only the ownership rules run there — the reconciler has no
+  penalty to observe and no business guessing one.
 
 Usage::
 
@@ -93,6 +120,29 @@ _SELECT = ("id, player_id, transaction_type, team_name, salary, "
 # Supabase rejects very long `in` filters; delete ids in batches.
 _DELETE_BATCH = 100
 
+# Rules about *who owns him* — whether the move happened at all. An inferred row
+# breaking one of these describes a transfer nobody made, so deleting it is the
+# whole fix.
+OWNERSHIP_RULES = frozenset({
+    "add_while_owned",
+    "cut_while_free_agent",
+    "cut_by_wrong_team",
+    "move_from_wrong_team",
+    "trade_to_same_team",
+    "increase_while_free_agent",
+    "increase_by_wrong_team",
+})
+
+# Rules about *the numbers on the move*. These are report-only, deliberately: a
+# salary that does not add up usually means a row is **missing** — a raise the
+# card scrape never picked up — and deleting the row that exposes the gap would
+# hide the problem rather than fix it. Repair here needs a human or a re-scrape.
+SALARY_RULES = frozenset({
+    "trade_changed_salary",
+    "increase_did_not_increase",
+    "cut_penalty_mismatch",
+})
+
 # One line per rule, printed in the report. Keyed by the `rule` on a Violation.
 RULE_EXPLANATIONS = {
     "add_while_owned":
@@ -103,10 +153,19 @@ RULE_EXPLANATIONS = {
         "only the owning team can cut a player",
     "move_from_wrong_team":
         "a trade must originate from the team that actually owns the player",
+    "trade_to_same_team":
+        "a team cannot trade a player to itself",
     "increase_while_free_agent":
         "a free agent has no salary to raise",
     "increase_by_wrong_team":
         "only the owning team can raise a player's salary",
+    "trade_changed_salary":
+        "a trade carries the salary with the player — it never changes it",
+    "increase_did_not_increase":
+        "an increase must actually raise the salary",
+    "cut_penalty_mismatch":
+        "a cut row records the cap penalty, ceil(salary/2) — a mismatch means a "
+        "salary change is missing from the log",
 }
 
 
@@ -143,8 +202,15 @@ class Violation:
 
     @property
     def repairable(self) -> bool:
-        """True when this row may be deleted: an inference contradicting testimony."""
-        return self.inferred
+        """True when deleting this row is the fix.
+
+        Two conditions, and both matter. It must be an **inference** — testimony
+        that breaks the machine is a real defect, not a bad guess to throw away.
+        And it must break an **ownership** rule, because only those mean the move
+        never happened. A salary that does not add up is usually a row that is
+        *missing*, and no deletion can supply it.
+        """
+        return self.inferred and self.rule in OWNERSHIP_RULES
 
 
 def is_free_agent(team: str | None) -> bool:
@@ -205,7 +271,8 @@ def move_order(move: Move) -> tuple:
     return (move.day, move.clock or "99:99", move.inferred, move.row_id)
 
 
-def would_violate(state: str | None, move: Move) -> tuple[str, str] | None:
+def would_violate(state: str | None, move: Move,
+                  salary: int | None = None) -> tuple[str, str] | None:
     """The ``(rule, detail)`` a move breaks from ``state``, or None if it is legal.
 
     The machine's one and only rulebook. ``replay`` uses it to audit rows already
@@ -213,34 +280,65 @@ def would_violate(state: str | None, move: Move) -> tuple[str, str] | None:
     Sharing it is deliberate — a guard that disagreed with the auditor would
     quietly write rows the audit then flags forever.
 
-    ``state is UNKNOWN`` always returns None: with no evidence there is nothing
-    to contradict.
+    The two axes are gated independently, because they can be known
+    independently. ``state is UNKNOWN`` suppresses only the **ownership** rules —
+    with no evidence of who owns him there is nothing to contradict — while the
+    **salary** rules still fire, since a history that opens mid-stream can
+    establish a salary before it establishes an owner. ``salary`` is likewise
+    optional: omit it (as ``reconcile_roster`` does, having no way to know) and
+    the salary rules simply do not fire.
     """
-    if state is UNKNOWN:
-        return None
+    known = state is not UNKNOWN
 
     if move.kind == "add":
-        if not is_free_agent(state):
+        if known and not is_free_agent(state):
             return ("add_while_owned",
                     f"added by {move.team!r} while already owned by {state!r}")
+
     elif move.kind == "cut":
-        if is_free_agent(state):
+        if known and is_free_agent(state):
             return ("cut_while_free_agent",
                     f"cut by {move.team!r} while already a free agent")
-        if state != move.team:
+        if known and state != move.team:
             return ("cut_by_wrong_team",
                     f"cut by {move.team!r} but owned by {state!r}")
+        # A card cut row records the CAP PENALTY, not the salary (Ottoneu rules:
+        # half, rounded up). It holds on all 317 card cuts in the league's history,
+        # which turns it into a checksum on the salary the log thinks he carries:
+        # if a raise went missing, the penalty will not line up. Inferred cuts are
+        # exempt — reconcile_roster writes the salary there, having no penalty to
+        # observe.
+        if not move.inferred and salary is not None and move.salary is not None:
+            expected = -(-salary // 2)  # ceil(salary / 2), integer-only
+            if move.salary != expected:
+                return ("cut_penalty_mismatch",
+                        f"cut penalty ${move.salary} but ${salary} should forfeit "
+                        f"${expected} — a salary change is missing from the log")
+
     elif move.kind == "move":
-        if state != move.from_team:
+        if move.from_team == move.team:
+            return ("trade_to_same_team",
+                    f"traded from {move.from_team!r} to itself")
+        if known and state != move.from_team:
             return ("move_from_wrong_team",
                     f"traded from {move.from_team!r} but owned by {state!r}")
+        # A trade moves the contract intact — 114 trades, not one changed the
+        # salary. A trade that appears to is a lost raise, or the wrong player.
+        if salary is not None and move.salary is not None and move.salary != salary:
+            return ("trade_changed_salary",
+                    f"traded at ${move.salary} but carried ${salary}")
+
     elif move.kind == "increase":
-        if is_free_agent(state):
+        if known and is_free_agent(state):
             return ("increase_while_free_agent",
                     f"salary raised by {move.team!r} while a free agent")
-        if state != move.team:
+        if known and state != move.team:
             return ("increase_by_wrong_team",
                     f"salary raised by {move.team!r} but owned by {state!r}")
+        if salary is not None and move.salary is not None and move.salary <= salary:
+            return ("increase_did_not_increase",
+                    f"'increase' to ${move.salary} from ${salary}")
+
     return None
 
 
@@ -255,6 +353,19 @@ def advance(state: str | None, move: Move) -> str | None:
     return state
 
 
+def advance_salary(salary: int | None, move: Move) -> int | None:
+    """The salary after ``move``.
+
+    A cut resets it to unknown rather than to the penalty it just charged: he is a
+    free agent, and whatever he is next signed for is set by that signing.
+    """
+    if move.kind == "cut":
+        return None
+    if move.kind in ("add", "move", "increase"):
+        return move.salary
+    return salary
+
+
 def replay(moves: list[Move]) -> tuple[str | None, list[Violation]]:
     """Run one player's moves through the machine. Returns (final state, violations).
 
@@ -264,10 +375,11 @@ def replay(moves: list[Move]) -> tuple[str | None, list[Violation]]:
     after it. We report the contradiction and keep following the log.
     """
     state: str | None = UNKNOWN
+    salary: int | None = None
     violations: list[Violation] = []
 
     for mv in sorted(moves, key=move_order):
-        broken = would_violate(state, mv)
+        broken = would_violate(state, mv, salary)
         if broken:
             rule, detail = broken
             violations.append(Violation(
@@ -275,7 +387,8 @@ def replay(moves: list[Move]) -> tuple[str | None, list[Violation]]:
                 state_before=state, detail=detail, inferred=mv.inferred,
                 kind=mv.kind, team=mv.team, salary=mv.salary,
             ))
-        state = advance(state, mv)  # regardless — see the docstring.
+        # Both advance regardless — see the docstring.
+        state, salary = advance(state, mv), advance_salary(salary, mv)
 
     return state, violations
 
@@ -410,9 +523,9 @@ def _print_report(summary: dict, apply: bool, names: dict[str, str], verbose: bo
     print(f"\n=== Transaction state machine: {mode} ===")
     print(f"  scanned:        {summary['scanned']} rows across {summary['players']} players")
     print(f"  violations:     {len(v)}")
-    print(f"  inferred (repairable): {len(rep)} "
+    print(f"  repairable (inferred + ownership): {len(rep)} "
           f"({'deleted' if apply else 'would delete'})")
-    print(f"  card rows (report only): {len(unrep)}")
+    print(f"  report only:    {len(unrep)}")
 
     if v:
         print("\n  by rule:")
@@ -422,14 +535,27 @@ def _print_report(summary: dict, apply: bool, names: dict[str, str], verbose: bo
         for rule, n in sorted(counts.items(), key=lambda kv: -kv[1]):
             print(f"    {n:4}  {rule:26} — {RULE_EXPLANATIONS.get(rule, '')}")
 
-    if unrep:
+    # Two reasons a violation is left alone, and they need different responses.
+    salary_only = [x for x in unrep if x.rule in SALARY_RULES]
+    testimony = [x for x in unrep if x.rule in OWNERSHIP_RULES]
+
+    if testimony:
         # A card row cannot be dismissed as a bad guess: Ottoneu itself said this
         # happened. Either the scrape misread the card or our model of the league
         # is wrong, and both need a human.
         print("\n  !! card-scraped rows violate the machine — NOT auto-repaired:")
-        for x in unrep:
+        for x in testimony:
             print(f"    {x.day}  {names.get(x.player_id, x.player_id):24} "
                   f"{x.kind:8} ${x.salary}  {x.detail}")
+
+    if salary_only:
+        # The numbers do not add up, which almost always means a row is missing
+        # rather than wrong. Deleting cannot supply it; a re-scrape might.
+        print("\n  ~~ salary does not add up — a move is likely MISSING from the log:")
+        for x in salary_only:
+            print(f"    {x.day}  {names.get(x.player_id, x.player_id):24} "
+                  f"{x.kind:8} ${x.salary}  {x.detail}")
+        print("     Try: just scrape-player-cards --apply   (re-read the cards)")
 
     if verbose and rep:
         print("\n  inferred rows:")
@@ -458,8 +584,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if not args.apply and summary["repairable"]:
         print("\n  Re-run with --apply to delete the inferred rows.")
-    # A surviving card-row violation is a real, unexplained defect: fail loudly so
-    # a CI step or a `just` chain stops on it.
+    # Anything left after the repair is a defect no deletion can fix — a card row
+    # contradicting itself, or a salary implying a missing move. Fail loudly so a
+    # CI step or a `just` chain stops on it.
     return 1 if summary["unrepairable"] else 0
 
 

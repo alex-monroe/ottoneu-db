@@ -129,13 +129,54 @@ and therefore a data bug. A rostered player cannot be added again — he has to 
 cut first. Nobody can cut a free agent. A trade must originate from the team that
 actually holds him.
 
+#### The salary axis
+
+Ownership is only half of what an edge carries. Each one also makes a claim about
+the money, and the league's own history shows those claims are just as strict —
+every count below is over the full log, with **zero exceptions**:
+
+| invariant | evidence |
+| --- | --- |
+| A trade moves the contract intact — the salary never changes | 114 trades |
+| An `increase` must actually increase the salary | all increases |
+| A `cut` records the **cap penalty**, `ceil(salary/2)` — not the salary | 317 cuts |
+
+The last one is a different instrument from the rest. It matches the cut rule in
+[ottoneu-rules.md](ottoneu-rules.md) ("half the player's salary, rounded up"), and
+because it is derived from a number the log tracks independently, it works as a
+**checksum on the salary the log believes a player carries**. If an arbitration
+raise went missing, the penalty on the eventual cut will not line up.
+
+That distinction drives how findings are handled:
+
+- **Ownership rules** find rows that should not be there. On an inferred row,
+  deleting it *is* the fix.
+- **Salary rules** find rows that are **not** there — a gap no deletion can close.
+  So they are report-only, even on an inference, and the report points at
+  `just scrape-player-cards --apply` instead.
+
+Inferred cuts are exempt from the checksum: `reconcile_roster` writes the salary
+into that column, having no penalty to observe. Note that this means the `salary`
+column on a cut row carries two different meanings depending on the writer — the
+penalty on a card row, the salary on an inference.
+
+The two axes are known independently, too. A history that opens mid-stream can
+establish a salary before it establishes an owner, so `would_violate` gates them
+separately rather than bailing out on the first unknown.
+
+**Rejected as a rule:** Ottoneu blocks a team from re-acquiring a player it cut
+for 30 days, but the annual auction cuts straight through it — four of the
+league's re-adds are 22–26 days after the cut, all landing on auction day. A rule
+with real exceptions is worse than no rule in a pipeline that deletes.
+
 `scripts/transaction_state_machine.py` replays the log per player and reports what
 the machine refuses. Two properties make it safe to run automatically:
 
-- **Repair is one-directional.** Only *inferred* rows are ever deleted. A
-  **card** row that violates the machine is Ottoneu's own history contradicting
-  itself — our parse or our model of the league is wrong — so it is reported
-  loudly and never touched, and the command exits nonzero.
+- **Repair is one-directional, on one axis.** A row is deleted only if it is an
+  *inference* **and** it breaks an *ownership* rule. A **card** row that violates
+  the machine is Ottoneu's own history contradicting itself — our parse or our
+  model of the league is wrong — so it is reported loudly and never touched. Both
+  cases exit nonzero.
 - **It repairs to a fixpoint.** A bad row can hide the next one. D'Andre Swift's
   phantom trade on 07-31 put him back on a roster he had already been cut from,
   which made the phantom cut filed on 08-01 look perfectly legal; only removing

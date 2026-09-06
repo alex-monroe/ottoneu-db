@@ -21,6 +21,11 @@ TEAM_A = "Tinseltown Little Gold Men"
 TEAM_B = "The Witchcraft"
 
 
+def _penalty(salary):
+    """What a card cut row actually records: the cap penalty, ceil(salary/2)."""
+    return -(-salary // 2)
+
+
 def _label(day):
     """The card's own date format — "Aug 24, 2025" — which is what the parser reads."""
     d = date.fromisoformat(day)
@@ -58,7 +63,7 @@ def test_a_full_legal_career_produces_no_violations():
         _card("p", "increase", 7, TEAM_A, "2026-01-05"),
         _card("p", f"move (from {TEAM_A})", 7, TEAM_B, "2026-03-01"),
         _card("p", "increase", 11, TEAM_B, "2026-04-01"),
-        _card("p", "cut", 11, TEAM_B, "2026-07-28"),
+        _card("p", "cut", _penalty(11), TEAM_B, "2026-07-28"),
         _card("p", "add", 3, TEAM_A, "2026-08-22"),
     ]
     state, violations = replay(_moves(*rows))
@@ -295,7 +300,7 @@ def test_resolve_repairs_to_a_fixpoint():
     """
     rows = [
         _card("swift", "add", 24, TEAM_A, "2025-08-24"),
-        _card("swift", "cut", 16, TEAM_A, "2026-07-31", clock="9:26 AM"),
+        _card("swift", "cut", _penalty(24), TEAM_A, "2026-07-31", clock="9:26 AM"),
         _inferred("swift", f"move (from {TEAM_B})", 32, TEAM_A, "2026-07-31", rid="bad1"),
         _inferred("swift", "cut", 32, TEAM_A, "2026-08-01", rid="bad2"),
     ]
@@ -314,7 +319,7 @@ def test_resolve_leaves_a_clean_log_alone():
 def test_audit_deletes_everything_the_fixpoint_finds():
     sb = _FakeSB([
         _card("swift", "add", 24, TEAM_A, "2025-08-24"),
-        _card("swift", "cut", 16, TEAM_A, "2026-07-31", clock="9:26 AM"),
+        _card("swift", "cut", _penalty(24), TEAM_A, "2026-07-31", clock="9:26 AM"),
         _inferred("swift", f"move (from {TEAM_B})", 32, TEAM_A, "2026-07-31", rid="bad1"),
         _inferred("swift", "cut", 32, TEAM_A, "2026-08-01", rid="bad2"),
     ])
@@ -322,3 +327,109 @@ def test_audit_deletes_everything_the_fixpoint_finds():
     assert sorted(sb.deleted) == ["bad1", "bad2"]
     assert summary["deleted"] == 2
     assert summary["unrepairable"] == []
+
+
+# --- the salary axis: trades, increases, and the cut-penalty checksum -------
+
+def test_a_trade_carries_the_salary_unchanged():
+    """114 real trades, not one changed the salary — it moves with the contract."""
+    rows = [_card("p", "add", 24, TEAM_A, "2025-08-24"),
+            _card("p", f"move (from {TEAM_A})", 24, TEAM_B, "2025-11-17")]
+    assert replay(_moves(*rows))[1] == []
+
+
+def test_a_trade_that_changed_the_salary_is_reported():
+    rows = [_card("p", "add", 24, TEAM_A, "2025-08-24"),
+            _card("p", f"move (from {TEAM_A})", 32, TEAM_B, "2025-11-17")]
+    violations = replay(_moves(*rows))[1]
+    assert [v.rule for v in violations] == ["trade_changed_salary"]
+
+
+def test_a_team_cannot_trade_a_player_to_itself():
+    rows = [_card("p", "add", 5, TEAM_A, "2025-08-24"),
+            _card("p", f"move (from {TEAM_A})", 5, TEAM_A, "2026-03-01")]
+    assert [v.rule for v in replay(_moves(*rows))[1]] == ["trade_to_same_team"]
+
+
+def test_an_increase_must_actually_increase():
+    up = [_card("p", "add", 6, TEAM_A, "2025-08-24"),
+          _card("p", "increase", 7, TEAM_A, "2026-01-05")]
+    assert replay(_moves(*up))[1] == []
+
+    for bad_salary in (6, 4):  # unchanged, and a cut disguised as a raise
+        rows = [_card("p", "add", 6, TEAM_A, "2025-08-24"),
+                _card("p", "increase", bad_salary, TEAM_A, "2026-01-05")]
+        assert [v.rule for v in replay(_moves(*rows))[1]] == ["increase_did_not_increase"]
+
+
+def test_a_cut_forfeits_half_the_salary_rounded_up():
+    """Holds on all 317 card cuts in the league's history — including the $1 floor."""
+    for salary, penalty in ((109, 55), (5, 3), (4, 2), (1, 1)):
+        rows = [_card("p", "add", salary, TEAM_A, "2025-08-24"),
+                _card("p", "cut", penalty, TEAM_A, "2026-07-28")]
+        assert replay(_moves(*rows))[1] == [], f"${salary} should forfeit ${penalty}"
+
+
+def test_a_cut_penalty_that_does_not_add_up_means_a_missing_raise():
+    """The checksum's real job: catching a row the log never got, not a bad row.
+
+    He was raised to $109 in arbitration; the log only ever saw $86. The cut says
+    $55, which is half of a salary the log does not know about.
+    """
+    rows = [_card("p", "add", 86, TEAM_A, "2025-08-24"),
+            _card("p", "cut", 55, TEAM_A, "2026-07-31")]
+    violations = replay(_moves(*rows))[1]
+    assert [v.rule for v in violations] == ["cut_penalty_mismatch"]
+    assert "$43" in violations[0].detail  # what $86 should have forfeited
+
+
+def test_an_inferred_cut_is_exempt_from_the_penalty_checksum():
+    """reconcile_roster writes the salary there — it has no penalty to observe."""
+    rows = [_card("p", "add", 86, TEAM_A, "2025-08-24"),
+            _inferred("p", "cut", 86, TEAM_A, "2026-07-31")]
+    assert replay(_moves(*rows))[1] == []
+
+
+def test_salary_rules_are_reported_but_never_auto_repaired():
+    """A salary that does not add up usually means a row is *missing*.
+
+    Deleting the row that exposes the gap would hide the problem, so these are
+    report-only even when the offending row is an inference.
+    """
+    rows = [_card("p", "add", 24, TEAM_A, "2025-08-24"),
+            _inferred("p", f"move (from {TEAM_A})", 32, TEAM_B, "2026-07-31")]
+    violations = find_violations(rows)
+    assert [v.rule for v in violations] == ["trade_changed_salary"]
+    assert not violations[0].repairable, "must not be deleted — the fix is a re-scrape"
+
+
+def test_ownership_rules_stay_repairable():
+    rows = [_card("p", "add", 2, TEAM_A, "2025-08-24"),
+            _inferred("p", "add", 2, TEAM_A, "2026-07-31")]
+    assert find_violations(rows)[0].repairable
+
+
+def test_a_cut_resets_the_salary_to_unknown():
+    """He is a free agent; whatever he next signs for is set by that signing."""
+    rows = [_card("p", "add", 40, TEAM_A, "2025-08-24"),
+            _card("p", "cut", 20, TEAM_A, "2026-07-28"),
+            _card("p", "add", 3, TEAM_B, "2026-08-22"),
+            _card("p", "cut", 2, TEAM_B, "2026-09-01")]
+    assert replay(_moves(*rows))[1] == []
+
+
+def test_salary_rules_do_not_fire_on_a_truncated_history():
+    """No known salary means nothing to check against — same discipline as UNKNOWN."""
+    rows = [_card("p", "increase", 7, TEAM_A, "2026-01-05"),
+            _card("p", f"move (from {TEAM_A})", 9, TEAM_B, "2026-03-01")]
+    assert [v.rule for v in replay(_moves(*rows))[1]] == ["trade_changed_salary"]
+    # ...but with no prior row at all, the trade's own salary is the first thing known.
+    solo = [_card("p", f"move (from {TEAM_A})", 9, TEAM_B, "2026-03-01")]
+    assert replay(_moves(*solo))[1] == []
+
+
+def test_would_violate_without_a_salary_skips_the_salary_rules():
+    """reconcile_roster cannot know the salary, so its guard checks ownership only."""
+    mv = parse_move(_card("p", f"move (from {TEAM_A})", 32, TEAM_B, "2026-07-31"))
+    assert would_violate(TEAM_A, mv) is None
+    assert would_violate(TEAM_A, mv, salary=24)[0] == "trade_changed_salary"
