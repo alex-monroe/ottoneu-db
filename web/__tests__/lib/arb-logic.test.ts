@@ -296,22 +296,42 @@ describe("calculateSurplus", () => {
 // analyzeProjectedSalary
 // ---------------------------------------------------------------------------
 
+/** The team under test. This used to be the global MY_TEAM constant; the whole
+ *  point of the change is that "my team" is now an argument, not a constant. */
+const VIEWER_TEAM = "The Witchcraft";
+
 describe("analyzeProjectedSalary", () => {
     it("returns empty for empty input", () => {
-        expect(analyzeProjectedSalary([])).toHaveLength(0);
+        expect(analyzeProjectedSalary([], VIEWER_TEAM)).toHaveLength(0);
     });
 
-    it("only returns players from MY_TEAM (The Witchcraft)", () => {
+    it("only returns players from the viewer's team", () => {
         const players = buildLeaguePlayers();
-        const result = analyzeProjectedSalary(players);
+        const result = analyzeProjectedSalary(players, VIEWER_TEAM);
         for (const p of result) {
-            expect(p.team_name).toBe("The Witchcraft");
+            expect(p.team_name).toBe(VIEWER_TEAM);
         }
+    });
+
+    it("is viewer-relative: a different viewer gets their own roster", () => {
+        const players = buildLeaguePlayers();
+        const other = players.find(
+            (p) => p.team_name && p.team_name !== VIEWER_TEAM && p.team_name !== "FA",
+        )!.team_name!;
+        const result = analyzeProjectedSalary(players, other);
+        expect(result.length).toBeGreaterThan(0);
+        for (const p of result) {
+            expect(p.team_name).toBe(other);
+        }
+    });
+
+    it("returns nothing when the viewer has no team bound", () => {
+        expect(analyzeProjectedSalary(buildLeaguePlayers(), null)).toHaveLength(0);
     });
 
     it("assigns recommendation to every player", () => {
         const players = buildLeaguePlayers();
-        const result = analyzeProjectedSalary(players);
+        const result = analyzeProjectedSalary(players, VIEWER_TEAM);
         const validRecommendations = ["Strong Keep", "Keep", "Borderline", "Cut Candidate"];
         for (const p of result) {
             expect(validRecommendations).toContain(p.recommendation);
@@ -325,14 +345,14 @@ describe("analyzeProjectedSalary", () => {
 
 describe("analyzeArbitration", () => {
     it("returns empty for empty input", () => {
-        expect(analyzeArbitration([])).toHaveLength(0);
+        expect(analyzeArbitration([], VIEWER_TEAM)).toHaveLength(0);
     });
 
-    it("excludes players from MY_TEAM and free agents", () => {
+    it("excludes the viewer's own team and free agents", () => {
         const players = buildLeaguePlayers();
-        const result = analyzeArbitration(players);
+        const result = analyzeArbitration(players, VIEWER_TEAM);
         for (const p of result) {
-            expect(p.team_name).not.toBe("The Witchcraft");
+            expect(p.team_name).not.toBe(VIEWER_TEAM);
             expect(p.team_name).not.toBe("FA");
             expect(p.team_name).not.toBe("");
             expect(p.team_name).not.toBeNull();
@@ -341,7 +361,7 @@ describe("analyzeArbitration", () => {
 
     it("excludes kickers", () => {
         const players = buildLeaguePlayers();
-        const result = analyzeArbitration(players);
+        const result = analyzeArbitration(players, VIEWER_TEAM);
         for (const p of result) {
             expect(p.position).not.toBe("K");
         }
@@ -349,15 +369,32 @@ describe("analyzeArbitration", () => {
 
     it("calculates salary_after_arb = price + 4", () => {
         const players = buildLeaguePlayers();
-        const result = analyzeArbitration(players);
+        const result = analyzeArbitration(players, VIEWER_TEAM);
         for (const p of result) {
             expect(p.salary_after_arb).toBe(p.price + 4);
         }
     });
 
+    it("is viewer-relative: another manager's targets include the first viewer", () => {
+        const players = buildLeaguePlayers();
+        const other = players.find(
+            (p) => p.team_name && p.team_name !== VIEWER_TEAM && p.team_name !== "FA",
+        )!.team_name!;
+        const result = analyzeArbitration(players, other);
+        // Their own roster is out, and the previous viewer's is now fair game.
+        expect(result.every((p) => p.team_name !== other)).toBe(true);
+        expect(result.some((p) => p.team_name === VIEWER_TEAM)).toBe(true);
+    });
+
+    it("excludes nobody when the viewer has no team bound", () => {
+        const players = buildLeaguePlayers();
+        const result = analyzeArbitration(players, null);
+        expect(result.some((p) => p.team_name === VIEWER_TEAM)).toBe(true);
+    });
+
     it("output is sorted by surplus descending", () => {
         const players = buildLeaguePlayers();
-        const result = analyzeArbitration(players);
+        const result = analyzeArbitration(players, VIEWER_TEAM);
         for (let i = 1; i < result.length; i++) {
             expect(result[i].surplus).toBeLessThanOrEqual(result[i - 1].surplus);
         }

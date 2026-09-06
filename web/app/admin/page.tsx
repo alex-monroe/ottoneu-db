@@ -2,16 +2,20 @@ import { getAuthenticatedUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { fetchLeagueTeams } from "@/lib/viewer-team";
 import AdminPanel from "./AdminPanel";
 
 export default async function AdminPage() {
   const user = await getAuthenticatedUser();
   if (!user?.isAdmin) redirect("/");
 
-  const { data: users } = await getSupabaseAdmin()
-    .from("users")
-    .select("id, email, is_admin, has_projections_access, created_at, access_requested_at")
-    .order("created_at", { ascending: true });
+  const [{ data: users }, leagueTeams] = await Promise.all([
+    getSupabaseAdmin()
+      .from("users")
+      .select("id, email, is_admin, has_projections_access, created_at, access_requested_at, team_name")
+      .order("created_at", { ascending: true }),
+    fetchLeagueTeams(),
+  ]);
 
   // Accounts waiting on a manual grant come first — this list is the only place
   // an admin finds out somebody registered.
@@ -45,7 +49,7 @@ export default async function AdminPage() {
           Workflow Status →
         </Link>
       </div>
-      <AdminPanel users={sorted} currentUserId={user.userId} />
+      <AdminPanel users={sorted} currentUserId={user.userId} leagueTeams={leagueTeams} />
     </div>
   );
 }

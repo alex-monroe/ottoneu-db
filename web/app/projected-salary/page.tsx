@@ -5,28 +5,37 @@ import {
   analyzeProjectedSalary,
   CAP_PER_TEAM,
   POSITIONS,
-  MY_TEAM,
 } from "@/lib/analysis";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { getViewerTeam } from "@/lib/viewer-team";
 import ProjectedSalaryClient from "./ProjectedSalaryClient";
 import SummaryCard from "@/components/SummaryCard";
 
 export default async function ProjectedSalaryPage() {
-  const [allPlayers, user] = await Promise.all([
+  const [allPlayers, user, viewerTeam] = await Promise.all([
     fetchAndMergeData(),
     getAuthenticatedUser(),
+    getViewerTeam(),
   ]);
-  const roster = analyzeProjectedSalary(allPlayers);
+  const roster = analyzeProjectedSalary(allPlayers, viewerTeam);
   const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
   const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap);
 
   if (roster.length === 0) {
+    // Two different situations, and telling them apart is the whole point of
+    // this page being viewer-relative: no team bound to the account, versus a
+    // team that has no roster rows.
     return (
       <main className="min-h-screen bg-white dark:bg-black p-8">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-            No roster data found.
+        <div className="max-w-2xl mx-auto">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+            Salary Analysis
           </h1>
+          <p className="mt-3 text-slate-600 dark:text-slate-300">
+            {viewerTeam
+              ? `No roster data found for ${viewerTeam}.`
+              : "Your account isn't linked to a team yet, so there's no roster to analyse. An admin can link it from the admin panel."}
+          </p>
         </div>
       </main>
     );
@@ -70,7 +79,7 @@ export default async function ProjectedSalaryPage() {
       <div className="max-w-7xl mx-auto space-y-8">
         <header>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Salary Analysis — {MY_TEAM}
+            Salary Analysis — {viewerTeam}
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2">
             Keep vs. cut decisions based on surplus value (dollar value - salary).

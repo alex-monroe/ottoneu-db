@@ -16,6 +16,11 @@
  *     salary-implied method lacks data.
  *   - Database salaries already reflect the end-of-season $4/$1 bump.
  *   - NFL_TEAM_CODES is a Set for O(1) college-player detection.
+ *   - MY_TEAM is the **operator's** team, not "the current user's team". Read
+ *     the viewer's own team from web/lib/viewer-team.ts (getViewerTeam), which
+ *     resolves users.team_name and only falls back to MY_TEAM for an unbound
+ *     admin account. Using MY_TEAM in a view shows every leaguemate the
+ *     operator's roster as their own.
  */
 
 import config from "../../config.json";

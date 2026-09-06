@@ -41,6 +41,9 @@ import { fetchProjectionBoard } from "../analysis";
 import { fetchRosterData, reconstructRostersAtDate } from "../roster-reconstruction";
 import { calculateSurplus, computeDollarPerVorp } from "../surplus";
 import { analyzeArbTargets } from "./arb";
+// team-binding, not viewer-team: this layer authenticates by bearer token and
+// must not pull the cookie-session chain into the MCP bundle.
+import { getTeamForUser } from "../team-binding";
 import {
   buildAllocations,
   applyProjectedRaises,
@@ -87,11 +90,28 @@ import {
   getStandingsShape,
 } from "./schemas";
 
+/**
+ * The second argument the MCP SDK passes to a tool handler. Only the granting
+ * account's id is used here: `verifyBearer` puts it in `authInfo.extra.userId`
+ * for OAuth tokens, and leaves it absent for the shared league key (which
+ * belongs to no particular manager).
+ */
+export interface McpExtra {
+  authInfo?: { extra?: { userId?: string } };
+}
+
 export interface McpToolDef {
   name: string;
   description: string;
   schema: z.ZodRawShape;
-  handler: (args: unknown) => Promise<McpToolResult>;
+  handler: (args: unknown, extra?: McpExtra) => Promise<McpToolResult>;
+}
+
+/** The team belonging to the caller, when the call carries a per-user token. */
+async function callerTeam(extra?: McpExtra): Promise<string | null> {
+  const userId = extra?.authInfo?.extra?.userId;
+  if (!userId) return null;
+  return getTeamForUser(userId);
 }
 
 const LEAGUE_BLURB = `Ottoneu fantasy football League ${LEAGUE_ID}: ${NUM_TEAMS} teams, superflex (2 QBs startable), half-PPR, $${CAP_PER_TEAM} salary cap with year-round rosters.`;
@@ -544,15 +564,22 @@ async function getPlayerValues(rawArgs: unknown): Promise<McpToolResult> {
   });
 }
 
-async function getArbitrationAnalysis(rawArgs: unknown): Promise<McpToolResult> {
+async function getArbitrationAnalysis(
+  rawArgs: unknown,
+  extra?: McpExtra,
+): Promise<McpToolResult> {
   const args = z.object(getArbitrationAnalysisShape).parse(rawArgs);
   const limit = clampLimit(args.limit, 30, 100);
+  // You cannot allocate arbitration against yourself, so an explicit
+  // exclude_team wins, and otherwise a per-user token excludes that user's own
+  // team. The shared league key belongs to nobody and excludes nothing.
+  const excludeTeam = args.exclude_team ?? (await callerTeam(extra)) ?? undefined;
   const players = await fetchPlayersPreArb();
   const surplus = calculateSurplus(players);
-  const targets = analyzeArbTargets(surplus, args.exclude_team).slice(0, limit);
+  const targets = analyzeArbTargets(surplus, excludeTeam).slice(0, limit);
 
   return jsonResult({
-    methodology: `Arbitration targets: rostered non-kickers (excluding ${args.exclude_team ?? "no team"}) in the surplus "danger zone", using pre-arbitration salaries. salary_after_arb assumes the max single-team raise of $${ARB_MAX_PER_PLAYER_PER_TEAM}. Each team allocates $${ARB_BUDGET_PER_TEAM} total: $${ARB_MIN_PER_TEAM}-$${ARB_MAX_PER_TEAM} per opponent.`,
+    methodology: `Arbitration targets: rostered non-kickers (excluding ${excludeTeam ?? "no team"}) in the surplus "danger zone", using pre-arbitration salaries. salary_after_arb assumes the max single-team raise of $${ARB_MAX_PER_PLAYER_PER_TEAM}. Each team allocates $${ARB_BUDGET_PER_TEAM} total: $${ARB_MIN_PER_TEAM}-$${ARB_MAX_PER_TEAM} per opponent.`,
     count: targets.length,
     targets: targets.map((t) => ({
       name: t.name,
@@ -946,7 +973,7 @@ export const MCP_TOOLS: McpToolDef[] = [
   },
   {
     name: "get_arbitration_analysis",
-    description: "Ranked arbitration targets: rostered players whose surplus survives (or nearly survives) the max arbitration raise, using pre-arbitration salaries. Pass exclude_team = your own team, since you cannot allocate against yourself.",
+    description: "Ranked arbitration targets: rostered players whose surplus survives (or nearly survives) the max arbitration raise, using pre-arbitration salaries. Defaults to excluding your own team (you cannot allocate against yourself) when the request carries a per-user token; pass exclude_team to override, or an empty string for a league-wide view.",
     schema: getArbitrationAnalysisShape,
     handler: getArbitrationAnalysis,
   },

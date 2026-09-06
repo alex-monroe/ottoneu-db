@@ -128,6 +128,8 @@ export interface LiveAccessState {
   hasProjectionsAccess: boolean;
   isAdmin: boolean;
   accessRequestedAt: string | null;
+  /** Ottoneu team bound to this account; null = unbound. */
+  teamName: string | null;
 }
 
 export async function getLiveAccessState(): Promise<LiveAccessState | null> {
@@ -136,7 +138,7 @@ export async function getLiveAccessState(): Promise<LiveAccessState | null> {
 
   const { data } = await getSupabaseAdmin()
     .from("users")
-    .select("id, email, is_admin, has_projections_access, access_requested_at")
+    .select("id, email, is_admin, has_projections_access, access_requested_at, team_name")
     .eq("id", user.userId)
     .single();
 
@@ -147,5 +149,6 @@ export async function getLiveAccessState(): Promise<LiveAccessState | null> {
     hasProjectionsAccess: data.has_projections_access,
     isAdmin: data.is_admin,
     accessRequestedAt: data.access_requested_at ?? null,
+    teamName: data.team_name ?? null,
   };
 }

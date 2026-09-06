@@ -22,6 +22,7 @@ import {
 import { getSeasonContextNow } from "@/lib/season";
 import { PHASE_UI, describeNextBoundary } from "@/lib/season-ui";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { getViewerTeam } from "@/lib/viewer-team";
 import { getLeagueStatus } from "@/lib/matchups";
 import ScoreboardCard from "@/components/ScoreboardCard";
 import StandingsTable from "@/components/StandingsTable";
@@ -123,10 +124,11 @@ function HubCard({ link, href, muted }: { link: HubLink; href?: string; muted?: 
 }
 
 export default async function Home() {
-  const [ctx, user, league] = await Promise.all([
+  const [ctx, user, league, viewerTeam] = await Promise.all([
     getSeasonContextNow(),
     getAuthenticatedUser(),
     getLeagueStatus(),
+    getViewerTeam(),
   ]);
   const ui = PHASE_UI[ctx.phase];
   const boundary = describeNextBoundary(ctx);
@@ -213,7 +215,7 @@ export default async function Home() {
                 </div>
               </div>
               <div>
-                <StandingsTable playoffs={league.playoffs} compact />
+                <StandingsTable playoffs={league.playoffs} compact viewerTeam={viewerTeam} />
               </div>
             </div>
           </section>

@@ -4,7 +4,7 @@ import { useState } from "react";
 import DataTable from "@/components/DataTable";
 import { type TeamRoster } from "@/lib/roster-reconstruction";
 import type { Column, PlayerHoverData } from "@/lib/types";
-import { MY_TEAM, CAP_PER_TEAM } from "@/lib/arb-logic";
+import { CAP_PER_TEAM } from "@/lib/arb-logic";
 import {
   playerNameCol,
   positionCol,
@@ -27,11 +27,14 @@ function getRosterColumns(hoverDataMap: Record<string, PlayerHoverData> | null):
 
 interface TeamRosterSectionProps {
   roster: TeamRoster;
+  /** The signed-in viewer's team, expanded by default. Null = all collapsed. */
+  viewerTeam?: string | null;
   hoverDataMap?: Record<string, PlayerHoverData> | null;
 }
 
-export default function TeamRosterSection({ roster, hoverDataMap = null }: TeamRosterSectionProps) {
-  const [isOpen, setIsOpen] = useState(roster.team_name === MY_TEAM);
+export default function TeamRosterSection({ roster, hoverDataMap = null, viewerTeam = null }: TeamRosterSectionProps) {
+  // The viewer's own roster opens by default; everyone else's starts collapsed.
+  const [isOpen, setIsOpen] = useState(viewerTeam != null && roster.team_name === viewerTeam);
 
   const isOverCap = roster.total_salary > CAP_PER_TEAM;
 

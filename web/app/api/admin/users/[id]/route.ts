@@ -16,10 +16,12 @@ export async function PUT(req: NextRequest, context: RouteContext) {
   const { id } = await context.params;
   const parsed = await parseJson(req, UpdateUserSchema);
   if (!parsed.ok) return parsed.response;
-  const { has_projections_access } = parsed.data;
+  const { has_projections_access, team_name } = parsed.data;
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (has_projections_access !== undefined) updates.has_projections_access = has_projections_access;
+  // "" from the picker's blank option means "unbind", stored as NULL.
+  if (team_name !== undefined) updates.team_name = team_name ? team_name : null;
 
   const { error } = await getSupabaseAdmin()
     .from("users")

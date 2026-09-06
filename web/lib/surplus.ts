@@ -1,4 +1,4 @@
-import { NUM_TEAMS, CAP_PER_TEAM, MY_TEAM } from "./config";
+import { NUM_TEAMS, CAP_PER_TEAM } from "./config";
 import { Player, SurplusPlayer, ProjectedSalaryPlayer } from "./types";
 import { calculateVorp } from "./vorp";
 
@@ -50,16 +50,22 @@ export function computeDollarPerVorp(players: Player[]): number {
 }
 
 /**
- * Analyzes MY_TEAM's projected salary by categorizing players into keep/cut
+ * Analyzes one team's projected salary by categorizing players into keep/cut
  * classifications based on surplus value thresholds.
+ *
+ * `myTeam` is the viewer's team (web/lib/viewer-team.ts), not a global
+ * constant — two managers looking at this page must see their own rosters.
+ * A null team (nobody signed in, or no team bound) yields no rows.
  */
 export function analyzeProjectedSalary(
-    allPlayers: Player[]
+    allPlayers: Player[],
+    myTeam: string | null
 ): ProjectedSalaryPlayer[] {
+    if (!myTeam) return [];
     const surplusPlayers = calculateSurplus(allPlayers);
     if (surplusPlayers.length === 0) return [];
 
-    const myRoster = surplusPlayers.filter((p) => p.team_name === MY_TEAM);
+    const myRoster = surplusPlayers.filter((p) => p.team_name === myTeam);
     if (myRoster.length === 0) return [];
 
     // Classify based on surplus value thresholds
