@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getAuthenticatedUser } from "@/lib/auth";
+import { requireProjectionsAccess } from "@/lib/auth";
 import { fetchPlayerList } from "@/lib/data";
 import { getDisplayWeeks } from "@/lib/nfl-week";
 import {
@@ -42,10 +42,9 @@ function Empty({ message }: { message: string }) {
 }
 
 export default async function WeeklyProjectionsPage({ searchParams }: Props) {
-  const user = await getAuthenticatedUser();
-  if (!user?.hasProjectionsAccess) {
-    return <Empty message="You need projections access to view weekly projections." />;
-  }
+  // Gated in one place now (lib/access.ts + middleware); this guard keeps the
+  // page failing closed if the route is ever dropped from that list.
+  await requireProjectionsAccess("/weekly");
 
   const params = await searchParams;
   const display = await getDisplayWeeks();

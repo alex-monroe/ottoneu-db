@@ -9,6 +9,8 @@ interface User {
   is_admin: boolean;
   has_projections_access: boolean;
   created_at: string;
+  /** When they asked for projections access; null = never asked. */
+  access_requested_at: string | null;
 }
 
 interface AdminPanelProps {
@@ -123,7 +125,19 @@ export default function AdminPanel({ users, currentUserId }: AdminPanelProps) {
           <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
             {users.map((u) => (
               <tr key={u.id}>
-                <td className="px-4 py-3 text-sm text-slate-900 dark:text-white">{u.email}</td>
+                <td className="px-4 py-3 text-sm text-slate-900 dark:text-white">
+                  <span className="flex items-center gap-2">
+                    {u.email}
+                    {!u.has_projections_access && u.access_requested_at && (
+                      <span
+                        title={`Requested ${new Date(u.access_requested_at).toLocaleDateString()}`}
+                        className="inline-flex items-center rounded bg-amber-100 dark:bg-amber-950/60 px-1.5 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-300"
+                      >
+                        Awaiting access
+                      </span>
+                    )}
+                  </span>
+                </td>
                 <td className="px-4 py-3 text-sm">
                   {u.is_admin ? (
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200">

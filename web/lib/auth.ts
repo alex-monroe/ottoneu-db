@@ -1,7 +1,9 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { signSession, verifySession, type SessionInfo } from "./session";
 import { getSupabaseAdmin } from "./supabase";
+import { ACCESS_PATH, LOGIN_PATH } from "./access";
 
 const AUTH_COOKIE_NAME = "ottoneu_auth";
 const COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
@@ -86,4 +88,64 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
 export async function isAuthenticated(): Promise<boolean> {
   const user = await getAuthenticatedUser();
   return user !== null;
+}
+
+/**
+ * Server-component guard for a page that requires projections access.
+ *
+ * `web/middleware.ts` already gates every route in `PROJECTIONS_ROUTES`, so in
+ * practice this rarely fires; it exists so a page can state its own requirement
+ * in code rather than hand-rolling a check that drifts from the route list, and
+ * so a route accidentally dropped from that list still fails closed.
+ *
+ * Sends a signed-in user without access to /access rather than /login — see the
+ * loop documented in `lib/access.ts`.
+ *
+ * @param from Path to return the user to once access is granted.
+ */
+export async function requireProjectionsAccess(from?: string): Promise<AuthenticatedUser> {
+  const user = await getAuthenticatedUser();
+  if (!user) {
+    redirect(from ? `${LOGIN_PATH}?redirect=${encodeURIComponent(from)}` : LOGIN_PATH);
+  }
+  if (!user.hasProjectionsAccess) {
+    redirect(from ? `${ACCESS_PATH}?from=${encodeURIComponent(from)}` : ACCESS_PATH);
+  }
+  return user;
+}
+
+/**
+ * Live access state for the signed-in user, read from the database rather than
+ * the session cookie.
+ *
+ * The cookie is a 7-day snapshot, so a user granted access an hour ago still
+ * carries `hasProjectionsAccess: false` in it. The /access page has to tell
+ * someone the truth about their own account, so it reads through.
+ */
+export interface LiveAccessState {
+  userId: string;
+  email: string;
+  hasProjectionsAccess: boolean;
+  isAdmin: boolean;
+  accessRequestedAt: string | null;
+}
+
+export async function getLiveAccessState(): Promise<LiveAccessState | null> {
+  const user = await getAuthenticatedUser();
+  if (!user) return null;
+
+  const { data } = await getSupabaseAdmin()
+    .from("users")
+    .select("id, email, is_admin, has_projections_access, access_requested_at")
+    .eq("id", user.userId)
+    .single();
+
+  if (!data) return null;
+  return {
+    userId: data.id,
+    email: data.email,
+    hasProjectionsAccess: data.has_projections_access,
+    isAdmin: data.is_admin,
+    accessRequestedAt: data.access_requested_at ?? null,
+  };
 }
