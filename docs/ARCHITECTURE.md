@@ -117,9 +117,12 @@ testing or off-schedule events. Full design rationale and migration history:
 User accounts with email/password login stored in the `users` table. Passwords are hashed with bcrypt (`bcryptjs`). Sessions use HMAC-SHA256 signed tokens stored in HTTP-only cookies (7-day expiry). The session payload encodes `userId`, `isAdmin`, and `hasProjectionsAccess` — no DB lookup needed for authorization.
 
 - **`SESSION_SECRET`** env var provides the HMAC signing key
-- **Middleware** (`web/middleware.ts`) enforces route protection:
-  - Protected routes (projections, VORP, surplus, arbitration) require `hasProjectionsAccess`
-  - Admin routes (`/admin`) require `isAdmin`
+- **Route policy lives in one module** — `web/lib/access.ts` owns `PROJECTIONS_ROUTES`, `ADMIN_ROUTES`, `PUBLIC_API_ROUTES` and the `accessRedirect()` decision function. It is Edge-safe (no `next/headers`, no Supabase) because `web/middleware.ts` imports it. Matching is **segment-aware** (`/value` never matches `/valuation`), and `next.config.ts` `redirects()` run before middleware, so consolidated URLs arrive normalised
+- **Middleware** (`web/middleware.ts`) applies that policy: projections routes require `hasProjectionsAccess`, `/admin` requires `isAdmin`, and every other `/api` route requires a valid session
+- **Server components** call `requireProjectionsAccess()` (`web/lib/auth.ts`) rather than hand-rolling a check, so a route accidentally dropped from the list still fails closed
+- **A signed-in user without access goes to `/access`, never `/login`.** `/login` redirects an authenticated visitor onward, so routing them there produced an infinite redirect loop for every self-registered account (registration grants `has_projections_access: false`). `__tests__/lib/access.test.ts` pins the invariant that no gated route redirects a signed-in user back to itself
+- **Access requests:** `users.access_requested_at` records who is waiting. Self-registration stamps it, `POST /api/access-request` sets it for an existing account, and `/admin` sorts pending accounts to the top with a count badge — the only channel this app has for telling an admin somebody registered
+- **Session freshness:** the cookie caches `isAdmin`/`hasProjectionsAccess` for 7 days, so a freshly granted user would otherwise stay locked out. `POST /api/auth/refresh` re-signs it from the DB row; `/access` calls that so a grant takes effect immediately
 - **User-scoped data:** `surplus_adjustments` and `arbitration_plans` are scoped to `user_id` — each user sees only their own data
 - **Admin panel** (`/admin`) allows admins to create users, toggle projections access, and delete users
 

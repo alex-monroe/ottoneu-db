@@ -59,6 +59,11 @@ export async function POST(request: NextRequest) {
                 password_hash,
                 is_admin: false,
                 has_projections_access: false,
+                // Registering is itself a request for access: stamping it here
+                // puts the new account straight into the admin queue on /admin,
+                // which is the only channel this app has for telling an admin
+                // somebody is waiting.
+                access_requested_at: new Date().toISOString(),
             })
             .select("id, is_admin, has_projections_access")
             .single();

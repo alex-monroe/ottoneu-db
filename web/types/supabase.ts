@@ -1408,6 +1408,7 @@ export type Database = {
       }
       users: {
         Row: {
+          access_requested_at: string | null
           created_at: string
           email: string
           has_projections_access: boolean
@@ -1417,6 +1418,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          access_requested_at?: string | null
           created_at?: string
           email: string
           has_projections_access?: boolean
@@ -1426,6 +1428,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          access_requested_at?: string | null
           created_at?: string
           email?: string
           has_projections_access?: boolean

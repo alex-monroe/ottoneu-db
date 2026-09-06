@@ -1,30 +1,16 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifySession } from "./lib/session";
+import {
+  accessRedirect,
+  isPublicApiRoute,
+  requiresAdmin,
+  requiresProjectionsAccess,
+} from "./lib/access";
 
-export const PROTECTED_ROUTES = [
-  "/projected-salary",
-  "/value",
-  "/arbitration",
-  "/projections",
-  "/projection-accuracy",
-  "/vegas-lines",
-];
-
-export const ADMIN_ROUTES = ["/admin"];
-
-export const PUBLIC_API_ROUTES = [
-  "/api/auth/login",
-  "/api/auth/logout",
-  "/api/auth/register",
-  // MCP endpoint: bearer-key auth is enforced inside the route handler
-  // (withMcpAuth in app/api/mcp/[transport]/route.ts), not by cookies.
-  "/api/mcp",
-  // OAuth endpoints for MCP clients. /token and /register are machine-to-machine
-  // and carry no cookie; /authorize verifies the session itself (it must match
-  // the signed consent token) rather than relying on the middleware gate.
-  "/api/oauth",
-];
+// Re-exported for the tests and callers that previously imported them from
+// here; `lib/access.ts` is the source of truth.
+export { PROJECTIONS_ROUTES, ADMIN_ROUTES, PUBLIC_API_ROUTES } from "./lib/access";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -35,60 +21,48 @@ export async function middleware(request: NextRequest) {
   }
 
   const isApiRoute = pathname.startsWith("/api");
-  const isPublicApiRoute = PUBLIC_API_ROUTES.some((route) =>
-    pathname === route || pathname.startsWith(route + "/") || pathname.startsWith(route + "?")
-  );
 
-  // Allow public API routes
-  if (isApiRoute && isPublicApiRoute) {
+  // API routes that carry their own auth (bearer key, OAuth token, signed
+  // consent token) are exempt from the cookie gate.
+  if (isApiRoute && isPublicApiRoute(pathname)) {
     return NextResponse.next();
   }
 
-  // Check if UI route is protected (requires projections access)
-  const isProtectedUiRoute = !isApiRoute && PROTECTED_ROUTES.some((route) =>
-    pathname.startsWith(route)
-  );
-
-  // Check if UI route is admin-only
-  const isAdminRoute = !isApiRoute && ADMIN_ROUTES.some((route) =>
-    pathname.startsWith(route)
-  );
-
-  // If it's not an API route and not a protected/admin UI route, allow it
-  if (!isApiRoute && !isProtectedUiRoute && !isAdminRoute) {
+  const needsGate =
+    isApiRoute || requiresProjectionsAccess(pathname) || requiresAdmin(pathname);
+  if (!needsGate) {
     return NextResponse.next();
   }
 
-  // At this point, the route requires authentication.
   const authCookie = request.cookies.get("ottoneu_auth");
   const session = await verifySession(authCookie?.value);
 
-  if (!session.valid) {
-    if (isApiRoute) {
+  // Every remaining API route just needs a valid session.
+  if (isApiRoute) {
+    if (!session.valid) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    } else {
-      const loginUrl = new URL("/login", request.url);
-      loginUrl.searchParams.set("redirect", pathname);
-      return NextResponse.redirect(loginUrl);
     }
-  }
-
-  // Admin routes require isAdmin
-  if (isAdminRoute && !session.isAdmin) {
-    if (isApiRoute) {
+    if (requiresAdmin(pathname) && !session.isAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    return NextResponse.redirect(new URL("/", request.url));
-  }
-
-  // Protected routes require projections access
-  if (isProtectedUiRoute && !session.hasProjectionsAccess) {
-    if (isApiRoute) {
+    if (requiresProjectionsAccess(pathname) && !session.hasProjectionsAccess) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.next();
+  }
+
+  // UI routes. A signed-in user who lacks projections access is sent to
+  // /access, NOT to /login — /login redirects an authenticated visitor straight
+  // back to where they came from, which made this an infinite redirect loop for
+  // every self-registered user (they start with has_projections_access = false).
+  const destination = accessRedirect(pathname, {
+    signedIn: session.valid,
+    hasProjectionsAccess: session.hasProjectionsAccess ?? false,
+    isAdmin: session.isAdmin ?? false,
+  });
+
+  if (destination) {
+    return NextResponse.redirect(new URL(destination, request.url));
   }
 
   return NextResponse.next();

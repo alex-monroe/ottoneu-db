@@ -244,12 +244,17 @@ export default async function Home() {
                 {group.label}
               </h2>
               {locked ? (
+                // /access, not /login: an authenticated user without projections
+                // access is redirected away from /login and lands back here,
+                // having been told nothing.
                 <Link
-                  href="/login"
+                  href="/access"
                   className="flex items-center gap-3 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 p-4 text-sm text-slate-500 dark:text-slate-400 hover:border-blue-300 dark:hover:border-blue-800 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
                 >
                   <Lock size={16} aria-hidden="true" />
-                  Sign in to access {group.label.toLowerCase()} tools.
+                  {user
+                    ? `Your account doesn't have access to ${group.label.toLowerCase()} tools yet.`
+                    : `Sign in to access ${group.label.toLowerCase()} tools.`}
                 </Link>
               ) : (
                 <div className={`grid gap-3 sm:grid-cols-2 ${group.links.length > 2 ? "lg:grid-cols-3" : ""}`}>
