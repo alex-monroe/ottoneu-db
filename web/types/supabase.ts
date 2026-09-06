@@ -402,6 +402,72 @@ export type Database = {
           },
         ]
       }
+      league_matchups: {
+        Row: {
+          away_score: number | null
+          away_team_id: number
+          away_team_name: string
+          created_at: string
+          ends_on: string | null
+          game_id: number
+          game_type: string
+          home_score: number | null
+          home_team_id: number
+          home_team_name: string
+          id: string
+          league_id: number
+          scraped_at: string
+          season: number
+          starts_on: string | null
+          status: string
+          status_label: string | null
+          updated_at: string
+          week: number
+        }
+        Insert: {
+          away_score?: number | null
+          away_team_id: number
+          away_team_name: string
+          created_at?: string
+          ends_on?: string | null
+          game_id: number
+          game_type?: string
+          home_score?: number | null
+          home_team_id: number
+          home_team_name: string
+          id?: string
+          league_id: number
+          scraped_at?: string
+          season: number
+          starts_on?: string | null
+          status?: string
+          status_label?: string | null
+          updated_at?: string
+          week: number
+        }
+        Update: {
+          away_score?: number | null
+          away_team_id?: number
+          away_team_name?: string
+          created_at?: string
+          ends_on?: string | null
+          game_id?: number
+          game_type?: string
+          home_score?: number | null
+          home_team_id?: number
+          home_team_name?: string
+          id?: string
+          league_id?: number
+          scraped_at?: string
+          season?: number
+          starts_on?: string | null
+          status?: string
+          status_label?: string | null
+          updated_at?: string
+          week?: number
+        }
+        Relationships: []
+      }
       league_prices: {
         Row: {
           created_at: string

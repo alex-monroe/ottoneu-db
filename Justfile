@@ -288,6 +288,12 @@ weekly-projections-probe *args:
 scrape-calendar *args:
     {{python}} scripts/scrape_league_calendar.py {{args}}
 
+# Scrape the league schedule + live/final scores into league_matchups (drives the
+# scoreboard, standings and playoff picture). Safe to re-run: it upserts on game id.
+# e.g. just scrape-matchups --dry-run ; just scrape-matchups --week 3
+scrape-matchups *args:
+    {{python}} scripts/scrape_matchups.py {{args}}
+
 # ──────────────────────────────────────────────
 # Ad-hoc DB queries
 # ──────────────────────────────────────────────

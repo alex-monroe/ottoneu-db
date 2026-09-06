@@ -1,0 +1,80 @@
+name: Pull Matchups
+
+# Keeps `league_matchups` — the game log behind the scoreboard, standings and
+# playoff picture — in step with Ottoneu. The scrape is one HTML page plus one
+# CSV export over plain HTTP: no browser, no login, no Playwright.
+#
+# The whole schedule is published before kickoff, so a run outside game time is
+# still useful (it picks up a re-drawn schedule or a newly generated playoff
+# bracket) and is cheap. The dense windows below exist because a score that is
+# hours stale is worse than no score at all on a Sunday afternoon.
+
+on:
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "Limit the write to one league week (blank = all weeks)"
+        required: false
+      dry_run:
+        description: "Parse and print without writing"
+        type: boolean
+        default: false
+
+  schedule:
+    # Daily at 11:00 UTC (~7am ET) — the baseline run. Off-season this is the
+    # only one that matters; in-season it is the pass that settles Monday night.
+    - cron: "0 11 * * *"
+    # Sunday 17:00–23:30 UTC (1pm–7:30pm ET) — the afternoon and late windows.
+    - cron: "*/30 17-23 * * 0"
+    # Monday 00:00–04:30 UTC (Sun 8pm–12:30am ET) — the Sunday night game.
+    - cron: "*/30 0-4 * * 1"
+    # Tuesday 00:00–04:30 UTC (Mon 8pm–12:30am ET) — the Monday night game.
+    - cron: "*/30 0-4 * * 2"
+
+permissions:
+  contents: read
+
+# Overlapping runs would race on the same rows; a queued run is cheap, so wait
+# rather than cancel — a cancelled run mid-slate leaves scores half-updated.
+concurrency:
+  group: pull-matchups
+  cancel-in-progress: false
+
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install requests beautifulsoup4 supabase python-dotenv
+          # Install this repo as a package so `import scripts.*` resolves
+          pip install -e . --no-deps
+
+      - name: Create .env
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_SECRET_KEY }}" >> .env
+
+      # No in-season gate. Unlike the weekly-projection pull there is nothing to
+      # waste: the schedule page is public and cheap year-round, and the daily
+      # off-season run is what catches next season's schedule the day it posts.
+      - name: Scrape matchups
+        env:
+          # Optional: only needed if Ottoneu ever puts the schedule behind login.
+          OTTONEU_COOKIE: ${{ secrets.OTTONEU_COOKIE }}
+        run: |
+          ARGS=""
+          [ -n "${{ inputs.week }}" ] && ARGS="$ARGS --week ${{ inputs.week }}"
+          [ "${{ inputs.dry_run }}" = "true" ] && ARGS="$ARGS --dry-run"
+          python scripts/scrape_matchups.py $ARGS

@@ -24,7 +24,7 @@ export const PHASE_UI: Record<Phase, PhaseUi> = {
   in_season: {
     label: "In-Season",
     blurb: "NFL games are being played — track live value, lineups, and standings.",
-    featuredLinks: ["/players", "/lineup"],
+    featuredLinks: ["/scoreboard", "/lineup"],
   },
   pre_arb: {
     label: "Pre-Arbitration",
