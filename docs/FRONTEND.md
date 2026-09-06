@@ -2,7 +2,7 @@
 
 ## Structure
 
-Next.js App Router. Most pages are server components that fetch live data from Supabase (revalidate every hour) with client wrappers for interactivity. Shared nav structure (see `web/components/Navigation.tsx`) groups routes into top-level public pages (Home, Players, Rosters, Snake Draft), an authed Lineup link, and three projections-gated dropdowns: **Projections**, **Value**, and **Offseason** (arbitration). The current season phase (resolved via `web/lib/season.ts`) drives an amber "featured now" accent on the most relevant nav group/links and the landing-hub featured section.
+Next.js App Router. Most pages are server components that fetch live data from Supabase (revalidate every hour) with client wrappers for interactivity. Shared nav structure (see `web/components/Navigation.tsx`) groups routes into top-level public pages (Home, Scoreboard, Players, Rosters, Snake Draft), an authed Lineup link, and three projections-gated dropdowns: **Projections**, **Value**, and **Offseason** (arbitration). The current season phase (resolved via `web/lib/season.ts`) drives an amber "featured now" accent on the most relevant nav group/links and the landing-hub featured section.
 
 Several formerly-standalone pages were consolidated into **tabbed routes** using the shared `Tabs` component (URL-synced via `?tab=`). Old URLs redirect to the new tabs (see `web/next.config.ts` `redirects()`): `/vorp`,`/surplus-value`,`/surplus-adjustments` → `/value`; `/arbitration-simulation`,`/arbitration-planner` → `/arbitration`. The old `/vorp`, `/surplus-adjustments`, `/arbitration-simulation`, and `/arbitration-planner` directories retain only their client components (imported by the merged pages' section components); their `page.tsx` files were removed.
 

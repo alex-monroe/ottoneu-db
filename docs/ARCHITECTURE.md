@@ -78,6 +78,29 @@ context inside `get_player`. Refresh cadence: daily 11:00 UTC (projections + in-
 previous-week actuals) plus Sunday 16:00 UTC (projections-only after inactives drop — #705).
 See [docs/references/weekly-projections.md](references/weekly-projections.md).
 
+### Matchups & Standings (in-season, derived at read time)
+
+`league_matchups` stores one row per Ottoneu game, keyed by Ottoneu's own stable `game_id`.
+`scripts/scrape_matchups.py` (`just scrape-matchups`) reads two public endpoints — `/schedule`
+for the game list, week windows, status labels and playoff badges, and `/csv/schedule` for
+the numeric team ids — over plain HTTP with an honest User-Agent through the shared
+`scripts/ottoneu_http.py` helper. The HTML leads; the CSV enriches with team ids, so either
+source going quiet still produces rows. Runs daily via `.github/workflows/pull-matchups.yml`,
+plus every 30 min through the Sunday and Monday night windows, and — deliberately — is
+**not** season-gated so the off-season pass catches next season's schedule the day it posts.
+
+**Standings, seeding and the playoff picture are DERIVED from `league_matchups` at read
+time** (`web/lib/standings.ts`), never stored in a second table. Only `game_type='regular'`
+counts; the tiebreak is wins then points for. `clinched` / `eliminated` are arithmetic-only
+and one-sided on purpose — silence beats telling a manager their season is over. A test
+pins the derivation to the league's real 2025 final standings, so if our math ever diverges
+from Ottoneu's it fails. Surfaces: `/scoreboard` (public), the homepage's league-status
+section (in-season), and MCP tools `get_scoreboard` / `get_standings`. A scheduled game
+returns `null` scores rather than Ottoneu's placeholder `0.00`, and nobody is seeded
+before the first game is final — both are cases where a `0` or a "seed 1" would read to a
+model as a fact about a season that has not started. See
+[docs/references/matchups-and-standings.md](references/matchups-and-standings.md).
+
 ### Worker Task Modules (`scripts/tasks/`)
 
 Each task type lives in its own module (`pull_nfl_stats`, `pull_player_stats`). `__init__.py` defines the task-type constants and the `TaskResult` dataclass. The worker no longer launches a browser (the Ottoneu scraping moved to the HTTP tools above).
