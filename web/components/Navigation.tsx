@@ -31,6 +31,7 @@ const PUBLIC_LINKS = [
   { href: "/scoreboard", label: "Scoreboard" },
   { href: "/players", label: "Players" },
   { href: "/rosters", label: "Rosters" },
+  { href: "/teams", label: "Teams" },
   // Runs entirely in the browser off a static board — no sign-in, no database.
   { href: "/snake-draft", label: "Snake Draft" },
 ];

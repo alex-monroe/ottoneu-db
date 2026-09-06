@@ -1,6 +1,6 @@
 # UX: Key User Journeys and Improvement Plan
 
-Status: **in progress** — Phase 0 shipped (#711), Phase 1 shipped · Created 2026-09-06 · Owner: @alexrmonroe
+Status: **in progress** — Phases 0 (#711), 1 (#712) and 2 shipped · Created 2026-09-06 · Owner: @alexrmonroe
 
 The site grew subsystem by subsystem — projections, value, arbitration, matchups,
 drafting — and each arrived as its own route with its own page-level conventions.
@@ -364,7 +364,7 @@ The unlock. Everything downstream depends on it.
 existing `arb-logic.test.ts` / `surplus.test.ts` suites need viewer-parameterized
 equivalents.
 
-### Phase 2 — Connect the graph
+### Phase 2 — Connect the graph — ✅ **SHIPPED**
 Turn pages into a navigable structure. Mostly link work; high felt impact.
 
 | # | Work |

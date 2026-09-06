@@ -1,4 +1,5 @@
 import { formatRecord, formatStreak, type PlayoffPicture } from "@/lib/standings";
+import TeamName from "./TeamName";
 
 /**
  * The league table, with the playoff cut line drawn where it actually falls.
@@ -60,7 +61,7 @@ export default function StandingsTable({ playoffs, compact = false, viewerTeam =
                   {row.rank}
                 </td>
                 <td className="px-3 py-2 text-sm text-slate-900 dark:text-white">
-                  <span className={isMine ? "font-semibold" : ""}>{row.team_name}</span>
+                  <TeamName name={row.team_name} mine={isMine} />
                   {row.clinched && (
                     <span className="ml-2 text-[11px] font-semibold uppercase text-emerald-600 dark:text-emerald-400">
                       clinched

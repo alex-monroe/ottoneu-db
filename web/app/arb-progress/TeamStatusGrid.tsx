@@ -1,3 +1,4 @@
+import TeamName from "@/components/TeamName";
 import type { TeamStatus } from "@/lib/arb-progress";
 
 interface TeamStatusGridProps {
@@ -53,7 +54,7 @@ export default function TeamStatusGrid({
                       : "text-slate-700 dark:text-slate-300"
                   }`}
                 >
-                  {team.team_name}
+                  <TeamName name={team.team_name} />
                 </span>
               </div>
               {raisedAgainst != null && (

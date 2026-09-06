@@ -5,6 +5,7 @@ import DataTable from "@/components/DataTable";
 import { type TeamRoster } from "@/lib/roster-reconstruction";
 import type { Column, PlayerHoverData } from "@/lib/types";
 import { CAP_PER_TEAM } from "@/lib/arb-logic";
+import TeamName from "@/components/TeamName";
 import {
   playerNameCol,
   positionCol,
@@ -45,7 +46,7 @@ export default function TeamRosterSection({ roster, hoverDataMap = null, viewerT
         className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left"
       >
         <span className="font-medium text-slate-900 dark:text-white">
-          {roster.team_name}{" "}
+          <TeamName name={roster.team_name} mine={viewerTeam === roster.team_name} />{" "}
           <span className="text-sm font-normal text-slate-500 dark:text-slate-400">
             ({roster.players.length} player
             {roster.players.length !== 1 ? "s" : ""})
