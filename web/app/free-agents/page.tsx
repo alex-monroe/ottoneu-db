@@ -7,7 +7,11 @@ import { fetchWeeklyByPlayer } from "@/lib/weekly-projections";
 import { fetchProjectionMap } from "@/lib/analysis";
 import { getDisplayWeeks } from "@/lib/nfl-week";
 import { getProjectionSeason } from "@/lib/season";
-import { fetchRosterData, reconstructRostersAtDate } from "@/lib/roster-reconstruction";
+import {
+  currentTeamByPlayer,
+  fetchRosterData,
+  reconstructRostersAtDate,
+} from "@/lib/roster-reconstruction";
 import { sameTeamName } from "@/lib/teams";
 import FreeAgentsClient, { type FreeAgentRow } from "./FreeAgentsClient";
 import PageShell from "@/components/PageShell";
@@ -20,12 +24,6 @@ export const metadata = {
   title: "Free Agents | Ottoneu Analytics",
   description: "Unrostered players ranked by value, comparable against your own roster.",
 };
-
-/** A player is a free agent when no team holds him. */
-function isFreeAgent(teamName: string | null | undefined): boolean {
-  const t = (teamName ?? "").trim();
-  return t === "" || t.toUpperCase() === "FA";
-}
 
 export default async function FreeAgentsPage() {
   await requireProjectionsAccess("/free-agents");
@@ -50,6 +48,14 @@ export default async function FreeAgentsPage() {
   // value is on the same scale as the rostered players you would drop.
   const surplus = calculateSurplus(allPlayers);
 
+  // Ownership comes from today's roster state, never from the salary snapshot
+  // the surplus math runs on. `fetchPlayersEndOfSeason` replays transactions to
+  // the last pre-raise day of the finished season, so its `team_name` is who
+  // held the player *then*: a player cut in December and re-drafted in the
+  // August auction replays as a free agent, and one cut after the snapshot
+  // never shows up here at all. Both directions are wrong on the same field.
+  const ownerByPlayer = currentTeamByPlayer(rosterData.leaguePrices);
+
   const toRow = (p: (typeof surplus)[number]): FreeAgentRow => {
     const w = weekly.get(p.player_id);
     return {
@@ -58,7 +64,7 @@ export default async function FreeAgentsPage() {
       name: p.name,
       position: p.position,
       nfl_team: p.nfl_team,
-      team_name: p.team_name ?? null,
+      team_name: ownerByPlayer.get(p.player_id) ?? null,
       price: p.price,
       dollar_value: Math.round(p.dollar_value),
       ppg: p.ppg,
@@ -70,7 +76,7 @@ export default async function FreeAgentsPage() {
   };
 
   const freeAgents = surplus
-    .filter((p) => isFreeAgent(p.team_name))
+    .filter((p) => !ownerByPlayer.has(p.player_id))
     .map(toRow)
     .sort((a, b) => b.dollar_value - a.dollar_value);
 
