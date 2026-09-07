@@ -1,6 +1,6 @@
 # Database Schema
 
-Thirty-one tables owned by this project, grouped into the six subsystems of [SUBSYSTEMS.md](../SUBSYSTEMS.md). Most have UUID primary keys; the OAuth code/token tables are keyed by the SHA-256 hash of their secret instead.
+Thirty-three tables owned by this project, grouped into the six subsystems of [SUBSYSTEMS.md](../SUBSYSTEMS.md). Most have UUID primary keys; the OAuth code/token tables are keyed by the SHA-256 hash of their secret instead.
 
 ## Shared Database — Hands Off `fp_*`
 
@@ -18,7 +18,7 @@ The Supabase project (`OttoneuDB`, ref `rbinbcwinchphipvcfqk`) is **shared with 
 
 | Table | Purpose | Unique Constraint |
 |-------|---------|-------------------|
-| `users` | User accounts with email/password auth | `email` |
+| `users` | User accounts with email/password auth. Three independent role flags: `is_admin`, `has_projections_access`, and `is_podcaster` (migration 040 — the podcast production tools under `/podcast`; see [podcast-tools.md](../references/podcast-tools.md)). `team_name` binds the account to an Ottoneu team (migration 039). | `email` |
 | `players` | Player metadata (includes `birth_date`, `is_college`) | `ottoneu_id` |
 | `player_stats` | Ottoneu fantasy season records (FK -> `players`) | `(player_id, season)` |
 | `nfl_stats` | Pure NFL stats from nflverse-data, 2010-present (FK -> `players`) | `(player_id, season)` |
@@ -45,6 +45,8 @@ The Supabase project (`OttoneuDB`, ref `rbinbcwinchphipvcfqk`) is **shared with 
 | `team_coaching` | Per-team-season season-opening head coach + offseason coaching-change signal, derived from nflverse `games.csv` (`home_coach`/`away_coach`) by `scripts/backfill_team_coaching.py`. Columns: `head_coach`, `head_coach_changed` (boolean, NULL when no prior season to compare), `coach_tenure_years`. A leakage-free forward signal (hires complete by Jan–Feb) for the `coaching_change_raw` / `coach_tenure_raw` features (spike #651). Python-only read (service key); RLS enabled, no anon policy. | `(team, season)` |
 | `depth_charts` | Per-player-season opening-day NFL depth tier (`depth_team` 1 = starter / 2 = backup / 3 = deep reserve) for offensive skill positions, backfilled from nflverse by `scripts/backfill_depth_charts.py` (FK -> `players`). The pre-2025 per-slot `depth_team` and the 2025+ snapshot `pos_rank` schemas are both normalized to the 1/2/3 tier. A forward-looking role signal (set before the projected season's games) for the `depth_chart_position_raw` / `role_change_raw` features. RLS enabled with an anon SELECT policy (migration 029) so the `/depth-charts` page can read it. | `(player_id, season)` |
 | `ngs_passing` | Per-player-season NFL Next Gen Stats passing aggregates (QB advanced efficiency), sourced from nflverse `import_ngs_data(stat_type="passing")` (regular-season `week == 0` row) by `scripts/backfill_ngs_passing.py` (FK -> `players`; full `player_display_name` matched directly to `players.name`). Columns: `attempts`, `completion_pct_above_expectation` (CPOE), `avg_air_yards_to_sticks`, `aggressiveness`, `avg_time_to_throw`, `avg_air_yards_differential`, plus supporting `avg_completed_air_yards` / `avg_intended_air_yards` / `expected_completion_pct` / `max_completed_air_distance` / `passer_rating`. Migration 033. The stabilized, less-luck-driven QB-skill signal for the QB-only NGS features (issue #674 / spike #667) — process metrics more persistent year-to-year than realized comp%/YPA/TD rate. Python-only read (service key); RLS enabled, no anon policy. | `(player_id, season)` |
+| `power_ranking_ballots` | One podcast host's power-ranking ballot for one NFL week (FK -> `users`). `submitted_at` NULL = still a private draft, and excluded from consolidation. Migration 041. Server-only (service key); RLS enabled, no anon policy — ballots are private by construction. See [podcast-tools.md](../references/podcast-tools.md). | `(league_id, season, week, user_id)` |
+| `power_ranking_entries` | One team's slot on one ballot (FK -> `power_ranking_ballots`): `rank` (1 = best) plus an optional `note` read out on the show. Ranks are unique per ballot (deferrable), so a ballot is a total order rather than a scattering of opinions. Migration 041. Server-only (service key); RLS enabled, no anon policy. | `(ballot_id, team_name)`, `(ballot_id, rank)` |
 | `oauth_clients` | OAuth 2.1 clients registered against the MCP server, either via RFC 7591 dynamic client registration (`/api/oauth/register`) or manually (`just oauth-client`). Columns: `client_id`, `client_secret_hash` (SHA-256; NULL for public/PKCE-only clients), `client_name`, `redirect_uris`, `grant_types`, `scope`. Migration 034. Server-only (service key); RLS enabled, no anon policy. See [mcp-server.md](../references/mcp-server.md). | `client_id` |
 | `oauth_authorization_codes` | Single-use OAuth authorization codes (FK -> `oauth_clients`, `users`). Keyed by `code_hash`; carries the PKCE `code_challenge`, `redirect_uri`, `scope`, `expires_at`, and `consumed_at` (non-NULL = already exchanged, so a replay is rejected). Migration 034. Server-only (service key); RLS enabled, no anon policy. | `code_hash` (PK) |
 | `oauth_refresh_tokens` | Long-lived revocable OAuth refresh tokens (FK -> `oauth_clients`, `users`). Keyed by `token_hash`; `revoked_at` non-NULL disables it. Access tokens are deliberately **not** stored — they are stateless HMAC-signed values (`web/lib/oauth/tokens.ts`) with a 1-hour TTL, so MCP calls need no DB round-trip; revocation therefore takes effect within that hour. Migration 034. Server-only (service key); RLS enabled, no anon policy. | `token_hash` (PK) |
@@ -103,7 +105,7 @@ All public tables have RLS enabled. Server-side code uses the Supabase **service
 
 **Tables with an anon SELECT policy** (web reads via the anon client): `players`, `player_stats`, `nfl_stats`, `league_prices`, `transactions`, `surplus_adjustments`, `player_projections`, `projection_models`, `model_projections`, `backtest_results`, `arbitration_progress`, `arbitration_progress_teams`, `arbitration_allocation_details`, `team_vegas_lines`, `draft_sharks_values`, `league_calendar`, `depth_charts`, `weekly_projections`, `league_matchups`.
 
-**Tables with no anon policy** (server-only, anon fully blocked): `users`, `arbitration_plans`, `arbitration_plan_allocations`, `scraper_jobs`, `draft_capital`, `team_coaching`, `red_zone_usage`, `ngs_passing`, `player_contracts`, `oauth_clients`, `oauth_authorization_codes`, `oauth_refresh_tokens`.
+**Tables with no anon policy** (server-only, anon fully blocked): `users`, `arbitration_plans`, `arbitration_plan_allocations`, `scraper_jobs`, `draft_capital`, `team_coaching`, `red_zone_usage`, `ngs_passing`, `player_contracts`, `oauth_clients`, `oauth_authorization_codes`, `oauth_refresh_tokens`, `power_ranking_ballots`, `power_ranking_entries`.
 
 When adding a new table, decide upfront: does the web frontend read from it via the anon `supabase` client (see `web/lib/supabase.ts`)? If yes, the migration must `ENABLE ROW LEVEL SECURITY` *and* add a `FOR SELECT TO anon USING (true)` policy. If no, just enable RLS — server writes via the service key still work, and anon is locked out. The Supabase advisor (`mcp__supabase__get_advisors --type security`) will flag `rls_disabled_in_public` as a critical ERROR if either step is skipped. See migrations 015 and 026 for the canonical pattern.
 
@@ -118,3 +120,5 @@ When adding a new table, decide upfront: does the web frontend read from it via 
 - `oauth_authorization_codes.user_id` -> `users.id`
 - `oauth_refresh_tokens.client_id` -> `oauth_clients.client_id`
 - `oauth_refresh_tokens.user_id` -> `users.id`
+- `power_ranking_ballots.user_id` -> `users.id`
+- `power_ranking_entries.ballot_id` -> `power_ranking_ballots.id`

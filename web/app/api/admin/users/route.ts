@@ -12,7 +12,7 @@ export async function GET() {
 
   const { data, error } = await getSupabaseAdmin()
     .from("users")
-    .select("id, email, is_admin, has_projections_access, created_at")
+    .select("id, email, is_admin, has_projections_access, is_podcaster, created_at")
     .order("created_at", { ascending: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
       password_hash,
       has_projections_access: has_projections_access ?? false,
     })
-    .select("id, email, is_admin, has_projections_access, created_at")
+    .select("id, email, is_admin, has_projections_access, is_podcaster, created_at")
     .single();
 
   if (error) {

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { signSession, verifySession, type SessionInfo } from "./session";
 import { getSupabaseAdmin } from "./supabase";
-import { ACCESS_PATH, LOGIN_PATH } from "./access";
+import { ACCESS_PATH, LOGIN_PATH, PODCAST_HOME } from "./access";
 
 const AUTH_COOKIE_NAME = "ottoneu_auth";
 const COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
@@ -12,6 +12,8 @@ export interface AuthenticatedUser {
   userId: string;
   isAdmin: boolean;
   hasProjectionsAccess: boolean;
+  /** May open the podcast production tools. Independent of the other two. */
+  isPodcaster: boolean;
 }
 
 /**
@@ -20,7 +22,7 @@ export interface AuthenticatedUser {
 export async function authenticateUser(email: string, password: string): Promise<AuthenticatedUser | null> {
   const { data: user, error } = await getSupabaseAdmin()
     .from("users")
-    .select("id, password_hash, is_admin, has_projections_access")
+    .select("id, password_hash, is_admin, has_projections_access, is_podcaster")
     .eq("email", email.toLowerCase().trim())
     .single();
 
@@ -37,15 +39,21 @@ export async function authenticateUser(email: string, password: string): Promise
     userId: user.id,
     isAdmin: user.is_admin,
     hasProjectionsAccess: user.has_projections_access,
+    isPodcaster: user.is_podcaster,
   };
 }
 
 /**
  * Set authentication cookie with user info (7-day expiration, HTTP-only, secure)
  */
-export async function setAuthCookie(userId: string, isAdmin: boolean, hasProjectionsAccess: boolean): Promise<void> {
+export async function setAuthCookie(
+  userId: string,
+  isAdmin: boolean,
+  hasProjectionsAccess: boolean,
+  isPodcaster: boolean = false,
+): Promise<void> {
   const cookieStore = await cookies();
-  const token = await signSession(userId, isAdmin, hasProjectionsAccess);
+  const token = await signSession(userId, isAdmin, hasProjectionsAccess, isPodcaster);
   cookieStore.set(AUTH_COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -79,6 +87,7 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
     userId: session.userId,
     isAdmin: session.isAdmin ?? false,
     hasProjectionsAccess: session.hasProjectionsAccess ?? false,
+    isPodcaster: session.isPodcaster ?? false,
   };
 }
 
@@ -115,6 +124,35 @@ export async function requireProjectionsAccess(from?: string): Promise<Authentic
 }
 
 /**
+ * Server-component guard for a page under `/podcast`.
+ *
+ * Reads the role **live from the database**, not from the session cookie.
+ * `requireProjectionsAccess` can trust the cookie because /access exists to
+ * explain the wait and re-sign it; the podcast tools have no such waiting room
+ * — a host granted the role mid-recording should be able to open the reveal
+ * screen on the next page load, not after signing out and back in. Middleware
+ * still checks the cookie first (it cannot reach the database), so the /podcast
+ * hub re-signs a stale one; this guard is what makes the sub-pages correct
+ * either way, and what fails closed if a route is dropped from
+ * PODCASTER_ROUTES.
+ *
+ * @param from Path to return the host to once the session is re-signed.
+ */
+export async function requirePodcaster(from?: string): Promise<AuthenticatedUser> {
+  const user = await getAuthenticatedUser();
+  if (!user) {
+    redirect(from ? `${LOGIN_PATH}?redirect=${encodeURIComponent(from)}` : LOGIN_PATH);
+  }
+  const { data } = await getSupabaseAdmin()
+    .from("users")
+    .select("is_podcaster")
+    .eq("id", user.userId)
+    .single();
+  if (!data?.is_podcaster) redirect(PODCAST_HOME);
+  return { ...user, isPodcaster: true };
+}
+
+/**
  * Live access state for the signed-in user, read from the database rather than
  * the session cookie.
  *
@@ -127,6 +165,7 @@ export interface LiveAccessState {
   email: string;
   hasProjectionsAccess: boolean;
   isAdmin: boolean;
+  isPodcaster: boolean;
   accessRequestedAt: string | null;
   /** Ottoneu team bound to this account; null = unbound. */
   teamName: string | null;
@@ -138,7 +177,7 @@ export async function getLiveAccessState(): Promise<LiveAccessState | null> {
 
   const { data } = await getSupabaseAdmin()
     .from("users")
-    .select("id, email, is_admin, has_projections_access, access_requested_at, team_name")
+    .select("id, email, is_admin, has_projections_access, is_podcaster, access_requested_at, team_name")
     .eq("id", user.userId)
     .single();
 
@@ -148,6 +187,7 @@ export async function getLiveAccessState(): Promise<LiveAccessState | null> {
     email: data.email,
     hasProjectionsAccess: data.has_projections_access,
     isAdmin: data.is_admin,
+    isPodcaster: data.is_podcaster,
     accessRequestedAt: data.access_requested_at ?? null,
     teamName: data.team_name ?? null,
   };

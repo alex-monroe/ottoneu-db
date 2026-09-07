@@ -53,6 +53,31 @@ export const PROJECTIONS_ROUTES = [
 export const ADMIN_ROUTES = ["/admin"] as const;
 
 /**
+ * Where a signed-in user who is not a podcaster is sent, and the one page under
+ * `/podcast` that is deliberately **not** gated.
+ *
+ * Same invariant as {@link ACCESS_PATH}: the destination that explains a locked
+ * door cannot itself be behind that door. The hub also re-signs a session cookie
+ * that predates the grant, which is why the gated pages point back at it rather
+ * than at "/" — bouncing a host home would leave them stuck on a stale cookie
+ * with nothing to click.
+ */
+export const PODCAST_HOME = "/podcast";
+
+/**
+ * Routes that require `is_podcaster` — the podcast production tools.
+ *
+ * Listed per-tool rather than as the whole `/podcast` prefix so that
+ * {@link PODCAST_HOME} stays reachable. `/api/podcast` is here too: middleware
+ * gates API routes off the same lists, so the ballot endpoints are covered
+ * without a second policy.
+ */
+export const PODCASTER_ROUTES = [
+  "/podcast/power-rankings",
+  "/api/podcast",
+] as const;
+
+/**
  * API routes that authenticate themselves rather than via the session cookie.
  *
  * MCP uses a bearer key or OAuth token checked inside the route handler; the
@@ -84,6 +109,10 @@ export function requiresAdmin(pathname: string): boolean {
   return matchesAny(pathname, ADMIN_ROUTES);
 }
 
+export function requiresPodcaster(pathname: string): boolean {
+  return matchesAny(pathname, PODCASTER_ROUTES);
+}
+
 export function isPublicApiRoute(pathname: string): boolean {
   return matchesAny(pathname, PUBLIC_API_ROUTES);
 }
@@ -97,16 +126,28 @@ export function isPublicApiRoute(pathname: string): boolean {
  */
 export function accessRedirect(
   pathname: string,
-  session: { signedIn: boolean; hasProjectionsAccess: boolean; isAdmin: boolean },
+  session: {
+    signedIn: boolean;
+    hasProjectionsAccess: boolean;
+    isAdmin: boolean;
+    isPodcaster?: boolean;
+  },
 ): string | null {
   const needsProjections = requiresProjectionsAccess(pathname);
   const needsAdmin = requiresAdmin(pathname);
-  if (!needsProjections && !needsAdmin) return null;
+  const needsPodcaster = requiresPodcaster(pathname);
+  if (!needsProjections && !needsAdmin && !needsPodcaster) return null;
 
   if (!session.signedIn) {
     return `${LOGIN_PATH}?redirect=${encodeURIComponent(pathname)}`;
   }
   if (needsAdmin && !session.isAdmin) return "/";
+  // The hub, not "/": the cookie is a 7-day snapshot of the role, so a host
+  // granted it an hour ago lands here with `false` and needs the page that
+  // re-signs the session.
+  if (needsPodcaster && !session.isPodcaster) {
+    return `${PODCAST_HOME}?from=${encodeURIComponent(pathname)}`;
+  }
   if (needsProjections && !session.hasProjectionsAccess) {
     return `${ACCESS_PATH}?from=${encodeURIComponent(pathname)}`;
   }

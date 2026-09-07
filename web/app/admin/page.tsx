@@ -12,7 +12,7 @@ export default async function AdminPage() {
   const [{ data: users }, leagueTeams] = await Promise.all([
     getSupabaseAdmin()
       .from("users")
-      .select("id, email, is_admin, has_projections_access, created_at, access_requested_at, team_name")
+      .select("id, email, is_admin, has_projections_access, is_podcaster, created_at, access_requested_at, team_name")
       .order("created_at", { ascending: true }),
     fetchLeagueTeams(),
   ]);

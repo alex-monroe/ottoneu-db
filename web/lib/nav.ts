@@ -14,7 +14,7 @@
  * reachable by any account with projections access that knows the URL.
  */
 
-export type NavAccess = "public" | "projections" | "admin";
+export type NavAccess = "public" | "projections" | "admin" | "podcaster";
 
 export interface NavItem {
   href: string;
@@ -78,6 +78,16 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [{ href: "/mock-draft", label: "Mock Draft", access: "projections" }],
   },
   {
+    // Production tooling for the league's podcast. A third role rather than a
+    // rung above "projections": a host needs none of the model's numbers to
+    // record a show, and most people with projections access are not hosts.
+    label: "Podcast",
+    requiresAuth: true,
+    items: [
+      { href: "/podcast/power-rankings", label: "Power Rankings", access: "podcaster" },
+    ],
+  },
+  {
     // Instruments for whoever runs the pipeline — spot-checks on the raw
     // features behind the model, plus scrape health. Not decision tools, so
     // they no longer sit beside them.
@@ -104,6 +114,8 @@ export interface Viewer {
   isAuthenticated: boolean;
   isAdmin: boolean;
   hasProjectionsAccess: boolean;
+  /** Independent of the other two — see NAV_GROUPS' "Podcast" group. */
+  isPodcaster?: boolean;
   viewerTeam: string | null;
 }
 
@@ -115,6 +127,8 @@ export function canSee(item: NavItem, viewer: Viewer): boolean {
       return viewer.isAdmin;
     case "projections":
       return viewer.hasProjectionsAccess;
+    case "podcaster":
+      return !!viewer.isPodcaster;
     default:
       return true;
   }

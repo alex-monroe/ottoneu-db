@@ -19,6 +19,7 @@ export default async function NavigationWrapper() {
       featuredGroup={ui.featuredGroup ?? null}
       activeSinceSeason={ctx.statsSeason - 1}
       hasProjectionsAccess={user?.hasProjectionsAccess ?? false}
+      isPodcaster={user?.isPodcaster ?? false}
       viewerTeam={viewerTeam}
     />
   );

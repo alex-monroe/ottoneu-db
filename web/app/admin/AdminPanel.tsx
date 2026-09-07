@@ -8,6 +8,8 @@ interface User {
   email: string;
   is_admin: boolean;
   has_projections_access: boolean;
+  /** May open the podcast production tools under /podcast. */
+  is_podcaster: boolean;
   created_at: string;
   /** When they asked for projections access; null = never asked. */
   access_requested_at: string | null;
@@ -30,6 +32,7 @@ export default function AdminPanel({ users, currentUserId, leagueTeams }: AdminP
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState("");
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [togglingPodcastId, setTogglingPodcastId] = useState<string | null>(null);
   const [savingTeamId, setSavingTeamId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -52,6 +55,29 @@ export default function AdminPanel({ users, currentUserId, leagueTeams }: AdminP
       setError("Failed to update user");
     }
     setTogglingId(null);
+  };
+
+  // The podcast role is orthogonal to projections access: a host does not need
+  // the model's numbers to record a show. Granting it does not take effect for
+  // that account until their session cookie is re-signed, which /podcast does.
+  const handleTogglePodcaster = async (userId: string, current: boolean) => {
+    setTogglingPodcastId(userId);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_podcaster: !current }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || "Failed to update user");
+      } else {
+        router.refresh();
+      }
+    } catch {
+      setError("Failed to update user");
+    }
+    setTogglingPodcastId(null);
   };
 
   // Binding an account to a team is what makes "my team" mean the viewer's own
@@ -147,6 +173,7 @@ export default function AdminPanel({ users, currentUserId, leagueTeams }: AdminP
               <th className="px-4 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">Role</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">Team</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">Projections Access</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">Podcaster</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">Created</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">Actions</th>
             </tr>
@@ -208,6 +235,19 @@ export default function AdminPanel({ users, currentUserId, leagueTeams }: AdminP
                     } disabled:opacity-50`}
                   >
                     {u.has_projections_access ? "Enabled" : "Disabled"}
+                  </button>
+                </td>
+                <td className="px-4 py-3 text-sm">
+                  <button
+                    onClick={() => handleTogglePodcaster(u.id, u.is_podcaster)}
+                    disabled={togglingPodcastId === u.id}
+                    className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium transition-colors ${
+                      u.is_podcaster
+                        ? "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 hover:bg-purple-200 dark:hover:bg-purple-900/50"
+                        : "bg-sunken text-ink-muted hover:bg-line"
+                    } disabled:opacity-50`}
+                  >
+                    {u.is_podcaster ? "Host" : "—"}
                   </button>
                 </td>
                 <td className="px-4 py-3 text-sm text-ink-subtle">

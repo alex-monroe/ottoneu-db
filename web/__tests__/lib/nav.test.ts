@@ -37,6 +37,14 @@ const ADMIN: Viewer = {
   hasProjectionsAccess: true,
   viewerTeam: "The Witchcraft",
 };
+/** A podcast host who is not an admin and has no projections access. */
+const HOST: Viewer = {
+  isAuthenticated: true,
+  isAdmin: false,
+  hasProjectionsAccess: false,
+  isPodcaster: true,
+  viewerTeam: "Team Rocket",
+};
 
 /** Every href a viewer is offered, across all groups. */
 function hrefs(viewer: Viewer): string[] {
@@ -115,9 +123,30 @@ describe("your team", () => {
   });
 });
 
+describe("the podcast group", () => {
+  test("only hosts are offered it", () => {
+    expect(hrefs(HOST)).toContain("/podcast/power-rankings");
+    // Not admins, not members, not signed-out visitors: the role is its own.
+    for (const viewer of [ANON, MEMBER, NO_ACCESS, ADMIN]) {
+      expect(hrefs(viewer)).not.toContain("/podcast/power-rankings");
+    }
+  });
+
+  test("a host without projections access still gets no gated league page", () => {
+    const offered = hrefs(HOST);
+    expect(offered).not.toContain("/projections");
+    expect(offered).not.toContain("/value");
+  });
+
+  test("the group disappears entirely rather than showing empty", () => {
+    expect(visibleNav(MEMBER, href).map((g) => g.label)).not.toContain("Podcast");
+    expect(visibleNav(HOST, href).map((g) => g.label)).toContain("Podcast");
+  });
+});
+
 describe("snake draft is not league tooling", () => {
   test("it appears nowhere in the nav (decision D3)", () => {
-    for (const viewer of [ANON, MEMBER, NO_ACCESS, ADMIN]) {
+    for (const viewer of [ANON, MEMBER, NO_ACCESS, ADMIN, HOST]) {
       expect(hrefs(viewer)).not.toContain("/snake-draft");
     }
   });
