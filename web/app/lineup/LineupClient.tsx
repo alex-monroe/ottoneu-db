@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { teamHref } from "@/lib/teams";
 import { useMemo, useState } from "react";
 import PositionBadge from "@/components/PositionBadge";
 import {
@@ -103,6 +105,18 @@ export default function LineupClient({ teams, hasProjections, defaultTeam }: Pro
             the projected total. Scores are per-game — using each player&apos;s{" "}
             {hasProjections ? "projected PPG or " : ""}actual PPG from last
             season.
+          </p>
+          {/* The lineup page linked nowhere; the weekly loop needs a way back
+              to the matchup and out to the team being planned. */}
+          <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+            {teamName && (
+              <Link href={teamHref(teamName)} className="text-blue-600 dark:text-blue-400 hover:underline">
+                {teamName}&apos;s roster &amp; cap →
+              </Link>
+            )}
+            <Link href="/scoreboard" className="text-blue-600 dark:text-blue-400 hover:underline">
+              Scoreboard →
+            </Link>
           </p>
         </header>
 

@@ -1,5 +1,6 @@
 "use client";
 
+import TeamName from "./TeamName";
 import Link from "next/link";
 import * as HoverCard from "@radix-ui/react-hover-card";
 import type { Column, PlayerHoverData } from "@/lib/types";
@@ -57,8 +58,8 @@ export default function PlayerHoverCard({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500 dark:text-slate-400">Owner</span>
-                  <span className="font-medium text-slate-800 dark:text-slate-200 truncate ml-1">
-                    {hoverData.team_name ?? "FA"}
+                  <span className="font-medium truncate ml-1">
+                    <TeamName name={hoverData.team_name} />
                   </span>
                 </div>
                 <div className="flex justify-between">

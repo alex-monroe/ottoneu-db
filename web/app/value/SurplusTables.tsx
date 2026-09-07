@@ -4,6 +4,7 @@ import DataTable from "@/components/DataTable";
 import type { Column, HighlightRule, PlayerHoverData, SurplusPlayer } from "@/lib/types";
 import {
   corePlayerCols,
+  fantasyTeamCol,
   surplusCols,
   ppgCol,
   fullVorpCol,
@@ -24,7 +25,7 @@ interface TeamSummaryRow {
 }
 
 const TEAM_SUMMARY_COLUMNS: Column<TeamSummaryRow>[] = [
-  { key: "team_name", label: "Team" },
+  fantasyTeamCol<TeamSummaryRow>(),
   { key: "players", label: "Players", format: "number" },
   { key: "total_salary", label: "Total Salary", format: "currency" },
   { key: "total_value", label: "Total Value", format: "currency" },

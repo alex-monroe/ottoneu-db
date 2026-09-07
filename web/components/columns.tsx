@@ -11,6 +11,7 @@
  *   const columns = [...corePlayerCols({ hoverDataMap }), salaryCol(), ppgCol()];
  */
 
+import TeamName from "./TeamName";
 import type React from "react";
 import type { Column, PlayerHoverData } from "@/lib/types";
 import PositionBadge from "@/components/PositionBadge";
@@ -167,4 +168,18 @@ export function statsCols<Row>(): Column<Row>[] {
 /** VORP/G + Full Season VORP. */
 export function vorpCols<Row>(): Column<Row>[] {
   return [vorpPerGameCol<Row>(), fullVorpCol<Row>()];
+}
+
+/**
+ * Fantasy-team column that links to the team page. Free agents render as plain
+ * text — there is no team page for "FA".
+ */
+export function fantasyTeamCol<Row extends { team_name?: string | null }>(
+  label = "Team",
+): Column<Row> {
+  return {
+    key: "team_name" as keyof Row & string,
+    label,
+    renderCell: (value: unknown) => <TeamName name={value as string | null} />,
+  };
 }

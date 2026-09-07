@@ -127,6 +127,12 @@ User accounts with email/password login stored in the `users` table. Passwords a
 - **User-scoped data:** `surplus_adjustments` and `arbitration_plans` are scoped to `user_id` — each user sees only their own data
 - **Admin panel** (`/admin`) allows admins to create users, toggle projections access, bind an account to a league team, and delete users
 
+## Teams as objects
+
+`web/lib/teams.ts` assembles everything the app knows about one team — roster and cap from the transaction replay, record and rank from the derived standings, schedule flipped into that team's point of view, and (gated) surplus plus arbitration exposure. `TeamName` (`web/components/TeamName.tsx`) is the canonical renderer and the only thing that should print a fantasy-team name, so every team in the app leads to the same page. `fantasyTeamCol()` in `web/components/columns.tsx` is the `DataTable` equivalent.
+
+Team names are display strings with spaces and punctuation, not ids: `teamHref()` encodes them, `resolveTeamName()` decodes and matches case-insensitively against the live roster set (returning the canonical spelling), and `sameTeamName()` is the forgiving comparison used throughout — the roster CSV and the schedule export do not agree about padding or case.
+
 ## API Input Validation
 
 All API route bodies are validated through Zod schemas in `web/lib/schemas/` (one file per resource: `arbitration-plan.ts`, `surplus-adjustment.ts`, `user.ts`). Routes call `parseJson(req, Schema)` from `web/lib/validate.ts`, which returns either `{ ok: true, data }` (typed via `z.infer`) or `{ ok: false, response }` — a 400 carrying Zod's `issues` array. Schemas enforce email normalization, the bcrypt 72-byte password ceiling, plan name/notes bounds, non-negative integer allocations, and finite (no NaN/Infinity) numeric adjustments. Add new validation by defining a schema in `web/lib/schemas/` and replacing hand-rolled checks with the helper.

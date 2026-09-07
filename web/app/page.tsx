@@ -17,6 +17,7 @@ import {
   CalendarClock,
   Network,
   Swords,
+  Shield,
   type LucideIcon,
 } from "lucide-react";
 import { getSeasonContextNow } from "@/lib/season";
@@ -56,6 +57,7 @@ const HUB_GROUPS: HubGroup[] = [
       { href: "/scoreboard", title: "Scoreboard", description: "Every week's matchups, the standings, and the playoff picture.", icon: Swords },
       { href: "/players", title: "Players", description: "Search the directory or view the salary-vs-production chart.", icon: Users },
       { href: "/rosters", title: "Rosters", description: "League-wide roster view with salaries and values.", icon: ClipboardList },
+      { href: "/teams", title: "Teams", description: "Each team's roster, cap space, record and schedule in one place.", icon: Shield },
       { href: "/lineup", title: "Lineup", description: "Build a starting lineup from any team and see its projected total.", icon: LayoutGrid },
     ],
   },
