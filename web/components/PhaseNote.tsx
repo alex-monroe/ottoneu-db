@@ -28,8 +28,8 @@ export default async function PhaseNote({ activeIn, label, opensOn }: Props) {
   const opens = opensOn ? ctx.deadlines[opensOn] : null;
 
   return (
-    <p className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-4 py-2.5 text-sm text-slate-500 dark:text-slate-400">
-      <span className="font-medium text-slate-700 dark:text-slate-200">
+    <p className="rounded-lg border border-line bg-sunken px-4 py-2.5 text-sm text-ink-subtle">
+      <span className="font-medium text-ink-muted">
         {label} is out of season right now.
       </span>{" "}
       Everything here still works and the numbers are live — it just is not the

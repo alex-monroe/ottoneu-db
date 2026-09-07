@@ -26,8 +26,8 @@ const surplusMetricColumn: ComparisonMetricColumn<ArbitrationTarget> = {
   cellClassName: (v) =>
     `px-3 py-2 text-right font-medium ${
       v >= 0
-        ? "text-green-600 dark:text-green-400"
-        : "text-red-600 dark:text-red-400"
+        ? "text-positive"
+        : "text-negative"
     }`,
 };
 

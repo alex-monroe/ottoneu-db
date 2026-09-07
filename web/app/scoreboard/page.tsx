@@ -7,6 +7,8 @@ import WeekPicker from "./WeekPicker";
 import { getViewerTeam } from "@/lib/viewer-team";
 import { teamHref } from "@/lib/teams";
 import Link from "next/link";
+import PageShell from "@/components/PageShell";
+import DataFreshness from "@/components/DataFreshness";
 
 /**
  * The league's in-season status in one page: this week's scoreboard, the full
@@ -27,14 +29,12 @@ interface Props {
 
 function Empty({ message }: { message: string }) {
   return (
-    <main className="min-h-screen bg-white dark:bg-black p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+    <PageShell gap="none">
+        <h1 className="text-3xl font-bold tracking-tight text-ink">
           Scoreboard
         </h1>
-        <p className="mt-4 text-slate-500 dark:text-slate-400">{message}</p>
-      </div>
-    </main>
+        <p className="mt-4 text-ink-subtle">{message}</p>
+    </PageShell>
   );
 }
 
@@ -78,13 +78,12 @@ export default async function ScoreboardPage({ searchParams }: Props) {
   const chasing = status.playoffs.seeds.filter((s) => !s.in_field && !s.eliminated);
 
   return (
-    <main className="min-h-screen bg-white dark:bg-black p-8">
-      <div className="max-w-6xl mx-auto space-y-8">
+    <PageShell>
         <header className="space-y-3">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-3xl font-bold tracking-tight text-ink">
             Scoreboard
           </h1>
-          <p className="text-slate-500 dark:text-slate-400">
+          <p className="text-ink-subtle">
             {status.season} head-to-head results and standings, scraped from the league.
             {!status.started && " The season has not started — this is the schedule as drawn."}
           </p>
@@ -92,11 +91,11 @@ export default async function ScoreboardPage({ searchParams }: Props) {
               dead-end here. */}
           <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
             {viewerTeam && (
-              <Link href={teamHref(viewerTeam)} className="text-blue-600 dark:text-blue-400 hover:underline">
+              <Link href={teamHref(viewerTeam)} className="text-accent hover:underline">
                 {viewerTeam} →
               </Link>
             )}
-            <Link href="/lineup" className="text-blue-600 dark:text-blue-400 hover:underline">
+            <Link href="/lineup" className="text-accent hover:underline">
               Set a lineup →
             </Link>
           </p>
@@ -107,12 +106,13 @@ export default async function ScoreboardPage({ searchParams }: Props) {
             seasons={seasons}
           />
         </header>
+      <DataFreshness source="matchups" />
 
         <section>
-          <h2 className="mb-3 flex flex-wrap items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <h2 className="mb-3 flex flex-wrap items-center gap-2 text-sm font-semibold uppercase tracking-wide text-ink-subtle">
             Week {week}
             {window && (
-              <span className="inline-flex items-center gap-1.5 font-normal normal-case tracking-normal text-slate-400 dark:text-slate-500">
+              <span className="inline-flex items-center gap-1.5 font-normal normal-case tracking-normal text-ink-subtle">
                 <CalendarDays size={14} aria-hidden="true" />
                 {window}
               </span>
@@ -126,11 +126,11 @@ export default async function ScoreboardPage({ searchParams }: Props) {
         </section>
 
         <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-subtle">
             Standings
           </h2>
           <StandingsTable playoffs={status.playoffs} viewerTeam={viewerTeam} />
-          <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
+          <p className="mt-2 text-xs text-ink-subtle">
             Derived from regular-season results only — playoff and consolation games do
             not count. Ties are broken by points for.
             {status.asOf && ` Last scraped ${new Date(status.asOf).toLocaleString()}.`}
@@ -138,61 +138,61 @@ export default async function ScoreboardPage({ searchParams }: Props) {
         </section>
 
         <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-subtle">
             Playoff picture
           </h2>
           {!status.playoffs.started ? (
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-sm text-ink-subtle">
               Nothing to project until the first games are final. The league takes{" "}
               {status.playoffs.slots} playoff teams.
             </p>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-4">
-                <h3 className="mb-2 text-sm font-semibold text-slate-900 dark:text-white">
+              <div className="rounded-lg border border-line p-4">
+                <h3 className="mb-2 text-sm font-semibold text-ink">
                   In the field ({status.playoffs.slots} spots)
                 </h3>
                 <ol className="space-y-1 text-sm">
                   {inField.map((s) => (
                     <li key={s.team_id} className="flex justify-between gap-3">
-                      <span className="truncate text-slate-700 dark:text-slate-200">
+                      <span className="truncate text-ink-muted">
                         {s.seed}. {s.team_name}
                         {s.clinched && (
-                          <span className="ml-2 text-[11px] font-semibold uppercase text-emerald-600 dark:text-emerald-400">
+                          <span className="ml-2 text-[11px] font-semibold uppercase text-positive">
                             clinched
                           </span>
                         )}
                       </span>
-                      <span className="shrink-0 tabular-nums text-slate-500 dark:text-slate-400">
+                      <span className="shrink-0 tabular-nums text-ink-subtle">
                         {formatRecord(s)}
                       </span>
                     </li>
                   ))}
                 </ol>
               </div>
-              <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-4">
-                <h3 className="mb-2 text-sm font-semibold text-slate-900 dark:text-white">
+              <div className="rounded-lg border border-line p-4">
+                <h3 className="mb-2 text-sm font-semibold text-ink">
                   Still chasing
                 </h3>
                 {chasing.length === 0 ? (
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                  <p className="text-sm text-ink-subtle">
                     Everyone outside the field is mathematically eliminated.
                   </p>
                 ) : (
                   <ol className="space-y-1 text-sm">
                     {chasing.map((s) => (
                       <li key={s.team_id} className="flex justify-between gap-3">
-                        <span className="truncate text-slate-700 dark:text-slate-200">
+                        <span className="truncate text-ink-muted">
                           {s.team_name}
                         </span>
-                        <span className="shrink-0 tabular-nums text-slate-500 dark:text-slate-400">
+                        <span className="shrink-0 tabular-nums text-ink-subtle">
                           {formatRecord(s)} · {s.games_back} GB
                         </span>
                       </li>
                     ))}
                   </ol>
                 )}
-                <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">
+                <p className="mt-3 text-xs text-ink-subtle">
                   Clinched and eliminated are called only when the arithmetic settles
                   them outright; tiebreakers can decide a spot sooner than this says.
                 </p>
@@ -200,7 +200,6 @@ export default async function ScoreboardPage({ searchParams }: Props) {
             </div>
           )}
         </section>
-      </div>
-    </main>
+    </PageShell>
   );
 }

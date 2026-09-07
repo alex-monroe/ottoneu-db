@@ -39,7 +39,7 @@ export default function PlayerName({
 }: PlayerNameProps) {
   if (mode === "plain" || !ottoneuId) {
     return (
-      <span className="text-slate-900 dark:text-white font-medium">
+      <span className="text-ink font-medium">
         {name}
         {badges}
       </span>
@@ -64,7 +64,7 @@ export default function PlayerName({
     <span>
       <Link
         href={`/players/${ottoneuId}`}
-        className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+        className="text-accent hover:underline font-medium"
         onClick={(e) => e.stopPropagation()}
       >
         {name}

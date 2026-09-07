@@ -121,14 +121,14 @@ export default function SimulationControls({ initialPlayers, initialAdjustments,
   return (
     <div className="space-y-8">
       {/* Controls */}
-      <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-6 border border-slate-200 dark:border-slate-800">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+      <div className="bg-sunken rounded-lg p-6 border border-line">
+        <h2 className="text-lg font-semibold text-ink mb-4">
           Simulation Parameters
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Number of Simulations */}
           <div>
-            <label htmlFor="numSims" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <label htmlFor="numSims" className="block text-sm font-medium text-ink-muted mb-2">
               Number of Simulation Runs
             </label>
             <input
@@ -139,16 +139,16 @@ export default function SimulationControls({ initialPlayers, initialAdjustments,
               step="10"
               value={numSimulations}
               onChange={(e) => setNumSimulations(Math.max(10, Math.min(1000, parseInt(e.target.value) || 10)))}
-              className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-line-strong rounded-md bg-white dark:bg-slate-800 text-ink focus:ring-2 focus:ring-accent focus:border-transparent"
             />
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-xs text-ink-subtle mt-1">
               Range: 10-1000 runs (more runs = more accurate, but slower)
             </p>
           </div>
 
           {/* Value Variation */}
           <div>
-            <label htmlFor="valueVar" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <label htmlFor="valueVar" className="block text-sm font-medium text-ink-muted mb-2">
               Valuation Variance (±%)
             </label>
             <div className="flex items-center gap-3">
@@ -162,11 +162,11 @@ export default function SimulationControls({ initialPlayers, initialAdjustments,
                 onChange={(e) => setValueVariation(parseInt(e.target.value) / 100)}
                 className="flex-1"
               />
-              <span className="text-sm font-medium text-slate-900 dark:text-white w-16 text-right">
+              <span className="text-sm font-medium text-ink w-16 text-right">
                 ±{(valueVariation * 100).toFixed(0)}%
               </span>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-xs text-ink-subtle mt-1">
               How much teams&apos; valuations differ (0% = all agree, 90% = extreme variation)
             </p>
           </div>
@@ -174,11 +174,11 @@ export default function SimulationControls({ initialPlayers, initialAdjustments,
       </div>
 
       {/* Simulation Info */}
-      <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-5 border border-slate-200 dark:border-slate-800">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+      <div className="bg-sunken rounded-lg p-5 border border-line">
+        <h2 className="text-lg font-semibold text-ink mb-2">
           How It Works
         </h2>
-        <div className="text-sm text-slate-600 dark:text-slate-300 space-y-2">
+        <div className="text-sm text-ink-muted space-y-2">
           <p>
             <strong>Important:</strong> In Ottoneu, teams can ONLY arbitrate opponents&apos; players, not their own.
           </p>
@@ -201,11 +201,11 @@ export default function SimulationControls({ initialPlayers, initialAdjustments,
         <>
           {/* My Roster — only meaningful once the account is bound to a team. */}
           <section>
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
+            <h2 className="text-xl font-semibold text-ink mb-3">
               {viewerTeam ? `${viewerTeam} — Expected Arbitration Raises` : "Your Expected Arbitration Raises"}
             </h2>
             {myRoster.length === 0 ? (
-              <p className="text-slate-500 dark:text-slate-400">
+              <p className="text-ink-subtle">
                 {viewerTeam
                   ? "No players found."
                   : "Your account isn't linked to a team yet, so there are no raises to show. An admin can link it from the admin panel."}
@@ -216,7 +216,7 @@ export default function SimulationControls({ initialPlayers, initialAdjustments,
                   columns={getMyRosterColumns(hoverDataMap)}
                   data={myRoster.slice(0, 15)}
                 />
-                <p className="text-sm text-slate-600 dark:text-slate-400 mt-3">
+                <p className="text-sm text-ink-muted mt-3">
                   <strong>Total Expected Arbitration:</strong> ${totalExpectedArb.toFixed(0)}
                 </p>
               </>
@@ -225,15 +225,15 @@ export default function SimulationControls({ initialPlayers, initialAdjustments,
 
           {/* Vulnerable Targets */}
           <section>
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
+            <h2 className="text-xl font-semibold text-ink mb-3">
               Vulnerable Opponent Targets — Low Protection
             </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+            <p className="text-sm text-ink-subtle mb-4">
               High-value players receiving low arbitration protection. These are prime targets
               to maximize disruption.
             </p>
             {vulnerable.length === 0 ? (
-              <p className="text-slate-500 dark:text-slate-400">No vulnerable targets identified.</p>
+              <p className="text-ink-subtle">No vulnerable targets identified.</p>
             ) : (
               <DataTable
                 columns={getVulnerableColumns(hoverDataMap)}
@@ -245,15 +245,15 @@ export default function SimulationControls({ initialPlayers, initialAdjustments,
 
           {/* Cut Candidates */}
           <section>
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
+            <h2 className="text-xl font-semibold text-ink mb-3">
               Cut Candidates — Negative Surplus After Arbitration
             </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+            <p className="text-sm text-ink-subtle mb-4">
               Players who will have negative surplus value after receiving expected arbitration.
               These players are likely to be cut, creating FA opportunities.
             </p>
             {cutCandidates.length === 0 ? (
-              <p className="text-slate-500 dark:text-slate-400">
+              <p className="text-ink-subtle">
                 No cut candidates identified (all players have positive surplus after arb).
               </p>
             ) : (
@@ -267,10 +267,10 @@ export default function SimulationControls({ initialPlayers, initialAdjustments,
 
           {/* Per-Team Breakdown */}
           <section>
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
+            <h2 className="text-xl font-semibold text-ink mb-3">
               Full Roster Breakdown by Team
             </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+            <p className="text-sm text-ink-subtle mb-4">
               Complete roster for each team showing expected arbitration raises.
             </p>
             <SimulationTeams results={simResults} hoverDataMap={hoverDataMap} />

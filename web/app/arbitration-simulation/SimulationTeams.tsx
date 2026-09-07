@@ -55,27 +55,27 @@ export default function SimulationTeams({ results, hoverDataMap = null }: Simula
         return (
           <div
             key={team}
-            className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden"
+            className="border border-line rounded-lg overflow-hidden"
           >
             <button
               onClick={() => setExpandedTeam(isExpanded ? null : team)}
-              className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left"
+              className="w-full px-5 py-4 bg-sunken hover:bg-sunken transition-colors text-left"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-slate-900 dark:text-white">
+                  <h3 className="font-semibold text-ink">
                     {team}
                   </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  <p className="text-sm text-ink-subtle mt-1">
                     {teamPlayers.length} player{teamPlayers.length !== 1 ? "s" : ""} •{" "}
                     ${totalArb.toFixed(0)} total expected arb
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                  <p className="text-sm text-ink-subtle">
                     Avg per player
                   </p>
-                  <p className="font-bold text-slate-900 dark:text-white text-lg">
+                  <p className="font-bold text-ink text-lg">
                     ${avgArb.toFixed(1)}
                   </p>
                 </div>
@@ -83,23 +83,23 @@ export default function SimulationTeams({ results, hoverDataMap = null }: Simula
             </button>
 
             {isExpanded && (
-              <div className="p-5 bg-white dark:bg-black">
+              <div className="p-5 bg-page">
                 {teamPlayers.length > 0 ? (
                   <>
-                    <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">
+                    <h4 className="text-sm font-semibold text-ink mb-3">
                       Full Roster (sorted by expected arbitration)
                     </h4>
                     <DataTable
                       columns={getTeamPlayerColumns(hoverDataMap)}
                       data={teamPlayers}
                     />
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-3">
+                    <p className="text-sm text-ink-subtle mt-3">
                       <strong>Total Expected Arb:</strong> ${totalArb.toFixed(0)} |{" "}
                       <strong>Avg per Player:</strong> ${avgArb.toFixed(1)}
                     </p>
                   </>
                 ) : (
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                  <p className="text-sm text-ink-subtle">
                     No players found.
                   </p>
                 )}

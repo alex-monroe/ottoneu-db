@@ -9,7 +9,7 @@ import { fetchFreshness, describeAge, isStale, sourceLabel, type DataSource } fr
  */
 export default async function DataFreshness({
   source,
-  /** Older than this and the stamp turns amber. */
+  /** Older than this and the stamp turns `--warning`. */
   staleAfterHours = 36,
   className = "",
 }: {
@@ -23,14 +23,13 @@ export default async function DataFreshness({
   const stale = isStale(stamp, staleAfterHours);
   return (
     <p
-      className={`text-xs ${
-        stale
-          ? "text-amber-700 dark:text-amber-400"
-          : "text-slate-400 dark:text-slate-500"
-      } ${className}`}
-      title={new Date(stamp).toLocaleString()}
+      className={`text-xs ${stale ? "font-medium text-warning" : "text-ink-subtle"} ${className}`}
     >
-      {sourceLabel(source)} updated {describeAge(stamp)}
+      {sourceLabel(source)} updated{" "}
+      {/* The exact timestamp used to live only in a `title` attribute, which is
+          invisible to touch and to the keyboard — on the one component whose
+          whole job is to let a reader decide whether to trust the numbers. */}
+      <time dateTime={stamp}>{describeAge(stamp)}</time>
       {stale ? " — the scrape may be behind" : ""}
     </p>
   );

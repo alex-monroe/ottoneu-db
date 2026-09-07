@@ -28,7 +28,7 @@ export default async function VorpSection() {
 
   if (players.length === 0) {
     return (
-      <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+      <h2 className="text-2xl font-bold text-ink">
         No VORP data available.
       </h2>
     );
@@ -71,23 +71,23 @@ export default async function VorpSection() {
   return (
     <div className="space-y-8">
       <header>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h2 className="text-2xl font-bold tracking-tight text-ink">
           VORP Analysis ({statsSeason})
         </h2>
-        <p className="text-slate-500 dark:text-slate-400 mt-2">
+        <p className="text-ink-subtle mt-2">
           Value Over Replacement Player — measures positional scarcity.
           Higher VORP = more valuable above replacement level.
         </p>
       </header>
 
       {/* Methodology */}
-      <section className="bg-slate-50 dark:bg-slate-900 rounded-lg p-5 border border-slate-200 dark:border-slate-800 space-y-4 text-sm text-slate-700 dark:text-slate-300">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+      <section className="bg-sunken rounded-lg p-5 border border-line space-y-4 text-sm text-ink-muted">
+        <h3 className="text-lg font-semibold text-ink">
           How VORP Is Calculated
         </h3>
 
         <div>
-          <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">
+          <h4 className="font-semibold text-ink-muted mb-1">
             1. Define the replacement level
           </h4>
           <p>
@@ -100,7 +100,7 @@ export default async function VorpSection() {
         </div>
 
         <div>
-          <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">
+          <h4 className="font-semibold text-ink-muted mb-1">
             2. Find replacement PPG
           </h4>
           <p>
@@ -114,11 +114,11 @@ export default async function VorpSection() {
         </div>
 
         <div>
-          <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">
+          <h4 className="font-semibold text-ink-muted mb-1">
             3. Calculate VORP per game
           </h4>
           <p>
-            For each player: <code className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded text-xs">VORP/G = Player PPG - Replacement PPG</code>.
+            For each player: <code className="bg-sunken px-1.5 py-0.5 rounded text-xs">VORP/G = Player PPG - Replacement PPG</code>.
             A positive VORP/G means the player produces more per game than a freely
             available replacement. A negative VORP/G means a waiver pickup would
             outscore them.
@@ -126,11 +126,11 @@ export default async function VorpSection() {
         </div>
 
         <div>
-          <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">
+          <h4 className="font-semibold text-ink-muted mb-1">
             4. Project to a full season
           </h4>
           <p>
-            <code className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded text-xs">Full-Season VORP = VORP/G &times; 17</code>.
+            <code className="bg-sunken px-1.5 py-0.5 rounded text-xs">Full-Season VORP = VORP/G &times; 17</code>.
             This extrapolates the per-game advantage over a full 17-game NFL season,
             making it easy to compare players who missed time to those who played
             every week.
@@ -138,22 +138,22 @@ export default async function VorpSection() {
         </div>
 
         <div>
-          <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">
+          <h4 className="font-semibold text-ink-muted mb-1">
             5. Convert to dollar value (used in Surplus Value)
           </h4>
           <p>
             The total league salary cap is {NUM_TEAMS} teams &times; ${CAP_PER_TEAM} = $
             {NUM_TEAMS * CAP_PER_TEAM}. We assume ~87.5% of that (${Math.round(NUM_TEAMS * CAP_PER_TEAM * 0.875)}) goes to above-replacement
             players. Each point of full-season VORP is worth{" "}
-            <code className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded text-xs">
+            <code className="bg-sunken px-1.5 py-0.5 rounded text-xs">
               ${Math.round(NUM_TEAMS * CAP_PER_TEAM * 0.875)} &divide; total league VORP
             </code>
             , giving each player a dollar value. <em>Surplus</em> = dollar value - salary.
           </p>
         </div>
 
-        <div className="border-t border-slate-200 dark:border-slate-800 pt-3">
-          <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-1">
+        <div className="border-t border-line pt-3">
+          <h4 className="font-semibold text-ink-muted mb-1">
             Why this matters in superflex
           </h4>
           <p>
@@ -168,14 +168,14 @@ export default async function VorpSection() {
       </section>
 
       {/* Replacement Benchmarks */}
-      <section className="bg-slate-50 dark:bg-slate-900 rounded-lg p-5 border border-slate-200 dark:border-slate-800">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">
+      <section className="bg-sunken rounded-lg p-5 border border-line">
+        <h3 className="text-lg font-semibold text-ink mb-3">
           Replacement Level Benchmarks
         </h3>
         <div className="overflow-x-auto">
           <table className="text-sm">
             <thead>
-              <tr className="text-slate-500 dark:text-slate-400">
+              <tr className="text-ink-subtle">
                 <th className="pr-6 py-1 text-left font-medium">Position</th>
                 <th className="pr-6 py-1 text-left font-medium">
                   # Players Used
@@ -189,7 +189,7 @@ export default async function VorpSection() {
               {benchmarks.map((b) => (
                 <tr
                   key={b.position}
-                  className="text-slate-800 dark:text-slate-200"
+                  className="text-ink-muted"
                 >
                   <td className="pr-6 py-1 font-medium">{b.position}</td>
                   <td className="pr-6 py-1">{b.n}</td>

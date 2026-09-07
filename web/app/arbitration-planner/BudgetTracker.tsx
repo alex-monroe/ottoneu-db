@@ -13,19 +13,19 @@ export default function BudgetTracker({ validation }: BudgetTrackerProps) {
   return (
     <div className="space-y-4">
       {/* Total Budget Bar */}
-      <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-4 border border-slate-200 dark:border-slate-800">
+      <div className="bg-sunken rounded-lg p-4 border border-line">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+          <span className="text-sm font-medium text-ink-muted">
             Total Budget
           </span>
-          <span className="text-sm font-bold text-slate-900 dark:text-white">
+          <span className="text-sm font-bold text-ink">
             ${totalAllocated} / ${totalBudget}
-            <span className="font-normal text-slate-500 dark:text-slate-400 ml-2">
+            <span className="font-normal text-ink-subtle ml-2">
               (${remaining} remaining)
             </span>
           </span>
         </div>
-        <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3">
+        <div className="w-full bg-sunken rounded-full h-3">
           <div
             className={`h-3 rounded-full transition-all ${
               totalAllocated > totalBudget
@@ -42,8 +42,8 @@ export default function BudgetTracker({ validation }: BudgetTrackerProps) {
       {/* Per-Team Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
         {teamStatuses.map((ts) => {
-          let borderColor = "border-slate-200 dark:border-slate-700";
-          let bgColor = "bg-white dark:bg-slate-900";
+          let borderColor = "border-line";
+          let bgColor = "bg-raised";
 
           if (ts.allocated > 0 && ts.isValid) {
             borderColor = "border-green-300 dark:border-green-700";
@@ -61,13 +61,13 @@ export default function BudgetTracker({ validation }: BudgetTrackerProps) {
               key={ts.team_name}
               className={`${bgColor} border ${borderColor} rounded-lg p-2 text-center`}
             >
-              <div className="text-xs font-medium text-slate-600 dark:text-slate-400 truncate">
+              <div className="text-xs font-medium text-ink-muted truncate">
                 {ts.team_name}
               </div>
-              <div className="text-lg font-bold text-slate-900 dark:text-white">
+              <div className="text-lg font-bold text-ink">
                 ${ts.allocated}
               </div>
-              <div className="text-xs text-slate-400 dark:text-slate-500">
+              <div className="text-xs text-ink-subtle">
                 / $8 max
               </div>
             </div>
@@ -78,7 +78,7 @@ export default function BudgetTracker({ validation }: BudgetTrackerProps) {
       {/* Errors */}
       {errors.length > 0 && (
         <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-3">
-          <ul className="text-sm text-red-700 dark:text-red-300 space-y-1">
+          <ul className="text-sm text-negative space-y-1">
             {errors.map((err, i) => (
               <li key={i}>{err}</li>
             ))}

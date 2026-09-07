@@ -19,8 +19,8 @@ export default function FeatureBreakdown({
   const maxAbs = Math.max(...entries.map(([, v]) => Math.abs(v)), 0.01);
 
   return (
-    <div className="px-4 py-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
-      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
+    <div className="px-4 py-3 bg-sunken border-t border-line">
+      <p className="text-xs font-semibold text-ink-subtle uppercase tracking-wide mb-2">
         Feature Breakdown — Proj PPG: {projectedPpg.toFixed(2)}
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-1.5">
@@ -30,14 +30,14 @@ export default function FeatureBreakdown({
           return (
             <div key={feature} className="flex flex-col gap-0.5">
               <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-600 dark:text-slate-300 font-mono">
+                <span className="text-ink-muted font-mono">
                   {feature.replace(/_/g, " ")}
                 </span>
                 <span
                   className={`font-semibold tabular-nums ${
                     isPositive
                       ? "text-green-700 dark:text-green-400"
-                      : "text-red-600 dark:text-red-400"
+                      : "text-negative"
                   }`}
                 >
                   {isPositive ? "+" : ""}
@@ -45,7 +45,7 @@ export default function FeatureBreakdown({
                 </span>
               </div>
               {/* Bar */}
-              <div className="relative h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+              <div className="relative h-1.5 bg-sunken rounded-full overflow-hidden">
                 <div
                   className={`absolute top-0 h-full rounded-full ${
                     isPositive

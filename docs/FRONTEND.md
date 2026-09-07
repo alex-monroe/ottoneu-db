@@ -39,11 +39,55 @@ Several formerly-standalone pages were consolidated into **tabbed routes** using
 | `/api/oauth/{register,authorize,token}` | OAuth 2.1 authorization server — dynamic client registration, consent submission, and token exchange (PKCE S256, rotating refresh tokens) |
 | `/.well-known/oauth-authorization-server`, `/.well-known/oauth-protected-resource` | OAuth discovery metadata (RFC 8414 / RFC 9728) that MCP clients read to find the authorization server |
 
+## Design system
+
+`web/app/globals.css` owns the visual language. It is the only place a colour is
+chosen; everything else names a role. Reach for a raw Tailwind palette class
+(`bg-slate-100`, `text-blue-600`) only when the thing genuinely has no role here
+— and if you find yourself wanting one twice, it has a role and belongs below.
+
+| Token | Utility | Role |
+|-------|---------|------|
+| `--page` | `bg-page` | The page ground. Owned by `PageShell`; pages do not set their own |
+| `--raised` | `bg-raised` | Cards, panels, table bodies, the nav bar — anything reading as *above* the page |
+| `--sunken` | `bg-sunken` | Table headers, inset strips, the phase banner |
+| `--line` / `--line-strong` | `border-line` / `border-line-strong` | Hairlines; `strong` for dashed empty-state affordances |
+| `--ink` | `text-ink` | Primary text and headings |
+| `--ink-muted` | `text-ink-muted` | Body copy, descriptions, table cells |
+| `--ink-subtle` | `text-ink-subtle` | Captions and labels. **The floor** — it is the lightest value clearing 4.5:1 on `--page`, and there is deliberately nothing below it |
+| `--accent` | `text-accent`, `bg-accent-soft`, `border-accent` | Links and interactive emphasis |
+| `--positive` / `--negative` | `text-positive` / `text-negative` | Gains and losses. One hue each: positive is emerald, never also green |
+| `--warning` | `text-warning` | **Data the reader should distrust** — a stale scrape, and nothing else |
+| `--phase` | `text-phase`, `bg-phase` | The season phase: the banner, the featured dot, the playoff cut line |
+
+`--warning` and `--phase` are deliberately different hues. Amber previously meant
+the phase badge, the featured-nav dot, the playoff cut line *and* "this data may
+be wrong", so the one urgent signal wore the same colour as the decoration.
+
+Both themes are defined in `:root` and under `prefers-color-scheme: dark`, and
+exposed to Tailwind through `@theme inline` — so a utility resolves at paint
+time and there is no `dark:` variant to remember.
+
+**Layout** goes through `PageShell`, never a hand-written `<main>`:
+
+```tsx
+<PageShell width="wide">          {/* narrow | default | wide */}
+  <PageHeader title="Free Agents" description="…" links={[…]} />
+  …
+</PageShell>
+```
+
+It owns the ground, responsive padding, the content measure and vertical rhythm.
+`__tests__/components/design-system.test.ts` fails the build if a page
+re-implements the shell or reintroduces sub-AA caption colours.
+
 ## Reusable Components
 
 | Component | Purpose |
 |-----------|---------|
 | `Navigation.tsx` | Shared nav bar across all pages. Renders `visibleNav()` from `web/lib/nav.ts`; holds no route list of its own |
+| `PageShell` / `PageHeader` | The page frame and the standard heading. Every route's `<main>`. See **Design system** above |
+| `TableParts.tsx` | `Th` — the header cell for hand-rolled tables, with optional `explain`. Shared so it stops being copy-pasted per table |
 | `SiteFooter.tsx` | Thin global footer. Exists mainly to give `/snake-draft` an entry point outside the league-scoped nav (D3) |
 | `Tabs` | URL-synced (`?tab=`) tab bar. Accepts `tabs: { id, label, content }[]`; renders all panels and hides inactive ones (so client state in a panel survives switches). Panels can be server-rendered sections passed as `content`. Used by `/players`, `/value`, `/arbitration`. |
 | `DataTable` | Generic sortable table with type safety and highlight rules |
@@ -52,12 +96,12 @@ Several formerly-standalone pages were consolidated into **tabbed routes** using
 | `ScatterChart` | Player efficiency scatter plot with interactive filters |
 | `PositionBadge` | Colored position pill (QB, RB, etc.) — canonical across all views |
 | `PlayerName` | Player name renderer with link/hover-card/plain-text modes |
-| `TeamName` | Canonical league-team renderer — the team counterpart to `PlayerName`. Links to `/teams/[name]`, renders "FA" as plain text, and bolds the viewer's own team via `mine`. Route every team name through this rather than printing the string |
+| `TeamName` | Canonical league-team renderer — the team counterpart to `PlayerName`. Links to `/teams/[name]`, renders "FA" as plain text, and weights the viewer's own team via `mine` (it keeps the link colour — emphasis must not cost the affordance). Route every team name through this rather than printing the string |
 | `StatValue` | Numeric stat formatter with currency/decimal/number/null handling |
 | `PlayerHoverCard` | Rich hover preview card for player context |
-| `Explain` | In-product glossary popover. `<Explain term="vorp" />` renders a "?" that defines one term from `web/lib/glossary.ts`. `DataTable` renders it automatically for any column carrying `explain`, so tag the column factory rather than the page |
-| `states.tsx` | Shared `EmptyState` / `NoAccessState` / `ErrorState` / `TableSkeleton`. Use these instead of hand-rolling — a missing-data notice is an `h2` at body scale, never a page-sized heading |
-| `DataFreshness` | "Rosters updated 3 hours ago" caption, from `web/lib/freshness.ts`. Turns amber past `staleAfterHours` |
+| `Explain` | In-product glossary popover. `<Explain term="vorp" />` renders a "?" that defines one term from `web/lib/glossary.ts`. `DataTable` renders it automatically for any column carrying `explain`, and `Th`/`SummaryCard` take the same prop, so tag the column factory rather than the page. The panel portals to `document.body` — it lives inside `overflow-x-auto` scroll containers that would otherwise clip it |
+| `states.tsx` | Shared `EmptyState` / `NoAccessState` / `ErrorState` / `TableSkeleton`. `TableSkeleton` backs the root `app/loading.tsx`, which is what gives every navigation feedback while its server component runs. Use these instead of hand-rolling — a missing-data notice is an `h2` at body scale, never a page-sized heading |
+| `DataFreshness` | "Rosters updated 3 hours ago" caption, from `web/lib/freshness.ts`. Turns `--warning` past `staleAfterHours` |
 | `PhaseNote` | Says a tool is out of season, and when its window opens. Reads the phase from `web/lib/season.ts` and renders nothing while in window |
 
 ### Arbitration Planner (`components/arb-planner/`)

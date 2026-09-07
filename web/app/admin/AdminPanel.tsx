@@ -132,7 +132,7 @@ export default function AdminPanel({ users, currentUserId, leagueTeams }: AdminP
       {error && (
         <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4">
           <p className="text-sm font-medium text-red-800 dark:text-red-200">{error}</p>
-          <button onClick={() => setError("")} className="mt-1 text-xs text-red-600 dark:text-red-400 underline">
+          <button onClick={() => setError("")} className="mt-1 text-xs text-negative underline">
             Dismiss
           </button>
         </div>
@@ -143,18 +143,18 @@ export default function AdminPanel({ users, currentUserId, leagueTeams }: AdminP
         <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
           <thead>
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Email</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Role</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Team</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Projections Access</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Created</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">Email</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">Role</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">Team</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">Projections Access</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">Created</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-ink-subtle uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
             {users.map((u) => (
               <tr key={u.id}>
-                <td className="px-4 py-3 text-sm text-slate-900 dark:text-white">
+                <td className="px-4 py-3 text-sm text-ink">
                   <span className="flex items-center gap-2">
                     {u.email}
                     {!u.has_projections_access && u.access_requested_at && (
@@ -173,7 +173,7 @@ export default function AdminPanel({ users, currentUserId, leagueTeams }: AdminP
                       Admin
                     </span>
                   ) : (
-                    <span className="text-slate-500 dark:text-slate-400">User</span>
+                    <span className="text-ink-subtle">User</span>
                   )}
                 </td>
                 <td className="px-4 py-3 text-sm">
@@ -182,7 +182,7 @@ export default function AdminPanel({ users, currentUserId, leagueTeams }: AdminP
                     value={u.team_name ?? ""}
                     disabled={savingTeamId === u.id}
                     onChange={(e) => handleSetTeam(u.id, e.target.value)}
-                    className="rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-sm text-slate-900 dark:text-white disabled:opacity-50"
+                    className="rounded border border-line-strong bg-raised px-2 py-1 text-sm text-ink disabled:opacity-50"
                   >
                     <option value="">— none —</option>
                     {/* A team that no longer holds a roster still shows, so an
@@ -204,26 +204,26 @@ export default function AdminPanel({ users, currentUserId, leagueTeams }: AdminP
                     className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium transition-colors ${
                       u.has_projections_access
                         ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-900/50"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                        : "bg-sunken text-ink-muted hover:bg-line"
                     } disabled:opacity-50`}
                   >
                     {u.has_projections_access ? "Enabled" : "Disabled"}
                   </button>
                 </td>
-                <td className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">
+                <td className="px-4 py-3 text-sm text-ink-subtle">
                   {new Date(u.created_at).toLocaleDateString()}
                 </td>
                 <td className="px-4 py-3 text-sm">
                   {u.id === currentUserId ? (
-                    <span className="text-slate-400 dark:text-slate-500 text-xs">You</span>
+                    <span className="text-ink-subtle text-xs">You</span>
                   ) : (
                     <button
                       onClick={() => handleDelete(u.id)}
                       disabled={deletingId === u.id}
                       className={`text-xs font-medium transition-colors disabled:opacity-50 ${
                         confirmDeleteId === u.id
-                          ? "text-red-600 dark:text-red-400"
-                          : "text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400"
+                          ? "text-negative"
+                          : "text-ink-subtle hover:text-red-600 dark:hover:text-red-400"
                       }`}
                     >
                       {confirmDeleteId === u.id ? "Confirm?" : deletingId === u.id ? "Deleting..." : "Delete"}
@@ -237,11 +237,11 @@ export default function AdminPanel({ users, currentUserId, leagueTeams }: AdminP
       </div>
 
       {/* Add user form */}
-      <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Add User</h2>
+      <div className="border-t border-line pt-6">
+        <h2 className="text-lg font-semibold text-ink mb-4">Add User</h2>
         <form onSubmit={handleCreateUser} className="flex flex-wrap items-end gap-3">
           <div>
-            <label htmlFor="new-email" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <label htmlFor="new-email" className="block text-sm font-medium text-ink-muted mb-1">
               Email
             </label>
             <input
@@ -250,12 +250,12 @@ export default function AdminPanel({ users, currentUserId, leagueTeams }: AdminP
               required
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
-              className="rounded-md border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="rounded-md border border-line-strong px-3 py-1.5 text-sm bg-raised text-ink focus:outline-none focus:ring-accent focus:border-blue-500"
               placeholder="user@example.com"
             />
           </div>
           <div>
-            <label htmlFor="new-password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <label htmlFor="new-password" className="block text-sm font-medium text-ink-muted mb-1">
               Password
             </label>
             <input
@@ -265,7 +265,7 @@ export default function AdminPanel({ users, currentUserId, leagueTeams }: AdminP
               minLength={6}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="rounded-md border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="rounded-md border border-line-strong px-3 py-1.5 text-sm bg-raised text-ink focus:outline-none focus:ring-accent focus:border-blue-500"
               placeholder="Min 6 characters"
             />
           </div>
@@ -275,9 +275,9 @@ export default function AdminPanel({ users, currentUserId, leagueTeams }: AdminP
               type="checkbox"
               checked={newProjectionsAccess}
               onChange={(e) => setNewProjectionsAccess(e.target.checked)}
-              className="rounded border-slate-300 dark:border-slate-700"
+              className="rounded border-line-strong"
             />
-            <label htmlFor="new-projections" className="text-sm text-slate-700 dark:text-slate-300">
+            <label htmlFor="new-projections" className="text-sm text-ink-muted">
               Projections access
             </label>
           </div>

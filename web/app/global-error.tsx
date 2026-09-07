@@ -15,19 +15,23 @@ export default function GlobalError({
     console.error("Global Error Boundary caught an error:", error);
   }, [error]);
 
+  // NB this replaces the whole document, root layout included, so it cannot use
+  // PageShell or ErrorState. It is the last resort behind `app/error.tsx`,
+  // which now catches per-route failures without taking the app shell with it.
+
   return (
     <html>
       <body>
-        <div className="flex h-[calc(100vh-4rem)] flex-col items-center justify-center p-4 text-center">
-          <div className="flex flex-col items-center max-w-md gap-4 rounded-lg border border-red-200 bg-red-50 p-6 dark:border-red-900/50 dark:bg-red-900/10">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
-              <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+        <div className="flex min-h-screen flex-col items-center justify-center bg-page p-4 text-center">
+          <div className="flex max-w-md flex-col items-center gap-4 rounded-lg border border-negative/30 bg-negative-soft p-6">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-raised">
+              <AlertCircle className="h-6 w-6 text-negative" />
             </div>
             <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-red-900 dark:text-red-300">
+              <h2 className="text-lg font-semibold text-ink">
                 Something went wrong!
               </h2>
-              <p className="text-sm text-red-700 dark:text-red-400">
+              <p className="text-sm text-ink-muted">
                 {process.env.NODE_ENV === "development" ? error.message : "An unexpected error occurred while fetching data."}
               </p>
             </div>

@@ -9,6 +9,8 @@ import {
 } from "@/lib/weekly-projections";
 import PositionBadge from "@/components/PositionBadge";
 import WeekFilters from "./WeekFilters";
+import PageShell from "@/components/PageShell";
+import DataFreshness from "@/components/DataFreshness";
 
 /**
  * The full weekly board: every player with a per-game projection for one NFL
@@ -30,14 +32,12 @@ interface Props {
 
 function Empty({ message }: { message: string }) {
   return (
-    <main className="min-h-screen bg-white dark:bg-black p-8">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+    <PageShell width="wide" gap="none">
+        <h1 className="text-3xl font-bold tracking-tight text-ink">
           Weekly Projections
         </h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-4">{message}</p>
-      </div>
-    </main>
+        <p className="text-ink-subtle mt-4">{message}</p>
+    </PageShell>
   );
 }
 
@@ -80,24 +80,24 @@ export default async function WeeklyProjectionsPage({ searchParams }: Props) {
   const isPlayed = rows.some((r) => r.actual_points != null);
 
   return (
-    <main className="min-h-screen bg-white dark:bg-black p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <PageShell width="wide">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-3xl font-bold tracking-tight text-ink">
             Weekly Projections
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 max-w-3xl">
+          <DataFreshness source="weekly" className="mt-1" />
+          <p className="mt-2 max-w-prose text-ink-muted">
             Projected points for a <strong>single game</strong> in Week {week}, from{" "}
             {board[0]?.source ?? "a third-party source"}, re-scored under this
             league&apos;s rules. Distinct from{" "}
-            <Link href="/projections" className="text-blue-600 dark:text-blue-400 hover:underline">
+            <Link href="/projections" className="text-accent hover:underline">
               season-long projections
             </Link>
             , which come from this site&apos;s own model and are measured in points
             per game across a whole season.
           </p>
           {asOf && (
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+            <p className="text-xs text-ink-subtle mt-1">
               As of {new Date(asOf).toLocaleString()}
             </p>
           )}
@@ -105,21 +105,21 @@ export default async function WeeklyProjectionsPage({ searchParams }: Props) {
 
         <WeekFilters currentWeek={week} weeks={weeks} currentPosition={position} />
 
-        <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+        <div className="overflow-x-auto rounded-lg border border-line">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="bg-slate-100 dark:bg-slate-800">
-                <th className="px-3 py-2.5 text-left font-semibold text-slate-700 dark:text-slate-300">#</th>
-                <th className="px-3 py-2.5 text-left font-semibold text-slate-700 dark:text-slate-300">Player</th>
-                <th className="px-3 py-2.5 text-left font-semibold text-slate-700 dark:text-slate-300">Pos</th>
-                <th className="px-3 py-2.5 text-left font-semibold text-slate-700 dark:text-slate-300">Team</th>
-                <th className="px-3 py-2.5 text-left font-semibold text-slate-700 dark:text-slate-300">Opp</th>
-                <th className="px-3 py-2.5 text-right font-semibold text-slate-700 dark:text-slate-300">Proj Pts</th>
+              <tr className="bg-sunken">
+                <th className="px-3 py-2.5 text-left font-semibold text-ink-muted">#</th>
+                <th className="px-3 py-2.5 text-left font-semibold text-ink-muted">Player</th>
+                <th className="px-3 py-2.5 text-left font-semibold text-ink-muted">Pos</th>
+                <th className="px-3 py-2.5 text-left font-semibold text-ink-muted">Team</th>
+                <th className="px-3 py-2.5 text-left font-semibold text-ink-muted">Opp</th>
+                <th className="px-3 py-2.5 text-right font-semibold text-ink-muted">Proj Pts</th>
                 {isPlayed && (
-                  <th className="px-3 py-2.5 text-right font-semibold text-slate-700 dark:text-slate-300">Actual</th>
+                  <th className="px-3 py-2.5 text-right font-semibold text-ink-muted">Actual</th>
                 )}
-                <th className="px-3 py-2.5 text-right font-semibold text-slate-700 dark:text-slate-300">Salary</th>
-                <th className="px-3 py-2.5 text-left font-semibold text-slate-700 dark:text-slate-300">Owner</th>
+                <th className="px-3 py-2.5 text-right font-semibold text-ink-muted">Salary</th>
+                <th className="px-3 py-2.5 text-left font-semibold text-ink-muted">Owner</th>
               </tr>
             </thead>
             <tbody>
@@ -129,10 +129,10 @@ export default async function WeeklyProjectionsPage({ searchParams }: Props) {
                 return (
                   <tr
                     key={`${r.player_id}-${r.week}`}
-                    className={`border-t border-slate-100 dark:border-slate-800 ${i % 2 === 0 ? "bg-white dark:bg-slate-950" : "bg-slate-50 dark:bg-slate-900"}`}
+                    className={`border-t border-line ${i % 2 === 0 ? "bg-raised" : "bg-sunken"}`}
                   >
-                    <td className="px-3 py-2 font-mono text-slate-400 dark:text-slate-500">{i + 1}</td>
-                    <td className="px-3 py-2 font-medium text-slate-900 dark:text-white">
+                    <td className="px-3 py-2 font-mono text-ink-subtle">{i + 1}</td>
+                    <td className="px-3 py-2 font-medium text-ink">
                       {roster ? (
                         <Link href={`/players/${roster.ottoneu_id}`} className="hover:underline">
                           {r.name}
@@ -144,20 +144,20 @@ export default async function WeeklyProjectionsPage({ searchParams }: Props) {
                     <td className="px-3 py-2">
                       {r.position && <PositionBadge position={r.position} />}
                     </td>
-                    <td className="px-3 py-2 text-slate-600 dark:text-slate-400">{r.nfl_team}</td>
-                    <td className="px-3 py-2 text-slate-600 dark:text-slate-400">{r.opponent ?? "—"}</td>
+                    <td className="px-3 py-2 text-ink-muted">{r.nfl_team}</td>
+                    <td className="px-3 py-2 text-ink-muted">{r.opponent ?? "—"}</td>
                     <td className="px-3 py-2 text-right font-mono font-semibold text-amber-600 dark:text-amber-400">
                       {r.projected_points?.toFixed(1) ?? "—"}
                     </td>
                     {isPlayed && (
-                      <td className="px-3 py-2 text-right font-mono text-slate-800 dark:text-slate-200">
+                      <td className="px-3 py-2 text-right font-mono text-ink-muted">
                         {r.actual_points?.toFixed(1) ?? "—"}
                       </td>
                     )}
-                    <td className="px-3 py-2 text-right font-mono text-emerald-600 dark:text-emerald-400">
+                    <td className="px-3 py-2 text-right font-mono text-positive">
                       {isFA ? "—" : `$${roster?.price ?? 0}`}
                     </td>
-                    <td className="px-3 py-2 text-slate-600 dark:text-slate-400">
+                    <td className="px-3 py-2 text-ink-muted">
                       {isFA ? "FA" : roster?.team_name}
                     </td>
                   </tr>
@@ -167,11 +167,10 @@ export default async function WeeklyProjectionsPage({ searchParams }: Props) {
           </table>
         </div>
 
-        <p className="text-xs text-slate-500 dark:text-slate-400">
+        <p className="text-xs text-ink-subtle">
           A player missing from this board has no projection for the week — a bye
           or an inactive designation.
         </p>
-      </div>
-    </main>
+    </PageShell>
   );
 }

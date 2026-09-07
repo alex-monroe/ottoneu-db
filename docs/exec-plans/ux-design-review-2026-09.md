@@ -7,6 +7,12 @@ Scope: `web/` only, and the *look and feel of the app as a whole* rather than an
 one page. Read [ux-journeys.md](ux-journeys.md) first — this review assumes its
 findings (F1–F8) and grades the result against them.
 
+> **Status: remediated in this PR.** The findings below are written in the past
+> tense of the audit; §6 is the plan, and §7 records what was actually done
+> against it. Steps 1–4 and 6 are complete, step 5 partially (the `Explain`
+> defects and the shared `Th` are fixed; the sixteen hand-rolled tables are not
+> yet migrated to `DataTable`), step 7 complete.
+
 **Verdict.** The information architecture landed. The visual system did not.
 
 The overhaul fixed what it set out to fix at the level of *structure* — the nav is
@@ -361,6 +367,77 @@ below.
 
 **7. The rest of §4 and §5.** Team-scoped links on `/teams/[name]`, `TeamName`
 affordance, standings min-width, matchup slot-interleaving with per-slot deltas.
+
+---
+
+## 7. What this PR actually changed
+
+Everything below is in the diff that carries this document.
+
+**Token layer (step 1).** `app/globals.css` now defines a semantic palette —
+`--page` / `--raised` / `--sunken`, `--ink` / `--ink-muted` / `--ink-subtle`,
+`--accent`, `--positive`, `--negative`, `--warning`, `--phase` — in both themes,
+exposed through `@theme inline`. The Arial `body` rule is gone, so Geist renders.
+1,088 hard-coded class pairs across 93 files were migrated to those tokens,
+collapsing nine surface pairings to three and ten accent hues to five roles.
+The page now sits a step behind its cards in both themes, so the app has
+elevation. `--warning` and `--phase` are separate hues: amber means stale data
+and nothing else. One `:focus-visible` rule replaces the split between 36
+`focus:` and 8 `focus-visible:` call sites. The whole system is documented in
+[docs/FRONTEND.md](../FRONTEND.md), which previously said nothing about how
+anything should look.
+
+**Page shell (step 1).** `components/PageShell.tsx` owns the `<main>`: the page
+ground, responsive padding (`px-4 sm:px-6 lg:px-8`, so phones stop getting 32px
+desktop gutters), three named content measures, and vertical rhythm. Twenty-one
+copy-pasted shells now route through it, and `PageHeader` gives the four drifted
+header treatments one implementation.
+
+**Accessibility (step 2).** `POSITION_COLORS` moved to 600/700 weights with a
+matching dark set, and `PositionBadge` carries both as CSS custom properties so
+a server component can theme without client JS — all five badges now clear AA in
+both modes (worst case 5.02:1, was 2.15:1). The three backwards `text-slate-400
+dark:text-slate-*` pairs are gone. A skip link was added to the root layout.
+
+**Navigation feedback (step 3).** `app/loading.tsx` (built on the previously
+unused `TableSkeleton`), `app/not-found.tsx` and `app/error.tsx` now exist, so a
+click has feedback, a stale team link lands on a branded 404, and one failed
+query no longer takes the app shell down with it.
+
+**Phase 5's own checklist (step 4).** The hand-rolled states in `/matchup`,
+`/projections` and `/rosters` are gone, replaced by `states.tsx` and deleted as
+5.4 said. `DataFreshness` went from two pages to seven, and its timestamp is now
+a visible `<time>` rather than a `title` attribute only.
+
+**`Explain` and the orphaned glossary (step 5, partial).** The panel portals to
+`document.body`, so `overflow-x-auto` can no longer clip it, and it flips back on
+screen at the viewport edge. Its target is 24px. Its `keydown` no longer reaches
+the header's sort handler — a keyboard user reading a definition used to re-sort
+the table, which now has a regression test. `Th` moved to
+`components/TableParts.tsx` (it existed twice, verbatim) and takes `explain`, as
+does `SummaryCard`; that reaches `surplus_after_arb`, `cap_space` and `ppg` on
+the team page, three of the five orphans. **Not done:** the sixteen hand-rolled
+tables still are not `DataTable`s.
+
+**Homepage (step 6).** `HUB_GROUPS` is deleted. The hub derives its taxonomy,
+ordering and gating from `NAV_GROUPS` via the same exported `canSee` the menu
+uses, so the two cannot drift — and signed-out visitors stop being offered "Your
+Matchup" for a team they do not have. The hero no longer reprints the phase
+banner's three strings, and a card promoted to "Featured now" is skipped in the
+group below instead of appearing twice.
+
+**The rest (step 7).** Team-page action links carry the team (`/lineup?team=…`),
+and the viewer-scoped ones only appear on your own team. `TeamName` keeps the
+link colour on your own team and emphasises with weight. The compact
+`StandingsTable` dropped its 420px floor, so the homepage panel stops scrolling
+sideways. `/matchup` replaced its two stacking columns with one slot-interleaved
+comparison that carries a per-slot delta and survives a phone. `DataTable`'s row
+fragments are keyed. The `global-error` magic offset and the vestigial `{( … )}`
+on `/projections` are gone.
+
+**Guardrails.** `__tests__/components/design-system.test.ts` fails if a badge
+drops below AA, if a page re-implements the shell, or if a sub-AA caption colour
+comes back. 715 tests pass; `next build` compiles and typechecks clean.
 
 ---
 

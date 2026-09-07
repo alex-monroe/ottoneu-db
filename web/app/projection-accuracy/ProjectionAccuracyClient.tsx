@@ -212,7 +212,7 @@ export default function ProjectionAccuracyClient({
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
                 season === targetSeason
                   ? "bg-blue-600 text-white border-transparent"
-                  : "bg-transparent text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  : "bg-transparent text-ink-muted border-line-strong hover:bg-sunken"
               }`}
             >
               {season}
@@ -224,7 +224,7 @@ export default function ProjectionAccuracyClient({
           <div className="flex items-center gap-2 flex-wrap">
             <label
               htmlFor="model-select"
-              className="text-sm font-medium text-slate-600 dark:text-slate-300"
+              className="text-sm font-medium text-ink-muted"
             >
               Model:
             </label>
@@ -232,7 +232,7 @@ export default function ProjectionAccuracyClient({
               id="model-select"
               value={selectedModelId || ""}
               onChange={(e) => handleModelChange(e.target.value)}
-              className="text-sm border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+              className="text-sm border border-line-strong rounded-lg px-3 py-2 bg-raised text-ink"
             >
               <option value="">Default (Legacy)</option>
               {models.map((m) => (
@@ -248,7 +248,7 @@ export default function ProjectionAccuracyClient({
             {selectedModelId && !isCompareMode && !showCompareDropdown && (
               <button
                 onClick={() => setShowCompareDropdown(true)}
-                className="text-sm px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="text-sm px-3 py-2 rounded-lg border border-line-strong text-ink-muted hover:bg-sunken transition-colors"
               >
                 + Compare
               </button>
@@ -259,7 +259,7 @@ export default function ProjectionAccuracyClient({
               <div className="flex items-center gap-2">
                 <label
                   htmlFor="compare-select"
-                  className="text-sm font-medium text-slate-600 dark:text-slate-300"
+                  className="text-sm font-medium text-ink-muted"
                 >
                   vs:
                 </label>
@@ -267,7 +267,7 @@ export default function ProjectionAccuracyClient({
                   id="compare-select"
                   value={compareModelId || ""}
                   onChange={(e) => handleCompareChange(e.target.value)}
-                  className="text-sm border border-purple-300 dark:border-purple-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  className="text-sm border border-purple-300 dark:border-purple-700 rounded-lg px-3 py-2 bg-raised text-ink"
                 >
                   <option value="">Select compare model…</option>
                   {compareOptions.map((m) => (
@@ -280,7 +280,7 @@ export default function ProjectionAccuracyClient({
                 </select>
                 <button
                   onClick={handleClearCompare}
-                  className="text-sm px-2 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="text-sm px-2 py-2 rounded-lg border border-line-strong text-slate-500 hover:bg-sunken transition-colors"
                   title="Remove comparison"
                 >
                   ✕
@@ -330,7 +330,7 @@ export default function ProjectionAccuracyClient({
                 {selectedModel.description}
               </p>
             )}
-            <div className="text-blue-600 dark:text-blue-400 mt-1">
+            <div className="text-accent mt-1">
               Features: {selectedModel.features.join(", ")}
             </div>
           </div>
@@ -342,7 +342,7 @@ export default function ProjectionAccuracyClient({
         <div className="space-y-3">
           {/* Model A row */}
           <div>
-            <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-2">
+            <p className="text-xs font-semibold text-accent uppercase tracking-wide mb-2">
               Model A — {selectedModel?.name}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
@@ -386,7 +386,7 @@ export default function ProjectionAccuracyClient({
 
           {/* Delta row (B − A) */}
           <div>
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
+            <p className="text-xs font-semibold text-ink-subtle uppercase tracking-wide mb-2">
               Delta (B − A) — ↓ better for MAE/RMSE/Bias, ↑ better for R²
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
@@ -454,13 +454,13 @@ export default function ProjectionAccuracyClient({
 
       {/* Per-position breakdown */}
       <section>
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
+        <h2 className="text-xl font-semibold text-ink mb-3">
           Metrics by Position
         </h2>
         {isCompareMode && compareMetrics ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
-              <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-2">
+              <p className="text-xs font-semibold text-accent uppercase tracking-wide mb-2">
                 Model A — {selectedModel?.name}
               </p>
               <DataTable columns={METRICS_COLUMNS} data={allMetrics} />
@@ -479,10 +479,10 @@ export default function ProjectionAccuracyClient({
 
       {/* Scatter chart */}
       <section>
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
+        <h2 className="text-xl font-semibold text-ink mb-3">
           Projected vs Actual PPG
         </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+        <p className="text-sm text-ink-subtle mb-4">
           Points on the dashed diagonal = perfect prediction. Above the line =
           outperformed projection. Below = underperformed.
         </p>
@@ -498,10 +498,10 @@ export default function ProjectionAccuracyClient({
       {/* Per-player delta table — compare mode only */}
       {isCompareMode && playerDeltaRows.length > 0 && (
         <section>
-          <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
+          <h2 className="text-xl font-semibold text-ink mb-3">
             Per-Player Projection Delta
           </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+          <p className="text-sm text-ink-subtle mb-4">
             Delta = Model B projected PPG − Model A projected PPG. Sorted by absolute delta descending.
             Rows highlighted where |Delta| ≥ 1.0 PPG.
           </p>
@@ -523,7 +523,7 @@ export default function ProjectionAccuracyClient({
       {/* Filters + error table */}
       <section>
         <div className="flex flex-wrap items-center gap-4 mb-4">
-          <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+          <h2 className="text-xl font-semibold text-ink">
             Per-Player Errors
           </h2>
           <PositionFilter
@@ -533,8 +533,8 @@ export default function ProjectionAccuracyClient({
             showAll
             onToggleAll={toggleAll}
           />
-          <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
-            <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+          <div className="flex items-center gap-2 bg-sunken px-3 py-2 rounded-lg border border-line">
+            <span className="text-sm font-medium text-ink-muted">
               Min Games: {minGames}
             </span>
             <input

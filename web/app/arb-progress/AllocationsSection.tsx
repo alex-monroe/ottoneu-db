@@ -20,10 +20,10 @@ export default function AllocationsSection({
 }: AllocationsSectionProps) {
   return (
     <section>
-      <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
+      <h2 className="text-xl font-semibold text-ink mb-3">
         Current Allocations
       </h2>
-      <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
+      <p className="text-sm text-ink-subtle mb-3">
         Players with salary raises from arbitration. Red rows indicate raises of $10 or more.
         {!allComplete && completeCount > 0 && (
           <> Projected columns extrapolate final raises assuming remaining teams allocate at the same rate ({completeCount} of {NUM_TEAMS} teams complete, max ${ARB_MAX_PER_PLAYER_LEAGUE} cap).</>

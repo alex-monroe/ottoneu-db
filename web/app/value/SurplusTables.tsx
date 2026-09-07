@@ -106,7 +106,7 @@ export default function SurplusTables({
     <>
       {/* Best Bargains */}
       <section>
-        <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
+        <h3 className="text-xl font-semibold text-ink mb-3">
           Top 20 Bargains
         </h3>
         <DataTable columns={coreColumns} data={bestBargains} highlightRules={BARGAIN_RULES} />
@@ -114,7 +114,7 @@ export default function SurplusTables({
 
       {/* Most Overpaid */}
       <section>
-        <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
+        <h3 className="text-xl font-semibold text-ink mb-3">
           Top 20 Most Overpaid
         </h3>
         <DataTable columns={coreColumns} data={mostOverpaid} highlightRules={OVERPAID_RULES} />
@@ -123,18 +123,18 @@ export default function SurplusTables({
       {/* My Team */}
       {myTeam.length > 0 && (
         <section>
-          <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
+          <h3 className="text-xl font-semibold text-ink mb-3">
             {viewerTeam} — Surplus Breakdown
           </h3>
           <DataTable columns={myTeamColumns} data={myTeam} highlightRules={MY_ROSTER_RULES} />
-          <div className="mt-3 flex flex-wrap gap-6 text-sm text-slate-600 dark:text-slate-400">
+          <div className="mt-3 flex flex-wrap gap-6 text-sm text-ink-muted">
             <span>
               Total Salary:{" "}
-              <strong className="text-slate-900 dark:text-white">${myTotals.salary}</strong>
+              <strong className="text-ink">${myTotals.salary}</strong>
             </span>
             <span>
               Total Value:{" "}
-              <strong className="text-slate-900 dark:text-white">${myTotals.value}</strong>
+              <strong className="text-ink">${myTotals.value}</strong>
             </span>
             <span>
               Total Surplus:{" "}
@@ -155,7 +155,7 @@ export default function SurplusTables({
       {/* Free Agent Targets */}
       {freeAgents.length > 0 && (
         <section>
-          <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
+          <h3 className="text-xl font-semibold text-ink mb-3">
             Top Free Agents by Value
           </h3>
           <DataTable columns={faColumns} data={freeAgents} />
@@ -164,7 +164,7 @@ export default function SurplusTables({
 
       {/* Per-Team Summary */}
       <section>
-        <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
+        <h3 className="text-xl font-semibold text-ink mb-3">
           Per-Team Summary
         </h3>
         <DataTable

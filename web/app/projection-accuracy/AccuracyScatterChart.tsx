@@ -31,9 +31,9 @@ function CustomTooltip({ active, payload }: TooltipPayload) {
   const d = payload[0].payload;
   const signed = d.error >= 0 ? `+${d.error.toFixed(2)}` : d.error.toFixed(2);
   return (
-    <div className="bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-700 p-3 rounded shadow-lg text-sm">
-      <p className="font-bold text-slate-900 dark:text-slate-100">{d.name}</p>
-      <p className="text-slate-500 dark:text-slate-400">
+    <div className="bg-white/95 dark:bg-slate-900/95 border border-line p-3 rounded shadow-lg text-sm">
+      <p className="font-bold text-ink">{d.name}</p>
+      <p className="text-ink-subtle">
         {d.position} · {d.nfl_team}
         {d._model && (
           <span className="ml-2 text-xs text-purple-500">({d._model})</span>
@@ -57,8 +57,8 @@ function CustomTooltip({ active, payload }: TooltipPayload) {
           <span
             className={`font-mono font-medium ${
               d.error >= 0
-                ? "text-green-600 dark:text-green-400"
-                : "text-red-600 dark:text-red-400"
+                ? "text-positive"
+                : "text-negative"
             }`}
           >
             {signed}
@@ -112,7 +112,7 @@ export default function AccuracyScatterChart({
   }));
 
   return (
-    <div className="w-full h-[500px] bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+    <div className="w-full h-[500px] bg-sunken rounded-xl border border-line p-4">
       <ResponsiveContainer width="100%" height="100%">
         <ScatterChart margin={{ top: 20, right: 20, bottom: 40, left: 40 }}>
           <XAxis

@@ -28,7 +28,7 @@ export default function TabBar({ tabs, activeId, paramKey = "tab" }: TabBarProps
     <div
       role="tablist"
       aria-label="Section tabs"
-      className="flex flex-wrap gap-1 border-b border-slate-200 dark:border-slate-800 mb-6"
+      className="flex flex-wrap gap-1 border-b border-line mb-6"
     >
       {tabs.map((tab) => {
         const isActive = tab.id === activeId;
@@ -41,8 +41,8 @@ export default function TabBar({ tabs, activeId, paramKey = "tab" }: TabBarProps
             onClick={() => selectTab(tab.id)}
             className={`-mb-px px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
               isActive
-                ? "border-blue-600 text-blue-600 dark:text-blue-400"
-                : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-700"
+                ? "border-blue-600 text-accent"
+                : "border-transparent text-ink-subtle hover:text-slate-800 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-700"
             }`}
           >
             {tab.label}

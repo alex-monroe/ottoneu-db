@@ -13,7 +13,7 @@ interface StatValueProps {
 
 export default function StatValue({ value, format }: StatValueProps) {
   if (value == null) {
-    return <span className="text-slate-400 dark:text-slate-500">—</span>;
+    return <span className="text-ink-subtle">—</span>;
   }
 
   const num = Number(value);

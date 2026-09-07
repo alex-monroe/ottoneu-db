@@ -6,6 +6,7 @@ import {
 } from "@/lib/depth-charts";
 import { DIVISIONS, TEAM_NAME_BY_CODE } from "@/lib/nfl-divisions";
 import SeasonSelector from "./SeasonSelector";
+import PageShell from "@/components/PageShell";
 
 export const revalidate = 3600;
 
@@ -28,20 +29,18 @@ export default async function DepthChartsPage({ searchParams }: Props) {
 
   if (seasons.length === 0) {
     return (
-      <main className="min-h-screen bg-white dark:bg-black p-8">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+      <PageShell width="wide" gap="none">
+          <h1 className="text-3xl font-bold tracking-tight text-ink">
             Depth Charts
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-4">
+          <p className="text-ink-subtle mt-4">
             No data available. Run{" "}
-            <code className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-xs">
+            <code className="px-1.5 py-0.5 rounded bg-sunken text-xs">
               just backfill-depth-charts
             </code>{" "}
             to populate the <code>depth_charts</code> table.
           </p>
-        </div>
-      </main>
+      </PageShell>
     );
   }
 
@@ -65,14 +64,13 @@ export default async function DepthChartsPage({ searchParams }: Props) {
   });
 
   return (
-    <main className="min-h-screen bg-white dark:bg-black p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <PageShell width="wide">
         <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-3xl font-bold tracking-tight text-ink">
               Depth Charts — {targetSeason}
             </h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
+            <p className="text-ink-subtle mt-1 text-sm">
               Opening-day NFL depth tier per offensive skill player, from
               nflverse. Powers the{" "}
               <code className="ml-0.5">depth_chart_position_raw</code> and{" "}
@@ -92,14 +90,13 @@ export default async function DepthChartsPage({ searchParams }: Props) {
             <TeamCard key={team} team={team} entries={byTeam.get(team) ?? []} />
           ))}
         </div>
-      </div>
-    </main>
+    </PageShell>
   );
 }
 
 function Legend() {
   return (
-    <section className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-xs text-slate-600 dark:text-slate-400">
+    <section className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-line bg-sunken px-4 py-3 text-xs text-ink-muted">
       <span className="flex items-center gap-1.5">
         <TierBadge depth={1} /> Starter
       </span>
@@ -110,7 +107,7 @@ function Legend() {
         <TierBadge depth={3} /> Deep reserve
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="text-emerald-600 dark:text-emerald-400 font-bold">↑</span>{" "}
+        <span className="text-positive font-bold">↑</span>{" "}
         Promoted vs prior season
       </span>
       <span className="flex items-center gap-1.5">
@@ -144,7 +141,7 @@ function RoleChange({ entry }: { entry: DepthChartEntry }) {
   if (delta === 0) return null;
   return delta > 0 ? (
     <span
-      className="text-emerald-600 dark:text-emerald-400 font-bold"
+      className="text-positive font-bold"
       title={`Promoted from tier ${entry.prev_depth_team}`}
     >
       ↑
@@ -176,11 +173,11 @@ function TeamCard({ team, entries }: { team: string; entries: DepthChartEntry[] 
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden">
-      <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
-        <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+    <div className="rounded-lg border border-line bg-raised overflow-hidden">
+      <div className="px-4 py-2 border-b border-line bg-sunken">
+        <h2 className="text-sm font-semibold text-ink">
           {TEAM_NAME_BY_CODE[team] ?? team}
-          <span className="ml-2 text-xs font-normal text-slate-500 dark:text-slate-400">
+          <span className="ml-2 text-xs font-normal text-ink-subtle">
             {team}
           </span>
         </h2>
@@ -188,7 +185,7 @@ function TeamCard({ team, entries }: { team: string; entries: DepthChartEntry[] 
       <div className="divide-y divide-slate-100 dark:divide-slate-900">
         {POSITION_ORDER.filter((pos) => byPosition.has(pos)).map((pos) => (
           <div key={pos} className="px-4 py-2">
-            <div className="text-[11px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1">
+            <div className="text-[11px] font-bold uppercase tracking-widest text-ink-subtle mb-1">
               {pos}
             </div>
             <ul className="space-y-0.5">
@@ -200,12 +197,12 @@ function TeamCard({ team, entries }: { team: string; entries: DepthChartEntry[] 
                   <TierBadge depth={e.depth_team} />
                   <Link
                     href={`/players/${e.player_id}`}
-                    className="flex-1 truncate text-slate-900 dark:text-white hover:underline"
+                    className="flex-1 truncate text-ink hover:underline"
                   >
                     {e.name}
                   </Link>
                   <RoleChange entry={e} />
-                  <span className="font-mono text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                  <span className="font-mono text-xs text-ink-subtle tabular-nums">
                     {formatPpg(e.projected_ppg)}
                   </span>
                 </li>

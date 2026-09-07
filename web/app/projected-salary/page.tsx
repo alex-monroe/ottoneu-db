@@ -13,6 +13,7 @@ import SummaryCard from "@/components/SummaryCard";
 import { EmptyState } from "@/components/states";
 import PhaseNote from "@/components/PhaseNote";
 import DataFreshness from "@/components/DataFreshness";
+import PageShell from "@/components/PageShell";
 
 export default async function ProjectedSalaryPage() {
   const [allPlayers, user, viewerTeam] = await Promise.all([
@@ -29,9 +30,8 @@ export default async function ProjectedSalaryPage() {
     // this page being viewer-relative: no team bound to the account, versus a
     // team that has no roster rows.
     return (
-      <main className="min-h-screen bg-white dark:bg-black p-8">
-        <div className="max-w-2xl mx-auto space-y-4">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+      <PageShell width="narrow">
+          <h1 className="text-3xl font-bold tracking-tight text-ink">
             Salary Analysis
           </h1>
           <EmptyState
@@ -41,8 +41,7 @@ export default async function ProjectedSalaryPage() {
               ? "Keep-or-cut needs salaries and last season's production for your roster. Once both have been imported, this fills in."
               : "This page analyses your own roster, so it needs to know which team is yours. An admin can link it from the admin panel."}
           </EmptyState>
-        </div>
-      </main>
+      </PageShell>
     );
   }
 
@@ -80,13 +79,12 @@ export default async function ProjectedSalaryPage() {
   }));
 
   return (
-    <main className="min-h-screen bg-white dark:bg-black p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <PageShell width="wide">
         <header>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-3xl font-bold tracking-tight text-ink">
             Salary Analysis — {viewerTeam}
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">
+          <p className="text-ink-subtle mt-2">
             Keep vs. cut decisions based on surplus value (dollar value - salary).
             Accounts for positional scarcity via VORP.
           </p>
@@ -116,7 +114,6 @@ export default async function ProjectedSalaryPage() {
         </div>
 
         <ProjectedSalaryClient positionGroups={serialized} hoverDataMap={hoverDataMap} />
-      </div>
-    </main>
+    </PageShell>
   );
 }

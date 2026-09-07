@@ -190,15 +190,15 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
   if (phase === "setup" || !s || !me) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-10">
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Mock Draft</h1>
-        <p className="mt-3 text-slate-600 dark:text-slate-300">
+        <h1 className="text-3xl font-bold text-ink">Mock Draft</h1>
+        <p className="mt-3 text-ink-muted">
           Run a practice keeper auction ({season}) against AI opponents that bid with the same
           heuristics as the auction simulator — starter needs, the Superflex QB premium, bench
           depth, reserves, and below-market pounces. Every team is seeded with its real current
           roster and cap.
         </p>
         <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-900">
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+          <label className="block text-sm font-medium text-ink-muted">
             Draft as
           </label>
           <select
@@ -213,7 +213,7 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
             ))}
           </select>
 
-          <div className="mt-5 text-sm font-medium text-slate-700 dark:text-slate-300">Format</div>
+          <div className="mt-5 text-sm font-medium text-ink-muted">Format</div>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             <ModeCard
               active={mode === "live"}
@@ -231,7 +231,7 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
 
           {mode === "live" && (
             <div className="mt-4">
-              <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Pace</div>
+              <div className="text-sm font-medium text-ink-muted">Pace</div>
               <div className="mt-2 flex gap-2">
                 {SPEED_KEYS.map((k) => (
                   <button
@@ -244,7 +244,7 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
                     }`}
                   >
                     {SPEED_LABEL[k]}
-                    <span className="ml-1 font-mono text-xs text-slate-400">
+                    <span className="ml-1 font-mono text-xs text-ink-subtle">
                       {SPEED_PRESETS[k].clockMs / 1000}s
                     </span>
                   </button>
@@ -257,7 +257,7 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
             <div className="flex items-baseline justify-between">
               <label
                 htmlFor="valuation-noise"
-                className="text-sm font-medium text-slate-700 dark:text-slate-300"
+                className="text-sm font-medium text-ink-muted"
               >
                 Manager valuation noise
               </label>
@@ -275,11 +275,11 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
               onChange={(e) => setValuationNoisePct(Number(e.target.value))}
               className="mt-2 w-full accent-indigo-600"
             />
-            <div className="flex justify-between font-mono text-[10px] text-slate-400">
+            <div className="flex justify-between font-mono text-[10px] text-ink-subtle">
               <span>0%</span>
               <span>±{MAX_VALUATION_SPREAD * 100}%</span>
             </div>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            <p className="mt-1 text-xs text-ink-subtle">
               {valuationNoisePct === 0
                 ? "Every rival prices players exactly at Draft Sharks market value."
                 : `Each rival manager gets a private price for every player, up to ±${valuationNoisePct}% off market — and sticks to it all draft. Higher noise means more rivals who overpay for their guys and let yours go cheap. Your own book value is always shown at market.`}
@@ -292,7 +292,7 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
           >
             Start draft
           </button>
-          <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+          <p className="mt-3 text-xs text-ink-subtle">
             Players are nominated highest-value first (with some randomness). In the live auction
             you bid up in real time — or set an auto-bid ceiling and let your proxy answer for you.
             “Skip to my next need” fast-forwards past players you don’t want.
@@ -319,9 +319,9 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+        <h1 className="text-2xl font-bold text-ink">
           Mock Draft · <span className="text-indigo-600 dark:text-indigo-400">{userTeam}</span>
-          <span className="ml-2 align-middle text-xs font-medium uppercase tracking-wide text-slate-400">
+          <span className="ml-2 align-middle text-xs font-medium uppercase tracking-wide text-ink-subtle">
             {mode === "live" ? "live auction" : "turn by turn"}
             {valuationNoisePct > 0 && ` · ±${valuationNoisePct}% valuations`}
           </span>
@@ -399,22 +399,22 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
           {mode === "live" && !s.sold && lot && (
             <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <div className="flex items-baseline justify-between gap-2">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                <div className="text-xs font-semibold uppercase tracking-wide text-ink-subtle">
                   On the block · nominated by {lot.nominator}
                 </div>
                 <div
                   className={`font-mono text-lg font-bold tabular-nums ${
                     paused
-                      ? "text-slate-400"
+                      ? "text-ink-subtle"
                       : secsLeft <= 3
-                        ? "text-red-600 dark:text-red-400"
-                        : "text-slate-700 dark:text-slate-200"
+                        ? "text-negative"
+                        : "text-ink-muted"
                   }`}
                 >
                   {paused ? "paused" : `${secsLeft.toFixed(1)}s`}
                 </div>
               </div>
-              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-sunken">
                 <div
                   className={`h-full rounded-full transition-[width] duration-100 ease-linear ${
                     secsLeft <= 3 ? "bg-red-500" : "bg-indigo-500"
@@ -425,14 +425,14 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
 
               <div className="mt-3 flex items-center gap-3">
                 <PosBadge pos={lot.player.pos} />
-                <span className="text-xl font-bold text-slate-900 dark:text-white">
+                <span className="text-xl font-bold text-ink">
                   {lot.player.name}
                 </span>
                 {lot.player.nflTeam && (
-                  <span className="text-sm text-slate-400">{lot.player.nflTeam}</span>
+                  <span className="text-sm text-ink-subtle">{lot.player.nflTeam}</span>
                 )}
               </div>
-              <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              <div className="mt-1 text-sm text-ink-subtle">
                 Market value <span className="font-mono font-semibold">${lot.player.mv}</span> · the
                 book says pay up to <span className="font-mono font-semibold">${suggestion}</span>
               </div>
@@ -440,10 +440,10 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
               {/* the board */}
               <div className="mt-4 flex items-end justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-950">
                 <div>
-                  <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                  <div className="text-xs font-medium uppercase tracking-wide text-ink-subtle">
                     Current bid
                   </div>
-                  <div className="font-mono text-3xl font-bold text-slate-900 dark:text-white">
+                  <div className="font-mono text-3xl font-bold text-ink">
                     ${lot.price}
                   </div>
                 </div>
@@ -453,16 +453,16 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
                       className={
                         userLeads
                           ? "font-semibold text-indigo-600 dark:text-indigo-400"
-                          : "text-slate-600 dark:text-slate-300"
+                          : "text-ink-muted"
                       }
                     >
                       {userLeads ? "You lead" : lot.highBidder}
                     </span>
                   ) : (
-                    <span className="italic text-slate-400">no bids yet</span>
+                    <span className="italic text-ink-subtle">no bids yet</span>
                   )}
                   {lot.userMax > 0 && (
-                    <div className="mt-0.5 text-xs text-slate-400">
+                    <div className="mt-0.5 text-xs text-ink-subtle">
                       auto-bidding to <span className="font-mono">${lot.userMax}</span>
                       <button
                         onClick={() => autoBidTo(0)}
@@ -496,7 +496,7 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
                       Auto-bid up to
                     </label>
                     <div className="mt-1 flex items-center gap-1">
-                      <span className="text-slate-400">$</span>
+                      <span className="text-ink-subtle">$</span>
                       <input
                         type="number"
                         min={0}
@@ -525,11 +525,11 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
 
               {/* live bid feed */}
               <div className="mt-4 border-t border-slate-100 pt-3 dark:border-slate-800">
-                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-subtle">
                   Bidding
                 </div>
                 {lot.bids.length === 0 ? (
-                  <div className="text-sm italic text-slate-400">
+                  <div className="text-sm italic text-ink-subtle">
                     Waiting for an opening bid…
                   </div>
                 ) : (
@@ -541,7 +541,7 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
                         <div
                           key={`${b.bidder}-${b.amount}-${b.at}`}
                           className={`flex justify-between text-sm ${
-                            i === 0 ? "font-semibold" : "text-slate-500 dark:text-slate-400"
+                            i === 0 ? "font-semibold" : "text-ink-subtle"
                           } ${b.isUser ? "text-indigo-600 dark:text-indigo-400" : ""}`}
                         >
                           <span>{b.isUser ? "You" : b.bidder}</span>
@@ -566,7 +566,7 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
                   Auto-finish rest
                 </button>
                 {nextUp && s.pool.length > 1 && (
-                  <span className="self-center text-xs text-slate-400">
+                  <span className="self-center text-xs text-ink-subtle">
                     up next: {s.pool[1].name} (${s.pool[1].mv})
                   </span>
                 )}
@@ -576,19 +576,19 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
 
           {mode === "manual" && nominee && (
             <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <div className="text-xs font-semibold uppercase tracking-wide text-ink-subtle">
                 On the block
               </div>
               <div className="mt-1 flex items-center gap-3">
                 <PosBadge pos={nominee.pos} />
-                <span className="text-xl font-bold text-slate-900 dark:text-white">
+                <span className="text-xl font-bold text-ink">
                   {nominee.name}
                 </span>
                 {nominee.nflTeam && (
-                  <span className="text-sm text-slate-400">{nominee.nflTeam}</span>
+                  <span className="text-sm text-ink-subtle">{nominee.nflTeam}</span>
                 )}
               </div>
-              <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              <div className="mt-1 text-sm text-ink-subtle">
                 Market value <span className="font-mono font-semibold">${nominee.mv}</span> · the
                 book says pay up to <span className="font-mono font-semibold">${suggestion}</span>
               </div>
@@ -597,7 +597,7 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
                 <div>
                   <label className="block text-xs font-medium text-slate-500">Your max bid</label>
                   <div className="mt-1 flex items-center gap-1">
-                    <span className="text-slate-400">$</span>
+                    <span className="text-ink-subtle">$</span>
                     <input
                       type="number"
                       min={0}
@@ -656,12 +656,12 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
 
           {/* draft log */}
           <div className="mt-5">
-            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
+            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-ink-subtle">
               Draft log
             </h2>
-            <div className="max-h-96 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-800">
+            <div className="max-h-96 overflow-y-auto rounded-lg border border-line">
               {s.log.length === 0 && (
-                <div className="p-3 text-sm text-slate-400">No picks yet.</div>
+                <div className="p-3 text-sm text-ink-subtle">No picks yet.</div>
               )}
               {s.log.map((r, i) => (
                 <div
@@ -672,11 +672,11 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
                 >
                   <span className="flex items-center gap-2 truncate">
                     <PosBadge pos={r.player.pos} />
-                    <span className="truncate text-slate-700 dark:text-slate-200">
+                    <span className="truncate text-ink-muted">
                       {r.player.name}
                     </span>
                   </span>
-                  <span className="whitespace-nowrap text-slate-500 dark:text-slate-400">
+                  <span className="whitespace-nowrap text-ink-subtle">
                     {r.winner ? (
                       <>
                         <span className="font-mono font-semibold">${r.price}</span>{" "}
@@ -689,7 +689,7 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
                         </span>
                       </>
                     ) : (
-                      <span className="italic text-slate-400">no sale</span>
+                      <span className="italic text-ink-subtle">no sale</span>
                     )}
                   </span>
                 </div>
@@ -701,13 +701,13 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
         {/* right: my roster + league board */}
         <div className="space-y-5">
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
+            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-ink-subtle">
               Your starting lineup
             </h2>
             <div className="space-y-1">
               {lineup.map((ls, i) => (
                 <div key={i} className="flex items-center justify-between gap-2 text-sm">
-                  <span className="w-10 shrink-0 font-mono text-xs font-semibold text-slate-400">
+                  <span className="w-10 shrink-0 font-mono text-xs font-semibold text-ink-subtle">
                     {ls.slot}
                   </span>
                   {ls.player ? (
@@ -715,10 +715,10 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
                       <span className="flex-1 truncate text-slate-800 dark:text-slate-100">
                         {ls.player.name}
                       </span>
-                      <span className="font-mono text-slate-400">${ls.player.salary}</span>
+                      <span className="font-mono text-ink-subtle">${ls.player.salary}</span>
                     </>
                   ) : (
-                    <span className="flex-1 italic text-slate-300 dark:text-slate-600">empty</span>
+                    <span className="flex-1 italic text-ink-subtle">empty</span>
                   )}
                 </div>
               ))}
@@ -734,9 +734,9 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
                     <div key={p.id} className="flex items-center justify-between gap-2 text-xs">
                       <span className="flex items-center gap-1.5 truncate">
                         <PosBadge pos={p.pos} />
-                        <span className="truncate text-slate-600 dark:text-slate-300">{p.name}</span>
+                        <span className="truncate text-ink-muted">{p.name}</span>
                       </span>
-                      <span className="font-mono text-slate-400">${p.salary}</span>
+                      <span className="font-mono text-ink-subtle">${p.salary}</span>
                     </div>
                   ))}
               </div>
@@ -744,7 +744,7 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
+            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-ink-subtle">
               League board
             </h2>
             <div className="space-y-0.5">
@@ -761,11 +761,11 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
                         : ""
                     }`}
                   >
-                    <span className="truncate text-slate-700 dark:text-slate-200">
+                    <span className="truncate text-ink-muted">
                       {t.isUser ? "★ " : ""}
                       {t.name}
                     </span>
-                    <span className="whitespace-nowrap text-slate-500 dark:text-slate-400">
+                    <span className="whitespace-nowrap text-ink-subtle">
                       <span className="font-mono">${t.cap}</span> ·{" "}
                       <span className="text-xs">{ROSTER_SPOTS - size(t)} open</span> ·{" "}
                       <span className="text-xs">{startableCount(t, "QB")}QB</span>
@@ -773,7 +773,7 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
                   </div>
                 ))}
             </div>
-            <p className="mt-2 text-xs text-slate-400">
+            <p className="mt-2 text-xs text-ink-subtle">
               committed = ${committed(me)} · cap {season}
             </p>
           </div>
@@ -805,12 +805,12 @@ function ModeCard({
     >
       <div
         className={`text-sm font-semibold ${
-          active ? "text-indigo-700 dark:text-indigo-300" : "text-slate-700 dark:text-slate-200"
+          active ? "text-indigo-700 dark:text-indigo-300" : "text-ink-muted"
         }`}
       >
         {title}
       </div>
-      <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{body}</div>
+      <div className="mt-0.5 text-xs text-ink-subtle">{body}</div>
     </button>
   );
 }
@@ -836,30 +836,30 @@ function SoldCard({
           : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
       }`}
     >
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+      <div className="text-xs font-semibold uppercase tracking-wide text-ink-subtle">
         {winner ? "Sold" : "No sale"}
       </div>
       <div className="mt-1 flex items-center gap-3">
         <PosBadge pos={pos} />
-        <span className="text-xl font-bold text-slate-900 dark:text-white">{name}</span>
+        <span className="text-xl font-bold text-ink">{name}</span>
       </div>
       <div className="mt-2 text-lg">
         {winner ? (
           <>
-            <span className="font-mono font-bold text-slate-900 dark:text-white">${price}</span>{" "}
-            <span className="text-slate-500 dark:text-slate-400">to</span>{" "}
+            <span className="font-mono font-bold text-ink">${price}</span>{" "}
+            <span className="text-ink-subtle">to</span>{" "}
             <span
               className={
                 userWon
                   ? "font-bold text-indigo-600 dark:text-indigo-400"
-                  : "font-semibold text-slate-700 dark:text-slate-200"
+                  : "font-semibold text-ink-muted"
               }
             >
               {userWon ? "YOU" : winner}
             </span>
           </>
         ) : (
-          <span className="italic text-slate-400">nobody bid</span>
+          <span className="italic text-ink-subtle">nobody bid</span>
         )}
       </div>
     </div>
@@ -877,13 +877,13 @@ function Stat({
 }) {
   const toneClass =
     tone === "good"
-      ? "text-green-600 dark:text-green-400"
+      ? "text-positive"
       : tone === "warn"
         ? "text-amber-600 dark:text-amber-400"
-        : "text-slate-900 dark:text-white";
+        : "text-ink";
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
-      <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</div>
+      <div className="text-xs font-medium uppercase tracking-wide text-ink-subtle">{label}</div>
       <div className={`mt-0.5 font-mono text-xl font-bold ${toneClass}`}>{value}</div>
     </div>
   );

@@ -51,14 +51,14 @@ export default function TeamRosterSection<T extends ArbPlannerPlayer>({
   ).length;
 
   return (
-    <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+    <div className="border border-line rounded-lg overflow-hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left"
+        className="w-full flex items-center justify-between px-4 py-3 bg-sunken hover:bg-sunken transition-colors text-left"
       >
-        <span className="font-medium text-slate-900 dark:text-white">
+        <span className="font-medium text-ink">
           {teamName}{" "}
-          <span className="text-sm font-normal text-slate-500 dark:text-slate-400">
+          <span className="text-sm font-normal text-ink-subtle">
             ({players.length} player{players.length !== 1 ? "s" : ""}
             {allocatedCount > 0 && `, ${allocatedCount} targeted`})
           </span>
@@ -66,56 +66,56 @@ export default function TeamRosterSection<T extends ArbPlannerPlayer>({
         <span className="flex items-center gap-3">
           <span
             className={`text-sm font-medium ${teamAllocated > 8
-                ? "text-red-600 dark:text-red-400"
+                ? "text-negative"
                 : teamAllocated >= 1 && teamAllocated <= 8
-                  ? "text-green-600 dark:text-green-400"
-                  : "text-slate-500 dark:text-slate-400"
+                  ? "text-positive"
+                  : "text-ink-subtle"
               }`}
           >
             ${teamAllocated} / $8
           </span>
-          <span className="text-slate-400">{isOpen ? "▲" : "▼"}</span>
+          <span className="text-ink-subtle">{isOpen ? "▲" : "▼"}</span>
         </span>
       </button>
       {isOpen && (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
-                <th className="text-left px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
+              <tr className="border-b border-line bg-sunken/50">
+                <th className="text-left px-3 py-2 font-medium text-ink-muted">
                   Player
                 </th>
-                <th className="text-left px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
+                <th className="text-left px-3 py-2 font-medium text-ink-muted">
                   Pos
                 </th>
-                <th className="text-left px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
+                <th className="text-left px-3 py-2 font-medium text-ink-muted">
                   Team
                 </th>
-                <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
+                <th className="text-right px-3 py-2 font-medium text-ink-muted">
                   Salary
                 </th>
                 {showSurplus && (
                   <>
-                    <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
+                    <th className="text-right px-3 py-2 font-medium text-ink-muted">
                       Value
                     </th>
-                    <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
+                    <th className="text-right px-3 py-2 font-medium text-ink-muted">
                       Surplus
                     </th>
                   </>
                 )}
-                <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
+                <th className="text-right px-3 py-2 font-medium text-ink-muted">
                   PPG
                 </th>
-                <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
+                <th className="text-right px-3 py-2 font-medium text-ink-muted">
                   GP
                 </th>
                 {adjustedSurplus && (
-                  <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
+                  <th className="text-right px-3 py-2 font-medium text-ink-muted">
                     Adj. Surplus
                   </th>
                 )}
-                <th className="text-center px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
+                <th className="text-center px-3 py-2 font-medium text-ink-muted">
                   Allocation
                 </th>
               </tr>
@@ -138,7 +138,7 @@ export default function TeamRosterSection<T extends ArbPlannerPlayer>({
                 return (
                   <tr
                     key={p.player_id}
-                    className={`border-b border-slate-100 dark:border-slate-800 ${rowClass}`}
+                    className={`border-b border-line ${rowClass}`}
                   >
                     <td className="px-3 py-2">
                       <PlayerName
@@ -151,38 +151,38 @@ export default function TeamRosterSection<T extends ArbPlannerPlayer>({
                     <td className="px-3 py-2">
                       <PositionBadge position={p.position} />
                     </td>
-                    <td className="px-3 py-2 text-slate-600 dark:text-slate-400">
+                    <td className="px-3 py-2 text-ink-muted">
                       {p.nfl_team}
                     </td>
-                    <td className="px-3 py-2 text-right text-slate-900 dark:text-white">
+                    <td className="px-3 py-2 text-right text-ink">
                       <StatValue value={p.price} format="currency" />
                     </td>
                     {showSurplus && (
                       <>
-                        <td className="px-3 py-2 text-right text-slate-900 dark:text-white">
+                        <td className="px-3 py-2 text-right text-ink">
                           <StatValue value={p.dollar_value ?? null} format="currency" />
                         </td>
                         <td
                           className={`px-3 py-2 text-right font-medium ${surplus >= 0
-                              ? "text-green-600 dark:text-green-400"
-                              : "text-red-600 dark:text-red-400"
+                              ? "text-positive"
+                              : "text-negative"
                             }`}
                         >
                           <StatValue value={p.surplus ?? null} format="currency" />
                         </td>
                       </>
                     )}
-                    <td className="px-3 py-2 text-right text-slate-900 dark:text-white">
+                    <td className="px-3 py-2 text-right text-ink">
                       <StatValue value={p.ppg} format="decimal" />
                     </td>
-                    <td className="px-3 py-2 text-right text-slate-600 dark:text-slate-400">
+                    <td className="px-3 py-2 text-right text-ink-muted">
                       <StatValue value={p.games_played} format="number" />
                     </td>
                     {adjustedSurplus && (
                       <td
                         className={`px-3 py-2 text-right font-medium ${(adjSurp ?? surplus) >= 0
-                            ? "text-green-600 dark:text-green-400"
-                            : "text-red-600 dark:text-red-400"
+                            ? "text-positive"
+                            : "text-negative"
                           }`}
                       >
                         {adjSurp !== undefined ? <StatValue value={adjSurp} format="currency" /> : "—"}
@@ -201,7 +201,7 @@ export default function TeamRosterSection<T extends ArbPlannerPlayer>({
                           );
                           onAllocationChange(p.player_id, val);
                         }}
-                        className="w-14 text-center rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-1 py-1 text-sm"
+                        className="w-14 text-center rounded border border-line-strong bg-white dark:bg-slate-800 text-ink px-1 py-1 text-sm"
                         aria-label={`Allocation for ${p.name}`}
                       />
                     </td>

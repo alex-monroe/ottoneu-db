@@ -64,23 +64,23 @@ export default async function AdjustmentsSection() {
   return (
     <div className="space-y-6">
       <header>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h2 className="text-2xl font-bold tracking-tight text-ink">
           Surplus Value Adjustments ({statsSeason})
         </h2>
-        <p className="text-slate-500 dark:text-slate-400 mt-2">
+        <p className="text-ink-subtle mt-2">
           Adjust player values by entering a target PPG or target surplus — the system
           calculates the underlying dollar adjustment automatically. Adjustments persist
           in the database and can be applied on the{" "}
-          <Link href="/arbitration?mode=adjusted" className="text-blue-600 dark:text-blue-400 underline">
+          <Link href="/arbitration?mode=adjusted" className="text-accent underline">
             Arbitration
           </Link>
           {" "}and{" "}
-          <Link href="/arbitration?tab=simulation&mode=adjusted" className="text-blue-600 dark:text-blue-400 underline">
+          <Link href="/arbitration?tab=simulation&mode=adjusted" className="text-accent underline">
             Arb Simulation
           </Link>{" "}
           tabs by toggling to &ldquo;Adjusted&rdquo; mode.
         </p>
-        <p className="text-slate-400 dark:text-slate-500 mt-1 text-sm">
+        <p className="text-ink-subtle mt-1 text-sm">
           <strong>Proj. Value</strong> and <strong>Proj. Surplus</strong> show {projectionSeason} projected
           dollar values based on recency-weighted PPG projections. <strong>Δ</strong> = projected minus observed value.
         </p>

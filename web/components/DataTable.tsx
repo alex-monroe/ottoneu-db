@@ -2,7 +2,7 @@
 
 import Explain from "./Explain";
 import type { GlossaryTerm } from "@/lib/glossary";
-import { useState } from "react";
+import React, { useState } from "react";
 import type { Column, HighlightRule, PlayerHoverData, TableRow } from "@/lib/types";
 import PlayerHoverCard from "./PlayerHoverCard";
 
@@ -104,10 +104,10 @@ export default function DataTable<Row>({
   };
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <div className="overflow-x-auto rounded-lg border border-line">
       <table className="min-w-full text-sm">
         <thead>
-          <tr className="bg-slate-100 dark:bg-slate-800">
+          <tr className="bg-sunken">
             {renderExpandedRow && (
               <th className="px-2 py-2 w-6" aria-label="expand" />
             )}
@@ -116,6 +116,7 @@ export default function DataTable<Row>({
                 key={col.key}
                 onClick={() => handleSort(col.key)}
                 onKeyDown={(e) => {
+                  if (e.target !== e.currentTarget) return;
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     handleSort(col.key);
@@ -123,7 +124,7 @@ export default function DataTable<Row>({
                 }}
                 tabIndex={0}
                 aria-sort={sortKey === col.key ? (sortAsc ? "ascending" : "descending") : undefined}
-                className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-300 cursor-pointer select-none whitespace-nowrap hover:bg-slate-200 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 rounded-sm"
+                className="px-3 py-2 text-left font-semibold text-ink-muted cursor-pointer select-none whitespace-nowrap hover:bg-line focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent rounded-sm"
               >
                 {col.label}
                 {col.explain && <Explain term={col.explain as GlossaryTerm} />}
@@ -139,7 +140,7 @@ export default function DataTable<Row>({
             <tr>
               <td
                 colSpan={columns.length}
-                className="px-3 py-6 text-center text-slate-500 dark:text-slate-400"
+                className="px-3 py-6 text-center text-ink-subtle"
               >
                 No data
               </td>
@@ -153,19 +154,20 @@ export default function DataTable<Row>({
             const rowBg =
               highlight ??
               (i % 2 === 0
-                ? "bg-white dark:bg-slate-950"
-                : "bg-slate-50 dark:bg-slate-900");
+                ? "bg-raised"
+                : "bg-sunken");
             return (
-              <>
+              // Keyed on the fragment: the inner <tr> keys were invisible to
+              // React, which logged a missing-key warning for every render.
+              <React.Fragment key={i}>
                 <tr
-                  key={i}
-                  className={`border-t border-slate-100 dark:border-slate-800 ${rowBg} ${
+                  className={`border-t border-line ${rowBg} ${
                     renderExpandedRow ? "cursor-pointer hover:brightness-95" : ""
                   }`}
                   onClick={renderExpandedRow ? () => toggleExpanded(i) : undefined}
                 >
                   {renderExpandedRow && (
-                    <td className="px-2 py-2 text-slate-400 dark:text-slate-500 text-xs select-none">
+                    <td className="px-2 py-2 text-ink-subtle text-xs select-none">
                       {isExpanded ? "▼" : "▶"}
                     </td>
                   )}
@@ -193,7 +195,7 @@ export default function DataTable<Row>({
                     return (
                       <td
                         key={col.key}
-                        className="px-3 py-2 text-slate-800 dark:text-slate-200 whitespace-nowrap"
+                        className="px-3 py-2 text-ink-muted whitespace-nowrap"
                       >
                         {cellContent}
                       </td>
@@ -201,13 +203,13 @@ export default function DataTable<Row>({
                   })}
                 </tr>
                 {renderExpandedRow && isExpanded && (
-                  <tr key={`${i}-expanded`} className={rowBg}>
+                  <tr className={rowBg}>
                     <td colSpan={columns.length + 1} className="p-0">
                       {renderExpandedRow(row)}
                     </td>
                   </tr>
                 )}
-              </>
+              </React.Fragment>
             );
           })}
         </tbody>

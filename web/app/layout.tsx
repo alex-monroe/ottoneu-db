@@ -30,6 +30,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        {/* Keyboard users had to tab the whole nav — six dropdowns, the search
+            box and the auth control — on every single page. */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-raised focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-ink focus:shadow-lg"
+        >
+          Skip to content
+        </a>
         <NavigationWrapper />
         <PhaseBanner />
         {children}

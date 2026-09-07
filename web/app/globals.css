@@ -1,26 +1,143 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ---------------------------------------------------------------------------
+ * Design tokens.
+ *
+ * Before this file had any, every value was chosen at the call site: nine
+ * different `bg-* dark:bg-*` pairs meant "a subtly raised surface", ten accent
+ * hues covered five semantic roles (blue *and* indigo, green *and* emerald),
+ * and page and card backgrounds were the same color, so nothing in the app had
+ * elevation. There was nowhere to look a value up, so nobody did.
+ *
+ * These are semantic, not literal: `bg-raised`, not `bg-white`. Reach for a raw
+ * Tailwind palette class only when the thing genuinely has no role here.
+ * ------------------------------------------------------------------------- */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  /* Surfaces, back to front. The page sits *behind* cards so that a card reads
+     as raised without needing a shadow. */
+  --page: #f8fafc;          /* slate-50  */
+  --raised: #ffffff;
+  --sunken: #f1f5f9;        /* slate-100 — table headers, inset panels */
+  --line: #e2e8f0;          /* slate-200 */
+  --line-strong: #cbd5e1;   /* slate-300 — dashed/empty affordances */
+
+  /* Text. `subtle` is the floor: it is the lightest value that still clears
+     WCAG AA (4.5:1) on `--page`. There is deliberately nothing below it — the
+     old `text-slate-400` captions measured 2.56:1 in light mode. */
+  --ink: #0f172a;           /* slate-900 */
+  --ink-muted: #475569;     /* slate-600 */
+  --ink-subtle: #64748b;    /* slate-500 */
+  --ink-inverse: #ffffff;
+
+  /* Roles. One hue each — `positive` is emerald everywhere, never also green. */
+  --accent: #2563eb;        /* blue-600  */
+  --accent-strong: #1d4ed8; /* blue-700  */
+  --accent-soft: #eff6ff;   /* blue-50   */
+  --accent-ink: #1e40af;    /* blue-800 — accent text on --accent-soft */
+  --positive: #059669;      /* emerald-600 */
+  --positive-soft: #ecfdf5;
+  --negative: #dc2626;      /* red-600 */
+  --negative-soft: #fef2f2;
+  /* `warning` is for data the reader should distrust — a stale scrape. It is
+     deliberately NOT the season-phase color: amber used to mean the phase
+     badge, the featured-nav dot, the playoff cut line *and* "this data may be
+     wrong", so it had stopped meaning anything. */
+  --warning: #b45309;       /* amber-700 */
+  --warning-soft: #fffbeb;
+  /* The season phase gets its own hue so the two never collide. */
+  --phase: #7c3aed;         /* violet-600 */
+  --phase-soft: #f5f3ff;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --page: #020617;        /* slate-950 */
+    --raised: #0f172a;      /* slate-900 — a visible step above the page */
+    --sunken: #1e293b;      /* slate-800 */
+    --line: #1e293b;
+    --line-strong: #334155;
+
+    --ink: #f8fafc;
+    --ink-muted: #cbd5e1;   /* slate-300 */
+    --ink-subtle: #94a3b8;  /* slate-400 */
+    --ink-inverse: #020617;
+
+    --accent: #60a5fa;      /* blue-400 — AA on a dark ground */
+    --accent-strong: #93c5fd;
+    --accent-soft: #172554;
+    --accent-ink: #bfdbfe;
+    --positive: #34d399;    /* emerald-400 */
+    --positive-soft: #022c22;
+    --negative: #f87171;    /* red-400 */
+    --negative-soft: #450a0a;
+    --warning: #fbbf24;     /* amber-400 */
+    --warning-soft: #451a03;
+    --phase: #a78bfa;       /* violet-400 */
+    --phase-soft: #2e1065;
   }
 }
 
+@theme inline {
+  --color-page: var(--page);
+  --color-raised: var(--raised);
+  --color-sunken: var(--sunken);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-ink-inverse: var(--ink-inverse);
+
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-positive: var(--positive);
+  --color-positive-soft: var(--positive-soft);
+  --color-negative: var(--negative);
+  --color-negative-soft: var(--negative-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-phase: var(--phase);
+  --color-phase-soft: var(--phase-soft);
+
+  /* layout.tsx loads Geist and Geist Mono and wires them to these variables.
+     The old `body { font-family: Arial }` rule below silently overrode both, so
+     the app paid for two webfonts on every page load and rendered in Arial. */
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* One focus treatment for the whole app. The codebase had 36 `focus:ring-*`
+   (which fires on mouse clicks too) against 8 `focus-visible:ring-*`; this makes
+   the keyboard-only behaviour the default so call sites don't have to. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Position badges carry a light and a dark fill as custom properties so a
+   server component can render both without shipping a theme check to the
+   client. Light mode is a dark fill under white text; dark mode inverts, since
+   a saturated fill light enough to read on a dark page cannot also carry white
+   text at 4.5:1. */
+.position-badge {
+  background-color: var(--pos-light);
+  color: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  .position-badge {
+    background-color: var(--pos-dark);
+    color: #0f172a;
+  }
 }
