@@ -53,7 +53,7 @@ interface RawStats {
   snaps: number | null;
 }
 
-interface RawLeaguePrice {
+export interface RawLeaguePrice {
   player_id: string;
   price: number | null;
   team_name: string | null;
@@ -163,8 +163,27 @@ interface PlayerState {
 
 // "FA" (and empty/null) in league_prices/transactions denotes free agents,
 // not a real fantasy team — those players are not on anyone's roster.
-function isRealTeam(team: string | null | undefined): team is string {
+export function isRealTeam(team: string | null | undefined): team is string {
   return team != null && team !== "" && team !== "FA";
+}
+
+/**
+ * player_id → owning team, for the players rostered *right now*.
+ *
+ * `league_prices` is the current roster state (refreshed by the roster CSV
+ * reconciliation), which is what the player card reads. Anything deriving
+ * ownership from a transaction replay to a *past* date will disagree with it
+ * the moment a player changes hands after that date — a player cut in December
+ * and re-drafted in August's auction replays as a free agent while the league
+ * has him rostered. Ask this map "who owns him?", and the replay only "what did
+ * he cost?".
+ */
+export function currentTeamByPlayer(leaguePrices: RawLeaguePrice[]): Map<string, string> {
+  const owners = new Map<string, string>();
+  for (const lp of leaguePrices) {
+    if (isRealTeam(lp.team_name)) owners.set(lp.player_id, lp.team_name);
+  }
+  return owners;
 }
 
 /** A transaction that takes the player off the roster. */
