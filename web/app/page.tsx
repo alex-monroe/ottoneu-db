@@ -17,11 +17,13 @@ import {
   CalendarClock,
   Network,
   Swords,
+  Shield,
   type LucideIcon,
 } from "lucide-react";
 import { getSeasonContextNow } from "@/lib/season";
 import { PHASE_UI, describeNextBoundary } from "@/lib/season-ui";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { getViewerTeam } from "@/lib/viewer-team";
 import { getLeagueStatus } from "@/lib/matchups";
 import ScoreboardCard from "@/components/ScoreboardCard";
 import StandingsTable from "@/components/StandingsTable";
@@ -55,6 +57,7 @@ const HUB_GROUPS: HubGroup[] = [
       { href: "/scoreboard", title: "Scoreboard", description: "Every week's matchups, the standings, and the playoff picture.", icon: Swords },
       { href: "/players", title: "Players", description: "Search the directory or view the salary-vs-production chart.", icon: Users },
       { href: "/rosters", title: "Rosters", description: "League-wide roster view with salaries and values.", icon: ClipboardList },
+      { href: "/teams", title: "Teams", description: "Each team's roster, cap space, record and schedule in one place.", icon: Shield },
       { href: "/lineup", title: "Lineup", description: "Build a starting lineup from any team and see its projected total.", icon: LayoutGrid },
     ],
   },
@@ -123,10 +126,11 @@ function HubCard({ link, href, muted }: { link: HubLink; href?: string; muted?: 
 }
 
 export default async function Home() {
-  const [ctx, user, league] = await Promise.all([
+  const [ctx, user, league, viewerTeam] = await Promise.all([
     getSeasonContextNow(),
     getAuthenticatedUser(),
     getLeagueStatus(),
+    getViewerTeam(),
   ]);
   const ui = PHASE_UI[ctx.phase];
   const boundary = describeNextBoundary(ctx);
@@ -213,7 +217,7 @@ export default async function Home() {
                 </div>
               </div>
               <div>
-                <StandingsTable playoffs={league.playoffs} compact />
+                <StandingsTable playoffs={league.playoffs} compact viewerTeam={viewerTeam} />
               </div>
             </div>
           </section>
@@ -244,12 +248,17 @@ export default async function Home() {
                 {group.label}
               </h2>
               {locked ? (
+                // /access, not /login: an authenticated user without projections
+                // access is redirected away from /login and lands back here,
+                // having been told nothing.
                 <Link
-                  href="/login"
+                  href="/access"
                   className="flex items-center gap-3 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 p-4 text-sm text-slate-500 dark:text-slate-400 hover:border-blue-300 dark:hover:border-blue-800 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
                 >
                   <Lock size={16} aria-hidden="true" />
-                  Sign in to access {group.label.toLowerCase()} tools.
+                  {user
+                    ? `Your account doesn't have access to ${group.label.toLowerCase()} tools yet.`
+                    : `Sign in to access ${group.label.toLowerCase()} tools.`}
                 </Link>
               ) : (
                 <div className={`grid gap-3 sm:grid-cols-2 ${group.links.length > 2 ? "lg:grid-cols-3" : ""}`}>

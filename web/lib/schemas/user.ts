@@ -15,6 +15,9 @@ export type CreateUserInput = z.infer<typeof CreateUserSchema>;
 
 export const UpdateUserSchema = z.object({
     has_projections_access: z.boolean().optional(),
+    // The Ottoneu team this account manages. Empty string clears the binding —
+    // z.null() would not survive a JSON round-trip from a <select>.
+    team_name: z.string().trim().max(120).nullable().optional(),
 });
 
 export type UpdateUserInput = z.infer<typeof UpdateUserSchema>;

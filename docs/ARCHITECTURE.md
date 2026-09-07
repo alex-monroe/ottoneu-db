@@ -159,11 +159,21 @@ testing or off-schedule events. Full design rationale and migration history:
 User accounts with email/password login stored in the `users` table. Passwords are hashed with bcrypt (`bcryptjs`). Sessions use HMAC-SHA256 signed tokens stored in HTTP-only cookies (7-day expiry). The session payload encodes `userId`, `isAdmin`, and `hasProjectionsAccess` — no DB lookup needed for authorization.
 
 - **`SESSION_SECRET`** env var provides the HMAC signing key
-- **Middleware** (`web/middleware.ts`) enforces route protection:
-  - Protected routes (projections, VORP, surplus, arbitration) require `hasProjectionsAccess`
-  - Admin routes (`/admin`) require `isAdmin`
+- **Route policy lives in one module** — `web/lib/access.ts` owns `PROJECTIONS_ROUTES`, `ADMIN_ROUTES`, `PUBLIC_API_ROUTES` and the `accessRedirect()` decision function. It is Edge-safe (no `next/headers`, no Supabase) because `web/middleware.ts` imports it. Matching is **segment-aware** (`/value` never matches `/valuation`), and `next.config.ts` `redirects()` run before middleware, so consolidated URLs arrive normalised
+- **Middleware** (`web/middleware.ts`) applies that policy: projections routes require `hasProjectionsAccess`, `/admin` requires `isAdmin`, and every other `/api` route requires a valid session
+- **Server components** call `requireProjectionsAccess()` (`web/lib/auth.ts`) rather than hand-rolling a check, so a route accidentally dropped from the list still fails closed
+- **A signed-in user without access goes to `/access`, never `/login`.** `/login` redirects an authenticated visitor onward, so routing them there produced an infinite redirect loop for every self-registered account (registration grants `has_projections_access: false`). `__tests__/lib/access.test.ts` pins the invariant that no gated route redirects a signed-in user back to itself
+- **Access requests:** `users.access_requested_at` records who is waiting. Self-registration stamps it, `POST /api/access-request` sets it for an existing account, and `/admin` sorts pending accounts to the top with a count badge — the only channel this app has for telling an admin somebody registered
+- **Session freshness:** the cookie caches `isAdmin`/`hasProjectionsAccess` for 7 days, so a freshly granted user would otherwise stay locked out. `POST /api/auth/refresh` re-signs it from the DB row; `/access` calls that so a grant takes effect immediately
+- **"My team" is per-user, not a constant.** `users.team_name` binds an account to the Ottoneu team it manages; `getViewerTeam()` (`web/lib/viewer-team.ts`) resolves it for the signed-in viewer and every view derives "my team" from that. `config.json`'s `MY_TEAM` is now only the **operator's** default, applied to an unbound *admin* account — an ordinary unbound account resolves to `null` and gets neutral views rather than somebody else's roster. Client components take the resolved team as a `viewerTeam` prop; pure analysis functions (`analyzeProjectedSalary`, `analyzeArbitration`) take it as an argument. `web/lib/team-binding.ts` holds the DB-only half so the MCP layer (bearer tokens, no cookies) can resolve a team without importing the session chain
 - **User-scoped data:** `surplus_adjustments` and `arbitration_plans` are scoped to `user_id` — each user sees only their own data
-- **Admin panel** (`/admin`) allows admins to create users, toggle projections access, and delete users
+- **Admin panel** (`/admin`) allows admins to create users, toggle projections access, bind an account to a league team, and delete users
+
+## Teams as objects
+
+`web/lib/teams.ts` assembles everything the app knows about one team — roster and cap from the transaction replay, record and rank from the derived standings, schedule flipped into that team's point of view, and (gated) surplus plus arbitration exposure. `TeamName` (`web/components/TeamName.tsx`) is the canonical renderer and the only thing that should print a fantasy-team name, so every team in the app leads to the same page. `fantasyTeamCol()` in `web/components/columns.tsx` is the `DataTable` equivalent.
+
+Team names are display strings with spaces and punctuation, not ids: `teamHref()` encodes them, `resolveTeamName()` decodes and matches case-insensitively against the live roster set (returning the canonical spelling), and `sameTeamName()` is the forgiving comparison used throughout — the roster CSV and the schedule export do not agree about padding or case.
 
 ## API Input Validation
 

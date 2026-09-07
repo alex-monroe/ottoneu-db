@@ -1,5 +1,4 @@
 import {
-    MY_TEAM,
     ARB_MAX_PER_PLAYER_PER_TEAM,
     ARB_BUDGET_PER_TEAM,
     ARB_MIN_PER_TEAM,
@@ -18,9 +17,14 @@ import { calculateSurplus } from "./surplus";
 /**
  * Analyzes opposing rosters to identify potential arbitration targets.
  * Focuses on players with positive surplus even after applying the $4 arbitration bump.
+ *
+ * `myTeam` is the viewer's team (web/lib/viewer-team.ts) and is excluded from
+ * the pool — you cannot allocate arbitration against yourself. Passing null
+ * excludes nobody, which is the correct league-wide view for an unbound viewer.
  */
 export function analyzeArbitration(
     allPlayers: Player[],
+    myTeam: string | null,
     adjustments?: Map<string, number>
 ): ArbitrationTarget[] {
     const surplusPlayers = calculateSurplus(allPlayers, adjustments);
@@ -32,7 +36,7 @@ export function analyzeArbitration(
             p.team_name != null &&
             p.team_name !== "" &&
             p.team_name !== "FA" &&
-            p.team_name !== MY_TEAM &&
+            (myTeam == null || p.team_name !== myTeam) &&
             p.position !== "K"
     );
 

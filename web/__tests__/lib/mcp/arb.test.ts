@@ -118,7 +118,7 @@ describe("analyzeArbTargets", () => {
         }
         const surplus = calculateSurplus(pool);
         const viaMcp = analyzeArbTargets(surplus, MY_TEAM);
-        const viaSite = analyzeArbitration(pool);
+        const viaSite = analyzeArbitration(pool, MY_TEAM);
         expect(viaMcp.map((t) => t.player_id)).toEqual(viaSite.map((t) => t.player_id));
         expect(viaMcp.map((t) => t.surplus_after_arb)).toEqual(
             viaSite.map((t) => t.surplus_after_arb)

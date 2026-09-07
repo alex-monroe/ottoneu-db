@@ -5,7 +5,6 @@ import {
   allocateArbitrationBudget,
   fetchPlayersPreArb,
   LEAGUE_ID,
-  MY_TEAM,
   ARB_BUDGET_PER_TEAM,
   ARB_MIN_PER_TEAM,
   ARB_MAX_PER_TEAM,
@@ -14,6 +13,7 @@ import {
 } from "@/lib/analysis";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { getViewerTeam } from "@/lib/viewer-team";
 import ArbPlannerClient from "@/app/arbitration-planner/ArbPlannerClient";
 
 /**
@@ -21,7 +21,7 @@ import ArbPlannerClient from "@/app/arbitration-planner/ArbPlannerClient";
  * page; no page chrome of its own.
  */
 export default async function PlannerSection() {
-  const user = await getAuthenticatedUser();
+  const [user, viewerTeam] = await Promise.all([getAuthenticatedUser(), getViewerTeam()]);
 
   // Fetch players with pre-arbitration salaries (after auto bump, before arb results)
   const allPlayers = await fetchPlayersPreArb();
@@ -41,7 +41,7 @@ export default async function PlannerSection() {
 
   // Use raw values (no adjustments) so Value/Surplus columns match the arbitration page.
   // Adjustments are shown separately in the "Adj. Surplus" column.
-  const targets = analyzeArbitration(allPlayers);
+  const targets = analyzeArbitration(allPlayers, viewerTeam);
   const suggestedAllocations = allocateArbitrationBudget(targets);
 
   // Get unique opponent team names
@@ -53,7 +53,7 @@ export default async function PlannerSection() {
             p.team_name != null &&
             p.team_name !== "" &&
             p.team_name !== "FA" &&
-            p.team_name !== MY_TEAM
+            (viewerTeam == null || p.team_name !== viewerTeam)
         )
         .map((p) => p.team_name!)
     ),

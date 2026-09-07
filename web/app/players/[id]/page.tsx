@@ -7,6 +7,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { POSITION_COLORS, type Position } from "@/lib/types";
 import PositionBadge from "@/components/PositionBadge";
+import TeamName from "@/components/TeamName";
+import { teamHref } from "@/lib/teams";
 import StatValue from "@/components/StatValue";
 
 export async function generateMetadata({
@@ -141,7 +143,11 @@ export default async function PlayerCardPage({
                                 )}
                                 <div className="text-center">
                                     <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                                        {player.team_name ?? "Free Agent"}
+                                        {player.team_name ? (
+                                            <TeamName name={player.team_name} />
+                                        ) : (
+                                            "Free Agent"
+                                        )}
                                     </p>
                                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                                         Owner
@@ -150,14 +156,39 @@ export default async function PlayerCardPage({
                             </div>
                         </div>
 
-                        <a
-                            href={`https://ottoneu.fangraphs.com/football/309/player_card/nfl/${player.ottoneu_id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline mt-3"
-                        >
-                            View on Ottoneu ↗
-                        </a>
+                        {/* Related rail — the player card used to be a cul-de-sac
+                            whose only internal link was "back to Players". */}
+                        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+                            {player.team_name && player.team_name !== "FA" && (
+                                <Link
+                                    href={teamHref(player.team_name)}
+                                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                                >
+                                    {player.team_name}&apos;s roster &amp; cap →
+                                </Link>
+                            )}
+                            <Link href="/lineup" className="text-blue-600 dark:text-blue-400 hover:underline">
+                                Lineup planner →
+                            </Link>
+                            {user?.hasProjectionsAccess && (
+                                <>
+                                    <Link href="/value?tab=surplus" className="text-blue-600 dark:text-blue-400 hover:underline">
+                                        Surplus rankings →
+                                    </Link>
+                                    <Link href="/arbitration" className="text-blue-600 dark:text-blue-400 hover:underline">
+                                        Arbitration targets →
+                                    </Link>
+                                </>
+                            )}
+                            <a
+                                href={`https://ottoneu.fangraphs.com/football/309/player_card/nfl/${player.ottoneu_id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                                View on Ottoneu ↗
+                            </a>
+                        </div>
                     </div>
                 </div>
 
@@ -293,7 +324,7 @@ export default async function PlayerCardPage({
                                                     {typeLabel}
                                                 </td>
                                                 <td className="px-3 py-2 text-slate-600 dark:text-slate-400">
-                                                    {txn.team_name ?? "—"}
+                                                    {txn.team_name ? <TeamName name={txn.team_name} /> : "—"}
                                                 </td>
                                                 <td className="px-3 py-2 text-right font-mono text-slate-800 dark:text-slate-200">
                                                     {txn.salary != null ? `$${txn.salary}` : "—"}

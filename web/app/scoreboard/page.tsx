@@ -4,6 +4,9 @@ import StandingsTable from "@/components/StandingsTable";
 import { fetchLeagueStatus, fetchMatchupSeasons } from "@/lib/matchups";
 import { formatRecord } from "@/lib/standings";
 import WeekPicker from "./WeekPicker";
+import { getViewerTeam } from "@/lib/viewer-team";
+import { teamHref } from "@/lib/teams";
+import Link from "next/link";
 
 /**
  * The league's in-season status in one page: this week's scoreboard, the full
@@ -49,6 +52,9 @@ function weekWindow(starts: string | null, ends: string | null): string | null {
 
 export default async function ScoreboardPage({ searchParams }: Props) {
   const params = await searchParams;
+  // Null for anonymous visitors — this page is public, so the standings simply
+  // highlight nobody rather than somebody else's team.
+  const viewerTeam = await getViewerTeam();
   const seasons = await fetchMatchupSeasons();
   const requestedSeason = Number(params.season);
   const status = await fetchLeagueStatus(
@@ -82,6 +88,18 @@ export default async function ScoreboardPage({ searchParams }: Props) {
             {status.season} head-to-head results and standings, scraped from the league.
             {!status.started && " The season has not started — this is the schedule as drawn."}
           </p>
+          {/* The weekly loop runs scoreboard → your team → lineup; it used to
+              dead-end here. */}
+          <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+            {viewerTeam && (
+              <Link href={teamHref(viewerTeam)} className="text-blue-600 dark:text-blue-400 hover:underline">
+                {viewerTeam} →
+              </Link>
+            )}
+            <Link href="/lineup" className="text-blue-600 dark:text-blue-400 hover:underline">
+              Set a lineup →
+            </Link>
+          </p>
           <WeekPicker
             currentWeek={week}
             weeks={status.weeks}
@@ -111,7 +129,7 @@ export default async function ScoreboardPage({ searchParams }: Props) {
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
             Standings
           </h2>
-          <StandingsTable playoffs={status.playoffs} />
+          <StandingsTable playoffs={status.playoffs} viewerTeam={viewerTeam} />
           <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
             Derived from regular-season results only — playoff and consolation games do
             not count. Ties are broken by points for.

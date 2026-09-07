@@ -3,7 +3,6 @@
 import { useState, useMemo } from "react";
 import {
   runArbitrationSimulation,
-  MY_TEAM,
   NUM_SIMULATIONS,
   VALUE_VARIATION,
 } from "@/lib/analysis";
@@ -20,6 +19,8 @@ import {
 } from "@/components/columns";
 
 interface SimulationControlsProps {
+  /** The signed-in viewer's team, or null when unbound. */
+  viewerTeam: string | null;
   initialPlayers: Player[];
   /** Serialized adjustments from the server (Record is JSON-safe, Map is not) */
   initialAdjustments?: Record<string, number>;
@@ -78,7 +79,7 @@ const CUT_CANDIDATE_RULES: HighlightRule<SimulationResult>[] = [
   { key: "surplus_after_arb", op: "lt", value: -10, className: "bg-red-50 dark:bg-red-950/30" },
 ];
 
-export default function SimulationControls({ initialPlayers, initialAdjustments, hoverDataMap = null }: SimulationControlsProps) {
+export default function SimulationControls({ initialPlayers, initialAdjustments, hoverDataMap = null, viewerTeam }: SimulationControlsProps) {
   const [numSimulations, setNumSimulations] = useState(NUM_SIMULATIONS);
   const [valueVariation, setValueVariation] = useState(VALUE_VARIATION);
   const simResults = useMemo(() => {
@@ -88,12 +89,19 @@ export default function SimulationControls({ initialPlayers, initialAdjustments,
     return runArbitrationSimulation(initialPlayers, numSimulations, valueVariation, adjMap);
   }, [initialPlayers, initialAdjustments, numSimulations, valueVariation]);
 
-  const myRoster = simResults
-    .filter((p) => p.team_name === MY_TEAM)
-    .sort((a, b) => b.mean_arb - a.mean_arb);
+  // Viewer-relative: an unbound account has no roster of its own, and every
+  // rostered player is an "opponent" for the league-wide view.
+  const myRoster = viewerTeam
+    ? simResults
+        .filter((p) => p.team_name === viewerTeam)
+        .sort((a, b) => b.mean_arb - a.mean_arb)
+    : [];
 
   const opponents = simResults.filter(
-    (p) => p.team_name !== MY_TEAM && p.team_name !== "FA" && p.team_name !== ""
+    (p) =>
+      (viewerTeam == null || p.team_name !== viewerTeam) &&
+      p.team_name !== "FA" &&
+      p.team_name !== ""
   );
 
   const vulnerable = opponents
@@ -191,13 +199,17 @@ export default function SimulationControls({ initialPlayers, initialAdjustments,
 
       {simResults.length > 0 && (
         <>
-          {/* My Roster */}
+          {/* My Roster — only meaningful once the account is bound to a team. */}
           <section>
             <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
-              {MY_TEAM} — Expected Arbitration Raises
+              {viewerTeam ? `${viewerTeam} — Expected Arbitration Raises` : "Your Expected Arbitration Raises"}
             </h2>
             {myRoster.length === 0 ? (
-              <p className="text-slate-500 dark:text-slate-400">No players found.</p>
+              <p className="text-slate-500 dark:text-slate-400">
+                {viewerTeam
+                  ? "No players found."
+                  : "Your account isn't linked to a team yet, so there are no raises to show. An admin can link it from the admin panel."}
+              </p>
             ) : (
               <>
                 <DataTable

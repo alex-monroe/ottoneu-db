@@ -4,7 +4,7 @@ import {
 } from "@/lib/roster-reconstruction";
 import { fetchHoverExtras } from "@/lib/analysis";
 import { getAuthenticatedUser } from "@/lib/auth";
-import { MY_TEAM } from "@/lib/config";
+import { getViewerTeam } from "@/lib/viewer-team";
 import type { LineupPlayer } from "@/lib/lineup";
 import LineupClient from "./LineupClient";
 
@@ -16,9 +16,10 @@ export interface LineupTeam {
 }
 
 export default async function LineupPage() {
-  const [data, user] = await Promise.all([
+  const [data, user, viewerTeam] = await Promise.all([
     fetchRosterData(),
     getAuthenticatedUser(),
+    getViewerTeam(),
   ]);
   const hasProjections = !!user?.hasProjectionsAccess;
   const { projMap } = await fetchHoverExtras(hasProjections);
@@ -48,7 +49,7 @@ export default async function LineupPage() {
     <LineupClient
       teams={teams}
       hasProjections={hasProjections}
-      defaultTeam={teams.some((t) => t.team_name === MY_TEAM) ? MY_TEAM : null}
+      defaultTeam={viewerTeam && teams.some((t) => t.team_name === viewerTeam) ? viewerTeam : null}
     />
   );
 }

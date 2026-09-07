@@ -4,7 +4,8 @@ import { useState } from "react";
 import DataTable from "@/components/DataTable";
 import { type TeamRoster } from "@/lib/roster-reconstruction";
 import type { Column, PlayerHoverData } from "@/lib/types";
-import { MY_TEAM, CAP_PER_TEAM } from "@/lib/arb-logic";
+import { CAP_PER_TEAM } from "@/lib/arb-logic";
+import TeamName from "@/components/TeamName";
 import {
   playerNameCol,
   positionCol,
@@ -27,11 +28,14 @@ function getRosterColumns(hoverDataMap: Record<string, PlayerHoverData> | null):
 
 interface TeamRosterSectionProps {
   roster: TeamRoster;
+  /** The signed-in viewer's team, expanded by default. Null = all collapsed. */
+  viewerTeam?: string | null;
   hoverDataMap?: Record<string, PlayerHoverData> | null;
 }
 
-export default function TeamRosterSection({ roster, hoverDataMap = null }: TeamRosterSectionProps) {
-  const [isOpen, setIsOpen] = useState(roster.team_name === MY_TEAM);
+export default function TeamRosterSection({ roster, hoverDataMap = null, viewerTeam = null }: TeamRosterSectionProps) {
+  // The viewer's own roster opens by default; everyone else's starts collapsed.
+  const [isOpen, setIsOpen] = useState(viewerTeam != null && roster.team_name === viewerTeam);
 
   const isOverCap = roster.total_salary > CAP_PER_TEAM;
 
@@ -42,7 +46,7 @@ export default function TeamRosterSection({ roster, hoverDataMap = null }: TeamR
         className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left"
       >
         <span className="font-medium text-slate-900 dark:text-white">
-          {roster.team_name}{" "}
+          <TeamName name={roster.team_name} mine={viewerTeam === roster.team_name} />{" "}
           <span className="text-sm font-normal text-slate-500 dark:text-slate-400">
             ({roster.players.length} player
             {roster.players.length !== 1 ? "s" : ""})

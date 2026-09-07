@@ -1,5 +1,6 @@
 import { LEAGUE_ID } from "@/lib/config";
 import type { Matchup } from "@/lib/standings";
+import TeamName from "./TeamName";
 
 /**
  * One head-to-head game: both teams, both scores, and how far along it is.
@@ -35,14 +36,8 @@ function TeamRow({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <span
-        className={`truncate text-sm ${
-          won
-            ? "font-semibold text-slate-900 dark:text-white"
-            : "text-slate-600 dark:text-slate-300"
-        }`}
-      >
-        {name}
+      <span className={`truncate text-sm ${won ? "font-semibold" : ""}`}>
+        <TeamName name={name} mine={won} />
       </span>
       <span
         className={`shrink-0 tabular-nums text-sm ${
@@ -66,15 +61,16 @@ export default function ScoreboardCard({ matchup }: { matchup: Matchup }) {
   const typeLabel = TYPE_LABELS[matchup.game_type];
 
   return (
-    <a
-      href={`https://ottoneu.fangraphs.com/football/${LEAGUE_ID}/game/${matchup.game_id}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="block rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-3 transition-colors hover:border-blue-300 dark:hover:border-blue-800"
-    >
+    // Not a single wrapping link any more: each team name leads to its own
+    // page, so the game link moved onto the status badge.
+    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-3 transition-colors hover:border-blue-300 dark:hover:border-blue-800">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+        <a
+          href={`https://ottoneu.fangraphs.com/football/${LEAGUE_ID}/game/${matchup.game_id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Open this game on Ottoneu"
+          className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium hover:underline ${
             STATUS_STYLES[matchup.status] ?? STATUS_STYLES.scheduled
           }`}
         >
@@ -85,7 +81,7 @@ export default function ScoreboardCard({ matchup }: { matchup: Matchup }) {
             />
           )}
           {matchup.status_label ?? (matchup.status === "final" ? "Final" : "Scheduled")}
-        </span>
+        </a>
         {typeLabel && (
           <span className="text-[11px] font-medium uppercase tracking-wide text-amber-700 dark:text-amber-400">
             {typeLabel}
@@ -106,6 +102,6 @@ export default function ScoreboardCard({ matchup }: { matchup: Matchup }) {
           won={decided && away > home}
         />
       </div>
-    </a>
+    </div>
   );
 }

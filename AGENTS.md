@@ -38,6 +38,7 @@ Comprehensive database and analytics platform for Ottoneu Fantasy Football Leagu
 - **Auction Simulator:** See [docs/references/auction-simulator.md](docs/references/auction-simulator.md) for the offline Monte-Carlo keeper-auction sim (`scripts/auction_simulator.py`) — thousands of simulated drafts to price a target list. The `/mock-draft` AI opponents are a port of its heuristics
 - **League Explorer:** See [docs/references/league-explorer.md](docs/references/league-explorer.md) for the cross-league survey tool (`just league-explorer`) — scrapes other public Ottoneu leagues (settings, standings history, champions, roster/salary snapshots) into a local SQLite DB at `data/league_explorer/`, separate from Supabase
 - **Autonomous operation:** See [docs/references/autonomous-operation.md](docs/references/autonomous-operation.md) for the permission-friction strategy — allowlist design, prompt-rate metrics (`just permission-report`), and the `.devcontainer/` for safely running `claude --dangerously-skip-permissions`
+- **UX journeys:** See [docs/exec-plans/ux-journeys.md](docs/exec-plans/ux-journeys.md) — the nine key user journeys the site serves (in-season weekly loop, player lookup, arbitration, keep/cut, auction prep, post-auction review, first visit/access, operator data checks, MCP agents), the cross-cutting UX findings behind them, and the phased improvement plan. Read it before changing navigation, gating, or page structure in `web/`
 - **Season cycle:** See [docs/exec-plans/season-cycle.md](docs/exec-plans/season-cycle.md) — the site rolls between Ottoneu seasons from the `league_calendar` table; the current season is resolved at runtime via `scripts/season.py` and `web/lib/season.ts`, not from static config
 - **Projection Accuracy Plan:** See [docs/exec-plans/projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md) for the 4-phase accuracy improvement roadmap (Issues #271-#285)
 - **Projection Accuracy:** The gate for any projection change is the **leakage-free held-out harness** — `just holdout-eval` (#572/#594) + `just significance` (#573/#594), not the in-sample `just accuracy-report` (which is a secondary diagnostic only). See Projection Model Update Requirements below.
@@ -76,7 +77,8 @@ docs/
 │   ├── [structural-projection-levers-667.md](docs/exec-plans/structural-projection-levers-667.md)  # Spike #667 CLOSED: structural levers — L4 ranking gate built; L3 EB pooling (v44) SIGNIFICANT QB win → PROMOTED 2026-07-25, now the active model; L1/L5 efficiency reframes tie/negative; L2 feasible-but-deprioritized
 │   ├── [python-312-upgrade-spike.md](docs/exec-plans/python-312-upgrade-spike.md)  # Spike: Py3.9→3.12 + pandas 2.x — GO verdict + nfl_data_py blocker (#627)
 │   ├── [qb-usage-share.md](docs/exec-plans/qb-usage-share.md)              # QB Usage Share findings and next steps
-│   └── [season-cycle.md](docs/exec-plans/season-cycle.md)                # Cross-season data & UI scheme (date-driven season-cycle resolver)
+│   ├── [season-cycle.md](docs/exec-plans/season-cycle.md)                # Cross-season data & UI scheme (date-driven season-cycle resolver)
+│   └── [ux-journeys.md](docs/exec-plans/ux-journeys.md)                 # Key user journeys, UX findings, phased improvement plan
 ├── generated/
 │   ├── [db-schema.md](docs/generated/db-schema.md)                   # Database tables, keys, relationships
 │   ├── [experiment-log.md](docs/generated/experiment-log.md)              # History of all model iteration attempts

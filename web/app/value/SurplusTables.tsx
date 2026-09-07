@@ -2,9 +2,9 @@
 
 import DataTable from "@/components/DataTable";
 import type { Column, HighlightRule, PlayerHoverData, SurplusPlayer } from "@/lib/types";
-import { MY_TEAM } from "@/lib/config";
 import {
   corePlayerCols,
+  fantasyTeamCol,
   surplusCols,
   ppgCol,
   fullVorpCol,
@@ -25,7 +25,7 @@ interface TeamSummaryRow {
 }
 
 const TEAM_SUMMARY_COLUMNS: Column<TeamSummaryRow>[] = [
-  { key: "team_name", label: "Team" },
+  fantasyTeamCol<TeamSummaryRow>(),
   { key: "players", label: "Players", format: "number" },
   { key: "total_salary", label: "Total Salary", format: "currency" },
   { key: "total_value", label: "Total Value", format: "currency" },
@@ -40,14 +40,18 @@ const OVERPAID_RULES: HighlightRule<SurplusPlayer>[] = [
   { key: "surplus", op: "lt", value: -20, className: "bg-red-50 dark:bg-red-950/30" },
 ];
 
-const MY_TEAM_RULES: HighlightRule<SurplusPlayer>[] = [
+const MY_ROSTER_RULES: HighlightRule<SurplusPlayer>[] = [
   { key: "surplus", op: "lt", value: 0, className: "bg-red-50 dark:bg-red-950/30" },
   { key: "surplus", op: "gte", value: 20, className: "bg-green-50 dark:bg-green-950/30" },
 ];
 
-const TEAM_SUMMARY_RULES: HighlightRule<TeamSummaryRow>[] = [
-  { key: "team_name", op: "eq", value: MY_TEAM, className: "bg-blue-50 dark:bg-blue-950/30" },
-];
+/** Highlight the viewer's own row in the per-team summary. Built per render
+ *  rather than at module scope, since the team differs per viewer. */
+function teamSummaryRules(viewerTeam: string | null): HighlightRule<TeamSummaryRow>[] {
+  return viewerTeam
+    ? [{ key: "team_name", op: "eq", value: viewerTeam, className: "bg-blue-50 dark:bg-blue-950/30" }]
+    : [];
+}
 
 interface SurplusTablesProps {
   bestBargains: SurplusPlayer[];
@@ -57,6 +61,8 @@ interface SurplusTablesProps {
   freeAgents: SurplusPlayer[];
   teamSummary: TeamSummaryRow[];
   hoverDataMap: Record<string, PlayerHoverData> | null;
+  /** The signed-in viewer's team, or null when unbound. */
+  viewerTeam: string | null;
 }
 
 /**
@@ -71,6 +77,7 @@ export default function SurplusTables({
   freeAgents,
   teamSummary,
   hoverDataMap,
+  viewerTeam,
 }: SurplusTablesProps) {
   const coreColumns: Column<SurplusPlayer>[] = [
     ...corePlayerCols<SurplusPlayer>({ hoverDataMap }),
@@ -117,9 +124,9 @@ export default function SurplusTables({
       {myTeam.length > 0 && (
         <section>
           <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
-            {MY_TEAM} — Surplus Breakdown
+            {viewerTeam} — Surplus Breakdown
           </h3>
-          <DataTable columns={myTeamColumns} data={myTeam} highlightRules={MY_TEAM_RULES} />
+          <DataTable columns={myTeamColumns} data={myTeam} highlightRules={MY_ROSTER_RULES} />
           <div className="mt-3 flex flex-wrap gap-6 text-sm text-slate-600 dark:text-slate-400">
             <span>
               Total Salary:{" "}
@@ -163,7 +170,7 @@ export default function SurplusTables({
         <DataTable
           columns={TEAM_SUMMARY_COLUMNS}
           data={teamSummary}
-          highlightRules={TEAM_SUMMARY_RULES}
+          highlightRules={teamSummaryRules(viewerTeam)}
         />
       </section>
     </>

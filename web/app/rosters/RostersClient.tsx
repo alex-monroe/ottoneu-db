@@ -17,6 +17,7 @@ export default function RostersClient({
   stats,
   leaguePrices,
   hoverDataMap,
+  viewerTeam = null,
   season,
   seasons,
   statsSeason,
@@ -25,6 +26,8 @@ export default function RostersClient({
   defaultDate,
 }: RosterData & {
   hoverDataMap?: Record<string, PlayerHoverData> | null;
+  /** The signed-in viewer's team, expanded by default in the roster list. */
+  viewerTeam?: string | null;
   season: number;
   seasons: number[];
   statsSeason: number;
@@ -176,7 +179,7 @@ export default function RostersClient({
         ) : (
           <div className="space-y-2">
             {rosters.map((roster) => (
-              <TeamRosterSection key={roster.team_name} roster={roster} hoverDataMap={hoverDataMap} />
+              <TeamRosterSection key={roster.team_name} roster={roster} hoverDataMap={hoverDataMap} viewerTeam={viewerTeam} />
             ))}
           </div>
         )}

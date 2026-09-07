@@ -1,11 +1,12 @@
 /**
- * Arbitration-target math for the MCP server, parameterized by perspective.
+ * Arbitration-target math for the MCP server, over already-computed surplus.
  *
- * `analyzeArbitration()` in lib/arbitration.ts hardcodes the MY_TEAM
- * viewpoint (it excludes my roster from the target pool), which is wrong for
- * an external consumer — a leaguemate wants my players in the pool and their
- * own excluded. This applies the same bump + danger-zone logic with the
- * excluded team as an argument (or nobody excluded for a league-wide view).
+ * This exists separately from `analyzeArbitration()` in lib/arbitration.ts
+ * because that function recomputes surplus from raw players, while MCP tools
+ * already hold a surplus pool. Both are viewer-relative — they take the team to
+ * exclude as an argument — so a leaguemate's targets include the operator's
+ * players and exclude their own. Passing no team excludes nobody, which is the
+ * league-wide view.
  */
 
 import { ARB_MAX_PER_PLAYER_PER_TEAM } from "../config";

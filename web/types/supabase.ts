@@ -1408,30 +1408,36 @@ export type Database = {
       }
       users: {
         Row: {
+          access_requested_at: string | null
           created_at: string
           email: string
           has_projections_access: boolean
           id: string
           is_admin: boolean
           password_hash: string
+          team_name: string | null
           updated_at: string
         }
         Insert: {
+          access_requested_at?: string | null
           created_at?: string
           email: string
           has_projections_access?: boolean
           id?: string
           is_admin?: boolean
           password_hash: string
+          team_name?: string | null
           updated_at?: string
         }
         Update: {
+          access_requested_at?: string | null
           created_at?: string
           email?: string
           has_projections_access?: boolean
           id?: string
           is_admin?: boolean
           password_hash?: string
+          team_name?: string | null
           updated_at?: string
         }
         Relationships: []
