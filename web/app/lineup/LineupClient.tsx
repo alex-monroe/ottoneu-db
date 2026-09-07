@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { teamHref } from "@/lib/teams";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import PositionBadge from "@/components/PositionBadge";
 import {
@@ -11,6 +12,7 @@ import {
   optimizeLineup,
   lineupTotal,
   getMetricScore,
+  hasWeeklyData,
   isEligible,
   type Lineup,
   type LineupMetric,
@@ -23,17 +25,58 @@ interface Props {
   teams: LineupTeam[];
   hasProjections: boolean;
   defaultTeam: string | null;
+  season: number | null;
+  /** The NFL week being scored, or null when no weekly data is stored. */
+  week: number | null;
+  weeks: number[];
+  hasWeekly: boolean;
+  viewerTeam: string | null;
 }
 
 const fmt = (n: number) => n.toFixed(1);
 
-export default function LineupClient({ teams, hasProjections, defaultTeam }: Props) {
+/**
+ * A player's score for a slot, or a dash when the week has no row for them.
+ *
+ * A gap means "no forecast this week" — a bye, an inactive player, or someone
+ * the source does not carry. It is deliberately NOT labelled "BYE": in week 1
+ * nobody is on bye, yet plenty of deep-bench players have no projection, and
+ * claiming otherwise would be wrong.
+ */
+function scoreLabel(p: LineupPlayer, metric: LineupMetric): string {
+  if (metric === "weekly" && !hasWeeklyData(p)) return "—";
+  return fmt(getMetricScore(p, metric));
+}
+
+export default function LineupClient({
+  teams,
+  hasProjections,
+  defaultTeam,
+  season,
+  week,
+  weeks,
+  hasWeekly,
+  viewerTeam,
+}: Props) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [teamName, setTeamName] = useState<string>(
     defaultTeam ?? teams[0]?.team_name ?? ""
   );
+  // This page exists to set THIS week's lineup, so the per-game forecast is the
+  // default whenever the selected week actually has one. The season-long
+  // metrics stay available for offseason planning.
   const [metric, setMetric] = useState<LineupMetric>(
-    hasProjections ? "projected" : "last_season"
+    hasWeekly ? "weekly" : hasProjections ? "projected" : "last_season"
   );
+
+  /** Week lives in the URL so a lineup can be linked to and shared. */
+  const changeWeek = (next: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("week", String(next));
+    if (teamName) params.set("team", teamName);
+    router.push(`/lineup?${params.toString()}`);
+  };
   const [lineup, setLineup] = useState<Lineup>(emptyLineup());
 
   const team = useMemo(
@@ -91,7 +134,12 @@ export default function LineupClient({ teams, hasProjections, defaultTeam }: Pro
     [team, starterIds, metric]
   );
 
-  const metricLabel = metric === "projected" ? "Projected PPG" : "2025 PPG";
+  const metricLabel =
+    metric === "weekly"
+      ? `Week ${week} projected points`
+      : metric === "projected"
+        ? "Projected PPG"
+        : "2025 PPG";
 
   return (
     <main className="min-h-screen bg-white dark:bg-black p-8">
@@ -101,17 +149,45 @@ export default function LineupClient({ teams, hasProjections, defaultTeam }: Pro
             Lineup Planner
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2">
-            Build a starting lineup from any team&apos;s current roster and see
-            the projected total. Scores are per-game — using each player&apos;s{" "}
-            {hasProjections ? "projected PPG or " : ""}actual PPG from last
-            season.
+            {hasWeekly ? (
+              <>
+                Build a starting lineup for{" "}
+                <strong className="text-slate-700 dark:text-slate-200">
+                  {season} Week {week}
+                </strong>{" "}
+                and see the projected total. Weekly points are a third
+                party&apos;s forecast for that single game; the season-long
+                options score by average instead.
+              </>
+            ) : (
+              <>
+                Build a starting lineup from any team&apos;s current roster and see
+                the projected total. Scores are per-game — using each player&apos;s{" "}
+                {hasProjections ? "projected PPG or " : ""}actual PPG from last
+                season.
+              </>
+            )}
           </p>
           {/* The lineup page linked nowhere; the weekly loop needs a way back
               to the matchup and out to the team being planned. */}
+          {metric === "weekly" && (
+            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+              A dash means no forecast for this week — a bye, an inactive player, or
+              one the source does not carry.
+            </p>
+          )}
           <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
             {teamName && (
               <Link href={teamHref(teamName)} className="text-blue-600 dark:text-blue-400 hover:underline">
                 {teamName}&apos;s roster &amp; cap →
+              </Link>
+            )}
+            {viewerTeam && (
+              <Link
+                href={week != null ? `/matchup?week=${week}` : "/matchup"}
+                className="text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                Your matchup →
               </Link>
             )}
             <Link href="/scoreboard" className="text-blue-600 dark:text-blue-400 hover:underline">
@@ -122,6 +198,29 @@ export default function LineupClient({ teams, hasProjections, defaultTeam }: Pro
 
         {/* Controls */}
         <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-5 border border-slate-200 dark:border-slate-800 flex flex-wrap items-end gap-6">
+          {weeks.length > 0 && week != null && (
+            <div className="flex flex-col gap-1">
+              <label
+                htmlFor="week-select"
+                className="text-sm font-medium text-slate-700 dark:text-slate-300"
+              >
+                Week
+              </label>
+              <select
+                id="week-select"
+                value={week}
+                onChange={(e) => changeWeek(Number(e.target.value))}
+                className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-white"
+              >
+                {weeks.map((w) => (
+                  <option key={w} value={w}>
+                    Week {w}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="flex flex-col gap-1">
             <label
               htmlFor="team-select"
@@ -148,6 +247,19 @@ export default function LineupClient({ teams, hasProjections, defaultTeam }: Pro
               Score by
             </span>
             <div className="inline-flex rounded-md border border-slate-300 dark:border-slate-700 overflow-hidden">
+              {hasWeekly && (
+                <button
+                  type="button"
+                  onClick={() => setMetric("weekly")}
+                  className={`px-3 py-2 text-sm font-medium transition-colors ${
+                    metric === "weekly"
+                      ? "bg-blue-600 text-white"
+                      : "bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900"
+                  }`}
+                >
+                  Week {week}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => hasProjections && setMetric("projected")}
@@ -157,7 +269,7 @@ export default function LineupClient({ teams, hasProjections, defaultTeam }: Pro
                     ? undefined
                     : "Projections require an account with projections access"
                 }
-                className={`px-3 py-2 text-sm font-medium transition-colors ${
+                className={`px-3 py-2 text-sm font-medium transition-colors ${hasWeekly ? "border-l border-slate-300 dark:border-slate-700" : ""} ${
                   metric === "projected"
                     ? "bg-blue-600 text-white"
                     : "bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900"
@@ -244,13 +356,16 @@ export default function LineupClient({ teams, hasProjections, defaultTeam }: Pro
                     <option value="">— empty —</option>
                     {options.map((p) => (
                       <option key={p.player_id} value={p.player_id}>
-                        {p.name} ({p.position}, {p.nfl_team}) ·{" "}
-                        {fmt(getMetricScore(p, metric))}
+                        {p.name} ({p.position}, {p.nfl_team}
+                        {metric === "weekly" && p.weekly_opponent
+                          ? ` ${p.weekly_opponent}`
+                          : ""}
+                        ) · {scoreLabel(p, metric)}
                       </option>
                     ))}
                   </select>
                   <span className="w-14 shrink-0 text-right text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
-                    {selected ? fmt(getMetricScore(selected, metric)) : "—"}
+                    {selected ? scoreLabel(selected, metric) : "—"}
                   </span>
                 </div>
               );
@@ -283,9 +398,18 @@ export default function LineupClient({ teams, hasProjections, defaultTeam }: Pro
                   </span>
                   <span className="text-slate-400 dark:text-slate-500 text-xs">
                     {p.nfl_team}
+                    {metric === "weekly" && p.weekly_opponent
+                      ? ` ${p.weekly_opponent}`
+                      : ""}
                   </span>
-                  <span className="w-14 text-right tabular-nums font-medium text-slate-700 dark:text-slate-300">
-                    {fmt(getMetricScore(p, metric))}
+                  <span
+                    className={`w-14 text-right tabular-nums font-medium ${
+                      metric === "weekly" && !hasWeeklyData(p)
+                        ? "text-slate-400 dark:text-slate-600"
+                        : "text-slate-700 dark:text-slate-300"
+                    }`}
+                  >
+                    {scoreLabel(p, metric)}
                   </span>
                 </div>
               ))}
