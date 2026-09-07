@@ -136,6 +136,105 @@ def _dedupe(records: list[dict], actuals: bool) -> list[dict]:
     return list(best.values())
 
 
+def partition_dropped_rows(
+    existing: list[dict], projected_ids: set[str]
+) -> tuple[list[str], list[str]]:
+    """Split the week's stored rows into (delete, clear-the-projection).
+
+    `existing` is every row we already hold for one (season, week, source);
+    `projected_ids` is who the source projected in the payload we just fetched.
+    Anything stored but no longer projected is stale and must not keep sitting
+    on the board — but a row can hold more than its projection, so the two cases
+    part ways:
+
+      * No `actual_points` — delete. Nothing left in the row is worth keeping.
+      * An actual already stored — keep the row, clear only the projection.
+        A played game is the entire reason a week is retained; throwing it away
+        to tidy up a stale forecast would lose real history.
+
+    Pure, so the decision is testable without a database.
+    """
+    delete: list[str] = []
+    clear: list[str] = []
+    for row in existing:
+        player_id = str(row["player_id"])
+        if player_id in projected_ids:
+            continue
+        if row.get("actual_points") is None:
+            delete.append(player_id)
+        else:
+            clear.append(player_id)
+    return delete, clear
+
+
+def _chunks(values: list[str], size: int = 200):
+    """PostgREST puts `in_` lists in the query string, so send them in batches."""
+    for start in range(0, len(values), size):
+        yield values[start : start + size]
+
+
+def reconcile_dropped_players(
+    supabase,
+    season: int,
+    week: int,
+    source: str,
+    projected_ids: set[str],
+    dry_run: bool = False,
+) -> tuple[int, int]:
+    """Retire rows the source has stopped projecting for this week.
+
+    The upsert only touches players present in today's payload, so a player who
+    was projected on Tuesday and then cut, waived, or put on IR kept Tuesday's
+    number on the board for the rest of the week — a figure that reads as live
+    and is not. Worse, it quietly broke the promise the player card and the MCP
+    tool both make, that **a missing week means a bye or an inactive**: the
+    stale row is indistinguishable from a healthy starter's.
+
+    Returns (deleted, cleared).
+    """
+    existing = fetch_all_rows(
+        supabase,
+        TABLE,
+        "player_id, actual_points",
+        filters=[("eq", "season", season), ("eq", "week", week), ("eq", "source", source)],
+    )
+    delete_ids, clear_ids = partition_dropped_rows(existing, projected_ids)
+
+    if not delete_ids and not clear_ids:
+        print("  No dropped players to retire.")
+        return 0, 0
+
+    if dry_run:
+        print(
+            f"  [dry-run] would delete {len(delete_ids)} dropped rows and clear the "
+            f"projection on {len(clear_ids)} that already hold an actual"
+        )
+        return len(delete_ids), len(clear_ids)
+
+    for batch in _chunks(delete_ids):
+        supabase.table(TABLE).delete().eq("season", season).eq("week", week).eq(
+            "source", source
+        ).in_("player_id", batch).execute()
+
+    if clear_ids:
+        cleared = {
+            "projected_points": None,
+            "projected_stats": None,
+            "opponent": None,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        for batch in _chunks(clear_ids):
+            supabase.table(TABLE).update(cleared).eq("season", season).eq(
+                "week", week
+            ).eq("source", source).in_("player_id", batch).execute()
+
+    print(
+        f"  Retired {len(delete_ids)} dropped players"
+        + (f", kept {len(clear_ids)} that already played (projection cleared)" if clear_ids else "")
+    )
+    return len(delete_ids), len(clear_ids)
+
+
 def purge_old_seasons(supabase, current_season: int, dry_run: bool = False) -> None:
     """Drop weeks from seasons before the current one.
 
@@ -202,6 +301,10 @@ def ingest(
         print(f"\n[dry-run] would upsert {len(records)} rows into {TABLE}")
         for record in records[:5]:
             print(f"  {json.dumps(record, default=str)}")
+        if not actuals and records:
+            reconcile_dropped_players(
+                supabase, season, week, source, {r["player_id"] for r in records}, dry_run=True
+            )
         purge_old_seasons(supabase, season, dry_run=True)
         return 0
 
@@ -210,6 +313,17 @@ def ingest(
             records, on_conflict="player_id,season,week,source"
         ).execute()
         print(f"  Upserted {len(records)} rows into {TABLE}")
+
+    # Only on a projections pass, and only when the source actually returned a
+    # slate. `records` being empty is the guard that matters: an outage or a
+    # silently-emptied payload would otherwise look like "the source projects
+    # nobody this week" and take the whole board down with it. The actuals pass
+    # is a partial view by nature — early in the week most players simply have
+    # not played — so it must never retire anything.
+    if not actuals and records:
+        reconcile_dropped_players(
+            supabase, season, week, source, {r["player_id"] for r in records}
+        )
 
     purge_old_seasons(supabase, season)
     return len(records)

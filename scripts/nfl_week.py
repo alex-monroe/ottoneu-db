@@ -20,6 +20,10 @@ are whole 7-day blocks measured from the Tuesday two days *before* that Thursday
 Before Week 1's Tuesday the upcoming week is 1; after Week 18's Monday there is
 no current week (the regular season is over) and `current_nfl_week` returns None.
 
+Two gates, deliberately different: `is_nfl_week_live` is "are games being played"
+(the gate for pulling actuals), `is_weekly_ingest_window` is "should we be
+refreshing projections" and opens on 1 September, before Week 1 kicks off.
+
 Override: NFL_WEEK_OVERRIDE short-circuits the resolved week (testing, or a
 season whose calendar row is missing/wrong). SEASON_OVERRIDE is honoured through
 scripts.season.
@@ -48,6 +52,13 @@ _THURSDAY_TO_TUESDAY = 2
 
 # date.weekday(): Monday is 0, so Thursday is 3.
 _THURSDAY = 3
+
+# When the weekly-projection ingest window opens, as (month, day) in the NFL
+# season's own year. Week 1's Thursday is always the one after Labor Day, so
+# 1 September sits 3-10 days ahead of the anchor Tuesday — early enough to have
+# the Week 1 board refreshing daily while lineups are being set, late enough
+# that the job still sleeps through the whole summer.
+INGEST_WINDOW_START = (9, 1)
 
 
 def today_in_league_tz(now: Optional[datetime] = None) -> date:
@@ -226,6 +237,41 @@ def is_nfl_week_live(
     if anchor is None or today < anchor:
         return False
     return week_for_date(today, anchor) is not None
+
+
+def is_weekly_ingest_window(
+    today: Optional[date] = None,
+    calendar_rows: Optional[list[dict]] = None,
+    league_id: int = LEAGUE_ID,
+) -> bool:
+    """Should the weekly-projection job pull today?
+
+    The same window as `is_nfl_week_live` at the back end — false once Week 18's
+    Monday has passed, so the job still sleeps all offseason — but open from
+    1 September of the coming NFL season rather than from Week 1's Tuesday.
+
+    Why the two differ: `is_nfl_week_live` answers "are games being played",
+    which is the right gate for *actuals* and the wrong one for *projections*.
+    Sleeper posts the Week 1 board weeks before kickoff and revises it daily as
+    camp and preseason news lands, but the live gate held the ingest shut until
+    the Tuesday of Week 1 — so the site spent the whole run-up to the season
+    showing a Week 1 board last refreshed in August, exactly while people were
+    setting their opening lineups.
+
+    False when no kickoff date is known, same as the live gate.
+    """
+    if today is None:
+        today = today_in_league_tz()
+    if calendar_rows is None:
+        calendar_rows = _fetch_calendar(league_id)
+
+    season, anchor = resolve_window(today, calendar_rows)
+    if season is None or anchor is None:
+        return False
+    # The end of the window is still the end of the regular season.
+    if week_for_date(today, anchor) is None:
+        return False
+    return today >= date(season, *INGEST_WINDOW_START)
 
 
 def display_weeks(

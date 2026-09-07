@@ -64,36 +64,50 @@ jobs:
           echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
           echo "SUPABASE_KEY=${{ secrets.SUPABASE_SECRET_KEY }}" >> .env
 
-      # Gate on whether NFL games are actually being played, NOT on the league
-      # phase from scripts/season.py. The two disagree at the end of the year:
-      # Ottoneu rolls its league season in early January and the phase becomes
-      # `pre_arb`, but Week 18 is played a day or two later — a phase gate would
-      # silently skip the final week. A manual run skips the gate entirely so a
-      # week can be backfilled at any time.
-      - name: Check whether NFL games are being played
+      # TWO gates, deliberately different at the front edge:
+      #
+      #   projections -> is_weekly_ingest_window(): open from 1 September of the
+      #     coming NFL season. Sleeper posts the Week 1 board weeks ahead and
+      #     revises it daily as camp and preseason news lands, so the run-up to
+      #     kickoff is exactly when a daily refresh is worth most.
+      #   actuals -> is_nfl_week_live(): "are games being played". There is
+      #     nothing to pull before kickoff, and asking would just burn a request.
+      #
+      # Both close the day after Week 18's Monday, so the job still no-ops all
+      # offseason. Neither is the league phase from scripts/season.py: Ottoneu
+      # rolls its league season in early January and the phase becomes `pre_arb`
+      # while Week 18 is still to be played, so a phase gate would silently skip
+      # the final week. A manual run skips both gates so any week can be
+      # backfilled at any time.
+      - name: Resolve the ingest window
         id: gate
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "Manual run — skipping the in-season gate."
-            echo "in_season=true" >> "$GITHUB_OUTPUT"
+            echo "Manual run — skipping the in-season gates."
+            echo "ingest=true" >> "$GITHUB_OUTPUT"
+            LIVE=True
           else
+            INGEST=$(python -c "from scripts.nfl_week import is_weekly_ingest_window; print(is_weekly_ingest_window())")
             LIVE=$(python -c "from scripts.nfl_week import is_nfl_week_live; print(is_nfl_week_live())")
             SEASON_WEEK=$(python -c "from scripts.nfl_week import current_nfl_week; print(current_nfl_week())")
-            echo "NFL week live: $LIVE  (season, week) = $SEASON_WEEK"
-            if [ "$LIVE" = "True" ]; then
-              echo "in_season=true" >> "$GITHUB_OUTPUT"
+            echo "Ingest window open: $INGEST   NFL week live: $LIVE   (season, week) = $SEASON_WEEK"
+            if [ "$INGEST" = "True" ]; then
+              echo "ingest=true" >> "$GITHUB_OUTPUT"
             else
-              echo "in_season=false" >> "$GITHUB_OUTPUT"
-              echo "No NFL regular-season week in progress — nothing to ingest."
+              echo "ingest=false" >> "$GITHUB_OUTPUT"
+              echo "Outside the ingest window — nothing to pull."
             fi
           fi
 
-          # Actuals are pulled on every run EXCEPT the Sunday pre-kickoff one,
-          # which fires while games are being played. Writing actuals then would
-          # store a half-finished stat line that renders as a settled "Actual"
-          # next to the projection. The daily 7am ET run picks those same games
-          # up once they are final.
-          if [ "${{ github.event.schedule }}" = "$PRE_KICKOFF_CRON" ]; then
+          # Actuals are pulled whenever games have been played, EXCEPT on the
+          # Sunday pre-kickoff run, which fires while games are in progress.
+          # Writing actuals then would store a half-finished stat line that
+          # renders as a settled "Actual" next to the projection. The daily 7am
+          # ET run picks those same games up once they are final.
+          if [ "$LIVE" != "True" ]; then
+            echo "No NFL week in progress — projections only, no actuals to pull."
+            echo "actuals=false" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "$PRE_KICKOFF_CRON" ]; then
             echo "Pre-kickoff refresh — projections only (games in progress)."
             echo "actuals=false" >> "$GITHUB_OUTPUT"
           else
@@ -109,7 +123,7 @@ jobs:
           fi
 
       - name: Ingest this week's projections
-        if: steps.gate.outputs.in_season == 'true'
+        if: steps.gate.outputs.ingest == 'true'
         run: |
           ARGS=""
           [ -n "${{ inputs.week }}" ] && ARGS="$ARGS --week ${{ inputs.week }}"
@@ -122,14 +136,14 @@ jobs:
       # the card would say "—". Non-fatal: early in the week nobody has played
       # yet and there is simply nothing to write.
       - name: Pull this week's actuals
-        if: steps.gate.outputs.in_season == 'true' && steps.gate.outputs.actuals == 'true' && steps.gate.outputs.targeted == 'false'
+        if: steps.gate.outputs.actuals == 'true' && steps.gate.outputs.targeted == 'false'
         continue-on-error: true
         run: python -m scripts.weekly_projections.ingest --actuals
 
       # The just-finished week, re-pulled so late stat corrections and Monday
       # night's game land. Non-fatal: in Week 1 there is no previous week.
       - name: Backfill last week's actuals
-        if: steps.gate.outputs.in_season == 'true' && steps.gate.outputs.actuals == 'true' && steps.gate.outputs.targeted == 'false'
+        if: steps.gate.outputs.actuals == 'true' && steps.gate.outputs.targeted == 'false'
         continue-on-error: true
         run: |
           PREV=$(python -c "
@@ -151,6 +165,6 @@ jobs:
             echo "### Weekly projections"
             echo ""
             echo "- Trigger: \`${{ github.event_name }}\` ${{ github.event.schedule && format('(`{0}`)', github.event.schedule) || '' }}"
-            echo "- NFL week live: \`${{ steps.gate.outputs.in_season }}\`"
+            echo "- Ingest window open: \`${{ steps.gate.outputs.ingest }}\`"
             echo "- Actuals pulled: \`${{ steps.gate.outputs.actuals }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
