@@ -24,26 +24,26 @@ function Frame({
   children?: React.ReactNode;
 }) {
   const ring = {
-    neutral: "border-slate-200 dark:border-slate-800",
-    locked: "border-dashed border-slate-300 dark:border-slate-700",
+    neutral: "border-line",
+    locked: "border-dashed border-line-strong",
     error: "border-red-200 dark:border-red-900",
   }[tone];
   const badge = {
-    neutral: "bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400",
-    locked: "bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400",
-    error: "bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400",
+    neutral: "bg-sunken text-ink-subtle",
+    locked: "bg-sunken text-ink-subtle",
+    error: "bg-red-100 dark:bg-red-950/60 text-negative",
   }[tone];
 
   return (
-    <div className={`rounded-lg border ${ring} bg-white dark:bg-slate-950 p-6`}>
+    <div className={`rounded-lg border ${ring} bg-raised p-6`}>
       <span className={`inline-flex rounded-md p-2 ${badge}`}>{icon}</span>
       {/* A missing-data notice is not a page heading, so this is an h2 at body
           scale rather than a 3xl title. */}
-      <h2 className="mt-3 text-base font-semibold text-slate-900 dark:text-white">
+      <h2 className="mt-3 text-base font-semibold text-ink">
         {title}
       </h2>
       {children && (
-        <div className="mt-1.5 max-w-prose text-sm text-slate-500 dark:text-slate-400">
+        <div className="mt-1.5 max-w-prose text-sm text-ink-subtle">
           {children}
         </div>
       )}
@@ -77,7 +77,7 @@ export function NoAccessState({
     <Frame icon={<Lock size={18} aria-hidden="true" />} tone="locked" title="Projections access needed">
       <>
         An admin grants access to {what}.{" "}
-        <Link href="/access" className="text-blue-600 dark:text-blue-400 hover:underline">
+        <Link href="/access" className="text-accent hover:underline">
           Check where your account stands
         </Link>
         .
@@ -113,7 +113,7 @@ export function TableSkeleton({ rows = 6 }: { rows?: number }) {
       {Array.from({ length: rows }).map((_, i) => (
         <div
           key={i}
-          className="h-9 animate-pulse rounded bg-slate-100 dark:bg-slate-900"
+          className="h-9 animate-pulse rounded bg-sunken"
         />
       ))}
     </div>

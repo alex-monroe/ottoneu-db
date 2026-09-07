@@ -64,13 +64,13 @@ export default function PlanManager({
   };
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-4 border border-slate-200 dark:border-slate-800 space-y-3">
+    <div className="bg-sunken rounded-lg p-4 border border-line space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         {/* Plan selector */}
         <select
           value={activePlanId ?? ""}
           onChange={(e) => e.target.value && onSelectPlan(e.target.value)}
-          className="rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 text-sm min-w-[200px]"
+          className="rounded border border-line-strong bg-white dark:bg-slate-800 text-ink px-3 py-1.5 text-sm min-w-[200px]"
         >
           <option value="">Select a plan...</option>
           {plans.map((p) => (
@@ -99,13 +99,13 @@ export default function PlanManager({
             </button>
             <button
               onClick={() => startAction("saveAs")}
-              className="px-3 py-1.5 text-sm font-medium rounded border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="px-3 py-1.5 text-sm font-medium rounded border border-line-strong text-ink-muted hover:bg-sunken transition-colors"
             >
               Save As
             </button>
             <button
               onClick={() => startAction("duplicate")}
-              className="px-3 py-1.5 text-sm font-medium rounded border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="px-3 py-1.5 text-sm font-medium rounded border border-line-strong text-ink-muted hover:bg-sunken transition-colors"
             >
               Duplicate
             </button>
@@ -115,7 +115,7 @@ export default function PlanManager({
                   onDeletePlan(activePlanId);
                 }
               }}
-              className="px-3 py-1.5 text-sm font-medium rounded border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+              className="px-3 py-1.5 text-sm font-medium rounded border border-red-300 dark:border-red-700 text-negative hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
             >
               Delete
             </button>
@@ -125,7 +125,7 @@ export default function PlanManager({
         {!hideCreateFromSuggested && (
           <button
             onClick={onCreateFromSuggested}
-            className="px-3 py-1.5 text-sm font-medium rounded border border-blue-300 dark:border-blue-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
+            className="px-3 py-1.5 text-sm font-medium rounded border border-blue-300 dark:border-blue-700 text-accent hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
           >
             Create from Suggested
           </button>
@@ -136,7 +136,7 @@ export default function PlanManager({
           <span
             className={`text-xs ml-auto ${hasUnsavedChanges
                 ? "text-yellow-600 dark:text-yellow-400"
-                : "text-green-600 dark:text-green-400"
+                : "text-positive"
               }`}
           >
             {hasUnsavedChanges ? "Unsaved changes" : "Saved"}
@@ -159,7 +159,7 @@ export default function PlanManager({
                   ? "New name..."
                   : "Copy name..."
             }
-            className="rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 text-sm flex-1"
+            className="rounded border border-line-strong bg-white dark:bg-slate-800 text-ink px-3 py-1.5 text-sm flex-1"
             autoFocus
           />
           <button
@@ -174,7 +174,7 @@ export default function PlanManager({
               setShowNew(false);
               setAction(null);
             }}
-            className="px-3 py-1.5 text-sm font-medium rounded border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="px-3 py-1.5 text-sm font-medium rounded border border-line-strong text-ink-muted hover:bg-sunken transition-colors"
           >
             Cancel
           </button>

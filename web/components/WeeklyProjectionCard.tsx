@@ -37,8 +37,8 @@ function StatLine({ stats }: { stats: WeeklyStatLine | null }) {
         <dl className="flex flex-wrap gap-x-4 gap-y-1 mt-3">
             {entries.map(([key, label]) => (
                 <div key={key} className="flex items-baseline gap-1.5">
-                    <dt className="text-xs text-slate-500 dark:text-slate-400">{label}</dt>
-                    <dd className="text-xs font-mono text-slate-700 dark:text-slate-300">
+                    <dt className="text-xs text-ink-subtle">{label}</dt>
+                    <dd className="text-xs font-mono text-ink-muted">
                         {Number(stats[key]).toFixed(1)}
                     </dd>
                 </div>
@@ -57,18 +57,18 @@ function WeekBlock({
     label: string;
 }) {
     return (
-        <div className="flex-1 min-w-[220px] rounded-lg border border-slate-200 dark:border-slate-800 p-4">
+        <div className="flex-1 min-w-[220px] rounded-lg border border-line p-4">
             <div className="flex items-baseline justify-between gap-2">
-                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                <p className="text-sm font-semibold text-ink-muted">
                     Week {week}
                 </p>
-                <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                <p className="text-xs uppercase tracking-wide text-ink-subtle">
                     {label}
                 </p>
             </div>
 
             {!row ? (
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-3">
+                <p className="text-sm text-ink-subtle mt-3">
                     — <span className="text-xs">no projection (bye or inactive)</span>
                 </p>
             ) : (
@@ -78,24 +78,24 @@ function WeekBlock({
                             <p className="text-2xl font-bold font-mono text-amber-600 dark:text-amber-400">
                                 {row.projected_points?.toFixed(1) ?? "—"}
                             </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                            <p className="text-xs text-ink-subtle">
                                 Projected pts
                             </p>
                         </div>
                         {row.actual_points != null && (
                             <div>
-                                <p className="text-2xl font-bold font-mono text-slate-800 dark:text-slate-200">
+                                <p className="text-2xl font-bold font-mono text-ink-muted">
                                     {row.actual_points.toFixed(1)}
                                 </p>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">Actual</p>
+                                <p className="text-xs text-ink-subtle">Actual</p>
                             </div>
                         )}
                         {row.opponent && (
                             <div>
-                                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                                <p className="text-sm font-medium text-ink-muted">
                                     {row.opponent}
                                 </p>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">Opp</p>
+                                <p className="text-xs text-ink-subtle">Opp</p>
                             </div>
                         )}
                     </div>
@@ -124,10 +124,10 @@ export default function WeeklyProjectionCard({
     return (
         <section>
             <div className="flex flex-wrap items-baseline justify-between gap-2 mb-4">
-                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+                <h2 className="text-xl font-semibold text-ink">
                     Weekly Projections
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-ink-subtle">
                     Per-game · {source} · scored with Ottoneu rules
                     {asOf ? ` · as of ${new Date(asOf).toLocaleString()}` : ""}
                 </p>
@@ -142,7 +142,7 @@ export default function WeeklyProjectionCard({
                 )}
             </div>
 
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">
+            <p className="text-xs text-ink-subtle mt-3">
                 A third party&apos;s forecast for a single game — not the season-long
                 projected PPG shown above, which comes from this site&apos;s own model.
             </p>

@@ -23,10 +23,10 @@ interface Props {
  */
 function TeamLine({ teamName }: { teamName: string | null }) {
   return (
-    <p className="text-sm text-slate-500 dark:text-slate-400">
+    <p className="text-sm text-ink-subtle">
       {teamName ? (
         <>
-          Your team: <strong className="text-slate-700 dark:text-slate-200">{teamName}</strong>
+          Your team: <strong className="text-ink-muted">{teamName}</strong>
         </>
       ) : (
         <>
@@ -40,7 +40,7 @@ function TeamLine({ teamName }: { teamName: string | null }) {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-screen bg-white dark:bg-black px-6 py-16">
+    <main className="min-h-screen bg-page px-6 py-16">
       <div className="mx-auto max-w-lg">{children}</div>
     </main>
   );
@@ -58,23 +58,23 @@ function Card({
   children: React.ReactNode;
 }) {
   const ring = {
-    neutral: "border-slate-200 dark:border-slate-800",
+    neutral: "border-line",
     pending: "border-amber-300 dark:border-amber-900",
     granted: "border-emerald-300 dark:border-emerald-900",
   }[tone];
   const badge = {
-    neutral: "bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400",
+    neutral: "bg-sunken text-ink-subtle",
     pending: "bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400",
     granted: "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400",
   }[tone];
 
   return (
-    <div className={`rounded-xl border ${ring} bg-white dark:bg-slate-950 p-8`}>
+    <div className={`rounded-xl border ${ring} bg-raised p-8`}>
       <span className={`inline-flex rounded-lg p-2.5 ${badge}`}>{icon}</span>
-      <h1 className="mt-4 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+      <h1 className="mt-4 text-2xl font-bold tracking-tight text-ink">
         {title}
       </h1>
-      <div className="mt-3 space-y-3 text-slate-600 dark:text-slate-300">{children}</div>
+      <div className="mt-3 space-y-3 text-ink-muted">{children}</div>
     </div>
   );
 }
@@ -82,19 +82,19 @@ function Card({
 /** What the gated areas actually contain, so the wait is legible. */
 function WhatsBehindIt() {
   return (
-    <div className="mt-6 rounded-lg bg-slate-50 dark:bg-slate-900/60 p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+    <div className="mt-6 rounded-lg bg-sunken/60 p-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-ink-subtle">
         What access unlocks
       </p>
-      <ul className="mt-2 space-y-1 text-sm text-slate-600 dark:text-slate-400">
+      <ul className="mt-2 space-y-1 text-sm text-ink-muted">
         <li>Season-long and weekly player projections</li>
         <li>VORP, surplus value and your own value adjustments</li>
         <li>Arbitration targets, simulation and budget planning</li>
         <li>The mock draft, and the model&apos;s accuracy backtests</li>
       </ul>
-      <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+      <p className="mt-3 text-sm text-ink-subtle">
         The scoreboard, standings, rosters and player pages stay open to everyone —{" "}
-        <Link href="/" className="text-blue-600 dark:text-blue-400 hover:underline">
+        <Link href="/" className="text-accent hover:underline">
           browse those now
         </Link>
         .
@@ -162,7 +162,7 @@ export default async function AccessPage({ searchParams }: Props) {
           hasn&apos;t been turned on for this account yet. An admin grants it manually.
         </p>
         {requested ? (
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-ink-subtle">
             Requested{" "}
             {new Date(requested).toLocaleDateString(undefined, {
               year: "numeric",

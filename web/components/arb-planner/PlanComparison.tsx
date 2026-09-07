@@ -125,7 +125,7 @@ export default function PlanComparison<T extends ArbPlannerPlayer>({
 
   if (plans.length < 2) {
     return (
-      <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+      <div className="text-center py-12 text-ink-subtle">
         Create at least 2 plans to compare them.
       </div>
     );
@@ -141,7 +141,7 @@ export default function PlanComparison<T extends ArbPlannerPlayer>({
             className={`inline-flex items-center gap-2 px-3 py-1.5 rounded border text-sm cursor-pointer transition-colors ${
               selectedIds.has(p.id)
                 ? "bg-blue-50 dark:bg-blue-950/30 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300"
-                : "border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                : "border-line-strong text-ink-muted hover:bg-sunken"
             }`}
           >
             <input
@@ -157,29 +157,29 @@ export default function PlanComparison<T extends ArbPlannerPlayer>({
 
       {/* Comparison Table */}
       {selectedPlans.length >= 2 && comparisonRows.length > 0 && (
-        <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-lg">
+        <div className="overflow-x-auto border border-line rounded-lg">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
-                <th className="text-left px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
+              <tr className="border-b border-line bg-sunken/50">
+                <th className="text-left px-3 py-2 font-medium text-ink-muted">
                   Owner
                 </th>
-                <th className="text-left px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
+                <th className="text-left px-3 py-2 font-medium text-ink-muted">
                   Player
                 </th>
-                <th className="text-left px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
+                <th className="text-left px-3 py-2 font-medium text-ink-muted">
                   Pos
                 </th>
-                <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
+                <th className="text-right px-3 py-2 font-medium text-ink-muted">
                   Salary
                 </th>
-                <th className="text-right px-3 py-2 font-medium text-slate-600 dark:text-slate-400">
+                <th className="text-right px-3 py-2 font-medium text-ink-muted">
                   {metricColumn.label}
                 </th>
                 {selectedPlans.map((plan) => (
                   <th
                     key={plan.id}
-                    className="text-center px-3 py-2 font-medium text-blue-600 dark:text-blue-400"
+                    className="text-center px-3 py-2 font-medium text-accent"
                   >
                     {plan.name}
                   </th>
@@ -197,12 +197,12 @@ export default function PlanComparison<T extends ArbPlannerPlayer>({
                   <tr key={row.player_id} className={bodyRowClassName}>
                     {showTeamHeader ? (
                       <td
-                        className="px-3 py-2 font-medium text-slate-900 dark:text-white align-top"
+                        className="px-3 py-2 font-medium text-ink align-top"
                         rowSpan={comparisonRows.filter((r) => r.team_name === row.team_name).length}
                       >
                         <div>{row.team_name}</div>
                         {teamTotals && (
-                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          <div className="text-xs text-ink-subtle mt-1">
                             {teamTotals.map((t, i) => (
                               <span key={i}>
                                 {i > 0 && " / "}${t}
@@ -212,13 +212,13 @@ export default function PlanComparison<T extends ArbPlannerPlayer>({
                         )}
                       </td>
                     ) : null}
-                    <td className="px-3 py-2 text-slate-900 dark:text-white">
+                    <td className="px-3 py-2 text-ink">
                       {row.name}
                     </td>
-                    <td className="px-3 py-2 text-slate-600 dark:text-slate-400">
+                    <td className="px-3 py-2 text-ink-muted">
                       {row.position}
                     </td>
-                    <td className="px-3 py-2 text-right text-slate-900 dark:text-white">
+                    <td className="px-3 py-2 text-right text-ink">
                       ${row.salary}
                     </td>
                     <td className={metricColumn.cellClassName(row.metric)}>
@@ -230,7 +230,7 @@ export default function PlanComparison<T extends ArbPlannerPlayer>({
                         <td
                           key={i}
                           className={`px-3 py-2 text-center font-medium ${
-                            alloc > 0 ? "text-slate-900 dark:text-white" : "text-slate-400 dark:text-slate-600"
+                            alloc > 0 ? "text-ink" : "text-ink-subtle"
                           } ${differs && alloc > 0 ? "bg-yellow-50 dark:bg-yellow-950/20" : ""}`}
                         >
                           {alloc > 0 ? `$${alloc}` : "-"}
@@ -243,14 +243,14 @@ export default function PlanComparison<T extends ArbPlannerPlayer>({
             </tbody>
             {/* Totals footer */}
             <tfoot>
-              <tr className="border-t-2 border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50">
-                <td colSpan={5} className="px-3 py-2 font-bold text-slate-900 dark:text-white text-right">
+              <tr className="border-t-2 border-line-strong bg-sunken/50">
+                <td colSpan={5} className="px-3 py-2 font-bold text-ink text-right">
                   Total
                 </td>
                 {selectedPlans.map((plan, i) => {
                   const total = comparisonRows.reduce((sum, r) => sum + r.allocations[i], 0);
                   return (
-                    <td key={plan.id} className="px-3 py-2 text-center font-bold text-slate-900 dark:text-white">
+                    <td key={plan.id} className="px-3 py-2 text-center font-bold text-ink">
                       ${total}
                     </td>
                   );
@@ -262,13 +262,13 @@ export default function PlanComparison<T extends ArbPlannerPlayer>({
       )}
 
       {selectedPlans.length >= 2 && comparisonRows.length === 0 && (
-        <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+        <div className="text-center py-8 text-ink-subtle">
           No allocations found in the selected plans.
         </div>
       )}
 
       {selectedPlans.length < 2 && selectedIds.size > 0 && (
-        <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+        <div className="text-center py-8 text-ink-subtle">
           Select at least 2 plans to compare.
         </div>
       )}

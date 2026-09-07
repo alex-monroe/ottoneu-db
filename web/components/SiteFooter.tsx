@@ -12,8 +12,8 @@ import { LEAGUE_ID } from "@/lib/config";
  */
 export default function SiteFooter() {
   return (
-    <footer className="mt-16 border-t border-slate-200 dark:border-slate-800 px-4 sm:px-6 lg:px-8 py-6">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-500 dark:text-slate-400">
+    <footer className="border-t border-line bg-page px-4 sm:px-6 lg:px-8 py-6">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 text-xs text-ink-subtle">
         <span>Ottoneu League {LEAGUE_ID}</span>
         <Link href="/access" className="hover:underline">
           Access
@@ -22,7 +22,7 @@ export default function SiteFooter() {
           <Link href="/snake-draft" className="hover:underline">
             Snake Draft
           </Link>
-          <span className="text-slate-400 dark:text-slate-600">
+          <span className="text-ink-subtle">
             — standalone practice tool, not part of this league
           </span>
         </span>

@@ -13,7 +13,7 @@ function navItemClass(isActive: boolean): string {
   return `inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${
     isActive
       ? "bg-blue-600 text-white"
-      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
+      : "text-ink-muted hover:text-ink hover:bg-sunken"
   }`;
 }
 
@@ -22,7 +22,7 @@ function mobileItemClass(isActive: boolean): string {
   return `flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
     isActive
       ? "bg-blue-600 text-white"
-      : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+      : "text-ink-muted hover:bg-sunken"
   }`;
 }
 
@@ -34,11 +34,11 @@ const SOFA_LEAGUE_LINK = {
 /** Home is a plain link; everything else is grouped by task in lib/nav.ts. */
 const HOME_LINK = { href: "/", label: "Home" };
 
-/** Small amber dot marking the phase-featured nav item. */
+/** Small dot marking the phase-featured nav item, in the phase hue. */
 function FeaturedDot() {
   return (
     <span
-      className="h-1.5 w-1.5 rounded-full bg-amber-500"
+      className="h-1.5 w-1.5 rounded-full bg-phase"
       title="Featured this part of the season"
       aria-hidden="true"
     />
@@ -92,7 +92,7 @@ function NavDropdown({
         aria-controls={dropdownId}
         className={`inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${hasActiveChild
           ? "bg-blue-600 text-white"
-          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
+          : "text-ink-muted hover:text-ink hover:bg-sunken"
           }`}
       >
         {locked && (
@@ -109,7 +109,7 @@ function NavDropdown({
       {open && (
         <div
           id={dropdownId}
-          className="absolute left-0 top-full mt-1 z-50 min-w-[180px] rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg py-1"
+          className="absolute left-0 top-full mt-1 z-50 min-w-[180px] rounded-md border border-line bg-raised shadow-lg py-1"
         >
           {links.map((link) => {
             const isActive = pathname === link.href;
@@ -120,7 +120,7 @@ function NavDropdown({
                 onClick={() => setOpen(false)}
                 className={`flex items-center gap-1.5 px-4 py-2 text-sm transition-colors ${isActive
                   ? "bg-blue-600 text-white"
-                  : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  : "text-ink-muted hover:bg-sunken"
                   }`}
               >
                 {link.label}
@@ -212,7 +212,7 @@ export default function Navigation({
   };
 
   return (
-    <nav ref={navRef} className="relative border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-black">
+    <nav ref={navRef} className="relative border-b border-line bg-raised">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 gap-2">
           <div className="flex items-center gap-1 min-w-0">
@@ -222,7 +222,7 @@ export default function Navigation({
               aria-expanded={mobileOpen}
               aria-controls="mobile-nav"
               aria-label="Toggle navigation menu"
-              className={`${collapsedHiddenClass} inline-flex items-center justify-center p-2 rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors`}
+              className={`${collapsedHiddenClass} inline-flex items-center justify-center p-2 rounded-md text-ink-muted hover:text-ink hover:bg-sunken transition-colors`}
             >
               {mobileOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
             </button>
@@ -264,11 +264,11 @@ export default function Navigation({
                 onClick={handleLogout}
                 disabled={isLoggingOut}
                 aria-label="Sign out"
-                className="px-3 py-1.5 text-sm font-medium rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center justify-center gap-2"
+                className="px-3 py-1.5 text-sm font-medium rounded-md text-ink-muted hover:text-ink hover:bg-sunken transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center justify-center gap-2"
               >
                 {isLoggingOut ? (
                   <>
-                    <svg className="animate-spin h-4 w-4 text-slate-500 dark:text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin h-4 w-4 text-ink-subtle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
@@ -281,7 +281,7 @@ export default function Navigation({
             ) : (
               <Link
                 href="/login"
-                className="px-3 py-1.5 text-sm font-medium rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors whitespace-nowrap"
+                className="px-3 py-1.5 text-sm font-medium rounded-md text-ink-muted hover:text-ink hover:bg-sunken transition-colors whitespace-nowrap"
               >
                 Sign In
               </Link>
@@ -296,7 +296,7 @@ export default function Navigation({
       {mobileOpen && (
         <div
           id="mobile-nav"
-          className={`${collapsedHiddenClass} absolute left-2 sm:left-4 top-full mt-1 z-50 w-72 max-w-[calc(100vw-1rem)] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl py-1.5 px-1.5 space-y-0.5 max-h-[calc(100vh-4rem)] overflow-y-auto`}
+          className={`${collapsedHiddenClass} absolute left-2 sm:left-4 top-full mt-1 z-50 w-72 max-w-[calc(100vw-1rem)] rounded-lg border border-line bg-raised shadow-xl py-1.5 px-1.5 space-y-0.5 max-h-[calc(100vh-4rem)] overflow-y-auto`}
         >
           <Link
             href={HOME_LINK.href}
@@ -309,7 +309,7 @@ export default function Navigation({
           {/* Task groups, expanded as labelled sections */}
           {groups.map((group) => (
             <div key={group.label} className="pt-2">
-              <div className="flex items-center gap-1.5 px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+              <div className="flex items-center gap-1.5 px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-ink-subtle">
                 {isLocked(group) && <Lock size={11} aria-hidden="true" />}
                 {group.label}
               </div>

@@ -99,10 +99,10 @@ export default function VorpClient({ top15, tableData, hoverDataMap }: Props) {
     <>
       {/* Bar Chart - Top 15 VORP */}
       <section>
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
+        <h2 className="text-xl font-semibold text-ink mb-3">
           Top 15 by Full-Season VORP
         </h2>
-        <div className="bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 h-[400px]">
+        <div className="bg-sunken rounded-lg border border-line p-4 h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={top15}
@@ -150,7 +150,7 @@ export default function VorpClient({ top15, tableData, hoverDataMap }: Props) {
       {/* Position Filter + Table */}
       <section>
         <div className="flex flex-wrap items-center gap-3 mb-4">
-          <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+          <h2 className="text-xl font-semibold text-ink">
             All Players
           </h2>
           <PositionFilter

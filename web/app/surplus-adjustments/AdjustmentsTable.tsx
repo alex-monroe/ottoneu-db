@@ -287,15 +287,15 @@ export default function AdjustmentsTable({
   );
 
   const sortIndicator = (key: SortKey) => {
-    if (sortKey !== key) return <span className="text-slate-300 dark:text-slate-600 ml-0.5">↕</span>;
+    if (sortKey !== key) return <span className="text-ink-subtle ml-0.5">↕</span>;
     return <span className="text-blue-500 ml-0.5">{sortDir === "asc" ? "↑" : "↓"}</span>;
   };
 
   const thClass =
-    "px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap cursor-pointer select-none hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors";
+    "px-3 py-2 text-left font-semibold text-ink-muted whitespace-nowrap cursor-pointer select-none hover:bg-line transition-colors";
 
   const projThClass =
-    "px-3 py-2 text-left font-semibold text-purple-700 dark:text-purple-300 whitespace-nowrap cursor-pointer select-none hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors";
+    "px-3 py-2 text-left font-semibold text-purple-700 dark:text-purple-300 whitespace-nowrap cursor-pointer select-none hover:bg-line transition-colors";
 
   return (
     <div className="space-y-4">
@@ -309,7 +309,7 @@ export default function AdjustmentsTable({
               onClick={() => setFilterPos(pos)}
               className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${filterPos === pos
                 ? "bg-blue-600 text-white"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                : "bg-sunken text-ink-muted hover:bg-line"
                 }`}
             >
               {pos}
@@ -321,7 +321,7 @@ export default function AdjustmentsTable({
         <select
           value={filterTeam}
           onChange={(e) => setFilterTeam(e.target.value)}
-          className="px-2 py-1.5 text-xs rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+          className="px-2 py-1.5 text-xs rounded border border-line-strong bg-white dark:bg-slate-800 text-ink-muted"
         >
           <option value="ALL">All Teams</option>
           {allTeams.map((t) => (
@@ -332,7 +332,7 @@ export default function AdjustmentsTable({
         </select>
 
         {/* Modified filter */}
-        <label className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 cursor-pointer select-none">
+        <label className="flex items-center gap-1.5 text-xs text-ink-muted cursor-pointer select-none">
           <input
             type="checkbox"
             checked={filterModified}
@@ -345,10 +345,10 @@ export default function AdjustmentsTable({
         {/* Save button */}
         <div className="ml-auto flex items-center gap-3">
           {saveStatus === "saved" && (
-            <span className="text-xs text-green-600 dark:text-green-400">Saved!</span>
+            <span className="text-xs text-positive">Saved!</span>
           )}
           {saveStatus === "error" && (
-            <span className="text-xs text-red-600 dark:text-red-400">Save failed</span>
+            <span className="text-xs text-negative">Save failed</span>
           )}
           <button
             onClick={handleSave}
@@ -361,10 +361,10 @@ export default function AdjustmentsTable({
       </div>
 
       {/* Table */}
-      <div className="overflow-auto max-h-[75vh] rounded-lg border border-slate-200 dark:border-slate-800">
+      <div className="overflow-auto max-h-[75vh] rounded-lg border border-line">
         <table className="min-w-full text-sm">
           <thead className="sticky top-0 z-10">
-            <tr className="bg-slate-100 dark:bg-slate-800">
+            <tr className="bg-sunken">
               <th className={thClass} onClick={() => toggleSort("name")}>
                 Player{sortIndicator("name")}
               </th>
@@ -407,7 +407,7 @@ export default function AdjustmentsTable({
               <th className={thClass} onClick={() => toggleSort("adj_surplus")}>
                 Adj. Surplus{sortIndicator("adj_surplus")}
               </th>
-              <th className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">Notes</th>
+              <th className="px-3 py-2 text-left font-semibold text-ink-muted whitespace-nowrap">Notes</th>
             </tr>
           </thead>
           <tbody>
@@ -429,15 +429,15 @@ export default function AdjustmentsTable({
                 : isSavedNonZero
                   ? "bg-blue-50 dark:bg-blue-950/20"
                   : i % 2 === 0
-                    ? "bg-white dark:bg-slate-950"
-                    : "bg-slate-50 dark:bg-slate-900";
+                    ? "bg-raised"
+                    : "bg-sunken";
 
               return (
                 <tr
                   key={player.player_id}
-                  className={`border-t border-slate-100 dark:border-slate-800 ${rowClass}`}
+                  className={`border-t border-line ${rowClass}`}
                 >
-                  <td className="px-3 py-2 text-slate-800 dark:text-slate-200 whitespace-nowrap font-medium">
+                  <td className="px-3 py-2 text-ink-muted whitespace-nowrap font-medium">
                     {hoverDataMap && player.ottoneu_id ? (
                       <PlayerHoverCard
                         name={player.name}
@@ -448,22 +448,22 @@ export default function AdjustmentsTable({
                       player.name
                     )}
                     {viewerTeam != null && player.team_name === viewerTeam && (
-                      <span className="ml-1 text-xs text-blue-600 dark:text-blue-400">★</span>
+                      <span className="ml-1 text-xs text-accent">★</span>
                     )}
                   </td>
-                  <td className="px-3 py-2 text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                  <td className="px-3 py-2 text-ink-muted whitespace-nowrap">
                     {player.position}
                   </td>
-                  <td className="px-3 py-2 text-slate-600 dark:text-slate-400 whitespace-nowrap text-xs">
+                  <td className="px-3 py-2 text-ink-muted whitespace-nowrap text-xs">
                     {age ?? "—"}
                   </td>
-                  <td className="px-3 py-2 text-slate-500 dark:text-slate-400 whitespace-nowrap text-xs">
+                  <td className="px-3 py-2 text-ink-subtle whitespace-nowrap text-xs">
                     {player.team_name ?? "FA"}
                   </td>
-                  <td className="px-3 py-2 text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                  <td className="px-3 py-2 text-ink-muted whitespace-nowrap">
                     ${player.price}
                   </td>
-                  <td className="px-3 py-2 text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                  <td className="px-3 py-2 text-ink-muted whitespace-nowrap">
                     ${player.dollar_value}
                   </td>
                   <td
@@ -481,7 +481,7 @@ export default function AdjustmentsTable({
                   </td>
                   <td
                     className={`px-3 py-2 whitespace-nowrap font-medium ${!hasProjection
-                      ? "text-slate-400 dark:text-slate-600"
+                      ? "text-ink-subtle"
                       : proj.projected_surplus >= 0
                         ? "text-green-700 dark:text-green-400"
                         : "text-red-700 dark:text-red-400"
@@ -493,10 +493,10 @@ export default function AdjustmentsTable({
                   </td>
                   <td
                     className={`px-3 py-2 whitespace-nowrap text-xs font-medium ${!hasProjection
-                      ? "text-slate-400 dark:text-slate-600"
+                      ? "text-ink-subtle"
                       : projDelta >= 0
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-red-600 dark:text-red-400"
+                        ? "text-positive"
+                        : "text-negative"
                       }`}
                   >
                     {hasProjection
@@ -504,7 +504,7 @@ export default function AdjustmentsTable({
                       : "—"}
                   </td>
                   {/* PPG + Adjustment columns */}
-                  <td className="px-3 py-2 text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                  <td className="px-3 py-2 text-ink-muted whitespace-nowrap">
                     {player.ppg.toFixed(1)}
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap">
@@ -516,11 +516,11 @@ export default function AdjustmentsTable({
                         const val = parseFloat(e.target.value);
                         if (!isNaN(val)) updateFromPpg(player, val);
                       }}
-                      className="w-20 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 text-right"
+                      className="w-20 px-2 py-1 text-sm border border-line-strong rounded bg-white dark:bg-slate-800 text-ink focus:ring-1 focus:ring-accent text-right"
                       step="0.1"
                     />
                   </td>
-                  <td className="px-3 py-2 text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                  <td className="px-3 py-2 text-ink-muted whitespace-nowrap">
                     ${adjValue}
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap">
@@ -532,7 +532,7 @@ export default function AdjustmentsTable({
                         const val = parseInt(e.target.value);
                         if (!isNaN(val)) updateFromSurplus(player, val);
                       }}
-                      className="w-20 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 text-right"
+                      className="w-20 px-2 py-1 text-sm border border-line-strong rounded bg-white dark:bg-slate-800 text-ink focus:ring-1 focus:ring-accent text-right"
                       step="1"
                     />
                   </td>
@@ -542,7 +542,7 @@ export default function AdjustmentsTable({
                       value={adj.notes}
                       onChange={(e) => updateNotes(player.player_id, e.target.value)}
                       placeholder="e.g. injury recovery"
-                      className="w-44 px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500"
+                      className="w-44 px-2 py-1 text-xs border border-line-strong rounded bg-white dark:bg-slate-800 text-ink focus:ring-1 focus:ring-accent"
                     />
                   </td>
                 </tr>
@@ -552,7 +552,7 @@ export default function AdjustmentsTable({
         </table>
       </div>
 
-      <p className="text-xs text-slate-500 dark:text-slate-400">
+      <p className="text-xs text-ink-subtle">
         {filteredPlayers.length} players shown.{" "}
         <span className="inline-block w-2 h-2 rounded-sm bg-yellow-200 dark:bg-yellow-900 border border-yellow-400 mr-0.5" />
         {" "}unsaved changes.{" "}

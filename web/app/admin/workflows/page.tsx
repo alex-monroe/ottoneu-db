@@ -18,7 +18,7 @@ const STATE_STYLES: Record<DayState, string> = {
   failure: "bg-rose-500 dark:bg-rose-500",
   in_progress: "bg-amber-400 dark:bg-amber-400 animate-pulse",
   cancelled: "bg-slate-400 dark:bg-slate-600",
-  none: "bg-slate-100 dark:bg-slate-800/60",
+  none: "bg-sunken/60",
 };
 
 const STATE_LABEL: Record<DayState, string> = {
@@ -42,17 +42,17 @@ export default async function WorkflowsPage() {
     <main className="max-w-6xl mx-auto px-4 py-8 space-y-6">
       <header className="space-y-1">
         <div className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-ink">
             Workflow Status
           </h1>
           <Link
             href="/admin"
-            className="text-sm text-slate-500 dark:text-slate-400 hover:underline"
+            className="text-sm text-ink-subtle hover:underline"
           >
             ← User Management
           </Link>
         </div>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <p className="text-sm text-ink-subtle">
           Scheduled GitHub Actions over the last {LOOKBACK_DAYS} days (UTC).
           Each square is a day; hover for run counts, click to open the latest
           run. Manual re-runs of a scheduled workflow are included.
@@ -67,11 +67,11 @@ export default async function WorkflowsPage() {
           yet, or the GitHub Actions API could not be reached.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+        <div className="overflow-x-auto rounded-lg border border-line">
           <table className="w-full border-collapse text-sm">
             <thead>
-              <tr className="bg-slate-50 dark:bg-slate-900">
-                <th className="sticky left-0 z-10 bg-slate-50 dark:bg-slate-900 px-4 py-2 text-left font-medium text-slate-600 dark:text-slate-300">
+              <tr className="bg-sunken">
+                <th className="sticky left-0 z-10 bg-sunken px-4 py-2 text-left font-medium text-ink-muted">
                   Workflow
                 </th>
                 {history.days.map((d) => (
@@ -79,8 +79,8 @@ export default async function WorkflowsPage() {
                     key={d}
                     className={`px-0.5 py-2 text-center text-[10px] font-normal tabular-nums ${
                       d === todayKey
-                        ? "text-slate-900 dark:text-white font-semibold"
-                        : "text-slate-400 dark:text-slate-500"
+                        ? "text-ink font-semibold"
+                        : "text-ink-subtle"
                     }`}
                     title={d}
                   >
@@ -98,7 +98,7 @@ export default async function WorkflowsPage() {
         </div>
       )}
 
-      <p className="text-xs text-slate-400 dark:text-slate-500">
+      <p className="text-xs text-ink-subtle">
         Generated {new Date(history.generatedAt).toUTCString()} · refreshes
         every 10 minutes.
       </p>
@@ -121,7 +121,7 @@ function Legend() {
     "none",
   ];
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-600 dark:text-slate-400">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-ink-muted">
       {states.map((s) => (
         <span key={s} className="flex items-center gap-1.5">
           <span className={`inline-block h-3.5 w-3.5 rounded-sm ${STATE_STYLES[s]}`} />
@@ -141,13 +141,13 @@ function WorkflowRowView({
 }) {
   return (
     <tr className="border-t border-slate-100 dark:border-slate-900">
-      <td className="sticky left-0 z-10 bg-white dark:bg-slate-950 px-4 py-2 align-middle">
+      <td className="sticky left-0 z-10 bg-raised px-4 py-2 align-middle">
         <div className="flex items-center gap-2">
           <span
             className={`inline-block h-2.5 w-2.5 rounded-full ${STATE_STYLES[wf.lastState]}`}
             title={`Last run: ${STATE_LABEL[wf.lastState]}`}
           />
-          <span className="font-medium text-slate-900 dark:text-white whitespace-nowrap">
+          <span className="font-medium text-ink whitespace-nowrap">
             {wf.lastRunUrl ? (
               <a href={wf.lastRunUrl} className="hover:underline">
                 {wf.name}
@@ -157,7 +157,7 @@ function WorkflowRowView({
             )}
           </span>
         </div>
-        <div className="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500 whitespace-nowrap">
+        <div className="mt-0.5 text-[11px] text-ink-subtle whitespace-nowrap">
           {wf.successRate !== null
             ? `${Math.round(wf.successRate * 100)}% ok`
             : "—"}{" "}

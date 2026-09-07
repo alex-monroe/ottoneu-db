@@ -14,6 +14,9 @@ import {
   type LineupPlayer,
 } from "@/lib/lineup";
 import TeamName from "@/components/TeamName";
+import PlayerName from "@/components/PlayerName";
+import PageShell, { PageHeader } from "@/components/PageShell";
+import { EmptyState } from "@/components/states";
 import PositionBadge from "@/components/PositionBadge";
 
 export const revalidate = 3600;
@@ -27,95 +30,132 @@ interface Props {
   searchParams: Promise<{ week?: string }>;
 }
 
-function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="min-h-screen bg-white dark:bg-black p-8">
-      <div className="mx-auto max-w-5xl space-y-6">{children}</div>
-    </main>
-  );
-}
-
+/**
+ * This page used to carry its own `Shell` and its own `Empty` — an h1 plus a
+ * paragraph — which is precisely the hand-rolled state Phase 5 shipped
+ * `components/states.tsx` to replace, in a file from the same batch.
+ */
 function Empty({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <Shell>
-      <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-        {title}
-      </h1>
-      <p className="max-w-prose text-slate-500 dark:text-slate-400">{children}</p>
-    </Shell>
+    <PageShell width="narrow">
+      <PageHeader title="Your Matchup" />
+      <EmptyState title={title}>{children}</EmptyState>
+    </PageShell>
   );
 }
 
-/** One side's optimal lineup, slot by slot. */
-function LineupColumn({
-  teamName,
-  players,
+/** One filled (or empty) lineup slot on one side of the matchup. */
+function Side({
+  player,
   metric,
-  total,
-  isMine,
+  align,
 }: {
-  teamName: string;
-  players: LineupPlayer[];
+  player: LineupPlayer | null;
   metric: LineupMetric;
-  total: number;
-  isMine: boolean;
+  align: "left" | "right";
 }) {
-  const lineup = optimizeLineup(players, metric);
-  const byId = new Map(players.map((p) => [p.player_id, p]));
-
+  if (!player) {
+    return (
+      <span className={`block text-sm text-ink-subtle ${align === "right" ? "text-right" : ""}`}>
+        empty
+      </span>
+    );
+  }
+  const missing = metric === "weekly" && !hasWeeklyData(player);
+  const score = missing ? null : getMetricScore(player, metric);
   return (
-    <div
-      className={`rounded-lg border p-4 ${
-        isMine
-          ? "border-blue-300 dark:border-blue-800 bg-blue-50/40 dark:bg-blue-950/20"
-          : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950"
+    <span
+      className={`flex min-w-0 items-center gap-2 ${
+        align === "right" ? "flex-row-reverse text-right" : ""
       }`}
     >
-      <div className="mb-3 flex items-baseline justify-between gap-2">
-        <h2 className="font-semibold text-slate-900 dark:text-white">
-          <TeamName name={teamName} mine={isMine} />
-        </h2>
-        <span className="text-2xl font-bold tabular-nums text-slate-900 dark:text-white">
-          {total.toFixed(1)}
+      <PositionBadge position={player.position} size="sm" />
+      <span className="min-w-0 flex-1">
+        {/* These were plain spans. Every other surface in the app makes a
+            player name clickable; there is no reason this one shouldn't. */}
+        <PlayerName name={player.name} ottoneuId={player.ottoneu_id} />
+        <span className="block text-xs text-ink-subtle">
+          {player.weekly_opponent ?? player.nfl_team}
         </span>
+      </span>
+      <span className="shrink-0 tabular-nums font-medium text-ink-muted">
+        {score == null ? "—" : score.toFixed(1)}
+      </span>
+    </span>
+  );
+}
+
+/**
+ * The two lineups, slot against slot.
+ *
+ * They used to be two `md:grid-cols-2` cards, which stack below 768px — so on a
+ * phone, comparing your RB2 to theirs became a scroll-and-remember exercise,
+ * which is the entire job of the page. Interleaving by slot survives the narrow
+ * viewport and is better at every width, because it puts the per-slot margin
+ * where the eye already is. The page previously gave only a total and left the
+ * reader to work out which slots produced it.
+ */
+function SlotComparison({
+  mine,
+  theirs,
+  myName,
+  theirName,
+  metric,
+}: {
+  mine: LineupPlayer[];
+  theirs: LineupPlayer[];
+  myName: string;
+  theirName: string;
+  metric: LineupMetric;
+}) {
+  const myLineup = optimizeLineup(mine, metric);
+  const theirLineup = optimizeLineup(theirs, metric);
+  const myById = new Map(mine.map((p) => [p.player_id, p]));
+  const theirById = new Map(theirs.map((p) => [p.player_id, p]));
+
+  const score = (p: LineupPlayer | null) =>
+    p && !(metric === "weekly" && !hasWeeklyData(p)) ? getMetricScore(p, metric) : 0;
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-line">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-3 bg-sunken px-3 py-2 text-xs font-semibold uppercase tracking-wide text-ink-subtle sm:gap-x-4">
+        <span className="truncate">{myName}</span>
+        <span className="text-center">Slot</span>
+        <span className="truncate text-right">{theirName}</span>
       </div>
-      <div className="divide-y divide-slate-100 dark:divide-slate-800/70">
+      <ul className="divide-y divide-line">
         {LINEUP_SLOTS.map((slot) => {
-          const pid = lineup[slot.id];
-          const p = pid ? byId.get(pid) : null;
+          const mp = myLineup[slot.id] ? myById.get(myLineup[slot.id]!) ?? null : null;
+          const tp = theirLineup[slot.id] ? theirById.get(theirLineup[slot.id]!) ?? null : null;
+          const delta = score(mp) - score(tp);
           return (
-            <div key={slot.id} className="flex items-center gap-2 py-1.5 text-sm">
-              <span className="w-20 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
-                {slot.label}
+            <li
+              key={slot.id}
+              className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-3 bg-raised px-3 py-2 text-sm sm:gap-x-4"
+            >
+              <Side player={mp} metric={metric} align="left" />
+              <span className="flex w-16 shrink-0 flex-col items-center">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-subtle">
+                  {slot.label}
+                </span>
+                <span
+                  className={`tabular-nums text-xs font-semibold ${
+                    Math.abs(delta) < 0.05
+                      ? "text-ink-subtle"
+                      : delta > 0
+                        ? "text-positive"
+                        : "text-negative"
+                  }`}
+                >
+                  {delta > 0 ? "+" : ""}
+                  {delta.toFixed(1)}
+                </span>
               </span>
-              {p ? (
-                <>
-                  <PositionBadge position={p.position} size="sm" />
-                  <span className="min-w-0 flex-1 truncate text-slate-900 dark:text-white">
-                    {p.name}
-                  </span>
-                  <span className="shrink-0 text-xs text-slate-400 dark:text-slate-500">
-                    {p.weekly_opponent ?? p.nfl_team}
-                  </span>
-                  <span
-                    className={`w-12 shrink-0 text-right tabular-nums font-medium ${
-                      metric === "weekly" && !hasWeeklyData(p)
-                        ? "text-slate-400 dark:text-slate-600"
-                        : "text-slate-700 dark:text-slate-300"
-                    }`}
-                  >
-                    {metric === "weekly" && !hasWeeklyData(p)
-                      ? "—"
-                      : getMetricScore(p, metric).toFixed(1)}
-                  </span>
-                </>
-              ) : (
-                <span className="flex-1 text-slate-400 dark:text-slate-600">— empty —</span>
-              )}
-            </div>
+              <Side player={tp} metric={metric} align="right" />
+            </li>
           );
         })}
-      </div>
+      </ul>
     </div>
   );
 }
@@ -133,7 +173,7 @@ export default async function MatchupPage({ searchParams }: Props) {
         This page shows your lineup against your opponent&apos;s, so it needs to know
         which team is yours. Your account isn&apos;t linked to one yet — an admin can
         link it, and you can check on the{" "}
-        <Link href="/access" className="text-blue-600 dark:text-blue-400 hover:underline">
+        <Link href="/access" className="text-accent hover:underline">
           access page
         </Link>
         .
@@ -164,7 +204,7 @@ export default async function MatchupPage({ searchParams }: Props) {
         No {ctx.season ?? ""} game found for {viewerTeam}
         {ctx.week != null ? ` in week ${ctx.week}` : ""}. The schedule is scraped
         from Ottoneu — once it is posted this page fills in.{" "}
-        <Link href="/scoreboard" className="text-blue-600 dark:text-blue-400 hover:underline">
+        <Link href="/scoreboard" className="text-accent hover:underline">
           Scoreboard
         </Link>
       </Empty>
@@ -204,85 +244,76 @@ export default async function MatchupPage({ searchParams }: Props) {
         : "last season's PPG";
 
   return (
-    <Shell>
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-          Week {ctx.week} · {viewerTeam} vs {game.opponent}
-        </h1>
-        <p className="mt-2 text-slate-500 dark:text-slate-400">
-          Both sides at their optimal lineup, scored by {metricLabel}. This is a
-          ceiling, not a prediction — it assumes each manager starts their best nine.
-        </p>
-        <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-          <Link
-            href={`/lineup?week=${ctx.week}&team=${encodeURIComponent(viewerTeam)}`}
-            className="text-blue-600 dark:text-blue-400 hover:underline"
-          >
-            Edit your lineup →
-          </Link>
-          <Link href={teamHref(game.opponent)} className="text-blue-600 dark:text-blue-400 hover:underline">
-            {game.opponent}&apos;s roster →
-          </Link>
-          <Link href="/scoreboard" className="text-blue-600 dark:text-blue-400 hover:underline">
-            Scoreboard →
-          </Link>
-        </p>
-      </header>
+    <PageShell>
+      <PageHeader
+        eyebrow={`Week ${ctx.week}`}
+        title={
+          <>
+            <TeamName name={viewerTeam} mine /> vs <TeamName name={game.opponent} />
+          </>
+        }
+        description={
+          <>
+            Both sides at their optimal lineup, scored by {metricLabel}. This is a
+            ceiling, not a prediction — it assumes each manager starts their best
+            nine.
+          </>
+        }
+        links={[
+          {
+            href: `/lineup?week=${ctx.week}&team=${encodeURIComponent(viewerTeam)}`,
+            label: "Edit your lineup",
+          },
+          { href: teamHref(game.opponent), label: `${game.opponent}'s roster` },
+          { href: "/scoreboard", label: "Scoreboard" },
+        ]}
+      />
 
       {/* Projected margin, and the real score once it exists */}
-      <div className="rounded-lg border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/40 px-5 py-4">
+      <div className="rounded-lg border border-line bg-raised px-5 py-4">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <span className="text-sm font-medium text-blue-900 dark:text-blue-200">
+          <span className="text-sm font-medium text-ink-muted">
             Projected margin
           </span>
           <span
             className={`text-3xl font-bold tabular-nums ${
-              margin >= 0
-                ? "text-emerald-600 dark:text-emerald-400"
-                : "text-red-600 dark:text-red-400"
+              margin >= 0 ? "text-positive" : "text-negative"
             }`}
           >
             {margin >= 0 ? "+" : ""}
             {margin.toFixed(1)}
           </span>
         </div>
+        <p className="mt-1 text-sm text-ink-subtle tabular-nums">
+          {myTotal.toFixed(1)} – {theirTotal.toFixed(1)}
+        </p>
         {/* Ottoneu's export reads 0.00 for both sides before kickoff, so a
             scheduled game must not print a score — the same rule ScoreboardCard
             follows. */}
         {game.status !== "scheduled" &&
           game.score != null &&
           game.opponentScore != null && (
-          <p className="mt-2 text-sm text-blue-900/80 dark:text-blue-200/80">
-            Actual so far: {game.score.toFixed(2)} – {game.opponentScore.toFixed(2)}
-            {game.statusLabel ? ` (${game.statusLabel})` : ""}
-          </p>
-        )}
+            <p className="mt-2 text-sm text-ink-muted">
+              Actual so far: {game.score.toFixed(2)} – {game.opponentScore.toFixed(2)}
+              {game.statusLabel ? ` (${game.statusLabel})` : ""}
+            </p>
+          )}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {mine && (
-          <LineupColumn
-            teamName={mine.team_name}
-            players={mine.players}
-            metric={metric}
-            total={myTotal}
-            isMine
-          />
-        )}
-        {theirs ? (
-          <LineupColumn
-            teamName={theirs.team_name}
-            players={theirs.players}
-            metric={metric}
-            total={theirTotal}
-            isMine={false}
-          />
-        ) : (
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            No current roster found for {game.opponent}.
-          </p>
-        )}
-      </div>
-    </Shell>
+      {mine && theirs ? (
+        <SlotComparison
+          mine={mine.players}
+          theirs={theirs.players}
+          myName={mine.team_name}
+          theirName={theirs.team_name}
+          metric={metric}
+        />
+      ) : (
+        <EmptyState title={`No current roster found for ${game.opponent}`}>
+          The roster scrape has not picked this team up yet, so there is nothing
+          to compare against.
+        </EmptyState>
+      )}
+    </PageShell>
   );
 }

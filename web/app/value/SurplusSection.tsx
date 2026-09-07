@@ -99,10 +99,10 @@ export default async function SurplusSection() {
   return (
     <div className="space-y-8">
       <header>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h2 className="text-2xl font-bold tracking-tight text-ink">
           Surplus Value Rankings ({statsSeason})
         </h2>
-        <p className="text-slate-500 dark:text-slate-400 mt-2">
+        <p className="text-ink-subtle mt-2">
           Dollar value (from VORP) minus current salary. Positive surplus =
           bargain.
         </p>

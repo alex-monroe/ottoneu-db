@@ -84,7 +84,7 @@ export default function FreeAgentsClient({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-4">
+      <div className="flex flex-wrap items-end gap-4 rounded-lg border border-line bg-sunken p-4">
         <PositionFilter
           positions={POSITIONS}
           selectedPositions={positions}
@@ -98,14 +98,14 @@ export default function FreeAgentsClient({
         />
 
         <div className="flex flex-col gap-1">
-          <label htmlFor="fa-sort" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+          <label htmlFor="fa-sort" className="text-sm font-medium text-ink-muted">
             Sort by
           </label>
           <select
             id="fa-sort"
             value={sortKey}
             onChange={(e) => setSortKey(e.target.value as SortKey)}
-            className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-white"
+            className="rounded-md border border-line-strong bg-raised px-3 py-2 text-sm text-ink"
           >
             {(Object.keys(SORT_LABELS) as SortKey[])
               .filter((k) => k !== "weekly_points" || week != null)
@@ -118,12 +118,12 @@ export default function FreeAgentsClient({
         </div>
 
         {viewerTeam && (
-          <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+          <label className="flex items-center gap-2 text-sm text-ink-muted">
             <input
               type="checkbox"
               checked={compare}
               onChange={(e) => setCompare(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
+              className="h-4 w-4 rounded border-line-strong"
             />
             Mark upgrades on {viewerTeam}
           </label>
@@ -131,13 +131,13 @@ export default function FreeAgentsClient({
       </div>
 
       {rows.length === 0 ? (
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <p className="text-sm text-ink-subtle">
           No free agents match that filter.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+        <div className="overflow-x-auto rounded-lg border border-line">
           <table className="w-full min-w-[720px] border-collapse">
-            <thead className="bg-slate-50 dark:bg-slate-900">
+            <thead className="bg-sunken">
               <tr>
                 <Th>Player</Th>
                 <Th>Pos</Th>
@@ -158,7 +158,7 @@ export default function FreeAgentsClient({
                 return (
                   <tr
                     key={p.player_id}
-                    className={`border-t border-slate-100 dark:border-slate-800/70 ${
+                    className={`border-t border-line ${
                       upgrade ? "bg-emerald-50/60 dark:bg-emerald-950/20" : ""
                     }`}
                   >
@@ -166,7 +166,7 @@ export default function FreeAgentsClient({
                       <PlayerName name={p.name} ottoneuId={p.ottoneu_id} />
                       {upgrade && bar && (
                         <span
-                          className="ml-2 text-[11px] font-semibold uppercase text-emerald-600 dark:text-emerald-400"
+                          className="ml-2 text-[11px] font-semibold uppercase text-positive"
                           title={`Ahead of ${bar.name}, your weakest ${p.position} by ${SORT_LABELS[sortKey]}`}
                         >
                           upgrade
@@ -176,15 +176,15 @@ export default function FreeAgentsClient({
                     <td className="px-3 py-2 text-sm">
                       <PositionBadge position={p.position} size="sm" />
                     </td>
-                    <td className="px-3 py-2 text-sm text-slate-500 dark:text-slate-400">
+                    <td className="px-3 py-2 text-sm text-ink-subtle">
                       {p.nfl_team}
                       {p.weekly_opponent ? ` ${p.weekly_opponent}` : ""}
                     </td>
                     {week != null && (
-                      <td className="px-3 py-2 text-right text-sm tabular-nums text-slate-900 dark:text-white">
+                      <td className="px-3 py-2 text-right text-sm tabular-nums text-ink">
                         {p.weekly_points == null ? (
                           <span
-                            className="text-slate-400 dark:text-slate-600"
+                            className="text-ink-subtle"
                             title="No forecast this week — bye, inactive, or not carried by the source"
                           >
                             —
@@ -194,13 +194,13 @@ export default function FreeAgentsClient({
                         )}
                       </td>
                     )}
-                    <td className="px-3 py-2 text-right text-sm tabular-nums text-slate-600 dark:text-slate-300">
+                    <td className="px-3 py-2 text-right text-sm tabular-nums text-ink-muted">
                       {fmt(p.projected_ppg, 2)}
                     </td>
-                    <td className="px-3 py-2 text-right text-sm tabular-nums text-slate-600 dark:text-slate-300">
+                    <td className="px-3 py-2 text-right text-sm tabular-nums text-ink-muted">
                       {fmt(p.ppg, 2)}
                     </td>
-                    <td className="px-3 py-2 text-right text-sm tabular-nums font-medium text-slate-900 dark:text-white">
+                    <td className="px-3 py-2 text-right text-sm tabular-nums font-medium text-ink">
                       ${p.dollar_value}
                     </td>
                   </tr>
@@ -210,7 +210,7 @@ export default function FreeAgentsClient({
           </table>
         </div>
       )}
-      <p className="text-xs text-slate-400 dark:text-slate-500">
+      <p className="text-xs text-ink-subtle">
         Showing the top {rows.length} by {SORT_LABELS[sortKey]}. Week points are a
         third party&apos;s single-game forecast; Proj PPG is this site&apos;s
         season-long model. A dash means no forecast this week — a bye, an inactive
@@ -223,7 +223,7 @@ export default function FreeAgentsClient({
 function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
   return (
     <th
-      className={`px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 ${
+      className={`px-3 py-2 text-xs font-semibold uppercase tracking-wide text-ink-subtle ${
         right ? "text-right" : "text-left"
       }`}
     >

@@ -3,6 +3,7 @@ import { calculateMetricsByPosition } from "./metrics";
 import { POSITIONS, BacktestPlayer, ProjectionModel } from "@/lib/types";
 import ActiveModelCard from "@/components/ActiveModelCard";
 import ProjectionAccuracyClient from "./ProjectionAccuracyClient";
+import PageShell from "@/components/PageShell";
 
 export const revalidate = 3600;
 
@@ -59,13 +60,12 @@ export default async function ProjectionAccuracyPage({ searchParams }: Props) {
     : null;
 
   return (
-    <main className="min-h-screen bg-white dark:bg-black p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <PageShell width="wide">
         <header>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-3xl font-bold tracking-tight text-ink">
             Projection Accuracy — {targetSeason}
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">
+          <p className="text-ink-subtle mt-2">
             Backtest of the active projection model — projections built from
             prior seasons are compared against actual {targetSeason} results.
             Pick a different model below to compare alternatives.
@@ -100,7 +100,7 @@ export default async function ProjectionAccuracyPage({ searchParams }: Props) {
         />
 
         {players.length === 0 ? (
-          <p className="text-slate-500 dark:text-slate-400">
+          <p className="text-ink-subtle">
             No backtest data available for {targetSeason}. Historical data prior
             to this season may not be loaded yet.
           </p>
@@ -118,7 +118,6 @@ export default async function ProjectionAccuracyPage({ searchParams }: Props) {
             compareModel={compareModel}
           />
         )}
-      </div>
-    </main>
+    </PageShell>
   );
 }

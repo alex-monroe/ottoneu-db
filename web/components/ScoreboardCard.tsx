@@ -42,8 +42,8 @@ function TeamRow({
       <span
         className={`shrink-0 tabular-nums text-sm ${
           won
-            ? "font-semibold text-slate-900 dark:text-white"
-            : "text-slate-500 dark:text-slate-400"
+            ? "font-semibold text-ink"
+            : "text-ink-subtle"
         }`}
       >
         {showScore ? (score ?? 0).toFixed(2) : "—"}
@@ -63,7 +63,7 @@ export default function ScoreboardCard({ matchup }: { matchup: Matchup }) {
   return (
     // Not a single wrapping link any more: each team name leads to its own
     // page, so the game link moved onto the status badge.
-    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-3 transition-colors hover:border-blue-300 dark:hover:border-blue-800">
+    <div className="rounded-lg border border-line bg-raised p-3 transition-colors hover:border-accent">
       <div className="mb-2 flex items-center justify-between gap-2">
         <a
           href={`https://ottoneu.fangraphs.com/football/${LEAGUE_ID}/game/${matchup.game_id}`}

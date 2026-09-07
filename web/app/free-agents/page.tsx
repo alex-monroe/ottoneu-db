@@ -10,6 +10,8 @@ import { getProjectionSeason } from "@/lib/season";
 import { fetchRosterData, reconstructRostersAtDate } from "@/lib/roster-reconstruction";
 import { sameTeamName } from "@/lib/teams";
 import FreeAgentsClient, { type FreeAgentRow } from "./FreeAgentsClient";
+import PageShell from "@/components/PageShell";
+import DataFreshness from "@/components/DataFreshness";
 
 // The wire moves daily in season; an hour is the same cadence as the rest.
 export const revalidate = 3600;
@@ -106,26 +108,26 @@ export default async function FreeAgentsPage() {
   });
 
   return (
-    <main className="min-h-screen bg-white dark:bg-black p-8">
-      <div className="mx-auto max-w-6xl space-y-6">
+    <PageShell>
         <header>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-3xl font-bold tracking-tight text-ink">
             Free Agents
           </h1>
-          <p className="mt-2 max-w-prose text-slate-500 dark:text-slate-400">
+          <p className="mt-2 max-w-prose text-ink-subtle">
             Every unrostered player, ranked by dollar value on the same scale as the
             players you would drop. Filter by position to compare against your own
             roster{display.upcoming != null ? `, or sort by week ${display.upcoming} points to fill a hole this week` : ""}.
           </p>
           <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-            <Link href="/lineup" className="text-blue-600 dark:text-blue-400 hover:underline">
+            <Link href="/lineup" className="text-accent hover:underline">
               Lineup planner →
             </Link>
-            <Link href="/value?tab=surplus" className="text-blue-600 dark:text-blue-400 hover:underline">
+            <Link href="/value?tab=surplus" className="text-accent hover:underline">
               Surplus rankings →
             </Link>
           </p>
         </header>
+      <DataFreshness source="rosters" />
 
         <FreeAgentsClient
           freeAgents={freeAgents}
@@ -133,7 +135,6 @@ export default async function FreeAgentsPage() {
           viewerTeam={viewerTeam}
           week={display.upcoming}
         />
-      </div>
-    </main>
+    </PageShell>
   );
 }

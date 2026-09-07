@@ -57,7 +57,7 @@ export default function AllocationDetailsTable({
         const details = detailsByPlayer[row.ottoneu_id as number] ?? [];
         if (details.length === 0) {
           return (
-            <div className="px-6 py-3 text-sm text-slate-500 dark:text-slate-400">
+            <div className="px-6 py-3 text-sm text-ink-subtle">
               No individual allocation data available
             </div>
           );
@@ -65,16 +65,16 @@ export default function AllocationDetailsTable({
         const sorted = [...details].sort((a, b) => b.amount - a.amount);
         return (
           <div className="px-6 py-3">
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">
+            <p className="text-xs font-semibold text-ink-subtle mb-2">
               Individual Allocations
             </p>
             <table className="text-xs">
               <thead>
                 <tr>
-                  <th className="text-left py-1 pr-8 text-slate-600 dark:text-slate-400 font-medium">
+                  <th className="text-left py-1 pr-8 text-ink-muted font-medium">
                     Team
                   </th>
-                  <th className="text-right py-1 text-slate-600 dark:text-slate-400 font-medium">
+                  <th className="text-right py-1 text-ink-muted font-medium">
                     Amount
                   </th>
                 </tr>
@@ -82,10 +82,10 @@ export default function AllocationDetailsTable({
               <tbody>
                 {sorted.map((d) => (
                   <tr key={d.allocating_team_name}>
-                    <td className="py-0.5 pr-8 text-slate-700 dark:text-slate-300">
+                    <td className="py-0.5 pr-8 text-ink-muted">
                       {d.allocating_team_name}
                     </td>
-                    <td className="text-right py-0.5 text-slate-700 dark:text-slate-300">
+                    <td className="text-right py-0.5 text-ink-muted">
                       ${d.amount}
                     </td>
                   </tr>

@@ -29,19 +29,19 @@ export default function ModeToggle({
   const btnClass = (mode: ValueMode) =>
     `px-3 py-1.5 transition-colors whitespace-nowrap ${currentMode === mode
       ? "bg-blue-600 text-white"
-      : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+      : "bg-raised text-ink-muted hover:bg-sunken"
     }`;
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm text-slate-600 dark:text-slate-400">
+      <span className="text-sm text-ink-muted">
         Values:
         {/* This toggle changes every number on the page and said nothing about
             what the three modes mean. */}
         <Explain term="value_mode" />
       </span>
       <div
-        className="flex rounded-md overflow-hidden border border-slate-200 dark:border-slate-700 text-sm font-medium"
+        className="flex rounded-md overflow-hidden border border-line text-sm font-medium"
         role="group"
         aria-label="Value Modes"
       >

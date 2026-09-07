@@ -79,23 +79,23 @@ export default function ArbitrationTeams({ teams, showProjectionColumns = false,
         return (
           <div
             key={team}
-            className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden"
+            className="border border-line rounded-lg overflow-hidden"
           >
             <button
               onClick={() => toggle(team)}
-              className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left"
+              className="w-full flex items-center justify-between px-4 py-3 bg-sunken hover:bg-sunken transition-colors text-left"
             >
-              <span className="font-medium text-slate-900 dark:text-white">
+              <span className="font-medium text-ink">
                 {team}{" "}
-                <span className="text-sm font-normal text-slate-500 dark:text-slate-400">
+                <span className="text-sm font-normal text-ink-subtle">
                   ({players.length} target{players.length !== 1 ? "s" : ""})
                 </span>
               </span>
               <span className="flex items-center gap-3">
-                <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                <span className="text-sm font-medium text-accent">
                   Suggested: ${suggested}
                 </span>
-                <span className="text-slate-400">{isOpen ? "▲" : "▼"}</span>
+                <span className="text-ink-subtle">{isOpen ? "▲" : "▼"}</span>
               </span>
             </button>
             {isOpen && (
@@ -106,7 +106,7 @@ export default function ArbitrationTeams({ teams, showProjectionColumns = false,
                   highlightRow={(row) => {
                     const s = row.surplus_after_arb as number;
                     if (s < 0)
-                      return "bg-red-50 dark:bg-red-950/30 border-t border-slate-100 dark:border-slate-800";
+                      return "bg-red-50 dark:bg-red-950/30 border-t border-line";
                     return undefined;
                   }}
                 />

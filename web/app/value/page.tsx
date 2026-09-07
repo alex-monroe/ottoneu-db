@@ -2,6 +2,7 @@ import Tabs from "@/components/Tabs";
 import VorpSection from "./VorpSection";
 import SurplusSection from "./SurplusSection";
 import AdjustmentsSection from "./AdjustmentsSection";
+import PageShell from "@/components/PageShell";
 
 // Adjustments read/write per-user data, so keep this route always-fresh.
 export const revalidate = 0;
@@ -18,13 +19,12 @@ interface Props {
 export default async function ValuePage({ searchParams }: Props) {
   const { tab } = await searchParams;
   return (
-    <main className="min-h-screen bg-white dark:bg-black p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <PageShell width="wide">
         <header>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-3xl font-bold tracking-tight text-ink">
             Player Value
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">
+          <p className="text-ink-subtle mt-2">
             Replacement-based value, surplus rankings, and your manual adjustments.
           </p>
         </header>
@@ -37,7 +37,6 @@ export default async function ValuePage({ searchParams }: Props) {
             { id: "adjustments", label: "Adjustments", content: <AdjustmentsSection /> },
           ]}
         />
-      </div>
-    </main>
+    </PageShell>
   );
 }

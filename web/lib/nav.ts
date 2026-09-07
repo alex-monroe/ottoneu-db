@@ -93,6 +93,13 @@ export const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
+/**
+ * Groups the homepage hub does not mirror. "Data" holds operator instruments
+ * (scrape health, raw-feature spot checks), which are not destinations a
+ * manager browses to.
+ */
+export const HUB_EXCLUDED_GROUPS = ["Data"];
+
 export interface Viewer {
   isAuthenticated: boolean;
   isAdmin: boolean;
@@ -100,7 +107,9 @@ export interface Viewer {
   viewerTeam: string | null;
 }
 
-function canSee(item: NavItem, viewer: Viewer): boolean {
+/** Whether this viewer's access level reaches an item. Exported so the homepage
+ *  hub applies exactly the same rule the menu does. */
+export function canSee(item: NavItem, viewer: Viewer): boolean {
   switch (item.access ?? "public") {
     case "admin":
       return viewer.isAdmin;

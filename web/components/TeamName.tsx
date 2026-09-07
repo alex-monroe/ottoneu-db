@@ -41,11 +41,11 @@ export default function TeamName({
   return (
     <Link
       href={teamHref(label)}
-      className={`hover:underline ${
-        mine
-          ? "font-semibold text-slate-900 dark:text-white"
-          : "text-blue-600 dark:text-blue-400"
-      } ${className}`}
+      // `mine` used to swap the link colour for near-black bold text, which
+      // took the affordance off the one team the reader most wants to click —
+      // in a component whose entire reason for existing was that team names
+      // were never clickable. Emphasis is weight, not the loss of link colour.
+      className={`text-accent hover:underline ${mine ? "font-semibold" : ""} ${className}`}
     >
       {label}
     </Link>

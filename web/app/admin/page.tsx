@@ -33,7 +33,7 @@ export default async function AdminPage() {
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-ink">
             User Management
           </h1>
           {pendingCount > 0 && (
@@ -44,7 +44,7 @@ export default async function AdminPage() {
         </div>
         <Link
           href="/admin/workflows"
-          className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+          className="text-sm font-medium text-accent hover:underline"
         >
           Workflow Status →
         </Link>

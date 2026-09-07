@@ -19,7 +19,7 @@ export default function ProjectionYearSelector({ currentYear, years }: Props) {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm text-slate-500 dark:text-slate-400">Year:</span>
+      <span className="text-sm text-ink-subtle">Year:</span>
       <div className="flex gap-1" role="group" aria-label="Select Projection Year">
         {years.map((year) => (
           <button
@@ -29,7 +29,7 @@ export default function ProjectionYearSelector({ currentYear, years }: Props) {
             className={`px-3 py-1 rounded-full text-sm font-medium transition-colors border ${
               year === currentYear
                 ? "bg-slate-700 text-white border-transparent dark:bg-slate-200 dark:text-slate-900"
-                : "bg-transparent text-slate-500 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                : "bg-transparent text-slate-500 border-line-strong hover:bg-sunken"
             }`}
           >
             {year}

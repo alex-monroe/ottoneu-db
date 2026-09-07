@@ -24,22 +24,22 @@ export default async function ActiveModelCard({ children, footer, variant = "sla
   const wrapperClass =
     variant === "blue"
       ? "bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-5 space-y-2"
-      : "bg-slate-50 dark:bg-slate-900 rounded-lg p-5 border border-slate-200 dark:border-slate-800 space-y-3 text-sm text-slate-700 dark:text-slate-300";
+      : "bg-sunken rounded-lg p-5 border border-line space-y-3 text-sm text-ink-muted";
 
   const headingClass =
     variant === "blue"
       ? "text-sm font-semibold text-blue-900 dark:text-blue-200"
-      : "text-lg font-semibold text-slate-900 dark:text-white";
+      : "text-lg font-semibold text-ink";
 
   const bodyClass =
     variant === "blue"
       ? "text-sm text-blue-800 dark:text-blue-300"
-      : "text-sm text-slate-700 dark:text-slate-300";
+      : "text-sm text-ink-muted";
 
   const codeClass =
     variant === "blue"
       ? "text-xs bg-blue-100 dark:bg-blue-900 px-1 rounded"
-      : "text-xs bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded";
+      : "text-xs bg-sunken px-1.5 py-0.5 rounded";
 
   if (!model) {
     return (

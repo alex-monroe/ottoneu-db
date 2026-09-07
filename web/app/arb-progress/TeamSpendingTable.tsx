@@ -48,13 +48,13 @@ export default function TeamSpendingTable({
             <table className="text-xs">
               <thead>
                 <tr>
-                  <th className="text-left py-1 pr-6 text-slate-600 dark:text-slate-400 font-medium">
+                  <th className="text-left py-1 pr-6 text-ink-muted font-medium">
                     Opponent Team
                   </th>
-                  <th className="text-left py-1 pr-6 text-slate-600 dark:text-slate-400 font-medium">
+                  <th className="text-left py-1 pr-6 text-ink-muted font-medium">
                     Player
                   </th>
-                  <th className="text-right py-1 text-slate-600 dark:text-slate-400 font-medium">
+                  <th className="text-right py-1 text-ink-muted font-medium">
                     Amount
                   </th>
                 </tr>
@@ -67,27 +67,27 @@ export default function TeamSpendingTable({
                         {i === 0 ? (
                           <td
                             rowSpan={opp.allocs.length + 1}
-                            className="py-0.5 pr-6 text-slate-700 dark:text-slate-300 font-medium align-top"
+                            className="py-0.5 pr-6 text-ink-muted font-medium align-top"
                           >
                             {opp.team}
                           </td>
                         ) : null}
-                        <td className="py-0.5 pr-6 text-slate-500 dark:text-slate-400">
+                        <td className="py-0.5 pr-6 text-ink-subtle">
                           {a.player_name}
                         </td>
-                        <td className="text-right py-0.5 text-slate-700 dark:text-slate-300">
+                        <td className="text-right py-0.5 text-ink-muted">
                           ${a.amount}
                         </td>
                       </tr>
                     ))}
                     <tr
                       key={`${opp.team}-total`}
-                      className="border-b border-slate-200 dark:border-slate-700"
+                      className="border-b border-line"
                     >
-                      <td className="py-0.5 pr-6 text-slate-600 dark:text-slate-400 font-semibold italic">
+                      <td className="py-0.5 pr-6 text-ink-muted font-semibold italic">
                         Subtotal
                       </td>
-                      <td className="text-right py-0.5 text-slate-800 dark:text-slate-200 font-semibold">
+                      <td className="text-right py-0.5 text-ink-muted font-semibold">
                         ${opp.total}
                       </td>
                     </tr>
