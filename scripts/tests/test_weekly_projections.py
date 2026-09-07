@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from scripts.weekly_projections.ingest import build_records
+from scripts.weekly_projections.ingest import build_records, partition_dropped_rows
 from scripts.weekly_projections.scoring import normalised_stats, score_stat_line
 from scripts.weekly_projections.sources import sleeper
 from scripts.weekly_projections.sources.base import WeeklyRow
@@ -326,3 +326,53 @@ class TestEmptyStatsIsNotAnError:
         rows = sleeper.fetch(2026, 1, kind="stats", delay=0)
         assert len(rows) == 1
         assert score_stat_line(rows[0].stats) == 24.0
+
+
+class TestRetiringDroppedPlayers:
+    """A player the source stops projecting must not keep yesterday's number.
+
+    The upsert only touches players in today's payload, so a player projected on
+    Tuesday and then cut, waived or moved to IR used to keep Tuesday's projection
+    on the board all week. That row is indistinguishable from a healthy
+    starter's, which quietly breaks the promise the player card and the MCP tool
+    both make: a missing week means a bye or an inactive.
+    """
+
+    def _row(self, player_id, actual=None):
+        return {"player_id": player_id, "actual_points": actual}
+
+    def test_still_projected_players_are_left_alone(self):
+        existing = [self._row("a"), self._row("b")]
+        assert partition_dropped_rows(existing, {"a", "b"}) == ([], [])
+
+    def test_dropped_player_with_no_result_is_deleted(self):
+        existing = [self._row("a"), self._row("gone")]
+        delete, clear = partition_dropped_rows(existing, {"a"})
+        assert delete == ["gone"]
+        assert clear == []
+
+    def test_dropped_player_who_already_played_keeps_the_row(self):
+        # A played game is the whole reason a week is retained. Deleting it to
+        # tidy up a stale forecast would throw away real history, so the row
+        # survives and only the projection is cleared.
+        existing = [self._row("played", actual=18.4)]
+        delete, clear = partition_dropped_rows(existing, set())
+        assert delete == []
+        assert clear == ["played"]
+
+    def test_a_zero_actual_still_counts_as_having_played(self):
+        # 0.0 is a real result — a player who suited up and did nothing. Truthiness
+        # would misread it as "no actual" and delete the row.
+        existing = [self._row("goose egg", actual=0)]
+        delete, clear = partition_dropped_rows(existing, set())
+        assert (delete, clear) == ([], ["goose egg"])
+
+    def test_empty_table_is_a_no_op(self):
+        assert partition_dropped_rows([], {"a"}) == ([], [])
+
+    def test_player_ids_are_compared_as_strings(self):
+        # fetch_all_rows hands back whatever PostgREST decoded; the payload side
+        # is built from matched player ids. Both must land in the same space or
+        # every row would look dropped.
+        existing = [{"player_id": "abc", "actual_points": None}]
+        assert partition_dropped_rows(existing, {"abc"}) == ([], [])

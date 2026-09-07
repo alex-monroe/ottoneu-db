@@ -175,8 +175,8 @@ the multi-season season-attribution cases above.
 
 ## Data quality
 
-Three behaviours worth knowing, all found by running the first real ingest and
-all covered by tests:
+Four behaviours worth knowing, all found by running a real ingest and all
+covered by tests:
 
 - **Players with no projected stats are skipped.** Sleeper returns its whole
   player universe (~3,200 rows for QB/RB/WR/TE/K), most of it not actually
@@ -198,6 +198,19 @@ all covered by tests:
   ~780 bogus rows pointing at records the web layer filters out and whose player
   pages do not exist. This is the same filter `fetchPlayerList` and
   `fetchRosterData` already use.
+- **Players the source stops projecting are retired from the week.** The upsert
+  only touches players present in today's payload, so a player projected on
+  Tuesday and then cut, waived, or moved to IR used to keep Tuesday's number on
+  the board for the rest of the week. That row is indistinguishable from a
+  healthy starter's, which breaks the same "missing = bye or inactive" promise
+  the empty-stats filter above exists to keep. After each projections pass,
+  `reconcile_dropped_players` deletes rows the source no longer projects — but
+  only when they hold no `actual_points`; a row that already has a result keeps
+  the result and has just its projection cleared, because a played game is the
+  whole reason a week is retained. On 2026-09-07 this retired 52 rows left over
+  from a 29 August pull. It runs **only on a projections pass and only when the
+  payload produced records**, so a source outage cannot take the board down with
+  it, and the partial-by-nature actuals pass never retires anything.
 
 ### Expected coverage
 
