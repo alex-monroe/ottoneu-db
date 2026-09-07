@@ -1,6 +1,6 @@
 # UX: Key User Journeys and Improvement Plan
 
-Status: **in progress** — Phases 0 (#711), 1 (#712), 2 (#713) and 3 shipped · Created 2026-09-06 · Owner: @alexrmonroe
+Status: **in progress** — Phases 0 (#711), 1 (#712), 2 (#713), 3 (#714) and 4 shipped; Phase 5 remaining · Created 2026-09-06 · Owner: @alexrmonroe
 
 The site grew subsystem by subsystem — projections, value, arbitration, matchups,
 drafting — and each arrived as its own route with its own page-level conventions.
@@ -389,7 +389,7 @@ The longest phase, currently the thinnest.
 | 3.4 | ~~Injury~~ / bye / inactive signals on lineup and roster rows. **Partial:** a missing `weekly_projections` row surfaces as a dash meaning "no forecast" (bye *or* inactive *or* not carried). There is **no injury-status feed in the database**, so real injury designations (Q/D/O/IR) are still missing and would need a new ingest — tracked separately rather than faked from the absence of a projection |
 | 3.5 | A weekly "start/sit" summary on the homepage during `in_season` |
 
-### Phase 4 — Rebuild the IA around tasks
+### Phase 4 — Rebuild the IA around tasks — ✅ **SHIPPED**
 Now that the graph exists, retax the nav.
 
 Proposed top level, phase-ordered rather than source-ordered:

@@ -7,7 +7,6 @@ import {
   LineChart,
   DollarSign,
   Target,
-  TrendingUp,
   Gavel,
   Activity,
   Eye,
@@ -15,7 +14,6 @@ import {
   ExternalLink,
   ArrowRight,
   CalendarClock,
-  Network,
   Swords,
   Shield,
   UserPlus,
@@ -39,6 +37,8 @@ interface HubLink {
   description: string;
   icon: LucideIcon;
   external?: boolean;
+  /** This card alone needs projections access (its group may be public). */
+  gated?: boolean;
 }
 
 interface HubGroup {
@@ -53,44 +53,49 @@ interface HubGroup {
 const SOFA_LEAGUE_URL = `https://ottoneu.fangraphs.com/football/${LEAGUE_ID}/`;
 
 const HUB_GROUPS: HubGroup[] = [
+  // Mirrors the nav taxonomy in lib/nav.ts — grouped by the task you came to
+  // do, not by which table the number came from. Keep the two in step.
   {
-    label: "Explore",
+    label: "My Team",
+    links: [
+      { href: "/matchup", title: "Your Matchup", description: "Your optimal lineup against this week's opponent, with the projected margin.", icon: Swords },
+      { href: "/lineup", title: "Lineup", description: "Set this week's lineup from the per-game projections.", icon: LayoutGrid },
+      { href: "/projected-salary", title: "Keep or Cut", description: "Your roster against projected value, with cap space.", icon: DollarSign, gated: true },
+    ],
+  },
+  {
+    label: "League",
     links: [
       { href: "/scoreboard", title: "Scoreboard", description: "Every week's matchups, the standings, and the playoff picture.", icon: Swords },
-      { href: "/players", title: "Players", description: "Search the directory or view the salary-vs-production chart.", icon: Users },
-      { href: "/rosters", title: "Rosters", description: "League-wide roster view with salaries and values.", icon: ClipboardList },
       { href: "/teams", title: "Teams", description: "Each team's roster, cap space, record and schedule in one place.", icon: Shield },
-      { href: "/lineup", title: "Lineup", description: "Set this week's lineup with per-game projections and bye flags.", icon: LayoutGrid },
-      { href: "/matchup", title: "Your Matchup", description: "Your optimal lineup against this week's opponent, with the projected margin.", icon: Swords },
+      { href: "/rosters", title: "Rosters", description: "League-wide roster view at any date in the season.", icon: ClipboardList },
+      { href: "/arb-progress", title: "Arbitration Progress", description: "League-wide arbitration completion and allocations.", icon: Activity },
+      { href: "/arb-planner-public", title: "Arbitration Plans", description: "Read-only view of saved arbitration plans.", icon: Eye },
     ],
   },
   {
-    label: "Projections",
-    gated: true,
+    label: "Players",
     links: [
-      { href: "/projections", title: "Projections", description: "Season-long projected PPG for every player — rookies included, ranked by position.", icon: LineChart },
-      { href: "/projected-salary", title: "Projected Salary", description: "Keep-or-cut decisions against projected value.", icon: DollarSign },
-      { href: "/projection-accuracy", title: "Projection Accuracy", description: "Backtest accuracy explorer across models.", icon: Target },
-      { href: "/vegas-lines", title: "Vegas Lines", description: "Preseason implied team totals feeding the model.", icon: TrendingUp },
-      { href: "/depth-charts", title: "Depth Charts", description: "Opening-day NFL roles the projections are built on.", icon: Network },
-      { href: "/free-agents", title: "Free Agents", description: "Who's on the wire, ranked by value, flagged where they beat your starters.", icon: UserPlus },
+      { href: "/players", title: "Player Directory", description: "Search every player, or view the salary-vs-production chart.", icon: Users },
+      { href: "/projections", title: "Season Projections", description: "Season-long projected PPG for every player, rookies included.", icon: LineChart, gated: true },
+      { href: "/weekly", title: "Weekly Projections", description: "Per-game forecasts for one NFL week.", icon: CalendarClock, gated: true },
+      { href: "/free-agents", title: "Free Agents", description: "Who's on the wire, ranked by value, flagged where they beat your starters.", icon: UserPlus, gated: true },
     ],
   },
   {
-    label: "Value",
+    label: "Analysis",
     gated: true,
     links: [
       { href: "/value", title: "Player Value", description: "VORP, surplus rankings, and your manual adjustments.", icon: BarChart3 },
+      { href: "/arbitration", title: "Arbitration", description: "Targets, Monte Carlo simulation, and budget planner.", icon: Gavel },
     ],
   },
   {
-    label: "Offseason",
+    label: "Tools",
     gated: true,
     muted: true,
     links: [
-      { href: "/arbitration", title: "Arbitration", description: "Targets, Monte Carlo simulation, and budget planner.", icon: Gavel },
-      { href: "/arb-progress", title: "Arb Progress", description: "League-wide arbitration completion and allocations.", icon: Activity },
-      { href: "/arb-planner-public", title: "Arb Planner (Public)", description: "Read-only view of saved arbitration plans.", icon: Eye },
+      { href: "/mock-draft", title: "Mock Draft", description: "Practice keeper auction against AI opponents.", icon: Target },
     ],
   },
 ];
@@ -156,10 +161,11 @@ export default async function Home() {
       return link ? { link, href } : null;
     })
     .filter((x): x is { link: HubLink; href: string } => x !== null)
-    // Only show featured tools the visitor can actually open.
+    // Only show featured tools the visitor can actually open — gating may sit
+    // on the group or on the individual card.
     .filter(({ link }) => {
       const group = HUB_GROUPS.find((g) => g.links.includes(link));
-      return !group?.gated || hasAccess;
+      return hasAccess || (!group?.gated && !link.gated);
     });
 
   return (
@@ -289,11 +295,19 @@ export default async function Home() {
 
         {/* Section groups */}
         {HUB_GROUPS.map((group) => {
-          const locked = group.gated && !hasAccess;
+          // A group can mix public and gated cards (Players, My Team), so hide
+          // the cards the viewer can't open and only show the sign-in prompt
+          // when nothing in the group is reachable.
+          const visible = hasAccess
+            ? group.links
+            : group.gated
+              ? []
+              : group.links.filter((l) => !l.gated);
+          const locked = visible.length === 0;
           return (
             <section key={group.label}>
               <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                {group.gated && <Lock size={12} aria-hidden="true" />}
+                {(group.gated || locked) && <Lock size={12} aria-hidden="true" />}
                 {group.label}
               </h2>
               {locked ? (
@@ -310,8 +324,8 @@ export default async function Home() {
                     : `Sign in to access ${group.label.toLowerCase()} tools.`}
                 </Link>
               ) : (
-                <div className={`grid gap-3 sm:grid-cols-2 ${group.links.length > 2 ? "lg:grid-cols-3" : ""}`}>
-                  {group.links.map((link) => (
+                <div className={`grid gap-3 sm:grid-cols-2 ${visible.length > 2 ? "lg:grid-cols-3" : ""}`}>
+                  {visible.map((link) => (
                     <HubCard key={link.href} link={link} muted={group.muted} />
                   ))}
                 </div>
