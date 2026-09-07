@@ -435,9 +435,41 @@ comparison that carries a per-slot delta and survives a phone. `DataTable`'s row
 fragments are keyed. The `global-error` magic offset and the vestigial `{( … )}`
 on `/projections` are gone.
 
+**Two bugs the browser found that review did not.** The work above was verified
+by running the app and looking at it, which caught two things the diff read as
+correct:
+
+- **Geist still was not rendering.** Deleting the `font-family: Arial` rule was
+  not sufficient. `next/font` defines `--font-geist-sans` on whichever element
+  carries its `.variable` class — that was `<body>` — while Tailwind's
+  `@theme inline` puts `--font-sans` on `:root`. The theme variable resolved
+  against a variable that did not exist at that scope, so `--font-sans` was
+  empty and both the `body` rule and the `font-sans` utility fell through to
+  `ui-sans-serif`. Computed `font-family` on `<body>` read `ui-sans-serif`, not
+  `Geist`. Hoisting the font classes to `<html>` fixes it; it now reads
+  `Geist, "Geist Fallback", …`.
+- **The hub still leaked auth-gated cards.** Deriving the hub from `NAV_GROUPS`
+  closed the drift, but "Featured now" was built from *every* group including the
+  ones hidden from signed-out visitors — so an anonymous visitor was still
+  offered "Matchup" and "Lineup". Fixed, and confirmed against a signed-out
+  render.
+
+A third, smaller one: the hero had stopped printing the phase label and the
+countdown but was still printing `ui.blurb`, the same string `PhaseBanner`
+renders a hundred pixels above it. It now describes the site, which is a thing
+the banner never says.
+
 **Guardrails.** `__tests__/components/design-system.test.ts` fails if a badge
-drops below AA, if a page re-implements the shell, or if a sub-AA caption colour
-comes back. 715 tests pass; `next build` compiles and typechecks clean.
+drops below AA, if a page re-implements the shell, if a sub-AA caption colour
+comes back, or if the font variables drift off the element the theme lands on.
+717 tests pass; `next build` compiles and typechecks clean, and the Vercel
+preview deploys.
+
+**What is still unverified.** `not-found.tsx` and the route `error.tsx` could not
+be exercised: this sandbox has no Supabase credentials, so `/teams/<missing>`
+throws in `resolveTeamName` before `notFound()` is reached, and the network
+policy blocks the deployed preview. They typecheck and build; they have not been
+seen.
 
 ---
 

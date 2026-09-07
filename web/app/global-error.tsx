@@ -20,8 +20,8 @@ export default function GlobalError({
   // which now catches per-route failures without taking the app shell with it.
 
   return (
-    <html>
-      <body>
+    <html lang="en">
+      <body className="bg-page font-sans text-ink antialiased">
         <div className="flex min-h-screen flex-col items-center justify-center bg-page p-4 text-center">
           <div className="flex max-w-md flex-col items-center gap-4 rounded-lg border border-negative/30 bg-negative-soft p-6">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-raised">

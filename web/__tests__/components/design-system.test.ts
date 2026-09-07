@@ -47,6 +47,32 @@ describe("position badge contrast", () => {
   });
 });
 
+describe("font wiring", () => {
+  // Removing the `font-family: Arial` override was not enough on its own.
+  // next/font defines `--font-geist-sans` on whichever element carries its
+  // `.variable` class, while Tailwind's `@theme inline` puts `--font-sans` on
+  // `:root`. With the classes on <body>, the theme variable resolved against a
+  // variable that did not exist there, so `--font-sans` was empty and both the
+  // body rule and the `font-sans` utility fell through to `ui-sans-serif` —
+  // Geist was loaded, paid for, and still not rendered.
+  const layout = fs.readFileSync(path.join(WEB, "app", "layout.tsx"), "utf8");
+
+  it("declares the font variables on the same element the theme lands on", () => {
+    const html = layout.match(/<html[^>]*>/)?.[0] ?? "";
+    expect(html).toContain("geistSans.variable");
+    expect(html).toContain("geistMono.variable");
+  });
+
+  it("does not reintroduce a font-family override in globals.css", () => {
+    const css = fs
+      .readFileSync(path.join(WEB, "app", "globals.css"), "utf8")
+      // Comments explain the Arial rule that used to be here; only a live
+      // declaration is a regression.
+      .replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(css).not.toMatch(/font-family:\s*Arial/i);
+  });
+});
+
 describe("page shell", () => {
   const pages = fs
     .readdirSync(path.join(WEB, "app"), { recursive: true, encoding: "utf8" })

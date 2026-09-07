@@ -159,7 +159,7 @@ export default async function Home() {
     muted: group.label === "Tools",
   }));
 
-  const allItems = groups.flatMap((g) => g.items);
+  const allItems = groups.filter((g) => !g.hidden).flatMap((g) => g.items);
   const featuredHrefs = new Set(ui.featuredLinks.map(basePath));
 
   // Featured cards for the current phase. Only tools the visitor can actually
@@ -183,7 +183,13 @@ export default async function Home() {
         <PageHeader
           hero
           title="The SOFA"
-          description={ui.blurb}
+          description={
+            <>
+              Projections, player values and roster tools for Ottoneu league{" "}
+              {LEAGUE_ID}. The strip above says where the season is; everything
+              below is grouped by what you came to do.
+            </>
+          }
           links={[{ href: SOFA_LEAGUE_URL, label: "Open the league on Ottoneu", external: true }]}
         />
 
