@@ -1,5 +1,7 @@
 "use client";
 
+import Explain from "./Explain";
+import type { GlossaryTerm } from "@/lib/glossary";
 import { useState } from "react";
 import type { Column, HighlightRule, PlayerHoverData, TableRow } from "@/lib/types";
 import PlayerHoverCard from "./PlayerHoverCard";
@@ -124,6 +126,7 @@ export default function DataTable<Row>({
                 className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-300 cursor-pointer select-none whitespace-nowrap hover:bg-slate-200 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 rounded-sm"
               >
                 {col.label}
+                {col.explain && <Explain term={col.explain as GlossaryTerm} />}
                 {sortKey === col.key && (
                   <span className="ml-1">{sortAsc ? "▲" : "▼"}</span>
                 )}

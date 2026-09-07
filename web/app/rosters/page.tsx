@@ -7,6 +7,7 @@ import { fetchHoverExtras } from "@/lib/analysis";
 import { getSeasonContextNow } from "@/lib/season";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { getViewerTeam } from "@/lib/viewer-team";
+import { fetchFreshness, describeAge } from "@/lib/freshness";
 import type { PlayerHoverData } from "@/lib/types";
 import RostersClient from "./RostersClient";
 
@@ -22,6 +23,8 @@ export default async function RostersPage({ searchParams }: Props) {
     getSeasonContextNow(),
     getViewerTeam(),
   ]);
+  // A Cloudflare-blocked scrape used to look exactly like a fresh one.
+  const rosterStamp = await fetchFreshness("rosters");
 
   // Unknown/absent ?season falls back to the newest season we hold history for.
   const requested = Number(params.season);
@@ -76,6 +79,7 @@ export default async function RostersPage({ searchParams }: Props) {
       {...data}
       hoverDataMap={hoverDataMap}
       viewerTeam={viewerTeam}
+      freshness={rosterStamp ? `Rosters updated ${describeAge(rosterStamp)}` : null}
       season={season}
       seasons={seasons}
       statsSeason={season === ctx.leagueSeason ? ctx.statsSeason : season}

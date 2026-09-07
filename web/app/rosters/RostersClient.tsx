@@ -24,6 +24,7 @@ export default function RostersClient({
   quickDates,
   dateRange,
   defaultDate,
+  freshness = null,
 }: RosterData & {
   hoverDataMap?: Record<string, PlayerHoverData> | null;
   /** The signed-in viewer's team, expanded by default in the roster list. */
@@ -34,6 +35,8 @@ export default function RostersClient({
   quickDates: RosterSnapshot[];
   dateRange: { min: string; max: string };
   defaultDate: string;
+  /** Pre-rendered "Rosters updated ..." caption from the server. */
+  freshness?: string | null;
 }) {
   const router = useRouter();
   const { min, max } = dateRange;
@@ -60,6 +63,7 @@ export default function RostersClient({
           <p className="text-slate-500 dark:text-slate-400 mt-2">
             View all {NUM_TEAMS} league rosters at any point in the {season} season.
             PPG and PPS are {statsSeason} season numbers.
+            {freshness && <span className="block mt-1 text-xs text-slate-400 dark:text-slate-500">{freshness}</span>}
           </p>
         </header>
 

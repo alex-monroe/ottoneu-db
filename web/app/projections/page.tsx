@@ -3,7 +3,6 @@ import {
   getHistoricalSeasonsForYear,
 } from "@/lib/analysis";
 import { getStatsSeason, getProjectionSeason } from "@/lib/season";
-import { getAuthenticatedUser } from "@/lib/auth";
 import ActiveModelCard from "@/components/ActiveModelCard";
 import ProjectionsClient from "./ProjectionsClient";
 
@@ -15,12 +14,10 @@ interface Props {
 
 export default async function ProjectionsPage({ searchParams }: Props) {
   const params = await searchParams;
-  const [statsSeason, projectionSeason, user] = await Promise.all([
+  const [statsSeason, projectionSeason] = await Promise.all([
     getStatsSeason(),
     getProjectionSeason(),
-    getAuthenticatedUser(),
   ]);
-  const isAdmin = !!user?.isAdmin;
 
   // Selectable projection years: the just-completed season (backtest view) and
   // the upcoming projection season (forward-looking). Deduped when they coincide
@@ -87,8 +84,10 @@ export default async function ProjectionsPage({ searchParams }: Props) {
           isForward={isForward}
         />
 
-        {/* Methodology — admin-only */}
-        {isAdmin && (
+        {/* Methodology. This used to be admin-only, which meant the people
+            reading the projections were the ones forbidden from seeing how they
+            were made. Anyone who can see the number can see the method. */}
+        {(
           <ActiveModelCard
             footer={
               <>

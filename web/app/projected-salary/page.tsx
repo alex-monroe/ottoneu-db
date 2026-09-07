@@ -10,6 +10,9 @@ import { getAuthenticatedUser } from "@/lib/auth";
 import { getViewerTeam } from "@/lib/viewer-team";
 import ProjectedSalaryClient from "./ProjectedSalaryClient";
 import SummaryCard from "@/components/SummaryCard";
+import { EmptyState } from "@/components/states";
+import PhaseNote from "@/components/PhaseNote";
+import DataFreshness from "@/components/DataFreshness";
 
 export default async function ProjectedSalaryPage() {
   const [allPlayers, user, viewerTeam] = await Promise.all([
@@ -27,15 +30,17 @@ export default async function ProjectedSalaryPage() {
     // team that has no roster rows.
     return (
       <main className="min-h-screen bg-white dark:bg-black p-8">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-2xl mx-auto space-y-4">
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
             Salary Analysis
           </h1>
-          <p className="mt-3 text-slate-600 dark:text-slate-300">
+          <EmptyState
+            title={viewerTeam ? `No roster data for ${viewerTeam}` : "No team linked to your account"}
+          >
             {viewerTeam
-              ? `No roster data found for ${viewerTeam}.`
-              : "Your account isn't linked to a team yet, so there's no roster to analyse. An admin can link it from the admin panel."}
-          </p>
+              ? "Keep-or-cut needs salaries and last season's production for your roster. Once both have been imported, this fills in."
+              : "This page analyses your own roster, so it needs to know which team is yours. An admin can link it from the admin panel."}
+          </EmptyState>
         </div>
       </main>
     );
@@ -85,7 +90,14 @@ export default async function ProjectedSalaryPage() {
             Keep vs. cut decisions based on surplus value (dollar value - salary).
             Accounts for positional scarcity via VORP.
           </p>
+          <DataFreshness source="rosters" className="mt-1" />
         </header>
+
+        <PhaseNote
+          activeIn={["pre_keeper", "pre_draft"]}
+          label="Keep-or-cut"
+          opensOn="arb_end"
+        />
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

@@ -276,6 +276,12 @@ export interface Column<Row = TableRow> {
   label: string;
   format?: "currency" | "number" | "decimal" | "percent";
   renderCell?: (value: unknown, row: Row) => React.ReactNode;
+  /**
+   * Glossary term for this column, rendered as a "?" beside the header.
+   * Keys come from `web/lib/glossary.ts`; typed loosely here because lib/types
+   * must not import from a module that pulls in React components.
+   */
+  explain?: string;
 }
 
 export interface HighlightRule<Row = TableRow> {

@@ -1,6 +1,6 @@
 # UX: Key User Journeys and Improvement Plan
 
-Status: **in progress** — Phases 0 (#711), 1 (#712), 2 (#713), 3 (#714) and 4 shipped; Phase 5 remaining · Created 2026-09-06 · Owner: @alexrmonroe
+Status: **complete** — all six phases shipped: 0 (#711), 1 (#712), 2 (#713), 3 (#714), 4 (#715), 5 · Created 2026-09-06 · Owner: @alexrmonroe
 
 The site grew subsystem by subsystem — projections, value, arbitration, matchups,
 drafting — and each arrived as its own route with its own page-level conventions.
@@ -406,7 +406,7 @@ My Team  ·  League  ·  Players  ·  Analysis  ·  Tools          [operator: Da
 | 4.4 | Fix the collapse asymmetry — the authenticated nav must not be *worse* than the anonymous one at the same width (grouping should shrink it below the `2xl` threshold) |
 | 4.5 | **Remove `/snake-draft` from The SOFA's nav and hub** (D3). The route stays live and linkable, but it is a standalone utility, not a league feature — give it its own minimal entry point rather than a slot in a league-scoped menu |
 
-### Phase 5 — Explain the numbers, systematize the states
+### Phase 5 — Explain the numbers, systematize the states — ✅ **SHIPPED**
 | # | Work |
 |---|---|
 | 5.1 | In-product glossary: a shared `<Explain term="VORP">` popover sourced from one definitions module, wired to every metric header |

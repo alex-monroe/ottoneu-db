@@ -133,6 +133,16 @@ User accounts with email/password login stored in the `users` table. Passwords a
 
 A player with **no row** for the selected week is not the same as one projected to score zero: `weekly_points` stays `null`, `hasWeeklyData()` reports the difference, the optimizer scores the gap as 0 so a non-playing star never displaces someone who plays, and the UI renders a dash. It is not labelled "BYE" — the gap also covers inactive and un-carried players, and in week 1 nobody is on a bye.
 
+## Explaining the numbers
+
+The app mixes three vocabularies — Ottoneu economics, NFL production stats and this project's model output — and printed all of them as bare column headers, with definitions living only in `docs/GLOSSARY.md` (a developer doc). `web/lib/glossary.ts` is the in-product counterpart: short definitions keyed by term, rendered by `<Explain>`. `Column.explain` wires a term to a table header, so `DataTable` shows it everywhere that column appears rather than page by page.
+
+Projection methodology (`ActiveModelCard`) is shown to **everyone with projections access**. It used to be admin-only, which meant the people reading the projections were the ones forbidden from seeing how they were made.
+
+`web/lib/freshness.ts` answers "how old is this". Every table this app owns carries a timestamp (`league_prices.updated_at`, `transactions.scraped_at`, `player_projections.updated_at`, `league_matchups.scraped_at`, `weekly_projections.projected_at`); `<DataFreshness source="rosters" />` renders it and warns past a threshold. This matters more here than in most apps: the Ottoneu scrape has been Cloudflare-blocked before and simply stopped updating, with a stale roster looking identical to a fresh one.
+
+`PhaseNote` finally makes the season phase change what a page *shows* rather than only what the banner *says* — `/arbitration`, `/projected-salary` and `/mock-draft` declare the phases they belong to and flag themselves out of window.
+
 ## Teams as objects
 
 `web/lib/teams.ts` assembles everything the app knows about one team — roster and cap from the transaction replay, record and rank from the derived standings, schedule flipped into that team's point of view, and (gated) surplus plus arbitration exposure. `TeamName` (`web/components/TeamName.tsx`) is the canonical renderer and the only thing that should print a fantasy-team name, so every team in the app leads to the same page. `fantasyTeamCol()` in `web/components/columns.tsx` is the `DataTable` equivalent.

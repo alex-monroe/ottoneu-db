@@ -1,4 +1,5 @@
 import { requireProjectionsAccess } from "@/lib/auth";
+import PhaseNote from "@/components/PhaseNote";
 import { fetchMockDraftData } from "@/lib/mock-draft";
 import MockDraftClient from "./MockDraftClient";
 
@@ -10,5 +11,16 @@ export default async function MockDraftPage() {
   await requireProjectionsAccess("/mock-draft");
 
   const data = await fetchMockDraftData();
-  return <MockDraftClient teams={data.teams} faPool={data.faPool} season={data.season} />;
+  return (
+    <>
+      <div className="mx-auto max-w-6xl px-4 pt-6">
+        <PhaseNote
+          activeIn={["pre_draft", "post_draft"]}
+          label="The mock draft"
+          opensOn="keeper_deadline"
+        />
+      </div>
+      <MockDraftClient teams={data.teams} faPool={data.faPool} season={data.season} />
+    </>
+  );
 }

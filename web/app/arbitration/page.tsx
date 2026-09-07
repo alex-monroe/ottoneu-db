@@ -1,4 +1,5 @@
 import Tabs from "@/components/Tabs";
+import PhaseNote from "@/components/PhaseNote";
 import type { ValueMode } from "@/components/ModeToggle";
 import TargetsSection from "./TargetsSection";
 import SimulationSection from "./SimulationSection";
@@ -37,6 +38,8 @@ export default async function ArbitrationPage({ searchParams }: Props) {
             arbitration phase.
           </p>
         </header>
+
+        <PhaseNote activeIn={["pre_arb"]} label="Arbitration" opensOn="arb_start" />
 
         <Tabs
           activeId={params.tab}
