@@ -55,6 +55,10 @@ Several formerly-standalone pages were consolidated into **tabbed routes** using
 | `TeamName` | Canonical league-team renderer — the team counterpart to `PlayerName`. Links to `/teams/[name]`, renders "FA" as plain text, and bolds the viewer's own team via `mine`. Route every team name through this rather than printing the string |
 | `StatValue` | Numeric stat formatter with currency/decimal/number/null handling |
 | `PlayerHoverCard` | Rich hover preview card for player context |
+| `Explain` | In-product glossary popover. `<Explain term="vorp" />` renders a "?" that defines one term from `web/lib/glossary.ts`. `DataTable` renders it automatically for any column carrying `explain`, so tag the column factory rather than the page |
+| `states.tsx` | Shared `EmptyState` / `NoAccessState` / `ErrorState` / `TableSkeleton`. Use these instead of hand-rolling — a missing-data notice is an `h2` at body scale, never a page-sized heading |
+| `DataFreshness` | "Rosters updated 3 hours ago" caption, from `web/lib/freshness.ts`. Turns amber past `staleAfterHours` |
+| `PhaseNote` | Says a tool is out of season, and when its window opens. Reads the phase from `web/lib/season.ts` and renders nothing while in window |
 
 ### Arbitration Planner (`components/arb-planner/`)
 

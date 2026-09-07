@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Explain from "./Explain";
 
 export type ValueMode = "raw" | "adjusted" | "projected";
 
@@ -33,7 +34,12 @@ export default function ModeToggle({
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm text-slate-600 dark:text-slate-400">Values:</span>
+      <span className="text-sm text-slate-600 dark:text-slate-400">
+        Values:
+        {/* This toggle changes every number on the page and said nothing about
+            what the three modes mean. */}
+        <Explain term="value_mode" />
+      </span>
       <div
         className="flex rounded-md overflow-hidden border border-slate-200 dark:border-slate-700 text-sm font-medium"
         role="group"

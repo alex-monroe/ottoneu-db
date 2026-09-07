@@ -21,6 +21,7 @@ import { getViewerTeam } from "@/lib/viewer-team";
 import ArbitrationTeams from "./ArbitrationTeams";
 import ArbTargetsTable, { type ProjectedTarget } from "./ArbTargetsTable";
 import ActiveModelCard from "@/components/ActiveModelCard";
+import { EmptyState } from "@/components/states";
 import ModeToggle, { ValueMode } from "@/components/ModeToggle";
 
 /**
@@ -72,9 +73,11 @@ export default async function TargetsSection({ mode }: { mode: ValueMode }) {
 
   if (targets.length === 0) {
     return (
-      <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-        No arbitration targets found.
-      </h2>
+      <EmptyState title="No arbitration targets found">
+        Targets are opponents&apos; rostered players whose surplus survives the
+        maximum raise. An empty list usually means salaries or projections
+        haven&apos;t been refreshed for this season yet.
+      </EmptyState>
     );
   }
 
