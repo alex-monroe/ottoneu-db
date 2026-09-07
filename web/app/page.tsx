@@ -18,12 +18,14 @@ import {
   Network,
   Swords,
   Shield,
+  UserPlus,
   type LucideIcon,
 } from "lucide-react";
 import { getSeasonContextNow } from "@/lib/season";
 import { PHASE_UI, describeNextBoundary } from "@/lib/season-ui";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { getViewerTeam } from "@/lib/viewer-team";
+import { teamHref, toTeamGame } from "@/lib/teams";
 import { getLeagueStatus } from "@/lib/matchups";
 import ScoreboardCard from "@/components/ScoreboardCard";
 import StandingsTable from "@/components/StandingsTable";
@@ -58,7 +60,8 @@ const HUB_GROUPS: HubGroup[] = [
       { href: "/players", title: "Players", description: "Search the directory or view the salary-vs-production chart.", icon: Users },
       { href: "/rosters", title: "Rosters", description: "League-wide roster view with salaries and values.", icon: ClipboardList },
       { href: "/teams", title: "Teams", description: "Each team's roster, cap space, record and schedule in one place.", icon: Shield },
-      { href: "/lineup", title: "Lineup", description: "Build a starting lineup from any team and see its projected total.", icon: LayoutGrid },
+      { href: "/lineup", title: "Lineup", description: "Set this week's lineup with per-game projections and bye flags.", icon: LayoutGrid },
+      { href: "/matchup", title: "Your Matchup", description: "Your optimal lineup against this week's opponent, with the projected margin.", icon: Swords },
     ],
   },
   {
@@ -70,6 +73,7 @@ const HUB_GROUPS: HubGroup[] = [
       { href: "/projection-accuracy", title: "Projection Accuracy", description: "Backtest accuracy explorer across models.", icon: Target },
       { href: "/vegas-lines", title: "Vegas Lines", description: "Preseason implied team totals feeding the model.", icon: TrendingUp },
       { href: "/depth-charts", title: "Depth Charts", description: "Opening-day NFL roles the projections are built on.", icon: Network },
+      { href: "/free-agents", title: "Free Agents", description: "Who's on the wire, ranked by value, flagged where they beat your starters.", icon: UserPlus },
     ],
   },
   {
@@ -136,6 +140,15 @@ export default async function Home() {
   const boundary = describeNextBoundary(ctx);
   const hasAccess = !!user?.hasProjectionsAccess;
 
+  // In season, the viewer's own game is the thing they came for — surface it
+  // above the generic league status instead of making them find it in the grid.
+  const myGame =
+    ctx.phase === "in_season" && viewerTeam && league?.week != null
+      ? (league.matchups
+          .map((m) => toTeamGame(m, viewerTeam))
+          .find((g) => g !== null && g.week === league.week) ?? null)
+      : null;
+
   // Featured cards for the current phase (resolve hrefs to metadata by base path).
   const featured = ui.featuredLinks
     .map((href) => {
@@ -190,6 +203,42 @@ export default async function Home() {
             </a>
           </div>
         </header>
+
+        {/* Your week — only in season, and only once we know whose team is whose */}
+        {myGame && viewerTeam && (
+          <section className="rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50/60 dark:bg-blue-950/30 p-5">
+            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-blue-900/70 dark:text-blue-300/70">
+              Your week
+            </h2>
+            <p className="text-lg font-semibold text-slate-900 dark:text-white">
+              <Link href={teamHref(viewerTeam)} className="hover:underline">
+                {viewerTeam}
+              </Link>{" "}
+              vs{" "}
+              <Link href={teamHref(myGame.opponent)} className="hover:underline">
+                {myGame.opponent}
+              </Link>
+              {myGame.score != null && myGame.opponentScore != null && (
+                <span className="ml-2 tabular-nums text-slate-600 dark:text-slate-300">
+                  {myGame.score.toFixed(2)} – {myGame.opponentScore.toFixed(2)}
+                </span>
+              )}
+            </p>
+            <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              <Link href="/matchup" className="font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                See the projected margin →
+              </Link>
+              <Link href="/lineup" className="text-blue-600 dark:text-blue-400 hover:underline">
+                Set your lineup →
+              </Link>
+              {hasAccess && (
+                <Link href="/free-agents" className="text-blue-600 dark:text-blue-400 hover:underline">
+                  Check the wire →
+                </Link>
+              )}
+            </p>
+          </section>
+        )}
 
         {/* League status — scoreboard + standings, straight off the game log */}
         {league && (

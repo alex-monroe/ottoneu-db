@@ -44,6 +44,7 @@ const SOFA_LEAGUE_LINK = {
 
 const AUTHENTICATED_LINKS = [
   { href: "/lineup", label: "Lineup" },
+  { href: "/matchup", label: "Matchup" },
 ];
 
 const PRIVATE_GROUPS = [
@@ -56,6 +57,7 @@ const PRIVATE_GROUPS = [
       // season-long model behind "Projections" above. Labelled "Weekly" so the
       // distinction is visible in the menu itself.
       { href: "/weekly", label: "Weekly (per-game)" },
+      { href: "/free-agents", label: "Free Agents" },
       { href: "/projection-accuracy", label: "Proj. Accuracy" },
       { href: "/vegas-lines", label: "Vegas Lines" },
     ],

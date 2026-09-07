@@ -45,6 +45,8 @@ export const PROJECTIONS_ROUTES = [
   // Previously self-gated in-page; now gated in one place like everything else.
   "/weekly",
   "/mock-draft",
+  // Ranks the wire by dollar value — the same gated number as /value.
+  "/free-agents",
 ] as const;
 
 /** UI routes that require `is_admin`. */

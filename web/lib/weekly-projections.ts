@@ -158,3 +158,30 @@ export async function fetchAvailableWeeks(season: number): Promise<number[]> {
   );
   return Array.from(new Set(rows.map((r) => Number(r.week)))).sort((a, b) => b - a);
 }
+
+/**
+ * One week's projections keyed by player id, for joining onto a roster.
+ *
+ * A player with no row that week is on a bye or otherwise has no forecast —
+ * the absence is the signal, so callers should distinguish "missing" from
+ * "projected zero" rather than defaulting both to 0.
+ */
+export async function fetchWeeklyByPlayer(
+  season: number,
+  week: number,
+): Promise<Map<string, WeeklyProjection>> {
+  const rows = await fetchAllRows<Record<string, unknown>>((from, to) =>
+    supabase
+      .from("weekly_projections")
+      .select(COLUMNS)
+      .eq("season", season)
+      .eq("week", week)
+      .range(from, to),
+  );
+  const out = new Map<string, WeeklyProjection>();
+  for (const row of rows) {
+    const shaped = shape(row);
+    out.set(shaped.player_id, shaped);
+  }
+  return out;
+}

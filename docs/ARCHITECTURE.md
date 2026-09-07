@@ -127,6 +127,12 @@ User accounts with email/password login stored in the `users` table. Passwords a
 - **User-scoped data:** `surplus_adjustments` and `arbitration_plans` are scoped to `user_id` — each user sees only their own data
 - **Admin panel** (`/admin`) allows admins to create users, toggle projections access, bind an account to a league team, and delete users
 
+## In-season lineup data
+
+`web/lib/lineup-data.ts` (`fetchLineupWeek`) builds every team's current roster scored three ways for one NFL week, so `/lineup` and `/matchup` cannot drift about what "this week" means. The `weekly` metric in `web/lib/lineup.ts` reads `weekly_projections` — a **third party's** single-game forecast, deliberately distinct from our season-long `projected_ppg` (see [weekly-projections.md](references/weekly-projections.md)).
+
+A player with **no row** for the selected week is not the same as one projected to score zero: `weekly_points` stays `null`, `hasWeeklyData()` reports the difference, the optimizer scores the gap as 0 so a non-playing star never displaces someone who plays, and the UI renders a dash. It is not labelled "BYE" — the gap also covers inactive and un-carried players, and in week 1 nobody is on a bye.
+
 ## Teams as objects
 
 `web/lib/teams.ts` assembles everything the app knows about one team — roster and cap from the transaction replay, record and rank from the derived standings, schedule flipped into that team's point of view, and (gated) surplus plus arbitration exposure. `TeamName` (`web/components/TeamName.tsx`) is the canonical renderer and the only thing that should print a fantasy-team name, so every team in the app leads to the same page. `fantasyTeamCol()` in `web/components/columns.tsx` is the `DataTable` equivalent.
