@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
-import { Lock, ExternalLink, ChevronDown, Shield, Menu, X } from "lucide-react";
+import { Lock, ExternalLink, ChevronDown, Menu, X } from "lucide-react";
 import GlobalPlayerSearch from "./GlobalPlayerSearch";
+import { visibleNav, type NavGroup } from "@/lib/nav";
+import { teamHref } from "@/lib/teams";
 
 // Shared styling for a top-level nav item (inline desktop bar).
 function navItemClass(isActive: boolean): string {
@@ -24,63 +26,13 @@ function mobileItemClass(isActive: boolean): string {
   }`;
 }
 
-const PUBLIC_LINKS = [
-  { href: "/", label: "Home" },
-  // Matchup results and standings are league-wide facts anyone can read off
-  // Ottoneu, so the scoreboard is ungated like Players and Rosters.
-  { href: "/scoreboard", label: "Scoreboard" },
-  { href: "/players", label: "Players" },
-  { href: "/rosters", label: "Rosters" },
-  { href: "/teams", label: "Teams" },
-  // Runs entirely in the browser off a static board — no sign-in, no database.
-  { href: "/snake-draft", label: "Snake Draft" },
-];
-
 const SOFA_LEAGUE_LINK = {
   href: "https://ottoneu.fangraphs.com/football/309/",
   label: "The SOFA",
-  isExternal: true,
 };
 
-const AUTHENTICATED_LINKS = [
-  { href: "/lineup", label: "Lineup" },
-  { href: "/matchup", label: "Matchup" },
-];
-
-const PRIVATE_GROUPS = [
-  {
-    label: "Projections",
-    links: [
-      { href: "/projected-salary", label: "Projected Salary" },
-      { href: "/projections", label: "Projections" },
-      // Per-game, third-party, in-season — a different thing entirely from the
-      // season-long model behind "Projections" above. Labelled "Weekly" so the
-      // distinction is visible in the menu itself.
-      { href: "/weekly", label: "Weekly (per-game)" },
-      { href: "/free-agents", label: "Free Agents" },
-      { href: "/projection-accuracy", label: "Proj. Accuracy" },
-      { href: "/vegas-lines", label: "Vegas Lines" },
-    ],
-  },
-  {
-    label: "Value",
-    links: [
-      { href: "/value", label: "Player Value" },
-      { href: "/value?tab=vorp", label: "VORP" },
-      { href: "/value?tab=surplus", label: "Surplus Value" },
-      { href: "/value?tab=adjustments", label: "Adjustments" },
-    ],
-  },
-  {
-    label: "Offseason",
-    links: [
-      { href: "/arbitration", label: "Arbitration" },
-      { href: "/arb-progress", label: "Arb Progress" },
-      { href: "/arb-planner-public", label: "Arb Planner" },
-      { href: "/mock-draft", label: "Mock Draft" },
-    ],
-  },
-];
+/** Home is a plain link; everything else is grouped by task in lib/nav.ts. */
+const HOME_LINK = { href: "/", label: "Home" };
 
 /** Small amber dot marking the phase-featured nav item. */
 function FeaturedDot() {
@@ -99,12 +51,15 @@ function NavDropdown({
   pathname,
   featured,
   featuredLinks,
+  locked = false,
 }: {
   label: string;
   links: { href: string; label: string }[];
   pathname: string;
   featured?: boolean;
   featuredLinks?: string[];
+  /** Show the padlock — a group whose contents need projections access. */
+  locked?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -140,7 +95,9 @@ function NavDropdown({
           : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
           }`}
       >
-        <Lock size={12} className={hasActiveChild ? "opacity-80" : "opacity-60"} aria-hidden="true" />
+        {locked && (
+          <Lock size={12} className={hasActiveChild ? "opacity-80" : "opacity-60"} aria-hidden="true" />
+        )}
         {label}
         {featured && <FeaturedDot />}
         <ChevronDown
@@ -186,6 +143,9 @@ interface NavigationProps {
   featuredGroup?: string | null;
   /** Earliest season a player counts as "active" in global search ranking. */
   activeSinceSeason: number;
+  hasProjectionsAccess: boolean;
+  /** The viewer's own team, which becomes the first item under "My Team". */
+  viewerTeam: string | null;
 }
 
 export default function Navigation({
@@ -194,7 +154,16 @@ export default function Navigation({
   featuredLinks = [],
   featuredGroup = null,
   activeSinceSeason,
+  hasProjectionsAccess,
+  viewerTeam,
 }: NavigationProps) {
+  const groups: NavGroup[] = visibleNav(
+    { isAuthenticated, isAdmin, hasProjectionsAccess, viewerTeam },
+    teamHref,
+  );
+  /** A group is padlocked when every item in it needs projections access. */
+  const isLocked = (g: NavGroup) =>
+    g.items.every((i) => i.access === "projections" || i.access === "admin");
   const pathname = usePathname();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -220,15 +189,14 @@ export default function Navigation({
     };
   }, [mobileOpen]);
 
-  // Authenticated users have many more nav items (3 dropdown groups + extra
-  // links), so the inline bar only fits on very wide screens. Logged-out users
-  // have just the public links and fit comfortably much sooner — collapse to a
-  // hamburger only when the items genuinely won't fit. Class names are written
-  // as full literals so Tailwind keeps them.
-  const inlineWrapperClass = isAuthenticated
-    ? "hidden 2xl:flex items-center gap-1"
-    : "hidden lg:flex items-center gap-1";
-  const collapsedHiddenClass = isAuthenticated ? "2xl:hidden" : "lg:hidden";
+  // One breakpoint for everyone. It used to be 2xl (1536px) when signed in and
+  // lg (1024px) when not, because auth piled on three dropdowns plus loose
+  // links — so a member on a 1280px laptop got a hamburger while an anonymous
+  // visitor on the same screen got the full bar, and access made navigation
+  // worse. Task grouping keeps the signed-in bar to a handful of items, so both
+  // states now collapse at the same width.
+  const inlineWrapperClass = "hidden xl:flex items-center gap-1";
+  const collapsedHiddenClass = "xl:hidden";
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -259,17 +227,25 @@ export default function Navigation({
               {mobileOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
             </button>
 
-            {/* Inline navigation — shown once the items fit (breakpoint depends on auth) */}
+            {/* Inline navigation — one breakpoint regardless of auth */}
             <div className={inlineWrapperClass}>
-              {/* Public links */}
-              {PUBLIC_LINKS.map((link) => (
-                <Link key={link.href} href={link.href} className={navItemClass(pathname === link.href)}>
-                  {link.label}
-                  {featuredLinks.includes(link.href) && pathname !== link.href && <FeaturedDot />}
-                </Link>
+              <Link href={HOME_LINK.href} className={navItemClass(pathname === HOME_LINK.href)}>
+                {HOME_LINK.label}
+                {featuredLinks.includes(HOME_LINK.href) && pathname !== HOME_LINK.href && <FeaturedDot />}
+              </Link>
+
+              {groups.map((group) => (
+                <NavDropdown
+                  key={group.label}
+                  label={group.label}
+                  links={group.items}
+                  pathname={pathname}
+                  featured={featuredGroup === group.label}
+                  featuredLinks={featuredLinks}
+                  locked={isLocked(group)}
+                />
               ))}
 
-              {/* SOFA League external link */}
               <a
                 href={SOFA_LEAGUE_LINK.href}
                 target="_blank"
@@ -279,36 +255,6 @@ export default function Navigation({
                 {SOFA_LEAGUE_LINK.label}
                 <ExternalLink size={14} />
               </a>
-
-              {/* Authenticated-only plain links (e.g. public Arb Planner) */}
-              {isAuthenticated &&
-                AUTHENTICATED_LINKS.map((link) => (
-                  <Link key={link.href} href={link.href} className={navItemClass(pathname === link.href)}>
-                    {link.label}
-                    {featuredLinks.includes(link.href) && pathname !== link.href && <FeaturedDot />}
-                  </Link>
-                ))}
-
-              {/* Protected dropdown groups (only if authenticated) */}
-              {isAuthenticated &&
-                PRIVATE_GROUPS.map((group) => (
-                  <NavDropdown
-                    key={group.label}
-                    label={group.label}
-                    links={group.links}
-                    pathname={pathname}
-                    featured={featuredGroup === group.label}
-                    featuredLinks={featuredLinks}
-                  />
-                ))}
-
-              {/* Admin link */}
-              {isAdmin && (
-                <Link href="/admin" className={navItemClass(pathname === "/admin")}>
-                  <Shield size={12} className={pathname === "/admin" ? "opacity-80" : "opacity-60"} aria-hidden="true" />
-                  Admin
-                </Link>
-              )}
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
@@ -352,76 +298,45 @@ export default function Navigation({
           id="mobile-nav"
           className={`${collapsedHiddenClass} absolute left-2 sm:left-4 top-full mt-1 z-50 w-72 max-w-[calc(100vw-1rem)] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl py-1.5 px-1.5 space-y-0.5 max-h-[calc(100vh-4rem)] overflow-y-auto`}
         >
-          {/* Public links */}
-          {PUBLIC_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setMobileOpen(false)}
-              className={mobileItemClass(pathname === link.href)}
-            >
-              {link.label}
-              {featuredLinks.includes(link.href) && pathname !== link.href && <FeaturedDot />}
-            </Link>
+          <Link
+            href={HOME_LINK.href}
+            onClick={() => setMobileOpen(false)}
+            className={mobileItemClass(pathname === HOME_LINK.href)}
+          >
+            {HOME_LINK.label}
+          </Link>
+
+          {/* Task groups, expanded as labelled sections */}
+          {groups.map((group) => (
+            <div key={group.label} className="pt-2">
+              <div className="flex items-center gap-1.5 px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                {isLocked(group) && <Lock size={11} aria-hidden="true" />}
+                {group.label}
+              </div>
+              {group.items.map((item) => (
+                <Link
+                  key={`${group.label}-${item.href}`}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={mobileItemClass(pathname === item.href)}
+                >
+                  {item.label}
+                  {featuredLinks.includes(item.href) && pathname !== item.href && <FeaturedDot />}
+                </Link>
+              ))}
+            </div>
           ))}
 
-          {/* SOFA League external link */}
           <a
             href={SOFA_LEAGUE_LINK.href}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setMobileOpen(false)}
-            className={mobileItemClass(false)}
+            className={`mt-2 ${mobileItemClass(false)}`}
           >
             {SOFA_LEAGUE_LINK.label}
             <ExternalLink size={14} aria-hidden="true" />
           </a>
-
-          {/* Authenticated-only plain links */}
-          {isAuthenticated &&
-            AUTHENTICATED_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileOpen(false)}
-                className={mobileItemClass(pathname === link.href)}
-              >
-                {link.label}
-              </Link>
-            ))}
-
-          {/* Protected groups, expanded as labeled sections */}
-          {isAuthenticated &&
-            PRIVATE_GROUPS.map((group) => (
-              <div key={group.label} className="pt-2">
-                <div className="flex items-center gap-1.5 px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
-                  <Lock size={11} aria-hidden="true" />
-                  {group.label}
-                </div>
-                {group.links.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setMobileOpen(false)}
-                    className={mobileItemClass(pathname === link.href)}
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
-            ))}
-
-          {/* Admin link */}
-          {isAdmin && (
-            <Link
-              href="/admin"
-              onClick={() => setMobileOpen(false)}
-              className={`mt-2 ${mobileItemClass(pathname === "/admin")}`}
-            >
-              <Shield size={14} aria-hidden="true" />
-              Admin
-            </Link>
-          )}
         </div>
       )}
     </nav>
