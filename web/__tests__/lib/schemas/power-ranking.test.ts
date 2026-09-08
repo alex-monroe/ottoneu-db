@@ -7,7 +7,11 @@
  * these tests pin that division so neither side is assumed to cover the other.
  */
 
-import { SaveBallotSchema, MAX_NOTE_LENGTH } from "@/lib/schemas/power-ranking";
+import {
+  SaveBallotSchema,
+  MAX_NOTE_LENGTH,
+  MAX_PREP_NOTE_LENGTH,
+} from "@/lib/schemas/power-ranking";
 import { NFL_REGULAR_SEASON_WEEKS } from "@/lib/config";
 
 const VALID = {
@@ -63,5 +67,35 @@ describe("SaveBallotSchema", () => {
 
   test("notes are optional", () => {
     expect(SaveBallotSchema.safeParse({ ...VALID, notes: undefined }).success).toBe(true);
+  });
+});
+
+describe("prepNotes", () => {
+  test("are optional — a ballot with no working notes still parses", () => {
+    expect(SaveBallotSchema.safeParse(VALID).success).toBe(true);
+  });
+
+  test("hold far more than an on-air note, because nobody reads them out", () => {
+    const long = "x".repeat(MAX_PREP_NOTE_LENGTH);
+    expect(MAX_PREP_NOTE_LENGTH).toBeGreaterThan(MAX_NOTE_LENGTH);
+    expect(
+      SaveBallotSchema.safeParse({ ...VALID, prepNotes: { Alpha: long } }).success,
+    ).toBe(true);
+    expect(
+      SaveBallotSchema.safeParse({ ...VALID, prepNotes: { Alpha: long + "x" } }).success,
+    ).toBe(false);
+  });
+
+  test("are independent of the on-air note — a team can have either, both or neither", () => {
+    const parsed = SaveBallotSchema.safeParse({
+      ...VALID,
+      notes: { Alpha: "read this out" },
+      prepNotes: { Bravo: "do not read this out" },
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.notes).toEqual({ Alpha: "read this out" });
+      expect(parsed.data.prepNotes).toEqual({ Bravo: "do not read this out" });
+    }
   });
 });

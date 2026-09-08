@@ -94,7 +94,7 @@ TypeScript, not Python — this is the most common thing newcomers get wrong.
 | | |
 |---|---|
 | **Tables** | `surplus_adjustments` · `arbitration_plans` · `arbitration_plan_allocations` · `draft_sharks_values` · `weekly_projections` |
-| **Core logic** | `web/lib/vorp.ts` · `surplus.ts` · `analysis.ts` · `arbitration.ts` · `arb-logic.ts` · `lineup.ts` · `scoring.ts` |
+| **Core logic** | `web/lib/vorp.ts` · `surplus.ts` · `analysis.ts` · `arbitration.ts` · `arb-logic.ts` · `lineup.ts` · `team-snapshot.ts` (one team's optimal week: lineup, projected total, bench) · `scoring.ts` |
 | **Data access** | `web/lib/supabase.ts` (use `fetchAllRows` — the client caps at 1000 rows) · `players.ts` · `data.ts` |
 | **Python side** | `scripts/scrape_draft_sharks.py` (market values) · `scripts/weekly_projections/` (in-season per-game, from Sleeper) |
 | **Commands** | `just scrape-draft-sharks` · `just weekly-projections` · `just dev` |

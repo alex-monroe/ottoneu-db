@@ -2,9 +2,18 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronUp, ChevronDown, GripVertical, Lock, Unlock } from "lucide-react";
+import {
+  ChevronUp,
+  ChevronDown,
+  GripVertical,
+  Lock,
+  NotebookPen,
+  Unlock,
+} from "lucide-react";
 import type { TeamRecord } from "@/lib/power-rankings";
-import { MAX_NOTE_LENGTH } from "@/lib/schemas/power-ranking";
+import type { TeamWeekSnapshot } from "@/lib/team-snapshot";
+import { MAX_NOTE_LENGTH, MAX_PREP_NOTE_LENGTH } from "@/lib/schemas/power-ranking";
+import TeamLineupHover from "./TeamLineupHover";
 
 interface Props {
   season: number;
@@ -12,8 +21,13 @@ interface Props {
   weeks: number[];
   teams: string[];
   records: Record<string, TeamRecord>;
+  /** This week's optimal lineup per team. Empty when the week has no board. */
+  snapshots: Record<string, TeamWeekSnapshot>;
+  /** False when the ranked week has no stored weekly projections at all. */
+  snapshotsAvailable: boolean;
   initialOrder: string[];
   initialNotes: Record<string, string>;
+  initialPrepNotes: Record<string, string>;
   initiallySubmitted: boolean;
   otherHosts: { displayName: string; submitted: boolean }[];
   submittedCount: number;
@@ -43,6 +57,16 @@ function moved(list: string[], from: number, to: number): string[] {
  * is the failure that would actually happen. Locking in is the only explicit
  * action, because that is the one with a consequence — it makes the ballot
  * visible to consolidation and therefore to the other host.
+ *
+ * ## The two note fields
+ *
+ * A row carries both because they are written for different people. The
+ * one-liner is the on-air note: the other host sees it the moment you lock in,
+ * and it is read out when the slot is revealed. The working notes below it are
+ * yours — the case for moving a team, what you talked yourself out of last
+ * week — and nothing on the reveal screen can show them. They open together
+ * ("Working notes" in the header) so the whole list is scannable while you
+ * reorder, which is the moment they exist for.
  */
 export default function BallotEditor({
   season,
@@ -50,8 +74,11 @@ export default function BallotEditor({
   weeks,
   teams,
   records,
+  snapshots,
+  snapshotsAvailable,
   initialOrder,
   initialNotes,
+  initialPrepNotes,
   initiallySubmitted,
   otherHosts,
   submittedCount,
@@ -59,16 +86,33 @@ export default function BallotEditor({
   const router = useRouter();
   const [order, setOrder] = useState<string[]>(initialOrder);
   const [notes, setNotes] = useState<Record<string, string>>(initialNotes);
+  const [prepNotes, setPrepNotes] = useState<Record<string, string>>(initialPrepNotes);
   const [submitted, setSubmitted] = useState(initiallySubmitted);
   const [state, setState] = useState<SaveState>("idle");
   const [error, setError] = useState("");
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  // Rows whose working-notes box is open. Seeded with the teams that already
+  // have something written about them, so a returning host sees their own
+  // thinking rather than a list of collapsed boxes.
+  const [openNotes, setOpenNotes] = useState<Set<string>>(
+    () => new Set(Object.keys(initialPrepNotes)),
+  );
+  // A row is only draggable while the grip is held. Without this, a click-drag
+  // to select text inside the notes textarea starts an HTML5 drag instead of a
+  // selection — the grip already looks like the handle, so this makes the row
+  // behave the way it already reads.
+  const [dragArmed, setDragArmed] = useState(false);
 
   // Skips the autosave that would otherwise fire for the initial render.
   const dirty = useRef(false);
 
   const save = useCallback(
-    async (nextSubmitted: boolean, nextOrder: string[], nextNotes: Record<string, string>) => {
+    async (
+      nextSubmitted: boolean,
+      nextOrder: string[],
+      nextNotes: Record<string, string>,
+      nextPrepNotes: Record<string, string>,
+    ) => {
       setState("saving");
       setError("");
       try {
@@ -80,6 +124,7 @@ export default function BallotEditor({
             week,
             order: nextOrder,
             notes: nextNotes,
+            prepNotes: nextPrepNotes,
             submit: nextSubmitted,
           }),
         });
@@ -100,15 +145,27 @@ export default function BallotEditor({
     [season, week],
   );
 
+  // Disarm on any mouseup, not just one that lands back on the grip — a press
+  // that ends anywhere else would otherwise leave the row draggable, and the
+  // next click-drag in its notes box would pick the team up instead of
+  // selecting text. A native drag dispatches dragend rather than mouseup, so
+  // this cannot fire mid-drag.
+  useEffect(() => {
+    if (!dragArmed) return;
+    const disarm = () => setDragArmed(false);
+    document.addEventListener("mouseup", disarm);
+    return () => document.removeEventListener("mouseup", disarm);
+  }, [dragArmed]);
+
   // Autosave. Keeps whatever lock state the ballot already has, so editing a
   // locked ballot does not silently un-submit it.
   useEffect(() => {
     if (!dirty.current) return;
     const id = setTimeout(() => {
-      void save(submitted, order, notes);
+      void save(submitted, order, notes, prepNotes);
     }, 1200);
     return () => clearTimeout(id);
-  }, [order, notes, submitted, save]);
+  }, [order, notes, prepNotes, submitted, save]);
 
   const reorder = (from: number, to: number) => {
     const next = moved(order, from, to);
@@ -117,9 +174,14 @@ export default function BallotEditor({
     setOrder(next);
   };
 
-  const setNote = (team: string, value: string) => {
+  /** Both note fields write the same way: blank means "no note", not "". */
+  const setNoteIn = (
+    setter: typeof setNotes,
+    team: string,
+    value: string,
+  ) => {
     dirty.current = true;
-    setNotes((prev) => {
+    setter((prev) => {
       const next = { ...prev };
       if (value.trim()) next[team] = value;
       else delete next[team];
@@ -127,11 +189,24 @@ export default function BallotEditor({
     });
   };
 
+  const toggleRowNotes = (team: string) => {
+    setOpenNotes((prev) => {
+      const next = new Set(prev);
+      if (next.has(team)) next.delete(team);
+      else next.add(team);
+      return next;
+    });
+  };
+
+  const allOpen = openNotes.size >= order.length && order.length > 0;
+  const toggleAllNotes = () =>
+    setOpenNotes(allOpen ? new Set() : new Set(order));
+
   const complete = order.length === teams.length && new Set(order).size === teams.length;
 
   const toggleLock = async () => {
     const next = !submitted;
-    const ok = await save(next, order, notes);
+    const ok = await save(next, order, notes, prepNotes);
     if (!ok) return;
     dirty.current = false;
     setSubmitted(next);
@@ -172,6 +247,14 @@ export default function BallotEditor({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={toggleAllNotes}
+            aria-pressed={allOpen}
+            className="inline-flex items-center gap-1.5 rounded-md border border-line-strong px-3 py-2 text-sm font-medium text-ink-muted transition-colors hover:bg-sunken"
+          >
+            <NotebookPen size={15} aria-hidden="true" />
+            {allOpen ? "Hide working notes" : "Show working notes"}
+          </button>
           <span
             className={`text-sm ${state === "error" ? "text-negative" : "text-ink-subtle"}`}
             role={state === "error" ? "alert" : undefined}
@@ -199,21 +282,35 @@ export default function BallotEditor({
         </p>
       )}
 
+      {!snapshotsAvailable && (
+        <p className="text-sm text-ink-subtle">
+          No week {week} projections are stored yet, so the lineup previews and
+          projected totals are blank. They fill in once the weekly board is ingested.
+        </p>
+      )}
+
       {/* The ballot */}
       <ol className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-raised">
         {order.map((team, i) => {
           const record = records[team];
+          const snapshot = snapshots[team] ?? null;
+          const notesOpen = openNotes.has(team);
+          const hasPrepNote = !!prepNotes[team];
           return (
             <li
               key={team}
-              draggable
+              draggable={dragArmed}
               onDragStart={() => setDragIndex(i)}
-              onDragEnd={() => setDragIndex(null)}
+              onDragEnd={() => {
+                setDragIndex(null);
+                setDragArmed(false);
+              }}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 e.preventDefault();
                 if (dragIndex !== null) reorder(dragIndex, i);
                 setDragIndex(null);
+                setDragArmed(false);
               }}
               className={`flex items-start gap-3 px-3 py-3 sm:px-4 ${
                 dragIndex === i ? "bg-accent-soft" : ""
@@ -225,28 +322,66 @@ export default function BallotEditor({
               <GripVertical
                 size={16}
                 aria-hidden="true"
+                onMouseDown={() => setDragArmed(true)}
                 className="mt-1.5 shrink-0 cursor-grab text-ink-subtle"
               />
 
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-baseline gap-x-2">
-                  <span className="font-semibold text-ink">{team}</span>
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <TeamLineupHover teamName={team} week={week} snapshot={snapshot} />
                   {record && (
                     <span className="text-xs text-ink-subtle">
                       {record.record} · {record.pointsFor.toFixed(1)} PF · #
                       {record.standingsRank} in standings
                     </span>
                   )}
+                  {snapshot && (
+                    <span
+                      className="inline-flex items-baseline gap-1 rounded bg-accent-soft px-1.5 py-0.5 text-xs text-accent"
+                      title={`Their optimal week ${week} lineup projects ${snapshot.projectedPoints.toFixed(1)} points. Hover the team name for the lineup.`}
+                    >
+                      <span className="font-mono font-semibold tabular-nums">
+                        {snapshot.projectedPoints.toFixed(1)}
+                      </span>
+                      <span className="font-medium">proj wk {week}</span>
+                    </span>
+                  )}
                 </div>
-                <input
-                  type="text"
-                  value={notes[team] ?? ""}
-                  maxLength={MAX_NOTE_LENGTH}
-                  onChange={(e) => setNote(team, e.target.value)}
-                  placeholder="Note to read out when this slot is revealed (optional)"
-                  aria-label={`Note for ${team}`}
-                  className="mt-1.5 w-full rounded border border-line bg-page px-2 py-1 text-sm text-ink placeholder:text-ink-subtle focus:border-blue-500 focus:outline-none"
-                />
+
+                <div className="mt-1.5 flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={notes[team] ?? ""}
+                    maxLength={MAX_NOTE_LENGTH}
+                    onChange={(e) => setNoteIn(setNotes, team, e.target.value)}
+                    placeholder="Note to read out when this slot is revealed (optional)"
+                    aria-label={`On-air note for ${team}`}
+                    className="w-full rounded border border-line bg-page px-2 py-1 text-sm text-ink placeholder:text-ink-subtle focus:border-blue-500 focus:outline-none"
+                  />
+                  <button
+                    onClick={() => toggleRowNotes(team)}
+                    aria-expanded={notesOpen}
+                    aria-label={`${notesOpen ? "Hide" : "Show"} working notes for ${team}`}
+                    title="Your private working notes — never revealed"
+                    className={`shrink-0 rounded p-1.5 transition-colors hover:bg-sunken ${
+                      hasPrepNote ? "text-accent" : "text-ink-subtle"
+                    }`}
+                  >
+                    <NotebookPen size={15} aria-hidden="true" />
+                  </button>
+                </div>
+
+                {notesOpen && (
+                  <textarea
+                    value={prepNotes[team] ?? ""}
+                    maxLength={MAX_PREP_NOTE_LENGTH}
+                    rows={3}
+                    onChange={(e) => setNoteIn(setPrepNotes, team, e.target.value)}
+                    placeholder={`Working notes on ${team} — private to you, never revealed`}
+                    aria-label={`Working notes for ${team}`}
+                    className="mt-1.5 w-full resize-y rounded border border-dashed border-line bg-sunken px-2 py-1.5 text-sm text-ink placeholder:text-ink-subtle focus:border-blue-500 focus:outline-none"
+                  />
+                )}
               </div>
 
               <div className="mt-0.5 flex shrink-0 flex-col gap-1">
@@ -290,7 +425,8 @@ export default function BallotEditor({
         )}
         <p className="mt-2 text-ink-subtle">
           {submittedCount} ballot{submittedCount === 1 ? "" : "s"} counting towards the
-          Week {week} reveal. Nobody sees your order until you lock it in.
+          Week {week} reveal. Nobody sees your order until you lock it in, and your
+          working notes stay private even then.
         </p>
       </div>
     </div>

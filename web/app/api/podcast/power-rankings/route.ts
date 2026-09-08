@@ -29,7 +29,7 @@ export async function PUT(req: NextRequest) {
 
   const parsed = await parseJson(req, SaveBallotSchema);
   if (!parsed.ok) return parsed.response;
-  const { season, week, order, notes, submit } = parsed.data;
+  const { season, week, order, notes, prepNotes, submit } = parsed.data;
 
   // Drafts may be partial — that is the point of a draft. A submitted ballot
   // has to be a total order of the league, because consolidation averages
@@ -48,7 +48,7 @@ export async function PUT(req: NextRequest) {
   }
 
   try {
-    await saveBallot({ userId: user.userId, season, week, order, notes, submit });
+    await saveBallot({ userId: user.userId, season, week, order, notes, prepNotes, submit });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Could not save the ballot";
     return NextResponse.json({ error: message }, { status: 500 });
