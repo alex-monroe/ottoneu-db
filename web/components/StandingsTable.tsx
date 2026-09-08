@@ -1,5 +1,6 @@
 import { formatRecord, formatStreak, type PlayoffPicture } from "@/lib/standings";
 import TeamName from "./TeamName";
+import { Th } from "./TableParts";
 
 /**
  * The league table, with the playoff cut line drawn where it actually falls.
@@ -16,25 +17,17 @@ interface Props {
   viewerTeam?: string | null;
 }
 
-function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
-  return (
-    <th
-      className={`px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 ${
-        right ? "text-right" : "text-left"
-      }`}
-    >
-      {children}
-    </th>
-  );
-}
-
 export default function StandingsTable({ playoffs, compact = false, viewerTeam = null }: Props) {
   const { seeds, slots, started } = playoffs;
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-      <table className="w-full min-w-[420px] border-collapse">
-        <thead className="bg-slate-50 dark:bg-slate-900">
+    // The compact variant lives in one column of the homepage's `lg:grid-cols-3`
+    // — about 352px inside `max-w-6xl` — so a 420px floor gave the standings
+    // panel its own horizontal scrollbar at every desktop width. It already
+    // drops PA and Streak; it can drop the min-width with them.
+    <div className="overflow-x-auto rounded-lg border border-line">
+      <table className={`w-full border-collapse ${compact ? "" : "min-w-[420px]"}`}>
+        <thead className="bg-sunken">
           <tr>
             <Th>#</Th>
             <Th>Team</Th>
@@ -53,39 +46,39 @@ export default function StandingsTable({ playoffs, compact = false, viewerTeam =
             return (
               <tr
                 key={row.team_id}
-                className={`border-t border-slate-100 dark:border-slate-800/70 ${
-                  cutLine ? "border-b-2 border-b-amber-400 dark:border-b-amber-500" : ""
+                className={`border-t border-line ${
+                  cutLine ? "border-b-2 border-b-phase" : ""
                 } ${isMine ? "bg-blue-50/60 dark:bg-blue-950/20" : ""}`}
               >
-                <td className="px-3 py-2 text-sm tabular-nums text-slate-400 dark:text-slate-500">
+                <td className="px-3 py-2 text-sm tabular-nums text-ink-subtle">
                   {row.rank}
                 </td>
-                <td className="px-3 py-2 text-sm text-slate-900 dark:text-white">
+                <td className="px-3 py-2 text-sm text-ink">
                   <TeamName name={row.team_name} mine={isMine} />
                   {row.clinched && (
-                    <span className="ml-2 text-[11px] font-semibold uppercase text-emerald-600 dark:text-emerald-400">
+                    <span className="ml-2 text-[11px] font-semibold uppercase text-positive">
                       clinched
                     </span>
                   )}
                   {row.eliminated && (
-                    <span className="ml-2 text-[11px] font-semibold uppercase text-slate-400 dark:text-slate-500">
+                    <span className="ml-2 text-[11px] font-semibold uppercase text-ink-subtle">
                       eliminated
                     </span>
                   )}
                 </td>
-                <td className="px-3 py-2 text-right text-sm tabular-nums text-slate-700 dark:text-slate-200">
+                <td className="px-3 py-2 text-right text-sm tabular-nums text-ink-muted">
                   {formatRecord(row)}
                 </td>
-                <td className="px-3 py-2 text-right text-sm tabular-nums text-slate-600 dark:text-slate-300">
+                <td className="px-3 py-2 text-right text-sm tabular-nums text-ink-muted">
                   {row.points_for.toFixed(2)}
                 </td>
                 {!compact && (
-                  <td className="px-3 py-2 text-right text-sm tabular-nums text-slate-500 dark:text-slate-400">
+                  <td className="px-3 py-2 text-right text-sm tabular-nums text-ink-subtle">
                     {row.points_against.toFixed(2)}
                   </td>
                 )}
                 {!compact && (
-                  <td className="px-3 py-2 text-right text-sm tabular-nums text-slate-500 dark:text-slate-400">
+                  <td className="px-3 py-2 text-right text-sm tabular-nums text-ink-subtle">
                     {formatStreak(row.streak)}
                   </td>
                 )}

@@ -3,15 +3,17 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
-import { Lock, ExternalLink, ChevronDown, Shield, Menu, X } from "lucide-react";
+import { Lock, ExternalLink, ChevronDown, Menu, X } from "lucide-react";
 import GlobalPlayerSearch from "./GlobalPlayerSearch";
+import { visibleNav, type NavGroup } from "@/lib/nav";
+import { teamHref } from "@/lib/teams";
 
 // Shared styling for a top-level nav item (inline desktop bar).
 function navItemClass(isActive: boolean): string {
   return `inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${
     isActive
       ? "bg-blue-600 text-white"
-      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
+      : "text-ink-muted hover:text-ink hover:bg-sunken"
   }`;
 }
 
@@ -20,71 +22,23 @@ function mobileItemClass(isActive: boolean): string {
   return `flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
     isActive
       ? "bg-blue-600 text-white"
-      : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+      : "text-ink-muted hover:bg-sunken"
   }`;
 }
-
-const PUBLIC_LINKS = [
-  { href: "/", label: "Home" },
-  // Matchup results and standings are league-wide facts anyone can read off
-  // Ottoneu, so the scoreboard is ungated like Players and Rosters.
-  { href: "/scoreboard", label: "Scoreboard" },
-  { href: "/players", label: "Players" },
-  { href: "/rosters", label: "Rosters" },
-  { href: "/teams", label: "Teams" },
-  // Runs entirely in the browser off a static board — no sign-in, no database.
-  { href: "/snake-draft", label: "Snake Draft" },
-];
 
 const SOFA_LEAGUE_LINK = {
   href: "https://ottoneu.fangraphs.com/football/309/",
   label: "The SOFA",
-  isExternal: true,
 };
 
-const AUTHENTICATED_LINKS = [
-  { href: "/lineup", label: "Lineup" },
-];
+/** Home is a plain link; everything else is grouped by task in lib/nav.ts. */
+const HOME_LINK = { href: "/", label: "Home" };
 
-const PRIVATE_GROUPS = [
-  {
-    label: "Projections",
-    links: [
-      { href: "/projected-salary", label: "Projected Salary" },
-      { href: "/projections", label: "Projections" },
-      // Per-game, third-party, in-season — a different thing entirely from the
-      // season-long model behind "Projections" above. Labelled "Weekly" so the
-      // distinction is visible in the menu itself.
-      { href: "/weekly", label: "Weekly (per-game)" },
-      { href: "/projection-accuracy", label: "Proj. Accuracy" },
-      { href: "/vegas-lines", label: "Vegas Lines" },
-    ],
-  },
-  {
-    label: "Value",
-    links: [
-      { href: "/value", label: "Player Value" },
-      { href: "/value?tab=vorp", label: "VORP" },
-      { href: "/value?tab=surplus", label: "Surplus Value" },
-      { href: "/value?tab=adjustments", label: "Adjustments" },
-    ],
-  },
-  {
-    label: "Offseason",
-    links: [
-      { href: "/arbitration", label: "Arbitration" },
-      { href: "/arb-progress", label: "Arb Progress" },
-      { href: "/arb-planner-public", label: "Arb Planner" },
-      { href: "/mock-draft", label: "Mock Draft" },
-    ],
-  },
-];
-
-/** Small amber dot marking the phase-featured nav item. */
+/** Small dot marking the phase-featured nav item, in the phase hue. */
 function FeaturedDot() {
   return (
     <span
-      className="h-1.5 w-1.5 rounded-full bg-amber-500"
+      className="h-1.5 w-1.5 rounded-full bg-phase"
       title="Featured this part of the season"
       aria-hidden="true"
     />
@@ -97,12 +51,15 @@ function NavDropdown({
   pathname,
   featured,
   featuredLinks,
+  locked = false,
 }: {
   label: string;
   links: { href: string; label: string }[];
   pathname: string;
   featured?: boolean;
   featuredLinks?: string[];
+  /** Show the padlock — a group whose contents need projections access. */
+  locked?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -135,10 +92,12 @@ function NavDropdown({
         aria-controls={dropdownId}
         className={`inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${hasActiveChild
           ? "bg-blue-600 text-white"
-          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
+          : "text-ink-muted hover:text-ink hover:bg-sunken"
           }`}
       >
-        <Lock size={12} className={hasActiveChild ? "opacity-80" : "opacity-60"} aria-hidden="true" />
+        {locked && (
+          <Lock size={12} className={hasActiveChild ? "opacity-80" : "opacity-60"} aria-hidden="true" />
+        )}
         {label}
         {featured && <FeaturedDot />}
         <ChevronDown
@@ -150,7 +109,7 @@ function NavDropdown({
       {open && (
         <div
           id={dropdownId}
-          className="absolute left-0 top-full mt-1 z-50 min-w-[180px] rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg py-1"
+          className="absolute left-0 top-full mt-1 z-50 min-w-[180px] rounded-md border border-line bg-raised shadow-lg py-1"
         >
           {links.map((link) => {
             const isActive = pathname === link.href;
@@ -161,7 +120,7 @@ function NavDropdown({
                 onClick={() => setOpen(false)}
                 className={`flex items-center gap-1.5 px-4 py-2 text-sm transition-colors ${isActive
                   ? "bg-blue-600 text-white"
-                  : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  : "text-ink-muted hover:bg-sunken"
                   }`}
               >
                 {link.label}
@@ -184,6 +143,11 @@ interface NavigationProps {
   featuredGroup?: string | null;
   /** Earliest season a player counts as "active" in global search ranking. */
   activeSinceSeason: number;
+  hasProjectionsAccess: boolean;
+  /** Whether to offer the podcast production tools. */
+  isPodcaster: boolean;
+  /** The viewer's own team, which becomes the first item under "My Team". */
+  viewerTeam: string | null;
 }
 
 export default function Navigation({
@@ -192,7 +156,17 @@ export default function Navigation({
   featuredLinks = [],
   featuredGroup = null,
   activeSinceSeason,
+  hasProjectionsAccess,
+  isPodcaster,
+  viewerTeam,
 }: NavigationProps) {
+  const groups: NavGroup[] = visibleNav(
+    { isAuthenticated, isAdmin, hasProjectionsAccess, isPodcaster, viewerTeam },
+    teamHref,
+  );
+  /** A group is padlocked when nothing in it is open to everyone. */
+  const isLocked = (g: NavGroup) =>
+    g.items.every((i) => i.access != null && i.access !== "public");
   const pathname = usePathname();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -218,15 +192,14 @@ export default function Navigation({
     };
   }, [mobileOpen]);
 
-  // Authenticated users have many more nav items (3 dropdown groups + extra
-  // links), so the inline bar only fits on very wide screens. Logged-out users
-  // have just the public links and fit comfortably much sooner — collapse to a
-  // hamburger only when the items genuinely won't fit. Class names are written
-  // as full literals so Tailwind keeps them.
-  const inlineWrapperClass = isAuthenticated
-    ? "hidden 2xl:flex items-center gap-1"
-    : "hidden lg:flex items-center gap-1";
-  const collapsedHiddenClass = isAuthenticated ? "2xl:hidden" : "lg:hidden";
+  // One breakpoint for everyone. It used to be 2xl (1536px) when signed in and
+  // lg (1024px) when not, because auth piled on three dropdowns plus loose
+  // links — so a member on a 1280px laptop got a hamburger while an anonymous
+  // visitor on the same screen got the full bar, and access made navigation
+  // worse. Task grouping keeps the signed-in bar to a handful of items, so both
+  // states now collapse at the same width.
+  const inlineWrapperClass = "hidden xl:flex items-center gap-1";
+  const collapsedHiddenClass = "xl:hidden";
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -242,7 +215,7 @@ export default function Navigation({
   };
 
   return (
-    <nav ref={navRef} className="relative border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-black">
+    <nav ref={navRef} className="relative border-b border-line bg-raised">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 gap-2">
           <div className="flex items-center gap-1 min-w-0">
@@ -252,22 +225,30 @@ export default function Navigation({
               aria-expanded={mobileOpen}
               aria-controls="mobile-nav"
               aria-label="Toggle navigation menu"
-              className={`${collapsedHiddenClass} inline-flex items-center justify-center p-2 rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors`}
+              className={`${collapsedHiddenClass} inline-flex items-center justify-center p-2 rounded-md text-ink-muted hover:text-ink hover:bg-sunken transition-colors`}
             >
               {mobileOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
             </button>
 
-            {/* Inline navigation — shown once the items fit (breakpoint depends on auth) */}
+            {/* Inline navigation — one breakpoint regardless of auth */}
             <div className={inlineWrapperClass}>
-              {/* Public links */}
-              {PUBLIC_LINKS.map((link) => (
-                <Link key={link.href} href={link.href} className={navItemClass(pathname === link.href)}>
-                  {link.label}
-                  {featuredLinks.includes(link.href) && pathname !== link.href && <FeaturedDot />}
-                </Link>
+              <Link href={HOME_LINK.href} className={navItemClass(pathname === HOME_LINK.href)}>
+                {HOME_LINK.label}
+                {featuredLinks.includes(HOME_LINK.href) && pathname !== HOME_LINK.href && <FeaturedDot />}
+              </Link>
+
+              {groups.map((group) => (
+                <NavDropdown
+                  key={group.label}
+                  label={group.label}
+                  links={group.items}
+                  pathname={pathname}
+                  featured={featuredGroup === group.label}
+                  featuredLinks={featuredLinks}
+                  locked={isLocked(group)}
+                />
               ))}
 
-              {/* SOFA League external link */}
               <a
                 href={SOFA_LEAGUE_LINK.href}
                 target="_blank"
@@ -277,36 +258,6 @@ export default function Navigation({
                 {SOFA_LEAGUE_LINK.label}
                 <ExternalLink size={14} />
               </a>
-
-              {/* Authenticated-only plain links (e.g. public Arb Planner) */}
-              {isAuthenticated &&
-                AUTHENTICATED_LINKS.map((link) => (
-                  <Link key={link.href} href={link.href} className={navItemClass(pathname === link.href)}>
-                    {link.label}
-                    {featuredLinks.includes(link.href) && pathname !== link.href && <FeaturedDot />}
-                  </Link>
-                ))}
-
-              {/* Protected dropdown groups (only if authenticated) */}
-              {isAuthenticated &&
-                PRIVATE_GROUPS.map((group) => (
-                  <NavDropdown
-                    key={group.label}
-                    label={group.label}
-                    links={group.links}
-                    pathname={pathname}
-                    featured={featuredGroup === group.label}
-                    featuredLinks={featuredLinks}
-                  />
-                ))}
-
-              {/* Admin link */}
-              {isAdmin && (
-                <Link href="/admin" className={navItemClass(pathname === "/admin")}>
-                  <Shield size={12} className={pathname === "/admin" ? "opacity-80" : "opacity-60"} aria-hidden="true" />
-                  Admin
-                </Link>
-              )}
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
@@ -316,11 +267,11 @@ export default function Navigation({
                 onClick={handleLogout}
                 disabled={isLoggingOut}
                 aria-label="Sign out"
-                className="px-3 py-1.5 text-sm font-medium rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center justify-center gap-2"
+                className="px-3 py-1.5 text-sm font-medium rounded-md text-ink-muted hover:text-ink hover:bg-sunken transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center justify-center gap-2"
               >
                 {isLoggingOut ? (
                   <>
-                    <svg className="animate-spin h-4 w-4 text-slate-500 dark:text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin h-4 w-4 text-ink-subtle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
@@ -333,7 +284,7 @@ export default function Navigation({
             ) : (
               <Link
                 href="/login"
-                className="px-3 py-1.5 text-sm font-medium rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors whitespace-nowrap"
+                className="px-3 py-1.5 text-sm font-medium rounded-md text-ink-muted hover:text-ink hover:bg-sunken transition-colors whitespace-nowrap"
               >
                 Sign In
               </Link>
@@ -348,78 +299,47 @@ export default function Navigation({
       {mobileOpen && (
         <div
           id="mobile-nav"
-          className={`${collapsedHiddenClass} absolute left-2 sm:left-4 top-full mt-1 z-50 w-72 max-w-[calc(100vw-1rem)] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl py-1.5 px-1.5 space-y-0.5 max-h-[calc(100vh-4rem)] overflow-y-auto`}
+          className={`${collapsedHiddenClass} absolute left-2 sm:left-4 top-full mt-1 z-50 w-72 max-w-[calc(100vw-1rem)] rounded-lg border border-line bg-raised shadow-xl py-1.5 px-1.5 space-y-0.5 max-h-[calc(100vh-4rem)] overflow-y-auto`}
         >
-          {/* Public links */}
-          {PUBLIC_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setMobileOpen(false)}
-              className={mobileItemClass(pathname === link.href)}
-            >
-              {link.label}
-              {featuredLinks.includes(link.href) && pathname !== link.href && <FeaturedDot />}
-            </Link>
+          <Link
+            href={HOME_LINK.href}
+            onClick={() => setMobileOpen(false)}
+            className={mobileItemClass(pathname === HOME_LINK.href)}
+          >
+            {HOME_LINK.label}
+          </Link>
+
+          {/* Task groups, expanded as labelled sections */}
+          {groups.map((group) => (
+            <div key={group.label} className="pt-2">
+              <div className="flex items-center gap-1.5 px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-ink-subtle">
+                {isLocked(group) && <Lock size={11} aria-hidden="true" />}
+                {group.label}
+              </div>
+              {group.items.map((item) => (
+                <Link
+                  key={`${group.label}-${item.href}`}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={mobileItemClass(pathname === item.href)}
+                >
+                  {item.label}
+                  {featuredLinks.includes(item.href) && pathname !== item.href && <FeaturedDot />}
+                </Link>
+              ))}
+            </div>
           ))}
 
-          {/* SOFA League external link */}
           <a
             href={SOFA_LEAGUE_LINK.href}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setMobileOpen(false)}
-            className={mobileItemClass(false)}
+            className={`mt-2 ${mobileItemClass(false)}`}
           >
             {SOFA_LEAGUE_LINK.label}
             <ExternalLink size={14} aria-hidden="true" />
           </a>
-
-          {/* Authenticated-only plain links */}
-          {isAuthenticated &&
-            AUTHENTICATED_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileOpen(false)}
-                className={mobileItemClass(pathname === link.href)}
-              >
-                {link.label}
-              </Link>
-            ))}
-
-          {/* Protected groups, expanded as labeled sections */}
-          {isAuthenticated &&
-            PRIVATE_GROUPS.map((group) => (
-              <div key={group.label} className="pt-2">
-                <div className="flex items-center gap-1.5 px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
-                  <Lock size={11} aria-hidden="true" />
-                  {group.label}
-                </div>
-                {group.links.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setMobileOpen(false)}
-                    className={mobileItemClass(pathname === link.href)}
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
-            ))}
-
-          {/* Admin link */}
-          {isAdmin && (
-            <Link
-              href="/admin"
-              onClick={() => setMobileOpen(false)}
-              className={`mt-2 ${mobileItemClass(pathname === "/admin")}`}
-            >
-              <Shield size={14} aria-hidden="true" />
-              Admin
-            </Link>
-          )}
         </div>
       )}
     </nav>

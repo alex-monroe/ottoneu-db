@@ -12,6 +12,7 @@ jest.mock("@/lib/supabase", () => ({
 import {
     reconstructRostersAtDate,
     getRosterForTeam,
+    currentTeamByPlayer,
 } from "@/lib/roster-reconstruction";
 
 // ---------------------------------------------------------------------------
@@ -282,5 +283,71 @@ describe("reconstructRostersAtDate", () => {
 describe("getRosterForTeam", () => {
     it("returns undefined for non-existent team", () => {
         expect(getRosterForTeam([], "Nonexistent")).toBeUndefined();
+    });
+});
+
+// ---------------------------------------------------------------------------
+// currentTeamByPlayer
+// ---------------------------------------------------------------------------
+
+describe("currentTeamByPlayer", () => {
+    it("maps rostered players to their owning team", () => {
+        const owners = currentTeamByPlayer([
+            { player_id: "p1", price: 50, team_name: "Team A" },
+            { player_id: "p2", price: 30, team_name: "Team B" },
+        ]);
+        expect(owners.get("p1")).toBe("Team A");
+        expect(owners.get("p2")).toBe("Team B");
+    });
+
+    it("omits free agents — null, empty and the literal \"FA\"", () => {
+        const owners = currentTeamByPlayer([
+            { player_id: "p1", price: 0, team_name: null },
+            { player_id: "p2", price: 0, team_name: "" },
+            { player_id: "p3", price: 0, team_name: "FA" },
+        ]);
+        expect(owners.size).toBe(0);
+        expect(owners.has("p1")).toBe(false);
+        expect(owners.has("p2")).toBe(false);
+        expect(owners.has("p3")).toBe(false);
+    });
+
+    it("keeps a rostered player whose price is missing", () => {
+        // Ownership is a roster question, not a salary question: a row that
+        // names a team is rostered even if the price never landed.
+        const owners = currentTeamByPlayer([
+            { player_id: "p1", price: null, team_name: "Team A" },
+        ]);
+        expect(owners.get("p1")).toBe("Team A");
+    });
+
+    /**
+     * Regression (Derrick Henry): cut in December, re-drafted in August's
+     * auction. Replaying transactions to the end-of-season salary snapshot —
+     * which is what `fetchPlayersEndOfSeason` does, and what the free-agents
+     * page used to filter on — leaves him a free agent, while the league (and
+     * his player card) has him rostered. Ownership must come from the current
+     * roster state, so the two pages cannot disagree.
+     */
+    it("reports the current owner of a player who was a free agent at the snapshot date", () => {
+        const transactions = [
+            { player_id: "p1", transaction_type: "Add", team_name: "Team A", salary: 64, transaction_date: "2025-08-24" },
+            { player_id: "p1", transaction_type: "Cut", team_name: "Team A", salary: 32, transaction_date: "2025-12-31" },
+            { player_id: "p1", transaction_type: "Add", team_name: "Team B", salary: 54, transaction_date: "2026-08-22" },
+        ];
+        const leaguePrices = [{ player_id: "p1", price: 54, team_name: "Team B" }];
+
+        // The snapshot the surplus math runs on says nobody holds him...
+        const atSnapshot = reconstructRostersAtDate(
+            transactions,
+            makePlayers(),
+            makeStats(),
+            "2026-01-02",
+            leaguePrices,
+        );
+        expect(atSnapshot).toHaveLength(0);
+
+        // ...but he is rostered today, and that is what ownership must follow.
+        expect(currentTeamByPlayer(leaguePrices).get("p1")).toBe("Team B");
     });
 });

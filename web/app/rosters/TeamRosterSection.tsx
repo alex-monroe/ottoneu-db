@@ -40,38 +40,38 @@ export default function TeamRosterSection({ roster, hoverDataMap = null, viewerT
   const isOverCap = roster.total_salary > CAP_PER_TEAM;
 
   return (
-    <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+    <div className="border border-line rounded-lg overflow-hidden">
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left"
+        className="w-full flex items-center justify-between px-4 py-3 bg-sunken hover:bg-sunken transition-colors text-left"
       >
-        <span className="font-medium text-slate-900 dark:text-white">
+        <span className="font-medium text-ink">
           <TeamName name={roster.team_name} mine={viewerTeam === roster.team_name} />{" "}
-          <span className="text-sm font-normal text-slate-500 dark:text-slate-400">
+          <span className="text-sm font-normal text-ink-subtle">
             ({roster.players.length} player
             {roster.players.length !== 1 ? "s" : ""})
           </span>
         </span>
         <span className="flex items-center gap-3">
           <span className="text-sm">
-            <span className="font-medium text-slate-700 dark:text-slate-300">
+            <span className="font-medium text-ink-muted">
               ${roster.total_salary}
             </span>
-            <span className="text-slate-400 dark:text-slate-500">
+            <span className="text-ink-subtle">
               /{CAP_PER_TEAM}
             </span>
           </span>
           <span
             className={`text-sm font-medium ${
               isOverCap
-                ? "text-red-600 dark:text-red-400"
-                : "text-green-600 dark:text-green-400"
+                ? "text-negative"
+                : "text-positive"
             }`}
           >
             {isOverCap ? "-" : "+"}$
             {Math.abs(roster.cap_space)} cap
           </span>
-          <span className="text-slate-400">{isOpen ? "▲" : "▼"}</span>
+          <span className="text-ink-subtle">{isOpen ? "▲" : "▼"}</span>
         </span>
       </button>
       {isOpen && (

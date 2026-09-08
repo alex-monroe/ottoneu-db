@@ -21,6 +21,7 @@ import { getViewerTeam } from "@/lib/viewer-team";
 import ArbitrationTeams from "./ArbitrationTeams";
 import ArbTargetsTable, { type ProjectedTarget } from "./ArbTargetsTable";
 import ActiveModelCard from "@/components/ActiveModelCard";
+import { EmptyState } from "@/components/states";
 import ModeToggle, { ValueMode } from "@/components/ModeToggle";
 
 /**
@@ -72,9 +73,11 @@ export default async function TargetsSection({ mode }: { mode: ValueMode }) {
 
   if (targets.length === 0) {
     return (
-      <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-        No arbitration targets found.
-      </h2>
+      <EmptyState title="No arbitration targets found">
+        Targets are opponents&apos; rostered players whose surplus survives the
+        maximum raise. An empty list usually means salaries or projections
+        haven&apos;t been refreshed for this season yet.
+      </EmptyState>
     );
   }
 
@@ -110,10 +113,10 @@ export default async function TargetsSection({ mode }: { mode: ValueMode }) {
       <header>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            <h2 className="text-2xl font-bold tracking-tight text-ink">
               Arbitration Targets ({isProjected ? projectionYear : statsSeason})
             </h2>
-            <p className="text-slate-500 dark:text-slate-400 mt-2">
+            <p className="text-ink-subtle mt-2">
               {isProjected ? (
                 <>
                   Value based on <strong>projected future PPG</strong> rather than
@@ -156,34 +159,34 @@ export default async function TargetsSection({ mode }: { mode: ValueMode }) {
       )}
 
       {/* Budget Info */}
-      <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-5 border border-slate-200 dark:border-slate-800">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+      <div className="bg-sunken rounded-lg p-5 border border-line">
+        <h3 className="text-lg font-semibold text-ink mb-2">
           Arbitration Budget
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
           <div>
-            <p className="text-slate-500 dark:text-slate-400">Total Budget</p>
-            <p className="font-bold text-slate-900 dark:text-white">
+            <p className="text-ink-subtle">Total Budget</p>
+            <p className="font-bold text-ink">
               ${ARB_BUDGET_PER_TEAM}
             </p>
           </div>
           <div>
-            <p className="text-slate-500 dark:text-slate-400">Per Team Range</p>
-            <p className="font-bold text-slate-900 dark:text-white">
+            <p className="text-ink-subtle">Per Team Range</p>
+            <p className="font-bold text-ink">
               ${ARB_MIN_PER_TEAM}-${ARB_MAX_PER_TEAM}
             </p>
           </div>
           <div>
-            <p className="text-slate-500 dark:text-slate-400">
+            <p className="text-ink-subtle">
               Max Per Player (from you)
             </p>
-            <p className="font-bold text-slate-900 dark:text-white">
+            <p className="font-bold text-ink">
               ${ARB_MAX_PER_PLAYER_PER_TEAM}
             </p>
           </div>
           <div>
-            <p className="text-slate-500 dark:text-slate-400">Opponents</p>
-            <p className="font-bold text-slate-900 dark:text-white">
+            <p className="text-ink-subtle">Opponents</p>
+            <p className="font-bold text-ink">
               {NUM_TEAMS - 1}
             </p>
           </div>
@@ -192,11 +195,11 @@ export default async function TargetsSection({ mode }: { mode: ValueMode }) {
 
       {/* Top 20 Targets */}
       <section>
-        <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
+        <h3 className="text-xl font-semibold text-ink mb-3">
           Top 20 Arbitration Targets
         </h3>
         {isProjected && (
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
+          <p className="text-sm text-ink-subtle mb-3">
             <strong>Obs PPG</strong> = actual {mostRecentSeason}{" "}
             season. <strong>Proj PPG</strong> = recency-weighted projection.
             Red rows = negative projected surplus after a $
@@ -212,10 +215,10 @@ export default async function TargetsSection({ mode }: { mode: ValueMode }) {
 
       {/* Per-Team Sections */}
       <section>
-        <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
+        <h3 className="text-xl font-semibold text-ink mb-3">
           Targets by Opponent
         </h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+        <p className="text-sm text-ink-subtle mb-4">
           Suggested allocation based on {isProjected ? "projected" : "number of vulnerable"} surplus per team.
         </p>
         <ArbitrationTeams teams={teamsData} showProjectionColumns={isProjected} hoverDataMap={hoverDataMap} />

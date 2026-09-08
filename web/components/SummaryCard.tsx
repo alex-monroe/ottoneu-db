@@ -5,8 +5,13 @@
  * cap space, surplus value, etc. with consistent styling.
  */
 
+import Explain from "./Explain";
+import type { GlossaryTerm } from "@/lib/glossary";
+
 interface SummaryCardProps {
   label: string;
+  /** Glossary term to hang a "?" off, same contract as `Column.explain`. */
+  explain?: GlossaryTerm;
   value: string | number;
   valueClassName?: string;
   variant?: 'default' | 'positive' | 'negative';
@@ -14,6 +19,7 @@ interface SummaryCardProps {
 
 export default function SummaryCard({
   label,
+  explain,
   value,
   valueClassName,
   variant = 'default'
@@ -21,21 +27,24 @@ export default function SummaryCard({
   const baseClasses = "rounded-lg p-5 border";
 
   const variantClasses = {
-    default: "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800",
+    default: "bg-sunken border-line",
     positive: "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800",
     negative: "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800",
   };
 
   const defaultValueClasses = {
-    default: "text-slate-900 dark:text-white",
-    positive: "text-green-700 dark:text-green-300",
-    negative: "text-red-700 dark:text-red-300",
+    default: "text-ink",
+    positive: "text-positive",
+    negative: "text-negative",
   };
 
   return (
     <div className={`${baseClasses} ${variantClasses[variant]}`}>
-      <p className="text-sm text-slate-500 dark:text-slate-400">{label}</p>
-      <p className={`text-2xl font-bold ${valueClassName ?? defaultValueClasses[variant]}`}>
+      <p className="flex items-center text-sm text-ink-subtle">
+        {label}
+        {explain && <Explain term={explain} />}
+      </p>
+      <p className={`mt-0.5 text-2xl font-bold tabular-nums ${valueClassName ?? defaultValueClasses[variant]}`}>
         {typeof value === 'number' ? `$${value}` : value}
       </p>
     </div>

@@ -8,6 +8,8 @@ import { fetchPlayersEndOfSeason } from "@/lib/data";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { getViewerTeam } from "@/lib/viewer-team";
 import SurplusTables from "./SurplusTables";
+import { EmptyState } from "@/components/states";
+import DataFreshness from "@/components/DataFreshness";
 
 /**
  * Surplus value rankings panel (bargains, overpaid, my team, FAs, team summary).
@@ -27,9 +29,10 @@ export default async function SurplusSection() {
 
   if (surplusPlayers.length === 0) {
     return (
-      <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-        No surplus data available.
-      </h2>
+      <EmptyState title="No surplus data available">
+        Surplus needs both salaries and last season&apos;s production. Once the
+        roster scrape and the stats import have both run, this fills in.
+      </EmptyState>
     );
   }
 
@@ -96,13 +99,14 @@ export default async function SurplusSection() {
   return (
     <div className="space-y-8">
       <header>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h2 className="text-2xl font-bold tracking-tight text-ink">
           Surplus Value Rankings ({statsSeason})
         </h2>
-        <p className="text-slate-500 dark:text-slate-400 mt-2">
+        <p className="text-ink-subtle mt-2">
           Dollar value (from VORP) minus current salary. Positive surplus =
           bargain.
         </p>
+        <DataFreshness source="rosters" className="mt-1" />
       </header>
 
       <SurplusTables

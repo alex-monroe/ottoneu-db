@@ -1,6 +1,7 @@
 import { fetchAvailableSeasons, fetchVegasLinesForSeason } from "@/lib/vegas-lines";
 import { DIVISIONS, TEAM_NAME_BY_CODE } from "@/lib/nfl-divisions";
 import SeasonSelector from "./SeasonSelector";
+import PageShell from "@/components/PageShell";
 
 export const revalidate = 3600;
 
@@ -21,20 +22,18 @@ export default async function VegasLinesPage({ searchParams }: Props) {
 
   if (seasons.length === 0) {
     return (
-      <main className="min-h-screen bg-white dark:bg-black p-8">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+      <PageShell width="wide" gap="none">
+          <h1 className="text-3xl font-bold tracking-tight text-ink">
             Preseason Vegas Lines
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-4">
+          <p className="text-ink-subtle mt-4">
             No data available. Run{" "}
-            <code className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-xs">
+            <code className="px-1.5 py-0.5 rounded bg-sunken text-xs">
               venv/bin/python scripts/backfill_vegas_lines.py
             </code>{" "}
             to populate the <code>team_vegas_lines</code> table.
           </p>
-        </div>
-      </main>
+      </PageShell>
     );
   }
 
@@ -62,14 +61,13 @@ export default async function VegasLinesPage({ searchParams }: Props) {
   const nfcDivisions = DIVISIONS.filter((d) => d.conference === "NFC");
 
   return (
-    <main className="min-h-screen bg-white dark:bg-black p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <PageShell width="wide">
         <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-3xl font-bold tracking-tight text-ink">
               Preseason Vegas Lines — {targetSeason}
             </h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
+            <p className="text-ink-subtle mt-1 text-sm">
               Per-team season implied total points and Pythagorean expected
               wins, aggregated from nflverse game lines. Available as the
               <code className="ml-1">implied_team_total_raw</code> feature for
@@ -81,8 +79,8 @@ export default async function VegasLinesPage({ searchParams }: Props) {
         </header>
 
         {hasImpliedTotals && leagueMean !== null ? (
-          <section className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
-            <span className="font-medium text-slate-900 dark:text-white">
+          <section className="rounded-lg border border-line bg-sunken px-4 py-3 text-sm text-ink-muted">
+            <span className="font-medium text-ink">
               League average implied total:
             </span>{" "}
             {formatNumber(leagueMean, 1)} points · {rows.length} teams ·
@@ -123,8 +121,7 @@ export default async function VegasLinesPage({ searchParams }: Props) {
             <code>web/lib/nfl-divisions.ts</code> if a relocation has occurred.
           </section>
         )}
-      </div>
-    </main>
+    </PageShell>
   );
 }
 
@@ -143,7 +140,7 @@ function ConferenceSection({
 }) {
   return (
     <section className="space-y-4">
-      <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+      <h2 className="text-xs font-bold uppercase tracking-widest text-ink-subtle">
         {label}
       </h2>
       <div className="space-y-4">
@@ -179,15 +176,15 @@ function DivisionCard({
   });
 
   return (
-    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden">
-      <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+    <div className="rounded-lg border border-line bg-raised overflow-hidden">
+      <div className="px-4 py-2 border-b border-line bg-sunken">
+        <h3 className="text-sm font-semibold text-ink">
           {label}
         </h3>
       </div>
       <table className="w-full text-sm">
         <thead>
-          <tr className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <tr className="text-xs uppercase tracking-wide text-ink-subtle">
             <th className="px-4 py-2 text-left font-medium">Team</th>
             <th className="px-4 py-2 text-right font-medium">Implied Total</th>
             <th className="px-4 py-2 text-right font-medium">Win Total</th>
@@ -207,19 +204,19 @@ function DivisionCard({
                 className="border-t border-slate-100 dark:border-slate-900"
               >
                 <td className="px-4 py-2">
-                  <div className="font-medium text-slate-900 dark:text-white">
+                  <div className="font-medium text-ink">
                     {TEAM_NAME_BY_CODE[team.code] ?? team.name}
                   </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                  <div className="text-xs text-ink-subtle">
                     {team.code}
                   </div>
                 </td>
-                <td className="px-4 py-2 text-right font-mono text-slate-900 dark:text-white">
+                <td className="px-4 py-2 text-right font-mono text-ink">
                   {line && line.implied_total !== null
                     ? formatNumber(line.implied_total, 1)
                     : "—"}
                 </td>
-                <td className="px-4 py-2 text-right font-mono text-slate-900 dark:text-white">
+                <td className="px-4 py-2 text-right font-mono text-ink">
                   {line && line.win_total !== null
                     ? formatNumber(line.win_total, 1)
                     : "—"}
@@ -227,9 +224,9 @@ function DivisionCard({
                 <td
                   className={`px-4 py-2 text-right font-mono ${
                     delta === null
-                      ? "text-slate-400"
+                      ? "text-ink-subtle"
                       : delta > 0
-                        ? "text-emerald-600 dark:text-emerald-400"
+                        ? "text-positive"
                         : delta < 0
                           ? "text-rose-600 dark:text-rose-400"
                           : "text-slate-500"

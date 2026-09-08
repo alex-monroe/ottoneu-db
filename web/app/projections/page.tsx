@@ -3,9 +3,11 @@ import {
   getHistoricalSeasonsForYear,
 } from "@/lib/analysis";
 import { getStatsSeason, getProjectionSeason } from "@/lib/season";
-import { getAuthenticatedUser } from "@/lib/auth";
 import ActiveModelCard from "@/components/ActiveModelCard";
 import ProjectionsClient from "./ProjectionsClient";
+import PageShell, { PageHeader } from "@/components/PageShell";
+import { EmptyState } from "@/components/states";
+import DataFreshness from "@/components/DataFreshness";
 
 export const revalidate = 3600;
 
@@ -15,12 +17,10 @@ interface Props {
 
 export default async function ProjectionsPage({ searchParams }: Props) {
   const params = await searchParams;
-  const [statsSeason, projectionSeason, user] = await Promise.all([
+  const [statsSeason, projectionSeason] = await Promise.all([
     getStatsSeason(),
     getProjectionSeason(),
-    getAuthenticatedUser(),
   ]);
-  const isAdmin = !!user?.isAdmin;
 
   // Selectable projection years: the just-completed season (backtest view) and
   // the upcoming projection season (forward-looking). Deduped when they coincide
@@ -40,27 +40,26 @@ export default async function ProjectionsPage({ searchParams }: Props) {
 
   if (rows.length === 0) {
     return (
-      <main className="min-h-screen bg-white dark:bg-black p-8">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-            No projection data available.
-          </h1>
-        </div>
-      </main>
+      <PageShell width="wide">
+        <PageHeader
+          eyebrow="Season-Long Projections"
+          title={`${projectionYear} Player Projections`}
+        />
+        <EmptyState title="No projections for this season yet">
+          The season-long model has not been run for {projectionYear}. Projections
+          are rebuilt when the pipeline runs; until then there is nothing to rank.
+        </EmptyState>
+      </PageShell>
     );
   }
 
   return (
-    <main className="min-h-screen bg-white dark:bg-black p-4 sm:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <header>
-          <p className="text-xs font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400">
-            Season-Long Projections
-          </p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-            {projectionYear} Player Projections
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 max-w-3xl">
+    <PageShell width="wide">
+        <PageHeader
+          eyebrow="Season-Long Projections"
+          title={`${projectionYear} Player Projections`}
+        >
+          <p className="mt-2 max-w-prose text-ink-muted">
             {isForward ? (
               <>
                 Projected points per game for every player, including rookies.
@@ -77,7 +76,8 @@ export default async function ProjectionsPage({ searchParams }: Props) {
               </>
             )}
           </p>
-        </header>
+        </PageHeader>
+      <DataFreshness source="projections" />
 
         <ProjectionsClient
           initialData={rows}
@@ -87,12 +87,13 @@ export default async function ProjectionsPage({ searchParams }: Props) {
           isForward={isForward}
         />
 
-        {/* Methodology — admin-only */}
-        {isAdmin && (
-          <ActiveModelCard
+        {/* Methodology. This used to be admin-only, which meant the people
+            reading the projections were the ones forbidden from seeing how they
+            were made. Anyone who can see the number can see the method. */}
+        <ActiveModelCard
             footer={
               <>
-                <p className="text-sm text-slate-700 dark:text-slate-300">
+                <p className="text-sm text-ink-muted">
                   Built from {historicalSeasons.join(", ")} history. Players with
                   no NFL track record use a separate rookie fallback —{" "}
                   <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
@@ -104,7 +105,7 @@ export default async function ProjectionsPage({ searchParams }: Props) {
                   </span>{" "}
                   (prospect, position-average rookie PPG).
                 </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 pt-1">
+                <p className="text-xs text-ink-subtle pt-1">
                   <strong>{statsSeason} PPG</strong> — actual {statsSeason} stats
                   &nbsp;·&nbsp; <strong>Proj {projectionYear}</strong> — model
                   output &nbsp;·&nbsp; <strong>Δ</strong> — Proj minus{" "}
@@ -113,8 +114,6 @@ export default async function ProjectionsPage({ searchParams }: Props) {
               </>
             }
           />
-        )}
-      </div>
-    </main>
+    </PageShell>
   );
 }

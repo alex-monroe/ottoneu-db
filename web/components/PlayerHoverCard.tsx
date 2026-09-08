@@ -22,7 +22,7 @@ export default function PlayerHoverCard({
       <HoverCard.Trigger asChild>
         <Link
           href={`/players/${ottoneuId}`}
-          className="text-blue-600 dark:text-blue-400 hover:underline"
+          className="text-accent hover:underline"
           onClick={(e) => e.stopPropagation()}
         >
           {name}
@@ -33,53 +33,53 @@ export default function PlayerHoverCard({
           side="bottom"
           align="start"
           sideOffset={4}
-          className="z-50 w-64 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg p-3 animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95"
+          className="z-50 w-64 rounded-lg border border-line bg-raised shadow-lg p-3 animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95"
         >
           {hoverData ? (
             <div className="space-y-2">
               {/* Header: Name + Position + Team */}
               <div className="flex items-center gap-2">
                 <PositionBadge position={hoverData.position} size="sm" />
-                <span className="font-semibold text-sm text-slate-900 dark:text-white truncate">
+                <span className="font-semibold text-sm text-ink truncate">
                   {name}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-ink-subtle">
                 {hoverData.nfl_team}
               </p>
 
               {/* Stats grid */}
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-slate-500 dark:text-slate-400">Salary</span>
-                  <span className="font-mono font-medium text-slate-800 dark:text-slate-200">
+                  <span className="text-ink-subtle">Salary</span>
+                  <span className="font-mono font-medium text-ink-muted">
                     ${hoverData.price}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500 dark:text-slate-400">Owner</span>
+                  <span className="text-ink-subtle">Owner</span>
                   <span className="font-medium truncate ml-1">
                     <TeamName name={hoverData.team_name} />
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500 dark:text-slate-400">PPG</span>
-                  <span className="font-mono font-medium text-slate-800 dark:text-slate-200">
+                  <span className="text-ink-subtle">PPG</span>
+                  <span className="font-mono font-medium text-ink-muted">
                     {hoverData.ppg.toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500 dark:text-slate-400">Games</span>
-                  <span className="font-mono font-medium text-slate-800 dark:text-slate-200">
+                  <span className="text-ink-subtle">Games</span>
+                  <span className="font-mono font-medium text-ink-muted">
                     {hoverData.games_played}
                   </span>
                 </div>
                 {hoverData.projected_ppg != null && (
-                  <div className="flex justify-between col-span-2 pt-1 border-t border-slate-100 dark:border-slate-800">
-                    <span className="text-blue-600 dark:text-blue-400 font-medium">
+                  <div className="flex justify-between col-span-2 pt-1 border-t border-line">
+                    <span className="text-accent font-medium">
                       Proj. PPG
                     </span>
-                    <span className="font-mono font-bold text-blue-600 dark:text-blue-400">
+                    <span className="font-mono font-bold text-accent">
                       {hoverData.projected_ppg.toFixed(2)}
                     </span>
                   </div>
@@ -107,7 +107,7 @@ export default function PlayerHoverCard({
               </div>
             </div>
           ) : (
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-ink-subtle">
               {name}
             </p>
           )}

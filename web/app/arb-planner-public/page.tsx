@@ -11,6 +11,7 @@ import {
 } from "@/lib/analysis";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import PublicArbPlannerClient from "./PublicArbPlannerClient";
+import PageShell from "@/components/PageShell";
 
 export default async function PublicArbPlannerPage() {
     const user = await getAuthenticatedUser();
@@ -41,13 +42,12 @@ export default async function PublicArbPlannerPage() {
         .order("updated_at", { ascending: false });
 
     return (
-        <main className="min-h-screen bg-white dark:bg-black p-8">
-            <div className="max-w-7xl mx-auto space-y-6">
+        <PageShell width="wide">
                 <header>
-                    <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                    <h1 className="text-3xl font-bold tracking-tight text-ink">
                         Arbitration Planner
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 mt-2">
+                    <p className="text-ink-subtle mt-2">
                         Plan your ${ARB_BUDGET_PER_TEAM} arbitration budget across{" "}
                         {NUM_TEAMS - 1} opponent teams (${ARB_MIN_PER_TEAM}–$
                         {ARB_MAX_PER_TEAM} per team, max ${ARB_MAX_PER_PLAYER_PER_TEAM} per
@@ -60,7 +60,6 @@ export default async function PublicArbPlannerPage() {
                     initialPlans={plans ?? []}
                     opponentTeams={opponentTeams}
                 />
-            </div>
-        </main>
+        </PageShell>
     );
 }

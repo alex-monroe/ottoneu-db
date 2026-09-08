@@ -145,10 +145,28 @@ because the league calendar and the NFL schedule disagree twice a year:
 
 ### Gating in-season jobs
 
-For the same reason, **gate on `is_nfl_week_live()`, not on the league phase**
-from `scripts/season.py`. The phase is already `pre_arb` while Week 18 is being
-played, so a phase gate would silently skip the final week of the season. The
-workflow uses `is_nfl_week_live`.
+For the same reason, **never gate on the league phase** from
+`scripts/season.py`. The phase is already `pre_arb` while Week 18 is being
+played, so a phase gate would silently skip the final week of the season.
+
+There are two gates instead, and which one you want depends on what you are
+pulling:
+
+| Gate | Means | Open from | Closes |
+| --- | --- | --- | --- |
+| `is_weekly_ingest_window()` | "should we be refreshing projections" | **1 September** of the coming NFL season | after Week 18's Monday |
+| `is_nfl_week_live()` | "are games being played" | Week 1's Tuesday | after Week 18's Monday |
+
+Projections open earlier on purpose. Sleeper posts the Week 1 board weeks ahead
+and revises it daily as camp and preseason news lands, so the run-up to kickoff
+is when a daily refresh is worth most — but the live gate stays shut until Week
+1's Tuesday. Gating the ingest on it left the site showing a Week 1 board last
+refreshed in August, right through the days people set their opening lineups.
+1 September is the opening date because Week 1's Thursday is always the one
+after Labor Day, which puts it 3-10 days ahead of the anchor Tuesday every year.
+
+Actuals still gate on `is_nfl_week_live()` — before kickoff there is no result
+to pull, and asking would just burn a request.
 
 `scripts/tests/fixtures/nfl_week_boundaries.json` is a boundary table read by
 **both** test suites, so the Python and TypeScript twins cannot drift apart
@@ -157,8 +175,8 @@ the multi-season season-attribution cases above.
 
 ## Data quality
 
-Three behaviours worth knowing, all found by running the first real ingest and
-all covered by tests:
+Four behaviours worth knowing, all found by running a real ingest and all
+covered by tests:
 
 - **Players with no projected stats are skipped.** Sleeper returns its whole
   player universe (~3,200 rows for QB/RB/WR/TE/K), most of it not actually
@@ -180,6 +198,19 @@ all covered by tests:
   ~780 bogus rows pointing at records the web layer filters out and whose player
   pages do not exist. This is the same filter `fetchPlayerList` and
   `fetchRosterData` already use.
+- **Players the source stops projecting are retired from the week.** The upsert
+  only touches players present in today's payload, so a player projected on
+  Tuesday and then cut, waived, or moved to IR used to keep Tuesday's number on
+  the board for the rest of the week. That row is indistinguishable from a
+  healthy starter's, which breaks the same "missing = bye or inactive" promise
+  the empty-stats filter above exists to keep. After each projections pass,
+  `reconcile_dropped_players` deletes rows the source no longer projects — but
+  only when they hold no `actual_points`; a row that already has a result keeps
+  the result and has just its projection cleared, because a played game is the
+  whole reason a week is retained. On 2026-09-07 this retired 52 rows left over
+  from a 29 August pull. It runs **only on a projections pass and only when the
+  payload produced records**, so a source outage cannot take the board down with
+  it, and the partial-by-nature actuals pass never retires anything.
 
 ### Expected coverage
 
@@ -219,11 +250,15 @@ because the week has two moments that matter:
 | `0 11 * * *` | ~7am ET, daily | Projections for the current week, **plus actuals** for the current and previous week | Sleeper revises all week as injury and snap news lands, so a single Tuesday pull is stale by Sunday. 7am ET is the one time no game is in progress — Sunday's are final, Monday night's has not started — which is why this is the run that writes actuals. |
 | `0 16 * * 0` | 12pm EDT / 11am EST, Sundays | Projections only | Inactives are announced ~90 minutes before the 1pm ET window. This is the most valuable projection update of the week for start/sit, and the 7am run is far too early to catch it. |
 
-Both are **gated on `is_nfl_week_live()`**, so they no-op all offseason — and,
-unlike a league-phase gate, still run through Week 18. A `workflow_dispatch` run
-skips the gate entirely so any week can be backfilled at any time; passing an
-explicit `week` also suppresses the automatic current/previous passes, so a
-targeted backfill does exactly what you asked and nothing else.
+Projections on both schedules are **gated on `is_weekly_ingest_window()`** —
+daily from 1 September through Week 18, so the Week 1 board is fresh before
+kickoff and the job still no-ops all offseason. The actuals passes are gated
+separately on `is_nfl_week_live()`, which stays shut until Week 1's Tuesday; see
+[Gating in-season jobs](#gating-in-season-jobs). Unlike a league-phase gate,
+both still run through Week 18. A `workflow_dispatch` run skips both gates so
+any week can be backfilled at any time; passing an explicit `week` also
+suppresses the automatic current/previous passes, so a targeted backfill does
+exactly what you asked and nothing else.
 
 A `concurrency` group stops a pre-kickoff run and a daily run from writing the
 same rows at once.

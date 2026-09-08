@@ -1,11 +1,15 @@
 /**
  * Canonical position-colored badge.
  *
- * Provides a consistent visual representation of player positions
- * across all views: tables, hover cards, search results, and player cards.
+ * The fill is set through CSS custom properties rather than a plain
+ * `backgroundColor`, so the badge can carry a light-mode and a dark-mode value
+ * from a server component with no client JS. The old version hard-coded one
+ * 500-weight hex per position, which meant (a) the badge never adapted to dark
+ * mode at all, and (b) every one of the five failed WCAG AA against its own
+ * white label — TE measured 2.15:1.
  */
 
-import { POSITION_COLORS, type Position } from "@/lib/types";
+import { POSITION_COLORS, POSITION_COLORS_DARK, type Position } from "@/lib/types";
 
 interface PositionBadgeProps {
   position: string;
@@ -14,21 +18,27 @@ interface PositionBadgeProps {
 }
 
 const SIZE_CLASSES = {
-  sm: "px-1.5 py-0.5 text-[10px]",
-  md: "px-1.5 py-0.5 text-xs",
+  sm: "px-1.5 py-0.5 text-[11px]",
+  md: "px-2 py-0.5 text-xs",
 } as const;
 
 export default function PositionBadge({
   position,
   size = "md",
 }: PositionBadgeProps) {
-  const color =
-    POSITION_COLORS[position as Position] ?? "#6B7280";
+  const key = position as Position;
+  const light = POSITION_COLORS[key] ?? "#475569"; // slate-600
+  const dark = POSITION_COLORS_DARK[key] ?? "#cbd5e1"; // slate-300
 
   return (
     <span
-      className={`inline-block rounded font-bold text-white ${SIZE_CLASSES[size]}`}
-      style={{ backgroundColor: color }}
+      className={`position-badge inline-block rounded font-bold ${SIZE_CLASSES[size]}`}
+      style={
+        {
+          "--pos-light": light,
+          "--pos-dark": dark,
+        } as React.CSSProperties
+      }
     >
       {position}
     </span>

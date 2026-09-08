@@ -37,7 +37,7 @@ interface AuthorizeParams {
 
 function ErrorPanel({ title, detail }: { title: string; detail: string }) {
   return (
-    <main className="min-h-screen bg-white dark:bg-black flex items-center justify-center p-8">
+    <main id="main-content" className="flex min-h-[70vh] items-center justify-center bg-page px-4 py-10 sm:px-6">
       <div className="max-w-md w-full border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 rounded-lg p-6">
         <h1 className="text-lg font-semibold text-red-900 dark:text-red-200">{title}</h1>
         <p className="mt-2 text-sm text-red-800 dark:text-red-300">{detail}</p>

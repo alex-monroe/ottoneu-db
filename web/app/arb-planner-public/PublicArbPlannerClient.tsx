@@ -14,7 +14,7 @@ const ppgMetricColumn: ComparisonMetricColumn<PublicArbPlayer> = {
   label: "2025 PPG",
   getValue: (p) => p.ppg,
   render: (v) => v.toFixed(2),
-  cellClassName: () => "px-3 py-2 text-right text-slate-900 dark:text-white",
+  cellClassName: () => "px-3 py-2 text-right text-ink",
 };
 
 function sortByPpgDesc(a: PublicArbPlayer, b: PublicArbPlayer) {
@@ -34,7 +34,7 @@ export default function PublicArbPlannerClient({
       sortPlayers={sortByPpgDesc}
       metricColumn={ppgMetricColumn}
       nameMode="plain"
-      comparisonBodyRowClassName="border-b border-slate-100 dark:border-slate-800"
+      comparisonBodyRowClassName="border-b border-line"
       hideCreateFromSuggested
     />
   );

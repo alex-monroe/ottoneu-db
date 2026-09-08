@@ -2,7 +2,7 @@
 
 ## Structure
 
-Next.js App Router. Most pages are server components that fetch live data from Supabase (revalidate every hour) with client wrappers for interactivity. **"My team" comes from `getViewerTeam()`** (`web/lib/viewer-team.ts`), never from `config.MY_TEAM` — see [ARCHITECTURE.md](ARCHITECTURE.md#authentication--authorization). Server components resolve it and pass `viewerTeam` down; a client component that highlights, filters or titles by the viewer's team takes it as a prop. **Route gating is centralized in `web/lib/access.ts`** (see [ARCHITECTURE.md](ARCHITECTURE.md#authentication--authorization)) — add a new projections-gated route to `PROJECTIONS_ROUTES` there rather than checking `hasProjectionsAccess` inside the page. **Team names route through `TeamName` and `teamHref`** (`web/components/TeamName.tsx`, `web/lib/teams.ts`) — every user-visible team label is a link to `/teams/[name]`, not a bare string, so the team is a first-class object across rosters, standings, scoreboard, arbitration progress, hover cards, and the player card's owner + transaction history. Shared nav structure (see `web/components/Navigation.tsx`) groups routes into top-level public pages (Home, Scoreboard, Players, Rosters, Teams, Snake Draft), an authed Lineup link, and three projections-gated dropdowns: **Projections**, **Value**, and **Offseason** (arbitration). The current season phase (resolved via `web/lib/season.ts`) drives an amber "featured now" accent on the most relevant nav group/links and the landing-hub featured section.
+Next.js App Router. Most pages are server components that fetch live data from Supabase (revalidate every hour) with client wrappers for interactivity. **"My team" comes from `getViewerTeam()`** (`web/lib/viewer-team.ts`), never from `config.MY_TEAM` — see [ARCHITECTURE.md](ARCHITECTURE.md#authentication--authorization). Server components resolve it and pass `viewerTeam` down; a client component that highlights, filters or titles by the viewer's team takes it as a prop. **Route gating is centralized in `web/lib/access.ts`** (see [ARCHITECTURE.md](ARCHITECTURE.md#authentication--authorization)) — add a new projections-gated route to `PROJECTIONS_ROUTES` there rather than checking `hasProjectionsAccess` inside the page (likewise `PODCASTER_ROUTES` for the podcast tools — but never `/podcast` itself, which is the page that explains the gate). **Team names route through `TeamName` and `teamHref`** (`web/components/TeamName.tsx`, `web/lib/teams.ts`) — every user-visible team label is a link to `/teams/[name]`, not a bare string, so the team is a first-class object across rosters, standings, scoreboard, arbitration progress, hover cards, and the player card's owner + transaction history. **The nav's information architecture lives in `web/lib/nav.ts`**, not in the component — `NAV_GROUPS` is grouped by *task*, and `visibleNav(viewer, teamHref)` filters it for the current viewer. Groups: **My Team** (your team page, lineup, matchup, keep-or-cut) · **League** (scoreboard, teams, rosters, arbitration progress/plans) · **Players** (directory, season projections, weekly projections, free agents) · **Analysis** (player value, arbitration) · **Tools** (mock draft) · **Podcast** (podcaster-only production tooling) · **Data** (admin-only operator instruments: projection accuracy, vegas lines, depth charts, workflow status, users). Each destination appears **exactly once** — tabs of a page are that page's business, never nav siblings. Item `access` (`public` / `projections` / `admin` / `podcaster`) drives **menu visibility only**; route enforcement stays in `web/lib/access.ts`, so an admin-menu page is still reachable by any projections account with the URL. Add a route by editing `NAV_GROUPS` — and mirror it in the landing hub's `HUB_GROUPS`, which uses the same taxonomy. Both auth states collapse to the hamburger at the **same** `xl` breakpoint (it was `2xl` signed-in and `lg` signed-out, so access made navigation worse). The current season phase (resolved via `web/lib/season.ts`) drives an amber "featured now" accent on the most relevant nav group/links and the landing-hub featured section; `PHASE_UI.featuredGroup` must name a `NAV_GROUPS` label.
 
 Several formerly-standalone pages were consolidated into **tabbed routes** using the shared `Tabs` component (URL-synced via `?tab=`). Old URLs redirect to the new tabs (see `web/next.config.ts` `redirects()`): `/vorp`,`/surplus-value`,`/surplus-adjustments` → `/value`; `/arbitration-simulation`,`/arbitration-planner` → `/arbitration`. The old `/vorp`, `/surplus-adjustments`, `/arbitration-simulation`, and `/arbitration-planner` directories retain only their client components (imported by the merged pages' section components); their `page.tsx` files were removed.
 
@@ -16,7 +16,9 @@ Several formerly-standalone pages were consolidated into **tabbed routes** using
 | `/teams` | **Team index** — every team with record and points-for; the front door for the team object. Public |
 | `/teams/[name]` | **Team page** — the missing first-class object. Roster (salary, PPG), cap space, record and league rank, full schedule from that team's point of view, and — with projections access — total value, total surplus, and the players most exposed to opponents' arbitration dollars. Name segment is URL-encoded and resolved case-insensitively (`resolveTeamName`); an unknown team 404s. Statically pre-rendered per team via `generateStaticParams`. Public, degrades without access |
 | `/scoreboard` | **Scoreboard** — the week's head-to-head matchups (live/final scores, playoff and consolation badges), the full standings, and the playoff picture, with week and season pickers. Standings/seeding are computed from `league_matchups` by `web/lib/standings.ts`, not scraped. **Public — no sign-in.** See [docs/references/matchups-and-standings.md](references/matchups-and-standings.md) |
-| `/lineup` | Lineup planner: build a starting lineup from any team's current roster and see the projected total (by projected PPG or last-season PPG) |
+| `/lineup` | **Week-aware lineup planner** — pick an NFL week (`?week=`, defaults to the upcoming one) and a team (`?team=`), and score the lineup by that week's third-party per-game projection (the default when the week has data), our season-long projected PPG, or last-season PPG. A player with no row for the week renders a dash, not a zero and not "BYE" — the gap means bye *or* inactive *or* not carried by the source, and week 1 has no byes at all |
+| `/matchup` | **Your matchup** — the viewer's team against that week's opponent, both at their optimal lineup, with the projected margin. Needs `users.team_name`; explains itself when unbound. Actual scores appear only once the game is past `scheduled` (Ottoneu's export reads 0.00–0.00 beforehand) |
+| `/free-agents` | **The wire** — every unrostered player ranked by dollar value on the same scale as the players you'd drop, with the upcoming week's points, position filter, and an "upgrade" flag against the weakest player the viewer starts at that position. Gated on projections access |
 | `/arb-progress` | Public arbitration progress: team completion status and allocation details |
 | `/arb-planner-public` | Public (read-only) arbitration planner view |
 | `/projected-salary` | Keep vs cut decisions for **the viewer's own team** (`users.team_name`); an account with no team bound gets an explanatory empty state rather than someone else's roster |
@@ -28,8 +30,11 @@ Several formerly-standalone pages were consolidated into **tabbed routes** using
 | `/vegas-lines` | Preseason Vegas implied team totals review (AFC/NFC division cards, season selector) — spot-check the data feeding the `implied_team_total_raw` projection feature |
 | `/depth-charts` | Opening-day NFL depth-chart review (team cards grouped by division, QB/RB/WR/TE tiers, role-change arrows, active-model projected PPG, season selector) — spot-check the data feeding the `depth_chart_position_raw` / `role_change_raw` projection features |
 | `/mock-draft` | **Mock draft** — practice keeper auction against AI opponents, seeded from live rosters/caps + Draft Sharks values. Two formats: a **live real-time auction** (per-player clock, AI bid against you, clock extends on every bid, auto-bid proxy, pause/pace controls) and the turn-by-turn sealed-bid mode. Gated on projections access. See [docs/references/mock-draft.md](references/mock-draft.md) |
-| `/snake-draft` | **Snake draft** — practice snake draft for *other* (non-Ottoneu) redraft leagues: pick the number of teams, your draft slot, the starting lineup and the number of rounds, then draft against AI opponents off The Athletic's published 12-team PPR 1-QB VORP board (`web/lib/data/athletic-vorp.ts`), with each position's replacement baseline shifted if you change the format. Same manager-valuation-noise slider as the mock draft. **Public — no sign-in, no database.** See [docs/references/snake-draft.md](references/snake-draft.md) |
+| `/snake-draft` | **Snake draft** — practice snake draft for *other* (non-Ottoneu) redraft leagues: pick the number of teams, your draft slot, the starting lineup and the number of rounds, then draft against AI opponents off The Athletic's published 12-team PPR 1-QB VORP board (`web/lib/data/athletic-vorp.ts`), with each position's replacement baseline shifted if you change the format. Same manager-valuation-noise slider as the mock draft. **Public — no sign-in, no database.** **Not part of The SOFA** (decision D3): it is a standalone practice tool for other leagues, so it is deliberately absent from the nav and the landing hub, and is reachable from the site footer, labelled as separate. See [docs/references/snake-draft.md](references/snake-draft.md) |
 | `/access` | **Access status** for the signed-in account — public. Explains that projections access is granted by an admin, offers a "Request access" action (`POST /api/access-request`), and shows the pending date once asked. Reads live DB state rather than the session cookie, so a freshly granted user is told the truth and can re-sign their session via `POST /api/auth/refresh`. Middleware sends signed-in users without access here instead of `/login` |
+| `/podcast` | **Podcast hub** — the ungated entry point to the podcast production tools. Reads `is_podcaster` live from the DB (not the cookie): explains the role to a non-host, and for a host whose 7-day session cookie predates the grant it re-signs it via `POST /api/auth/refresh` and forwards them on. Every gated `/podcast/*` route redirects here, so it must never itself require the role |
+| `/podcast/power-rankings` | **Power-rankings ballot** (podcaster only) — rank all twelve teams ahead of an NFL week. Opens in standings order, reorders by drag *or* up/down buttons, autosaves as a private draft, and "lock in" is the explicit action that exposes it to consolidation. Each row carries the on-air note, a **private working note** (`prep_note`, never revealed — `fetchBallots` does not select it), this week's **optimal-lineup projection** inline, and that lineup plus the bench on hover (`web/lib/team-snapshot.ts`). See [docs/references/podcast-tools.md](references/podcast-tools.md) |
+| `/podcast/power-rankings/reveal` | **Live reveal** (podcaster only) — the consolidated countdown from twelfth to first, one keypress at a time (space/→ next, ← back, r reset). Cards stack newest-on-top so the finished page reads as a normal 1–12 ranking |
 | `/login` | Email/password login |
 | `/admin` | User management (admin only) |
 | `/admin/workflows` | Workflow status history (admin only) — GitHub-status-style grid of the scheduled GitHub Actions over the last 21 days, read live from the public GitHub Actions API (server-side; no token required, optional `GITHUB_TOKEN` for rate limit) |
@@ -38,11 +43,56 @@ Several formerly-standalone pages were consolidated into **tabbed routes** using
 | `/api/oauth/{register,authorize,token}` | OAuth 2.1 authorization server — dynamic client registration, consent submission, and token exchange (PKCE S256, rotating refresh tokens) |
 | `/.well-known/oauth-authorization-server`, `/.well-known/oauth-protected-resource` | OAuth discovery metadata (RFC 8414 / RFC 9728) that MCP clients read to find the authorization server |
 
+## Design system
+
+`web/app/globals.css` owns the visual language. It is the only place a colour is
+chosen; everything else names a role. Reach for a raw Tailwind palette class
+(`bg-slate-100`, `text-blue-600`) only when the thing genuinely has no role here
+— and if you find yourself wanting one twice, it has a role and belongs below.
+
+| Token | Utility | Role |
+|-------|---------|------|
+| `--page` | `bg-page` | The page ground. Owned by `PageShell`; pages do not set their own |
+| `--raised` | `bg-raised` | Cards, panels, table bodies, the nav bar — anything reading as *above* the page |
+| `--sunken` | `bg-sunken` | Table headers, inset strips, the phase banner |
+| `--line` / `--line-strong` | `border-line` / `border-line-strong` | Hairlines; `strong` for dashed empty-state affordances |
+| `--ink` | `text-ink` | Primary text and headings |
+| `--ink-muted` | `text-ink-muted` | Body copy, descriptions, table cells |
+| `--ink-subtle` | `text-ink-subtle` | Captions and labels. **The floor** — it is the lightest value clearing 4.5:1 on `--page`, and there is deliberately nothing below it |
+| `--accent` | `text-accent`, `bg-accent-soft`, `border-accent` | Links and interactive emphasis |
+| `--positive` / `--negative` | `text-positive` / `text-negative` | Gains and losses. One hue each: positive is emerald, never also green |
+| `--warning` | `text-warning` | **Data the reader should distrust** — a stale scrape, and nothing else |
+| `--phase` | `text-phase`, `bg-phase` | The season phase: the banner, the featured dot, the playoff cut line |
+
+`--warning` and `--phase` are deliberately different hues. Amber previously meant
+the phase badge, the featured-nav dot, the playoff cut line *and* "this data may
+be wrong", so the one urgent signal wore the same colour as the decoration.
+
+Both themes are defined in `:root` and under `prefers-color-scheme: dark`, and
+exposed to Tailwind through `@theme inline` — so a utility resolves at paint
+time and there is no `dark:` variant to remember.
+
+**Layout** goes through `PageShell`, never a hand-written `<main>`:
+
+```tsx
+<PageShell width="wide">          {/* narrow | default | wide */}
+  <PageHeader title="Free Agents" description="…" links={[…]} />
+  …
+</PageShell>
+```
+
+It owns the ground, responsive padding, the content measure and vertical rhythm.
+`__tests__/components/design-system.test.ts` fails the build if a page
+re-implements the shell or reintroduces sub-AA caption colours.
+
 ## Reusable Components
 
 | Component | Purpose |
 |-----------|---------|
-| `Navigation.tsx` | Shared nav bar across all pages |
+| `Navigation.tsx` | Shared nav bar across all pages. Renders `visibleNav()` from `web/lib/nav.ts`; holds no route list of its own |
+| `PageShell` / `PageHeader` | The page frame and the standard heading. Every route's `<main>`. See **Design system** above |
+| `TableParts.tsx` | `Th` — the header cell for hand-rolled tables, with optional `explain`. Shared so it stops being copy-pasted per table |
+| `SiteFooter.tsx` | Thin global footer. Exists mainly to give `/snake-draft` an entry point outside the league-scoped nav (D3) |
 | `Tabs` | URL-synced (`?tab=`) tab bar. Accepts `tabs: { id, label, content }[]`; renders all panels and hides inactive ones (so client state in a panel survives switches). Panels can be server-rendered sections passed as `content`. Used by `/players`, `/value`, `/arbitration`. |
 | `DataTable` | Generic sortable table with type safety and highlight rules |
 | `SummaryCard` | Metric display cards with variant styles (default, positive, negative) |
@@ -50,9 +100,13 @@ Several formerly-standalone pages were consolidated into **tabbed routes** using
 | `ScatterChart` | Player efficiency scatter plot with interactive filters |
 | `PositionBadge` | Colored position pill (QB, RB, etc.) — canonical across all views |
 | `PlayerName` | Player name renderer with link/hover-card/plain-text modes |
-| `TeamName` | Canonical league-team renderer — the team counterpart to `PlayerName`. Links to `/teams/[name]`, renders "FA" as plain text, and bolds the viewer's own team via `mine`. Route every team name through this rather than printing the string |
+| `TeamName` | Canonical league-team renderer — the team counterpart to `PlayerName`. Links to `/teams/[name]`, renders "FA" as plain text, and weights the viewer's own team via `mine` (it keeps the link colour — emphasis must not cost the affordance). Route every team name through this rather than printing the string |
 | `StatValue` | Numeric stat formatter with currency/decimal/number/null handling |
 | `PlayerHoverCard` | Rich hover preview card for player context |
+| `Explain` | In-product glossary popover. `<Explain term="vorp" />` renders a "?" that defines one term from `web/lib/glossary.ts`. `DataTable` renders it automatically for any column carrying `explain`, and `Th`/`SummaryCard` take the same prop, so tag the column factory rather than the page. The panel portals to `document.body` — it lives inside `overflow-x-auto` scroll containers that would otherwise clip it |
+| `states.tsx` | Shared `EmptyState` / `NoAccessState` / `ErrorState` / `TableSkeleton`. `TableSkeleton` backs the root `app/loading.tsx`, which is what gives every navigation feedback while its server component runs. Use these instead of hand-rolling — a missing-data notice is an `h2` at body scale, never a page-sized heading |
+| `DataFreshness` | "Rosters updated 3 hours ago" caption, from `web/lib/freshness.ts`. Turns `--warning` past `staleAfterHours` |
+| `PhaseNote` | Says a tool is out of season, and when its window opens. Reads the phase from `web/lib/season.ts` and renders nothing while in window |
 
 ### Arbitration Planner (`components/arb-planner/`)
 

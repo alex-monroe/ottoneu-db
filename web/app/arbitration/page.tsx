@@ -1,8 +1,10 @@
 import Tabs from "@/components/Tabs";
+import PhaseNote from "@/components/PhaseNote";
 import type { ValueMode } from "@/components/ModeToggle";
 import TargetsSection from "./TargetsSection";
 import SimulationSection from "./SimulationSection";
 import PlannerSection from "./PlannerSection";
+import PageShell from "@/components/PageShell";
 
 // Per-user adjustments/plans are read here, so keep this route always-fresh.
 export const revalidate = 0;
@@ -26,17 +28,18 @@ export default async function ArbitrationPage({ searchParams }: Props) {
         : "raw";
 
   return (
-    <main className="min-h-screen bg-white dark:bg-black p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <PageShell width="wide">
         <header>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-3xl font-bold tracking-tight text-ink">
             Arbitration
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">
+          <p className="text-ink-subtle mt-2">
             Targets, Monte Carlo simulation, and budget planning for the offseason
             arbitration phase.
           </p>
         </header>
+
+        <PhaseNote activeIn={["pre_arb"]} label="Arbitration" opensOn="arb_start" />
 
         <Tabs
           activeId={params.tab}
@@ -46,7 +49,6 @@ export default async function ArbitrationPage({ searchParams }: Props) {
             { id: "planner", label: "Planner", content: <PlannerSection /> },
           ]}
         />
-      </div>
-    </main>
+    </PageShell>
   );
 }

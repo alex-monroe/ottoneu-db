@@ -276,13 +276,13 @@ export default function ArbPlannerCore<T extends ArbPlannerPlayer>({
   return (
     <div className="space-y-6">
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex gap-1 border-b border-line">
         <button
           onClick={() => setTab("plan")}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             tab === "plan"
-              ? "border-blue-600 text-blue-600 dark:text-blue-400"
-              : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              ? "border-blue-600 text-accent"
+              : "border-transparent text-ink-muted hover:text-ink"
           }`}
         >
           Plan
@@ -291,8 +291,8 @@ export default function ArbPlannerCore<T extends ArbPlannerPlayer>({
           onClick={() => setTab("compare")}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             tab === "compare"
-              ? "border-blue-600 text-blue-600 dark:text-blue-400"
-              : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              ? "border-blue-600 text-accent"
+              : "border-transparent text-ink-muted hover:text-ink"
           }`}
         >
           Compare
@@ -318,7 +318,7 @@ export default function ArbPlannerCore<T extends ArbPlannerPlayer>({
           <BudgetTracker validation={validation} />
 
           <section>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">
+            <h2 className="text-lg font-semibold text-ink mb-3">
               Opponent Rosters
             </h2>
             <div className="space-y-2">

@@ -3,6 +3,7 @@ import PlayerSearch from "@/components/PlayerSearch";
 import PlayerEfficiencyClient from "@/components/PlayerEfficiencyClient";
 import Tabs from "@/components/Tabs";
 import { ChartPoint } from "@/lib/types";
+import PageShell from "@/components/PageShell";
 
 export const revalidate = 3600; // Revalidate every hour
 
@@ -54,10 +55,10 @@ export default async function PlayersPage({ searchParams }: Props) {
     const directory = (
         <div className="space-y-6">
             <header>
-                <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                <h2 className="text-2xl font-bold tracking-tight text-ink">
                     Player Directory
                 </h2>
-                <p className="text-slate-500 dark:text-slate-400 mt-2">
+                <p className="text-ink-subtle mt-2">
                     Browse all players in League 309. Click a name to view their full
                     card with stats and transaction history.
                 </p>
@@ -69,19 +70,19 @@ export default async function PlayersPage({ searchParams }: Props) {
     const efficiency = (
         <div className="space-y-8">
             <header>
-                <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                <h2 className="text-2xl font-bold tracking-tight text-ink">
                     Player Efficiency
                 </h2>
-                <p className="text-slate-500 dark:text-slate-400 mt-2">
+                <p className="text-ink-subtle mt-2">
                     Salary vs. production (Points Per Game or Points Per Snap).
                 </p>
             </header>
 
             <PlayerEfficiencyClient data={efficiencyData} />
 
-            <section className="bg-slate-50 dark:bg-slate-900 rounded-lg p-6 border border-slate-200 dark:border-slate-800">
-                <h3 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Analysis Notes</h3>
-                <ul className="list-disc list-inside space-y-2 text-slate-600 dark:text-slate-400">
+            <section className="bg-sunken rounded-lg p-6 border border-line">
+                <h3 className="text-lg font-semibold mb-4 text-ink">Analysis Notes</h3>
+                <ul className="list-disc list-inside space-y-2 text-ink-muted">
                     <li><strong>Y-Axis (Salary)</strong>: Higher is more expensive.</li>
                     <li><strong>X-Axis (PPG/PPS)</strong>: Further right means more efficient production per game/snap.</li>
                     <li><strong>Bubble Size</strong>: Represents Total Points. Larger bubbles = higher total volume.</li>
@@ -92,13 +93,12 @@ export default async function PlayersPage({ searchParams }: Props) {
     );
 
     return (
-        <main className="min-h-screen bg-white dark:bg-black p-8">
-            <div className="max-w-7xl mx-auto space-y-6">
+        <PageShell width="wide">
                 <header>
-                    <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                    <h1 className="text-3xl font-bold tracking-tight text-ink">
                         Players
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 mt-2">
+                    <p className="text-ink-subtle mt-2">
                         Search the league directory or explore the salary-vs-production chart.
                     </p>
                 </header>
@@ -110,7 +110,6 @@ export default async function PlayersPage({ searchParams }: Props) {
                         { id: "efficiency", label: "Efficiency", content: efficiency },
                     ]}
                 />
-            </div>
-        </main>
+        </PageShell>
     );
 }

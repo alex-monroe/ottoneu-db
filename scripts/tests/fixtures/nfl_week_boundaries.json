@@ -17,10 +17,16 @@
     "early January while NFL Week 18 is played a day or two later.",
     "",
     "anchor_cases pin the anchor derivation. Ottoneu's regular_season_start is",
-    "NOT reliably the Thursday kickoff \u2014 the real 2026 value is Wednesday",
+    "NOT reliably the Thursday kickoff — the real 2026 value is Wednesday",
     "2026-09-09 while Week 1 Thursday is 2026-09-10. Every weekday in the",
     "kickoff week must resolve to the SAME Tuesday, or Monday-night games fall",
-    "into the wrong week."
+    "into the wrong week.",
+    "",
+    "ingest_window_cases pin is_weekly_ingest_window (Python only — the gate is a",
+    "scraper concern, so web/lib/nfl-week.ts has no twin for it). The window is",
+    "wider than `live` at the FRONT: it opens 1 September of the coming NFL",
+    "season so the Week 1 board refreshes daily through the run-up to kickoff.",
+    "The back end is identical — shut once Week 18's Monday has passed."
   ],
   "regular_season_start": "2026-09-10",
   "anchor_tuesday": "2026-09-08",
@@ -29,7 +35,7 @@
     {
       "date": "2026-08-20",
       "week": 1,
-      "why": "well before kickoff \u2014 upcoming week is Week 1"
+      "why": "well before kickoff — upcoming week is Week 1"
     },
     {
       "date": "2026-09-07",
@@ -39,7 +45,7 @@
     {
       "date": "2026-09-08",
       "week": 1,
-      "why": "anchor Tuesday \u2014 Week 1 opens"
+      "why": "anchor Tuesday — Week 1 opens"
     },
     {
       "date": "2026-09-10",
@@ -59,7 +65,7 @@
     {
       "date": "2026-09-15",
       "week": 2,
-      "why": "Tuesday flip \u2014 Week 2 becomes upcoming"
+      "why": "Tuesday flip — Week 2 becomes upcoming"
     },
     {
       "date": "2026-09-21",
@@ -89,12 +95,12 @@
     {
       "date": "2027-01-12",
       "week": null,
-      "why": "regular season over \u2014 no current week"
+      "why": "regular season over — no current week"
     },
     {
       "date": "2027-03-01",
       "week": null,
-      "why": "deep offseason \u2014 no current week"
+      "why": "deep offseason — no current week"
     }
   ],
   "display_cases": [
@@ -120,7 +126,7 @@
       "date": "2027-01-12",
       "upcoming": null,
       "previous": 18,
-      "why": "season over \u2014 Week 18 stays on the card"
+      "why": "season over — Week 18 stays on the card"
     }
   ],
   "calendar": [
@@ -139,7 +145,7 @@
       "season": 2026,
       "week": 1,
       "live": false,
-      "why": "preseason \u2014 upcoming is 2026 Week 1, not last year's season"
+      "why": "preseason — upcoming is 2026 Week 1, not last year's season"
     },
     {
       "date": "2026-09-08",
@@ -174,14 +180,14 @@
       "season": 2027,
       "week": 1,
       "live": false,
-      "why": "2026 is over \u2014 the next slate is 2027 Week 1"
+      "why": "2026 is over — the next slate is 2027 Week 1"
     },
     {
       "date": "2027-03-01",
       "season": 2027,
       "week": 1,
       "live": false,
-      "why": "offseason \u2014 pointing at the next kickoff, no games being played"
+      "why": "offseason — pointing at the next kickoff, no games being played"
     }
   ],
   "anchor_cases": [
@@ -193,17 +199,64 @@
     {
       "start": "2026-09-08",
       "anchor": "2026-09-08",
-      "why": "Tuesday \u2014 already the anchor"
+      "why": "Tuesday — already the anchor"
     },
     {
       "start": "2026-09-09",
       "anchor": "2026-09-08",
-      "why": "Wednesday \u2014 the real Ottoneu 2026 value"
+      "why": "Wednesday — the real Ottoneu 2026 value"
     },
     {
       "start": "2026-09-10",
       "anchor": "2026-09-08",
       "why": "Thursday kickoff itself"
+    }
+  ],
+  "ingest_window_cases": [
+    {
+      "date": "2026-06-15",
+      "ingest": false,
+      "why": "deep summer — job stays asleep"
+    },
+    {
+      "date": "2026-08-31",
+      "ingest": false,
+      "why": "day before the window opens"
+    },
+    {
+      "date": "2026-09-01",
+      "ingest": true,
+      "why": "window opens — a week before Week 1's Tuesday"
+    },
+    {
+      "date": "2026-09-07",
+      "ingest": true,
+      "why": "Labor Day Monday — live gate is still false here"
+    },
+    {
+      "date": "2026-09-08",
+      "ingest": true,
+      "why": "Week 1 opens — live gate agrees from here on"
+    },
+    {
+      "date": "2026-11-24",
+      "ingest": true,
+      "why": "mid-season"
+    },
+    {
+      "date": "2027-01-11",
+      "ingest": true,
+      "why": "final Monday of the regular season"
+    },
+    {
+      "date": "2027-01-12",
+      "ingest": false,
+      "why": "regular season over — shut until next September"
+    },
+    {
+      "date": "2027-03-01",
+      "ingest": false,
+      "why": "offseason, pointing at 2027 Week 1 but months early"
     }
   ]
 }

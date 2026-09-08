@@ -59,10 +59,10 @@ export default async function SimulationSection({ mode }: { mode: ValueMode }) {
       <header>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            <h2 className="text-2xl font-bold tracking-tight text-ink">
               Arbitration Simulation ({label})
             </h2>
-            <p className="text-slate-500 dark:text-slate-400 mt-2">
+            <p className="text-ink-subtle mt-2">
               Monte Carlo simulation of how all 12 teams will allocate their arbitration budgets.
               {isProjected && (
                 <> Using <strong>projected PPG</strong> values.</>

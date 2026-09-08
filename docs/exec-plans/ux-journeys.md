@@ -1,6 +1,6 @@
 # UX: Key User Journeys and Improvement Plan
 
-Status: **in progress** — Phases 0 (#711), 1 (#712) and 2 shipped · Created 2026-09-06 · Owner: @alexrmonroe
+Status: **complete** — all six phases shipped: 0 (#711), 1 (#712), 2 (#713), 3 (#714), 4 (#715), 5 · Created 2026-09-06 · Owner: @alexrmonroe
 
 The site grew subsystem by subsystem — projections, value, arbitration, matchups,
 drafting — and each arrived as its own route with its own page-level conventions.
@@ -378,7 +378,7 @@ Turn pages into a navigable structure. Mostly link work; high felt impact.
 **Exit:** from any player you can reach his team, and from any team you can reach any
 of its players, without touching the nav.
 
-### Phase 3 — Make in-season a first-class journey
+### Phase 3 — Make in-season a first-class journey — ✅ **SHIPPED** (3.4 partial: no injury feed)
 The longest phase, currently the thinnest.
 
 | # | Work |
@@ -386,10 +386,10 @@ The longest phase, currently the thinnest.
 | 3.1 | **`/lineup` becomes week-aware** — a week selector, and `weekly_projections` as the default projection source with the season-long model as the alternate. This is the single biggest functional gap in the app. |
 | 3.2 | **"My matchup" view** — your lineup against your opponent's, with the projected margin |
 | 3.3 | **Free agents view** — the missing page. Unrostered players ranked by projected value, filterable by position and need, comparable against your current starters |
-| 3.4 | Injury / bye / inactive signals on lineup and roster rows |
+| 3.4 | ~~Injury~~ / bye / inactive signals on lineup and roster rows. **Partial:** a missing `weekly_projections` row surfaces as a dash meaning "no forecast" (bye *or* inactive *or* not carried). There is **no injury-status feed in the database**, so real injury designations (Q/D/O/IR) are still missing and would need a new ingest — tracked separately rather than faked from the absence of a projection |
 | 3.5 | A weekly "start/sit" summary on the homepage during `in_season` |
 
-### Phase 4 — Rebuild the IA around tasks
+### Phase 4 — Rebuild the IA around tasks — ✅ **SHIPPED**
 Now that the graph exists, retax the nav.
 
 Proposed top level, phase-ordered rather than source-ordered:
@@ -406,7 +406,7 @@ My Team  ·  League  ·  Players  ·  Analysis  ·  Tools          [operator: Da
 | 4.4 | Fix the collapse asymmetry — the authenticated nav must not be *worse* than the anonymous one at the same width (grouping should shrink it below the `2xl` threshold) |
 | 4.5 | **Remove `/snake-draft` from The SOFA's nav and hub** (D3). The route stays live and linkable, but it is a standalone utility, not a league feature — give it its own minimal entry point rather than a slot in a league-scoped menu |
 
-### Phase 5 — Explain the numbers, systematize the states
+### Phase 5 — Explain the numbers, systematize the states — ✅ **SHIPPED**
 | # | Work |
 |---|---|
 | 5.1 | In-product glossary: a shared `<Explain term="VORP">` popover sourced from one definitions module, wired to every metric header |

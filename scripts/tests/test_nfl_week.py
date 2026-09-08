@@ -19,6 +19,7 @@ from scripts.nfl_week import (
     current_nfl_week,
     display_weeks,
     is_nfl_week_live,
+    is_weekly_ingest_window,
     resolve_window,
     today_in_league_tz,
     week_for_date,
@@ -149,6 +150,34 @@ class TestSeasonResolution:
         assert is_nfl_week_live(today=date(2026, 8, 20), calendar_rows=CALENDAR) is False
         assert is_nfl_week_live(today=date(2027, 1, 11), calendar_rows=CALENDAR) is True
         assert is_nfl_week_live(today=date(2027, 1, 12), calendar_rows=CALENDAR) is False
+
+    @pytest.mark.parametrize("case", FIXTURE["ingest_window_cases"], ids=_case_id)
+    def test_shared_ingest_window_table(self, case):
+        today = date.fromisoformat(case["date"])
+        assert (
+            is_weekly_ingest_window(today=today, calendar_rows=CALENDAR)
+            is case["ingest"]
+        )
+
+    def test_ingest_window_opens_before_the_live_gate(self):
+        # The bug this pins: the weekly job gated on is_nfl_week_live, which is
+        # false until Week 1's Tuesday, so the Week 1 board sat unrefreshed from
+        # late August right through the run-up to kickoff — the days people are
+        # actually setting their opening lineups.
+        for day in (date(2026, 9, 1), date(2026, 9, 7)):
+            assert is_nfl_week_live(today=day, calendar_rows=CALENDAR) is False
+            assert is_weekly_ingest_window(today=day, calendar_rows=CALENDAR) is True
+
+    def test_ingest_window_closes_with_the_live_gate(self):
+        # Only the front edge moved: both gates shut the day after Week 18's
+        # Monday, so the job still no-ops through the whole offseason.
+        for day in (date(2027, 1, 11), date(2027, 1, 12), date(2027, 3, 1)):
+            assert is_weekly_ingest_window(
+                today=day, calendar_rows=CALENDAR
+            ) is is_nfl_week_live(today=day, calendar_rows=CALENDAR)
+
+    def test_ingest_window_needs_a_kickoff_date(self):
+        assert is_weekly_ingest_window(today=date(2026, 9, 15), calendar_rows=[]) is False
 
     def test_resolve_window_with_a_single_season(self):
         season, anchor = resolve_window(date(2026, 9, 15), [CALENDAR[0]])

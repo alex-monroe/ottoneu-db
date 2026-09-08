@@ -15,21 +15,21 @@ const CustomTooltip = ({ active, payload, metric }: TooltipProps & { metric?: 'P
         const data = payload[0].payload
         const isPPG = metric === 'PPG';
         return (
-            <div className="bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 p-3 rounded shadow-lg text-sm">
-                <p className="font-bold text-slate-900 dark:text-slate-100">{data.name}</p>
-                <p className="text-slate-600 dark:text-slate-400">{data.nfl_team} - {data.position}</p>
+            <div className="bg-white/90 dark:bg-slate-900/90 border border-line p-3 rounded shadow-lg text-sm">
+                <p className="font-bold text-ink">{data.name}</p>
+                <p className="text-ink-muted">{data.nfl_team} - {data.position}</p>
                 <div className="mt-2 space-y-1">
                     <p>Price: <span className="font-mono font-medium">${data.price}</span></p>
                     <p>Points: <span className="font-mono font-medium">{data.total_points}</span></p>
-                    <div className="border-t border-slate-200 dark:border-slate-700 my-1 pt-1">
+                    <div className="border-t border-line my-1 pt-1">
                         {isPPG ? (
                             <>
-                                <p className="font-semibold text-blue-600 dark:text-blue-400">PPG: {data.ppg}</p>
+                                <p className="font-semibold text-accent">PPG: {data.ppg}</p>
                                 <p className="text-xs text-slate-500">(${data.cost_per_ppg.toFixed(2)} / PPG)</p>
                             </>
                         ) : (
                             <>
-                                <p className="font-semibold text-blue-600 dark:text-blue-400">PPS: {data.pps}</p>
+                                <p className="font-semibold text-accent">PPS: {data.pps}</p>
                                 <p className="text-xs text-slate-500">(${data.cost_per_pps.toFixed(2)} / PPS)</p>
                             </>
                         )}
@@ -57,16 +57,16 @@ export default function PlayerScatterChart({ data, onMinGamesChange }: ScatterCh
     };
 
     return (
-        <div className="w-full h-[600px] bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 flex flex-col">
+        <div className="w-full h-[600px] bg-sunken rounded-xl border border-line p-4 flex flex-col">
             <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
                 <div className="flex flex-wrap items-center gap-4">
-                    <div className="flex bg-slate-200 dark:bg-slate-800 rounded-lg p-1" role="group" aria-label="Metric Selection">
+                    <div className="flex bg-sunken rounded-lg p-1" role="group" aria-label="Metric Selection">
                         <button
                             onClick={() => setMetric('PPG')}
                             aria-pressed={metric === 'PPG'}
-                            className={`px-3 py-1 text-sm font-medium rounded-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${metric === 'PPG'
-                                ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
-                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                            className={`px-3 py-1 text-sm font-medium rounded-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${metric === 'PPG'
+                                ? 'bg-white dark:bg-slate-600 text-ink shadow-sm'
+                                : 'text-ink-subtle hover:text-slate-900 dark:hover:text-slate-200'
                                 }`}
                         >
                             Points/Game
@@ -74,17 +74,17 @@ export default function PlayerScatterChart({ data, onMinGamesChange }: ScatterCh
                         <button
                             onClick={() => setMetric('PPS')}
                             aria-pressed={metric === 'PPS'}
-                            className={`px-3 py-1 text-sm font-medium rounded-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${metric === 'PPS'
-                                ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
-                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                            className={`px-3 py-1 text-sm font-medium rounded-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${metric === 'PPS'
+                                ? 'bg-white dark:bg-slate-600 text-ink shadow-sm'
+                                : 'text-ink-subtle hover:text-slate-900 dark:hover:text-slate-200'
                                 }`}
                         >
                             Points/Snap
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
-                        <label htmlFor="min-games-range" className="text-sm font-medium text-slate-600 dark:text-slate-300">Min Games: {minGames}</label>
+                    <div className="flex items-center gap-2 bg-sunken px-3 py-2 rounded-lg border border-line">
+                        <label htmlFor="min-games-range" className="text-sm font-medium text-ink-muted">Min Games: {minGames}</label>
                         <input
                             id="min-games-range"
                             type="range"

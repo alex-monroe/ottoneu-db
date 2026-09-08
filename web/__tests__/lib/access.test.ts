@@ -13,11 +13,14 @@ import {
   ACCESS_PATH,
   ADMIN_ROUTES,
   LOGIN_PATH,
+  PODCASTER_ROUTES,
+  PODCAST_HOME,
   PROJECTIONS_ROUTES,
   accessRedirect,
   isPublicApiRoute,
   matchesRoute,
   requiresAdmin,
+  requiresPodcaster,
   requiresProjectionsAccess,
 } from "@/lib/access";
 
@@ -25,6 +28,13 @@ const ANON = { signedIn: false, hasProjectionsAccess: false, isAdmin: false };
 const NO_ACCESS = { signedIn: true, hasProjectionsAccess: false, isAdmin: false };
 const MEMBER = { signedIn: true, hasProjectionsAccess: true, isAdmin: false };
 const ADMIN = { signedIn: true, hasProjectionsAccess: true, isAdmin: true };
+/** A podcast host with none of the other two roles — the point of the flag. */
+const HOST = {
+  signedIn: true,
+  hasProjectionsAccess: false,
+  isAdmin: false,
+  isPodcaster: true,
+};
 
 /** Strip the query so a redirect target can be re-evaluated as a route. */
 function pathOf(destination: string): string {
@@ -120,6 +130,63 @@ describe("admin gate", () => {
   });
 });
 
+describe("podcaster gate", () => {
+  test("the podcast hub is not behind the door it explains", () => {
+    // Same invariant as /access: the destination a blocked visitor is sent to
+    // must not itself block them, or the redirect loops.
+    expect(requiresPodcaster(PODCAST_HOME)).toBe(false);
+    expect(requiresProjectionsAccess(PODCAST_HOME)).toBe(false);
+    expect(requiresAdmin(PODCAST_HOME)).toBe(false);
+    for (const session of [ANON, NO_ACCESS, MEMBER, ADMIN, HOST]) {
+      expect(accessRedirect(PODCAST_HOME, session)).toBeNull();
+    }
+  });
+
+  test("every gated podcast route sits under the hub or its API", () => {
+    for (const route of PODCASTER_ROUTES) {
+      expect(
+        matchesRoute(route, PODCAST_HOME) || matchesRoute(route, "/api/podcast"),
+      ).toBe(true);
+    }
+  });
+
+  test("a signed-in non-host is sent to the hub, which explains why", () => {
+    for (const route of PODCASTER_ROUTES) {
+      const destination = accessRedirect(route, MEMBER);
+      expect(destination).not.toBeNull();
+      expect(pathOf(destination!)).toBe(PODCAST_HOME);
+      // …and the hub does not bounce them onwards.
+      expect(accessRedirect(pathOf(destination!), MEMBER)).toBeNull();
+    }
+  });
+
+  test("hosts pass through without needing any other role", () => {
+    for (const route of PODCASTER_ROUTES) {
+      expect(accessRedirect(route, HOST)).toBeNull();
+    }
+  });
+
+  test("admins are not hosts by default — the roles are independent", () => {
+    // is_podcaster is seeded true for the operator in migration 040, but the
+    // policy must not infer the role from is_admin.
+    expect(accessRedirect("/podcast/power-rankings", ADMIN)).toContain(PODCAST_HOME);
+  });
+
+  test("anonymous visitors sign in first, keeping their destination", () => {
+    expect(accessRedirect("/podcast/power-rankings", ANON)).toBe(
+      `${LOGIN_PATH}?redirect=%2Fpodcast%2Fpower-rankings`,
+    );
+  });
+
+  test("the podcast tools are not projections surfaces", () => {
+    // A host needs none of the model's numbers to record a show, so the
+    // podcast routes must not also demand projections access.
+    for (const route of PODCASTER_ROUTES) {
+      expect(requiresProjectionsAccess(route)).toBe(false);
+    }
+  });
+});
+
 describe("route matching is segment-aware", () => {
   test("matches the route and its descendants", () => {
     expect(matchesRoute("/value", "/value")).toBe(true);
@@ -133,6 +200,8 @@ describe("route matching is segment-aware", () => {
     // not be swallowed by the /arbitration prefix.
     expect(requiresProjectionsAccess("/arb-progress")).toBe(false);
     expect(requiresProjectionsAccess("/arb-planner-public")).toBe(false);
+    // A hypothetical public "/podcasts" listing must not inherit the host gate.
+    expect(requiresPodcaster("/podcasts")).toBe(false);
   });
 });
 
@@ -147,5 +216,6 @@ describe("public API routes", () => {
     expect(isPublicApiRoute("/api/access-request")).toBe(false);
     expect(isPublicApiRoute("/api/admin/users")).toBe(false);
     expect(isPublicApiRoute("/api/arbitration-plans")).toBe(false);
+    expect(isPublicApiRoute("/api/podcast/power-rankings")).toBe(false);
   });
 });

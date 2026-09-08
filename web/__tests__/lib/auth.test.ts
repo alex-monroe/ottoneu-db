@@ -71,15 +71,19 @@ describe("authenticateUser", () => {
                 password_hash: hash,
                 is_admin: true,
                 has_projections_access: false,
+                is_podcaster: true,
             },
             error: null,
         });
 
         const result = await authenticateUser("User@Example.com", "correct-password");
+        // The three roles are independent: this account hosts the podcast
+        // without having projections access.
         expect(result).toEqual({
             userId: "user-1",
             isAdmin: true,
             hasProjectionsAccess: false,
+            isPodcaster: true,
         });
         // Email is lowercased + trimmed before the lookup.
         expect(supabaseAdminChain.eq).toHaveBeenCalledWith("email", "user@example.com");
@@ -128,6 +132,7 @@ describe("getAuthenticatedUser", () => {
             userId: "user-42",
             isAdmin: true,
             hasProjectionsAccess: true,
+            isPodcaster: false,
         });
     });
 
@@ -161,7 +166,7 @@ describe("getAuthenticatedUser", () => {
         expect(await getAuthenticatedUser()).toBeNull();
     });
 
-    test("defaults isAdmin/hasProjectionsAccess to false when session flags are absent", async () => {
+    test("defaults every role flag to false when the session carries none", async () => {
         const token = await signSession("user-42", false, false);
         mockCookieStore.get.mockReturnValueOnce({ value: token });
 
@@ -170,6 +175,18 @@ describe("getAuthenticatedUser", () => {
             userId: "user-42",
             isAdmin: false,
             hasProjectionsAccess: false,
+            isPodcaster: false,
         });
+    });
+
+    test("carries the podcaster role through the cookie", async () => {
+        const token = await signSession("user-42", false, false, true);
+        mockCookieStore.get.mockReturnValueOnce({ value: token });
+
+        const result = await getAuthenticatedUser();
+        expect(result?.isPodcaster).toBe(true);
+        // …and it is genuinely orthogonal to the other two.
+        expect(result?.isAdmin).toBe(false);
+        expect(result?.hasProjectionsAccess).toBe(false);
     });
 });

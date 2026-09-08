@@ -52,13 +52,29 @@ export interface LineupPlayer {
   name: string;
   position: string;
   nfl_team: string;
+  ottoneu_id?: number;
   /** Actual PPG from last season (0 if the player did not play). */
   ppg: number;
   /** Projected PPG (0 when projections are unavailable). */
   projected_ppg: number;
+  /**
+   * Third-party projected points for ONE specific week. Null means there is no
+   * row for that week — a bye or an inactive player — which is a different
+   * thing from a forecast of zero, and the UI says so.
+   */
+  weekly_points?: number | null;
+  /** That week's NFL opponent, when known. */
+  weekly_opponent?: string | null;
 }
 
-export type LineupMetric = "projected" | "last_season";
+/**
+ * How a lineup is scored.
+ *
+ * `weekly` is the one that matches what the page is actually for — setting
+ * THIS week's lineup — and uses the third party's per-game forecast. The other
+ * two are season-long averages: our own model, and last season's actuals.
+ */
+export type LineupMetric = "weekly" | "projected" | "last_season";
 
 export type Lineup = Record<SlotId, string | null>;
 
@@ -69,9 +85,21 @@ export function emptyLineup(): Lineup {
   }, {} as Lineup);
 }
 
-/** Score accessor for a player under the chosen metric. */
+/**
+ * Score accessor for a player under the chosen metric.
+ *
+ * A missing weekly projection scores 0 so the optimizer never starts a player
+ * who is on bye ahead of one who will actually play. `hasWeeklyData` is what
+ * the UI uses to render "BYE" instead of "0.00".
+ */
 export function getMetricScore(p: LineupPlayer, metric: LineupMetric): number {
+  if (metric === "weekly") return p.weekly_points ?? 0;
   return metric === "projected" ? p.projected_ppg : p.ppg;
+}
+
+/** True when this player has a forecast for the selected week. */
+export function hasWeeklyData(p: LineupPlayer): boolean {
+  return p.weekly_points != null;
 }
 
 export function isEligible(slot: SlotDef, position: string): boolean {

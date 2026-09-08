@@ -153,12 +153,12 @@ export default function SnakeDraftClient({ pool: injected }: Props = {}) {
       settings.teams === SOURCE_FORMAT.teams && sameLineup(settings.lineup, SOURCE_LINEUP);
     return (
       <div className="mx-auto max-w-2xl px-4 py-10">
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Snake Draft</h1>
-        <p className="mt-3 text-slate-600 dark:text-slate-300">
+        <h1 className="text-3xl font-bold text-ink">Snake Draft</h1>
+        <p className="mt-3 text-ink-muted">
           A practice snake draft for any redraft league — this one is not tied to the Ottoneu
           league, and needs no sign-in. Pick the size of the league, where you draft, and what a
           starting lineup looks like, then draft against AI opponents off{" "}
-          <span className="font-medium text-slate-800 dark:text-slate-200">
+          <span className="font-medium text-ink-muted">
             {SOURCE_FORMAT.label}
           </span>{" "}
           value-over-replacement rankings. Change the format and each position&rsquo;s replacement
@@ -180,7 +180,7 @@ export default function SnakeDraftClient({ pool: injected }: Props = {}) {
             <div>
               <label
                 htmlFor="slot"
-                className="block text-sm font-medium text-slate-700 dark:text-slate-300"
+                className="block text-sm font-medium text-ink-muted"
               >
                 My draft slot
               </label>
@@ -207,14 +207,14 @@ export default function SnakeDraftClient({ pool: injected }: Props = {}) {
             />
           </div>
 
-          <p className="font-mono text-xs text-slate-500 dark:text-slate-400">
+          <p className="font-mono text-xs text-ink-subtle">
             Your picks:{" "}
             {snakePicksPreview(settings.teams, settings.rounds, settings.slot).join(" · ")}
           </p>
 
           <div>
             <div className="flex items-baseline justify-between">
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              <span className="text-sm font-medium text-ink-muted">
                 Starting lineup
               </span>
               <span className="flex gap-2">
@@ -244,7 +244,7 @@ export default function SnakeDraftClient({ pool: injected }: Props = {}) {
                 />
               ))}
             </div>
-            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            <p className="mt-2 text-xs text-ink-subtle">
               Replacement level for this format:{" "}
               {POS_LIST.map((p) => `${p}${repl[p]}`).join(" · ")}
               {atSource
@@ -257,7 +257,7 @@ export default function SnakeDraftClient({ pool: injected }: Props = {}) {
             <div className="flex items-baseline justify-between">
               <label
                 htmlFor="valuation-noise"
-                className="text-sm font-medium text-slate-700 dark:text-slate-300"
+                className="text-sm font-medium text-ink-muted"
               >
                 Manager valuation noise
               </label>
@@ -275,11 +275,11 @@ export default function SnakeDraftClient({ pool: injected }: Props = {}) {
               onChange={(e) => setNoisePct(Number(e.target.value))}
               className="mt-2 w-full accent-indigo-600"
             />
-            <div className="flex justify-between font-mono text-[10px] text-slate-400">
+            <div className="flex justify-between font-mono text-[10px] text-ink-subtle">
               <span>0%</span>
               <span>±{MAX_VALUATION_SPREAD * 100}%</span>
             </div>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            <p className="mt-1 text-xs text-ink-subtle">
               {noisePct === 0
                 ? "Every rival ranks the board exactly the way it is shown to you."
                 : `Each rival gets a private value for every player, up to ±${noisePct}% off the board — and sticks to it all draft. Higher noise means more reaches, and more of your targets sliding.`}
@@ -287,7 +287,7 @@ export default function SnakeDraftClient({ pool: injected }: Props = {}) {
           </div>
 
           <div>
-            <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Pace</div>
+            <div className="text-sm font-medium text-ink-muted">Pace</div>
             <div className="mt-2 flex gap-2">
               {PACE_KEYS.map((k) => (
                 <PresetButton
@@ -328,9 +328,9 @@ export default function SnakeDraftClient({ pool: injected }: Props = {}) {
   return (
     <div className="mx-auto max-w-7xl px-4 py-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+        <h1 className="text-2xl font-bold text-ink">
           Snake Draft
-          <span className="ml-2 align-middle text-xs font-medium uppercase tracking-wide text-slate-400">
+          <span className="ml-2 align-middle text-xs font-medium uppercase tracking-wide text-ink-subtle">
             {draft.settings.teams} teams · pick {draft.settings.slot} · {draft.settings.rounds}{" "}
             rounds
             {noisePct > 0 && ` · ±${noisePct}% valuations`}
@@ -372,16 +372,16 @@ export default function SnakeDraftClient({ pool: injected }: Props = {}) {
         }`}
       >
         {done ? (
-          <div className="text-lg font-semibold text-slate-900 dark:text-white">
+          <div className="text-lg font-semibold text-ink">
             Draft complete — {draft.picks.length} picks
           </div>
         ) : (
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <div>
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              <span className="text-xs font-semibold uppercase tracking-wide text-ink-subtle">
                 Round {oc!.round} · Pick {oc!.pickInRound} · #{oc!.overall} overall
               </span>
-              <div className="text-lg font-bold text-slate-900 dark:text-white">
+              <div className="text-lg font-bold text-ink">
                 {myTurn ? "You are on the clock" : `${oc!.team.name} is picking…`}
               </div>
             </div>
@@ -420,7 +420,7 @@ export default function SnakeDraftClient({ pool: injected }: Props = {}) {
                   className="ml-auto w-48 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                 />
               </div>
-              <div className="mt-2 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+              <div className="mt-2 overflow-x-auto rounded-lg border border-line">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-100 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900 dark:text-slate-400">
                     <tr>
@@ -459,20 +459,20 @@ export default function SnakeDraftClient({ pool: injected }: Props = {}) {
             <ul className="space-y-1 text-sm">
               {lineup.map((s, i) => (
                 <li key={i} className="flex items-baseline justify-between gap-2">
-                  <span className="w-14 shrink-0 font-mono text-xs uppercase text-slate-400">
+                  <span className="w-14 shrink-0 font-mono text-xs uppercase text-ink-subtle">
                     {s.slot}
                   </span>
                   <span
                     className={`flex-1 truncate ${
                       s.player
-                        ? "text-slate-900 dark:text-white"
-                        : "italic text-slate-400 dark:text-slate-600"
+                        ? "text-ink"
+                        : "italic text-ink-subtle"
                     }`}
                   >
                     {s.player?.name ?? "empty"}
                   </span>
                   {s.player && (
-                    <span className="font-mono text-xs text-slate-400">
+                    <span className="font-mono text-xs text-ink-subtle">
                       {s.player.value.toFixed(0)}
                     </span>
                   )}
@@ -481,13 +481,13 @@ export default function SnakeDraftClient({ pool: injected }: Props = {}) {
             </ul>
             {bench.length > 0 && (
               <>
-                <div className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                <div className="mt-3 text-xs font-semibold uppercase tracking-wide text-ink-subtle">
                   Bench
                 </div>
                 <ul className="mt-1 space-y-1 text-sm">
                   {bench.map((p) => (
                     <li key={p.id} className="flex items-baseline justify-between gap-2">
-                      <span className="flex-1 truncate text-slate-700 dark:text-slate-300">
+                      <span className="flex-1 truncate text-ink-muted">
                         {p.name}
                       </span>
                       <PosBadge pos={p.pos} />
@@ -496,7 +496,7 @@ export default function SnakeDraftClient({ pool: injected }: Props = {}) {
                 </ul>
               </>
             )}
-            <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 font-mono text-xs text-slate-500 dark:text-slate-400">
+            <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 font-mono text-xs text-ink-subtle">
               {POS_LIST.map((p) => (
                 <span key={p}>
                   {p} {posCount(me, p)}
@@ -505,7 +505,7 @@ export default function SnakeDraftClient({ pool: injected }: Props = {}) {
               <span>· {openStarterSlots(me, draft.settings.lineup)} starters open</span>
             </div>
             {!done && (
-              <div className="mt-2 font-mono text-xs text-slate-500 dark:text-slate-400">
+              <div className="mt-2 font-mono text-xs text-ink-subtle">
                 Next up: {myNext.slice(0, 3).map((n) => `#${n}`).join(", ") || "—"}
               </div>
             )}
@@ -513,12 +513,12 @@ export default function SnakeDraftClient({ pool: injected }: Props = {}) {
 
           <Panel title="Recent picks">
             {recent.length === 0 ? (
-              <p className="text-sm italic text-slate-400">No picks yet.</p>
+              <p className="text-sm italic text-ink-subtle">No picks yet.</p>
             ) : (
               <ol className="space-y-1 text-sm">
                 {recent.map((p) => (
                   <li key={p.overall} className="flex items-baseline gap-2">
-                    <span className="w-10 shrink-0 font-mono text-xs text-slate-400">
+                    <span className="w-10 shrink-0 font-mono text-xs text-ink-subtle">
                       {p.round}.{String(p.pickInRound).padStart(2, "0")}
                     </span>
                     <PosBadge pos={p.player.pos} />
@@ -526,12 +526,12 @@ export default function SnakeDraftClient({ pool: injected }: Props = {}) {
                       className={`flex-1 truncate ${
                         p.isUser
                           ? "font-semibold text-indigo-600 dark:text-indigo-400"
-                          : "text-slate-700 dark:text-slate-300"
+                          : "text-ink-muted"
                       }`}
                     >
                       {p.player.name}
                     </span>
-                    <span className="shrink-0 text-xs text-slate-400">{p.teamName}</span>
+                    <span className="shrink-0 text-xs text-ink-subtle">{p.teamName}</span>
                   </li>
                 ))}
               </ol>
@@ -556,18 +556,18 @@ function PlayerRow({
   onDraft: () => void;
 }) {
   return (
-    <tr className="hover:bg-slate-50 dark:hover:bg-slate-900">
-      <td className="px-3 py-1.5 font-mono text-xs text-slate-400">{p.rank}</td>
-      <td className="px-3 py-1.5 font-medium text-slate-900 dark:text-white">{p.name}</td>
+    <tr className="hover:bg-sunken">
+      <td className="px-3 py-1.5 font-mono text-xs text-ink-subtle">{p.rank}</td>
+      <td className="px-3 py-1.5 font-medium text-ink">{p.name}</td>
       <td className="px-3 py-1.5">
         <PosBadge pos={p.pos} />
-        <span className="ml-1 font-mono text-xs text-slate-400">{p.posRank}</span>
+        <span className="ml-1 font-mono text-xs text-ink-subtle">{p.posRank}</span>
       </td>
-      <td className="px-3 py-1.5 text-right font-mono text-xs text-slate-400">{p.bye}</td>
-      <td className="px-3 py-1.5 text-right font-mono text-slate-700 dark:text-slate-300">
+      <td className="px-3 py-1.5 text-right font-mono text-xs text-ink-subtle">{p.bye}</td>
+      <td className="px-3 py-1.5 text-right font-mono text-ink-muted">
         {p.value.toFixed(1)}
       </td>
-      <td className="px-3 py-1.5 text-right font-mono text-xs text-slate-400">
+      <td className="px-3 py-1.5 text-right font-mono text-xs text-ink-subtle">
         {p.points.toFixed(0)}
       </td>
       <td className="px-3 py-1.5 text-right">
@@ -615,7 +615,7 @@ function PickMarkerRow({ marker }: { marker: PickMarker }) {
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
-      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-ink-subtle">
         {title}
       </h2>
       {children}
@@ -667,7 +667,7 @@ function NumberField({
     <div>
       <label
         htmlFor={id}
-        className={`block font-medium text-slate-700 dark:text-slate-300 ${
+        className={`block font-medium text-ink-muted ${
           compact ? "text-xs uppercase tracking-wide" : "text-sm"
         }`}
       >
@@ -697,7 +697,7 @@ function ResultsTable({
   userSlot: number;
 }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <div className="overflow-x-auto rounded-lg border border-line">
       <table className="w-full text-sm">
         <thead className="bg-slate-100 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900 dark:text-slate-400">
           <tr>
@@ -713,12 +713,12 @@ function ResultsTable({
               key={s.team.slot}
               className={s.team.slot === userSlot ? "bg-indigo-50 dark:bg-indigo-950/40" : ""}
             >
-              <td className="px-3 py-1.5 font-mono text-xs text-slate-400">{s.rank}</td>
-              <td className="px-3 py-1.5 font-medium text-slate-900 dark:text-white">
+              <td className="px-3 py-1.5 font-mono text-xs text-ink-subtle">{s.rank}</td>
+              <td className="px-3 py-1.5 font-medium text-ink">
                 {s.team.name}
               </td>
               <td className="px-3 py-1.5 text-right font-mono">{s.starterValue.toFixed(0)}</td>
-              <td className="px-3 py-1.5 text-right font-mono text-slate-400">
+              <td className="px-3 py-1.5 text-right font-mono text-ink-subtle">
                 {s.totalValue.toFixed(0)}
               </td>
             </tr>

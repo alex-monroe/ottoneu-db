@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await setAuthCookie(user.userId, user.isAdmin, user.hasProjectionsAccess);
+    await setAuthCookie(user.userId, user.isAdmin, user.hasProjectionsAccess, user.isPodcaster);
 
     return NextResponse.json({ success: true });
   } catch (error) {

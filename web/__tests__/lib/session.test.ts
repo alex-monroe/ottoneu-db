@@ -40,10 +40,71 @@ describe("signSession / verifySession round-trip", () => {
         expect(session.hasProjectionsAccess).toBe(true);
     });
 
+    test("carries the podcaster role, and defaults it to false", async () => {
+        const host = await verifySession(await signSession("user-1", false, false, true));
+        expect(host.isPodcaster).toBe(true);
+        expect(host.isAdmin).toBe(false);
+        expect(host.hasProjectionsAccess).toBe(false);
+
+        const plain = await verifySession(await signSession("user-1", false, false));
+        expect(plain.isPodcaster).toBe(false);
+    });
+
     test("each sign call produces a unique token (nonce)", async () => {
         const a = await signSession("user-1", false, false);
         const b = await signSession("user-1", false, false);
         expect(a).not.toBe(b);
+    });
+});
+
+/**
+ * Sign a payload exactly the way the pre-podcaster version of session.ts did.
+ * Reproduced here rather than imported, because the point is that a token
+ * minted by code that no longer exists still verifies: cookies live seven days,
+ * so shipping the new field must not sign every league member out.
+ */
+async function signV1(
+    userId: string,
+    isAdmin: boolean,
+    hasProjectionsAccess: boolean,
+    timestamp = Date.now(),
+): Promise<string> {
+    const enc = new TextEncoder();
+    const secretHash = await crypto.subtle.digest(
+        "SHA-256",
+        enc.encode(process.env.SESSION_SECRET!),
+    );
+    const key = await crypto.subtle.importKey(
+        "raw",
+        secretHash,
+        { name: "HMAC", hash: "SHA-256" },
+        false,
+        ["sign"],
+    );
+    const payload = `user:${userId}:${isAdmin}:${hasProjectionsAccess}:${timestamp}:${crypto.randomUUID()}`;
+    const b64url = (bytes: Uint8Array) =>
+        Buffer.from(bytes).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const payloadB64 = b64url(enc.encode(payload));
+    const sig = await crypto.subtle.sign("HMAC", key, enc.encode(payloadB64));
+    return `${payloadB64}.${b64url(new Uint8Array(sig))}`;
+}
+
+describe("cookies minted before the podcaster role", () => {
+    test("still verify, with the new flag reading false", async () => {
+        const session = await verifySession(await signV1("user-9", true, true));
+        expect(session.valid).toBe(true);
+        expect(session.userId).toBe("user-9");
+        expect(session.isAdmin).toBe(true);
+        expect(session.hasProjectionsAccess).toBe(true);
+        // Not a host until the cookie is re-signed — which is what
+        // /api/auth/refresh and the /podcast hub are for.
+        expect(session.isPodcaster).toBe(false);
+    });
+
+    test("still expire on the same seven-day clock", async () => {
+        const EIGHT_DAYS_MS = 8 * 24 * 60 * 60 * 1000;
+        const stale = await signV1("user-9", false, false, Date.now() - EIGHT_DAYS_MS);
+        expect((await verifySession(stale)).valid).toBe(false);
     });
 });
 
@@ -52,6 +113,30 @@ describe("verifySession rejection paths", () => {
         expect((await verifySession(undefined)).valid).toBe(false);
         expect((await verifySession(null)).valid).toBe(false);
         expect((await verifySession("")).valid).toBe(false);
+    });
+
+    test("rejects a payload with an unrecognised field count", async () => {
+        // A validly signed token is not enough: a payload shape this verifier
+        // does not know must not be parsed positionally into the wrong fields.
+        const enc = new TextEncoder();
+        const secretHash = await crypto.subtle.digest(
+            "SHA-256",
+            enc.encode(process.env.SESSION_SECRET!),
+        );
+        const key = await crypto.subtle.importKey(
+            "raw",
+            secretHash,
+            { name: "HMAC", hash: "SHA-256" },
+            false,
+            ["sign"],
+        );
+        const b64url = (bytes: Uint8Array) =>
+            Buffer.from(bytes).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+        const payloadB64 = b64url(enc.encode(`user:u:true:true:true:true:${Date.now()}:nonce`));
+        const sig = await crypto.subtle.sign("HMAC", key, enc.encode(payloadB64));
+        expect(
+            (await verifySession(`${payloadB64}.${b64url(new Uint8Array(sig))}`)).valid,
+        ).toBe(false);
     });
 
     test("rejects tokens without the payload.signature shape", async () => {

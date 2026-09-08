@@ -276,6 +276,12 @@ export interface Column<Row = TableRow> {
   label: string;
   format?: "currency" | "number" | "decimal" | "percent";
   renderCell?: (value: unknown, row: Row) => React.ReactNode;
+  /**
+   * Glossary term for this column, rendered as a "?" beside the header.
+   * Keys come from `web/lib/glossary.ts`; typed loosely here because lib/types
+   * must not import from a module that pulls in React components.
+   */
+  explain?: string;
 }
 
 export interface HighlightRule<Row = TableRow> {
@@ -315,10 +321,30 @@ export type Position = 'QB' | 'RB' | 'WR' | 'TE' | 'K';
 
 export const POSITIONS: readonly Position[] = ["QB", "RB", "WR", "TE", "K"];
 
+/**
+ * Position badge fills, paired with white text.
+ *
+ * These were the 500-weight Tailwind hues, every one of which failed WCAG AA
+ * against the white label they carry — TE at 2.15:1 and WR at 2.54:1 were
+ * effectively unreadable at the 10-12px the badge renders at. The 600/700
+ * weights below keep the same hue identity and clear 4.5:1.
+ *
+ * `POSITION_COLORS_DARK` is the same set lightened for a dark ground, where the
+ * badge is drawn with dark text instead; `PositionBadge` picks between them.
+ */
 export const POSITION_COLORS: Record<Position, string> = {
-  QB: '#EF4444',
-  RB: '#3B82F6',
-  WR: '#10B981',
-  TE: '#F59E0B',
-  K: '#8B5CF6',
+  QB: '#B91C1C', // red-700    5.94:1
+  RB: '#1D4ED8', // blue-700   6.98:1
+  WR: '#047857', // emerald-700 4.99:1
+  TE: '#B45309', // amber-700  4.94:1
+  K: '#6D28D9',  // violet-700 7.15:1
+};
+
+/** Lightened fills for dark mode; these carry dark text, not white. */
+export const POSITION_COLORS_DARK: Record<Position, string> = {
+  QB: '#FCA5A5', // red-300
+  RB: '#93C5FD', // blue-300
+  WR: '#6EE7B7', // emerald-300
+  TE: '#FCD34D', // amber-300
+  K: '#C4B5FD',  // violet-300
 };

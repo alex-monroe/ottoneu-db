@@ -100,17 +100,23 @@ export function salaryCol<Row>(label = "Salary"): Column<Row> {
 
 /** Dollar value column (currency format). */
 export function valueCol<Row>(label = "Value"): Column<Row> {
-  return { key: "dollar_value", label, format: "currency" };
+  return { key: "dollar_value", label, format: "currency", explain: "dollar_value" };
 }
 
 /** Surplus column (currency format). */
 export function surplusCol<Row>(label = "Surplus"): Column<Row> {
-  return { key: "surplus", label, format: "currency" };
+  return { key: "surplus", label, format: "currency", explain: "surplus" };
 }
 
 /** PPG column (2 decimal places). */
 export function ppgCol<Row>(label = "PPG"): Column<Row> {
-  return { key: "ppg", label, format: "decimal" };
+  // A caller may relabel this "Proj PPG", which is a different number entirely.
+  return {
+    key: "ppg",
+    label,
+    format: "decimal",
+    explain: label.toLowerCase().includes("proj") ? "projected_ppg" : "ppg",
+  };
 }
 
 /** Total points column (2 decimal places). */
@@ -125,12 +131,12 @@ export function gamesPlayedCol<Row>(label = "GP"): Column<Row> {
 
 /** VORP per game column. */
 export function vorpPerGameCol<Row>(label = "VORP/G"): Column<Row> {
-  return { key: "vorp_per_game", label, format: "decimal" };
+  return { key: "vorp_per_game", label, format: "decimal", explain: "vorp" };
 }
 
 /** Full season VORP column. */
 export function fullVorpCol<Row>(label = "Full VORP"): Column<Row> {
-  return { key: "full_season_vorp", label, format: "decimal" };
+  return { key: "full_season_vorp", label, format: "decimal", explain: "vorp" };
 }
 
 // =====================================================================

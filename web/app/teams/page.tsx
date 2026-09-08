@@ -3,6 +3,7 @@ import { fetchLeagueStatus } from "@/lib/matchups";
 import { fetchTeamNames, teamHref, sameTeamName } from "@/lib/teams";
 import { getViewerTeam } from "@/lib/viewer-team";
 import { formatRecord } from "@/lib/standings";
+import PageShell from "@/components/PageShell";
 
 export const revalidate = 3600;
 
@@ -27,13 +28,12 @@ export default async function TeamsPage() {
     status?.standings.find((s) => sameTeamName(s.team_name, name)) ?? null;
 
   return (
-    <main className="min-h-screen bg-white dark:bg-black p-8">
-      <div className="mx-auto max-w-4xl space-y-6">
+    <PageShell>
         <header>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-3xl font-bold tracking-tight text-ink">
             Teams
           </h1>
-          <p className="mt-2 text-slate-500 dark:text-slate-400">
+          <p className="mt-2 text-ink-subtle">
             All {names.length} teams in the league. Each page carries the roster,
             cap space, record and schedule{status?.season ? ` for ${status.season}` : ""}.
           </p>
@@ -50,26 +50,26 @@ export default async function TeamsPage() {
                 className={`rounded-lg border p-4 transition-colors ${
                   mine
                     ? "border-blue-300 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20"
-                    : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:border-blue-300 dark:hover:border-blue-800"
+                    : "border-line bg-raised hover:border-accent"
                 }`}
               >
                 <span className="flex items-baseline justify-between gap-2">
-                  <span className="font-semibold text-slate-900 dark:text-white">
+                  <span className="font-semibold text-ink">
                     {name}
                     {mine && (
-                      <span className="ml-2 text-xs font-medium text-blue-600 dark:text-blue-400">
+                      <span className="ml-2 text-xs font-medium text-accent">
                         your team
                       </span>
                     )}
                   </span>
                   {row && (
-                    <span className="shrink-0 text-sm tabular-nums text-slate-500 dark:text-slate-400">
+                    <span className="shrink-0 text-sm tabular-nums text-ink-subtle">
                       {formatRecord(row)}
                     </span>
                   )}
                 </span>
                 {row && (
-                  <span className="mt-1 block text-sm text-slate-500 dark:text-slate-400">
+                  <span className="mt-1 block text-sm text-ink-subtle">
                     {row.points_for.toFixed(1)} PF · rank {row.rank}
                   </span>
                 )}
@@ -77,7 +77,6 @@ export default async function TeamsPage() {
             );
           })}
         </div>
-      </div>
-    </main>
+    </PageShell>
   );
 }

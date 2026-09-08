@@ -16,8 +16,8 @@ interface Props {
 }
 
 const selectClass =
-  "px-3 py-1.5 rounded-md text-sm font-medium border border-slate-300 dark:border-slate-700 " +
-  "bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500";
+  "px-3 py-1.5 rounded-md text-sm font-medium border border-line-strong " +
+  "bg-raised text-ink focus:outline-none focus:ring-2 focus:ring-accent";
 
 export default function WeekPicker({
   currentWeek,
@@ -40,7 +40,7 @@ export default function WeekPicker({
   return (
     <div className="flex flex-wrap items-center gap-4">
       <div className="flex items-center gap-2">
-        <label htmlFor="week-select" className="text-sm text-slate-500 dark:text-slate-400">
+        <label htmlFor="week-select" className="text-sm text-ink-subtle">
           Week:
         </label>
         <select
@@ -59,7 +59,7 @@ export default function WeekPicker({
 
       {seasons.length > 1 && (
         <div className="flex items-center gap-2">
-          <label htmlFor="season-select" className="text-sm text-slate-500 dark:text-slate-400">
+          <label htmlFor="season-select" className="text-sm text-ink-subtle">
             Season:
           </label>
           <select

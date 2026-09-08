@@ -14,7 +14,7 @@ export interface PhaseUi {
   label: string;
   /** One-line description of what matters during this phase. */
   blurb: string;
-  /** Label of the nav dropdown group to highlight (matches PRIVATE_GROUPS). */
+  /** Nav group to highlight. Must match a `label` in lib/nav.ts NAV_GROUPS. */
   featuredGroup?: string;
   /** Hrefs to accent as "featured now" in the nav. */
   featuredLinks: string[];
@@ -23,31 +23,32 @@ export interface PhaseUi {
 export const PHASE_UI: Record<Phase, PhaseUi> = {
   in_season: {
     label: "In-Season",
-    blurb: "NFL games are being played — track live value, lineups, and standings.",
-    featuredLinks: ["/scoreboard", "/lineup"],
+    blurb: "NFL games are being played — set your lineup, check your matchup, and work the wire.",
+    featuredGroup: "My Team",
+    featuredLinks: ["/matchup", "/lineup", "/free-agents", "/scoreboard"],
   },
   pre_arb: {
     label: "Pre-Arbitration",
     blurb: "Arbitration is upcoming — plan allocations off the season-long projections and watch the league's progress.",
-    featuredGroup: "Offseason",
+    featuredGroup: "Analysis",
     featuredLinks: ["/projections", "/arbitration", "/arb-progress"],
   },
   pre_keeper: {
     label: "Pre-Keeper",
     blurb: "Keep-or-cut decisions ahead — weigh surplus value and projected salaries against the season-long projections.",
-    featuredGroup: "Value",
+    featuredGroup: "My Team",
     featuredLinks: ["/projections", "/value", "/projected-salary"],
   },
   pre_draft: {
     label: "Pre-Draft",
     blurb: "Auction prep — study projections and pre-draft roster snapshots.",
-    featuredGroup: "Projections",
+    featuredGroup: "Players",
     featuredLinks: ["/projections", "/rosters"],
   },
   post_draft: {
     label: "Post-Draft",
     blurb: "The auction is done and rosters are set — review what the league paid and tune the roster before kickoff.",
-    featuredGroup: "Value",
+    featuredGroup: "Analysis",
     featuredLinks: ["/rosters", "/value", "/players"],
   },
 };

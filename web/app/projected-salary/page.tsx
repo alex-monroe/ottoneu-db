@@ -10,6 +10,10 @@ import { getAuthenticatedUser } from "@/lib/auth";
 import { getViewerTeam } from "@/lib/viewer-team";
 import ProjectedSalaryClient from "./ProjectedSalaryClient";
 import SummaryCard from "@/components/SummaryCard";
+import { EmptyState } from "@/components/states";
+import PhaseNote from "@/components/PhaseNote";
+import DataFreshness from "@/components/DataFreshness";
+import PageShell from "@/components/PageShell";
 
 export default async function ProjectedSalaryPage() {
   const [allPlayers, user, viewerTeam] = await Promise.all([
@@ -26,18 +30,18 @@ export default async function ProjectedSalaryPage() {
     // this page being viewer-relative: no team bound to the account, versus a
     // team that has no roster rows.
     return (
-      <main className="min-h-screen bg-white dark:bg-black p-8">
-        <div className="max-w-2xl mx-auto">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+      <PageShell width="narrow">
+          <h1 className="text-3xl font-bold tracking-tight text-ink">
             Salary Analysis
           </h1>
-          <p className="mt-3 text-slate-600 dark:text-slate-300">
+          <EmptyState
+            title={viewerTeam ? `No roster data for ${viewerTeam}` : "No team linked to your account"}
+          >
             {viewerTeam
-              ? `No roster data found for ${viewerTeam}.`
-              : "Your account isn't linked to a team yet, so there's no roster to analyse. An admin can link it from the admin panel."}
-          </p>
-        </div>
-      </main>
+              ? "Keep-or-cut needs salaries and last season's production for your roster. Once both have been imported, this fills in."
+              : "This page analyses your own roster, so it needs to know which team is yours. An admin can link it from the admin panel."}
+          </EmptyState>
+      </PageShell>
     );
   }
 
@@ -75,17 +79,23 @@ export default async function ProjectedSalaryPage() {
   }));
 
   return (
-    <main className="min-h-screen bg-white dark:bg-black p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <PageShell width="wide">
         <header>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-3xl font-bold tracking-tight text-ink">
             Salary Analysis — {viewerTeam}
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">
+          <p className="text-ink-subtle mt-2">
             Keep vs. cut decisions based on surplus value (dollar value - salary).
             Accounts for positional scarcity via VORP.
           </p>
+          <DataFreshness source="rosters" className="mt-1" />
         </header>
+
+        <PhaseNote
+          activeIn={["pre_keeper", "pre_draft"]}
+          label="Keep-or-cut"
+          opensOn="arb_end"
+        />
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -104,7 +114,6 @@ export default async function ProjectedSalaryPage() {
         </div>
 
         <ProjectedSalaryClient positionGroups={serialized} hoverDataMap={hoverDataMap} />
-      </div>
-    </main>
+    </PageShell>
   );
 }
