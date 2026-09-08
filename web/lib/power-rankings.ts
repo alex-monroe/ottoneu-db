@@ -34,6 +34,21 @@
  * **A team nobody ranked is dropped**, not floated to the bottom: it means the
  * league gained a team since the ballots were locked, and inventing a position
  * for it would be worse than saying so. The page reports those separately.
+ *
+ * ## Two kinds of note, and why one of them is not in `Ballot`
+ *
+ * Each entry carries two free-text fields with opposite audiences:
+ *
+ * - `note` — the on-air line. It rides along on `BallotEntry`, reaches the
+ *   reveal card through `VoterRank`, and the other host sees it the moment you
+ *   lock in. That is the point of it.
+ * - `prep_note` — your working notes on that team: the case for moving them,
+ *   what you want to remember to say, what you talked yourself out of. It is
+ *   **deliberately absent from `Ballot` and `BallotEntry`**. `fetchBallots`
+ *   never selects the column, so the objects that flow to consolidation and
+ *   the reveal have no field for it to leak through — privacy by construction
+ *   rather than by remembering to strip it. The one read that returns it,
+ *   `fetchPrepNotes`, takes a `userId` and returns only that host's own.
  */
 
 import { cache } from "react";
@@ -290,6 +305,44 @@ export function submittedOnly(ballots: readonly Ballot[]): Ballot[] {
 }
 
 /**
+ * One host's private working notes for one week, keyed by team name.
+ *
+ * Separate from `fetchBallots` on purpose. The notes are the host's own
+ * scratch pad — never read out, never shown to the other host — so the read
+ * that returns them is scoped to a single `userId` and its result never joins
+ * the `Ballot` objects that consolidation and the reveal screen consume. There
+ * is no code path that could hand somebody else's notes to a page, because
+ * there is no query that fetches them.
+ */
+export async function fetchPrepNotes(
+  season: number,
+  week: number,
+  userId: string,
+): Promise<Record<string, string>> {
+  const db = getSupabaseAdmin();
+  const { data: ballot } = await db
+    .from("power_ranking_ballots")
+    .select("id")
+    .eq("league_id", LEAGUE_ID)
+    .eq("season", season)
+    .eq("week", week)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!ballot) return {};
+
+  const { data: rows } = await db
+    .from("power_ranking_entries")
+    .select("team_name, prep_note")
+    .eq("ballot_id", ballot.id); // pagination-safe: one row per team, twelve of them
+
+  const out: Record<string, string> = {};
+  for (const row of rows ?? []) {
+    if (row.prep_note) out[row.team_name] = row.prep_note;
+  }
+  return out;
+}
+
+/**
  * The consolidated week, including last week's order for the movement arrows.
  * React-cached so the hub, the ballot page and the reveal share one read.
  */
@@ -321,8 +374,10 @@ export interface SaveBallotInput {
   week: number;
   /** Teams best-first. Position in the array is the rank. */
   order: readonly string[];
-  /** Optional per-team note, keyed by team name. */
+  /** Optional per-team on-air note, keyed by team name. */
   notes?: Record<string, string>;
+  /** Optional per-team private working note, keyed by team name. */
+  prepNotes?: Record<string, string>;
   /** True locks the ballot in and exposes it to consolidation. */
   submit: boolean;
 }
@@ -337,7 +392,7 @@ export interface SaveBallotInput {
  */
 export async function saveBallot(input: SaveBallotInput): Promise<void> {
   const db = getSupabaseAdmin();
-  const { userId, season, week, order, notes = {}, submit } = input;
+  const { userId, season, week, order, notes = {}, prepNotes = {}, submit } = input;
 
   const { data: ballot, error: ballotError } = await db
     .from("power_ranking_ballots")
@@ -373,6 +428,7 @@ export async function saveBallot(input: SaveBallotInput): Promise<void> {
       team_name: teamName,
       rank: i + 1,
       note: notes[teamName]?.trim() || null,
+      prep_note: prepNotes[teamName]?.trim() || null,
     })),
   );
   if (insertError) throw new Error(insertError.message);

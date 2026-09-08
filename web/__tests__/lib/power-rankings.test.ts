@@ -9,6 +9,8 @@
  * the way a viewer reads them.
  */
 
+import * as fs from "fs";
+import * as path from "path";
 import {
   consolidate,
   biggestDisagreement,
@@ -269,5 +271,57 @@ describe("isCompleteBallot", () => {
 
   test("rejects an empty ballot", () => {
     expect(isCompleteBallot([], TEAMS)).toBe(false);
+  });
+});
+
+/**
+ * The working notes a host keeps on each team are private, and the way that is
+ * enforced is *structural*: `fetchBallots` does not select the column, so the
+ * `Ballot` objects that consolidation and the reveal screen consume have no
+ * field for it to travel in. That is only true for as long as nobody adds
+ * `prep_note` to that select, which is exactly the sort of one-word change a
+ * future feature makes without noticing what it exposes — hence this test.
+ */
+describe("prep notes stay out of consolidation", () => {
+  const SOURCE = fs.readFileSync(
+    path.join(__dirname, "..", "..", "lib", "power-rankings.ts"),
+    "utf-8",
+  );
+
+  /** The body of one top-level exported function, by name. */
+  function bodyOf(name: string): string {
+    const start = SOURCE.indexOf(`export async function ${name}`);
+    expect(start).toBeGreaterThan(-1);
+    const rest = SOURCE.slice(start + 1);
+    const next = rest.search(/\nexport (async function|function|const|interface)/);
+    return next === -1 ? rest : rest.slice(0, next);
+  }
+
+  test("fetchBallots does not read the column", () => {
+    expect(bodyOf("fetchBallots")).not.toContain("prep_note");
+  });
+
+  test("fetchPrepNotes is the only reader, and it is scoped to one host", () => {
+    const body = bodyOf("fetchPrepNotes");
+    expect(body).toContain("prep_note");
+    // The scoping that makes it private: one user's ballot, not the week's.
+    expect(body).toContain('.eq("user_id", userId)');
+  });
+
+  test("a consolidated row carries only the on-air note", () => {
+    const rows = consolidate(
+      [ballot("alex", TEAMS, { Alpha: "read this out" })],
+      TEAMS,
+    );
+    const alpha = rows.find((r) => r.teamName === "Alpha");
+
+    expect(alpha?.votes[0].note).toBe("read this out");
+    // Nothing note-shaped beyond `note` reaches the card.
+    expect(Object.keys(alpha?.votes[0] ?? {}).sort()).toEqual([
+      "displayName",
+      "note",
+      "rank",
+      "userId",
+    ]);
   });
 });

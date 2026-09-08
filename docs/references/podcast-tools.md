@@ -66,8 +66,43 @@ Earlier weeks stay reachable from the week picker.
 A fresh ballot opens in **current standings order**, which is the ordering a
 host argues *with* rather than a blank list. Reordering is offered twice —
 drag-and-drop for a mouse, up/down buttons for a keyboard, a screen reader or a
-phone — both driving the same array. Each team takes an optional one-line note
-to read out when its slot is revealed.
+phone — both driving the same array. A row is only draggable while the grip is
+held, so a click-drag inside a notes box selects text instead of picking the
+team up.
+
+Each row carries three things beyond the team name.
+
+**Two notes, with opposite audiences.** The one-liner is the **on-air note**:
+the other host sees it the moment you lock in, and it is read out when the slot
+is revealed. Below it, behind the notebook icon (or "Show working notes", which
+opens every row at once for scanning while you reorder), are your **working
+notes** — the case for moving a team, what you talked yourself out of last week.
+Those are private, and privately by *construction* rather than by filtering:
+`fetchBallots` does not select `prep_note`, so the `Ballot` objects that reach
+consolidation and the reveal screen have no field for it to travel in. The only
+read that returns it, `fetchPrepNotes`, is scoped to one `user_id`.
+`power-rankings.test.ts` pins both halves. Notes are per (ballot, team) and a
+ballot is per week, so a new week starts clean; last week's thinking stays on
+last week's ballot via the week picker. Column added in migration 042.
+
+**This week's projection, inline.** Next to the record sits the total the team's
+*optimal* lineup projects for the week being ranked — the forward-looking half
+of an argument the standings can only make backwards. A 1-4 team projecting 130
+is a different team from a 1-4 team projecting 95.
+
+**The lineup behind that number, on hover.** Hovering the team name opens the
+optimal nine and the whole bench, each with their opponent and forecast, and a
+link through to `/lineup`. It is a hover rather than something always on screen
+because the ballot is a list you *reorder*, and twelve nine-man lineups stacked
+into it would bury the thing being manipulated.
+
+Both come from `web/lib/team-snapshot.ts`, which scores `optimizeLineup` on the
+`weekly` metric — the third party's forecast for that specific week, so a player
+on bye is never optimised into a starting slot. If the ranked week has no stored
+projections the page says so and leaves both blank, rather than showing a column
+of 0.0s that would read as a forecast. The snapshots cost a roster
+reconstruction on every load (the page is `revalidate = 0`), which is the one
+deliberate expense on it.
 
 Edits **autosave as a draft** (debounced ~1.2s); a ballot gets built over a few
 days in odd moments and losing one to a closed tab is the failure that would

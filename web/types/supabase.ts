@@ -1451,18 +1451,21 @@ export type Database = {
         Row: {
           ballot_id: string
           note: string | null
+          prep_note: string | null
           rank: number
           team_name: string
         }
         Insert: {
           ballot_id: string
           note?: string | null
+          prep_note?: string | null
           rank: number
           team_name: string
         }
         Update: {
           ballot_id?: string
           note?: string | null
+          prep_note?: string | null
           rank?: number
           team_name?: string
         }

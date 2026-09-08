@@ -3,8 +3,10 @@ import PageShell, { PageHeader } from "@/components/PageShell";
 import {
   fetchBallots,
   fetchPowerRankingContext,
+  fetchPrepNotes,
   submittedOnly,
 } from "@/lib/power-rankings";
+import { fetchTeamWeekSnapshots } from "@/lib/team-snapshot";
 import BallotEditor from "./BallotEditor";
 
 export const metadata = {
@@ -28,7 +30,16 @@ export default async function PowerRankingBallotPage({ searchParams }: Props) {
     Number.isFinite(requested) ? requested : undefined,
   );
 
-  const ballots = await fetchBallots(ctx.season, ctx.week);
+  // The snapshots cost a roster reconstruction, which is the same work
+  // /lineup does — but this page is `revalidate = 0`, so it is paid on every
+  // load rather than hourly. Worth it: the projected total and the lineup
+  // behind it are what the ordering is being argued from, and a ballot that
+  // arrives without them is a list of names.
+  const [ballots, prepNotes, snapshots] = await Promise.all([
+    fetchBallots(ctx.season, ctx.week),
+    fetchPrepNotes(ctx.season, ctx.week, user.userId),
+    fetchTeamWeekSnapshots(ctx.week, ctx.teams, !!user.hasProjectionsAccess),
+  ]);
   const mine = ballots.find((b) => b.userId === user.userId) ?? null;
   const others = ballots.filter((b) => b.userId !== user.userId);
 
@@ -49,7 +60,7 @@ export default async function PowerRankingBallotPage({ searchParams }: Props) {
       <PageHeader
         eyebrow="Podcast"
         title={`Week ${ctx.week} power rankings`}
-        description="Your ballot, private until you lock it in. Rank all twelve, best at the top."
+        description="Your ballot, private until you lock it in. Rank all twelve, best at the top. Hover a team for their optimal lineup this week."
         links={[
           { href: `/podcast/power-rankings/reveal?week=${ctx.week}`, label: "Reveal screen" },
           { href: "/podcast", label: "Podcast tools" },
@@ -62,8 +73,11 @@ export default async function PowerRankingBallotPage({ searchParams }: Props) {
         weeks={ctx.weeks}
         teams={ctx.teams}
         records={ctx.records}
+        snapshots={snapshots.byTeam}
+        snapshotsAvailable={snapshots.available}
         initialOrder={initialOrder}
         initialNotes={initialNotes}
+        initialPrepNotes={prepNotes}
         initiallySubmitted={mine?.submittedAt != null}
         otherHosts={others.map((b) => ({
           displayName: b.displayName,
