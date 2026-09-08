@@ -1406,6 +1406,76 @@ export type Database = {
           },
         ]
       }
+      power_ranking_ballots: {
+        Row: {
+          created_at: string
+          id: string
+          league_id: number
+          season: number
+          submitted_at: string | null
+          updated_at: string
+          user_id: string
+          week: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          league_id: number
+          season: number
+          submitted_at?: string | null
+          updated_at?: string
+          user_id: string
+          week: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          league_id?: number
+          season?: number
+          submitted_at?: string | null
+          updated_at?: string
+          user_id?: string
+          week?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "power_ranking_ballots_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      power_ranking_entries: {
+        Row: {
+          ballot_id: string
+          note: string | null
+          rank: number
+          team_name: string
+        }
+        Insert: {
+          ballot_id: string
+          note?: string | null
+          rank: number
+          team_name: string
+        }
+        Update: {
+          ballot_id?: string
+          note?: string | null
+          rank?: number
+          team_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "power_ranking_entries_ballot_id_fkey"
+            columns: ["ballot_id"]
+            isOneToOne: false
+            referencedRelation: "power_ranking_ballots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           access_requested_at: string | null
@@ -1414,6 +1484,7 @@ export type Database = {
           has_projections_access: boolean
           id: string
           is_admin: boolean
+          is_podcaster: boolean
           password_hash: string
           team_name: string | null
           updated_at: string
@@ -1425,6 +1496,7 @@ export type Database = {
           has_projections_access?: boolean
           id?: string
           is_admin?: boolean
+          is_podcaster?: boolean
           password_hash: string
           team_name?: string | null
           updated_at?: string
@@ -1436,6 +1508,7 @@ export type Database = {
           has_projections_access?: boolean
           id?: string
           is_admin?: boolean
+          is_podcaster?: boolean
           password_hash?: string
           team_name?: string | null
           updated_at?: string

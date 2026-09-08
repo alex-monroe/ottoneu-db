@@ -5,12 +5,18 @@ import {
   accessRedirect,
   isPublicApiRoute,
   requiresAdmin,
+  requiresPodcaster,
   requiresProjectionsAccess,
 } from "./lib/access";
 
 // Re-exported for the tests and callers that previously imported them from
 // here; `lib/access.ts` is the source of truth.
-export { PROJECTIONS_ROUTES, ADMIN_ROUTES, PUBLIC_API_ROUTES } from "./lib/access";
+export {
+  PROJECTIONS_ROUTES,
+  ADMIN_ROUTES,
+  PODCASTER_ROUTES,
+  PUBLIC_API_ROUTES,
+} from "./lib/access";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -29,7 +35,10 @@ export async function middleware(request: NextRequest) {
   }
 
   const needsGate =
-    isApiRoute || requiresProjectionsAccess(pathname) || requiresAdmin(pathname);
+    isApiRoute ||
+    requiresProjectionsAccess(pathname) ||
+    requiresAdmin(pathname) ||
+    requiresPodcaster(pathname);
   if (!needsGate) {
     return NextResponse.next();
   }
@@ -48,6 +57,9 @@ export async function middleware(request: NextRequest) {
     if (requiresProjectionsAccess(pathname) && !session.hasProjectionsAccess) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+    if (requiresPodcaster(pathname) && !session.isPodcaster) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
     return NextResponse.next();
   }
 
@@ -59,6 +71,7 @@ export async function middleware(request: NextRequest) {
     signedIn: session.valid,
     hasProjectionsAccess: session.hasProjectionsAccess ?? false,
     isAdmin: session.isAdmin ?? false,
+    isPodcaster: session.isPodcaster ?? false,
   });
 
   if (destination) {

@@ -15,6 +15,7 @@ import {
   Swords,
   Shield,
   UserPlus,
+  Mic,
   type LucideIcon,
 } from "lucide-react";
 import { getSeasonContextNow } from "@/lib/season";
@@ -63,6 +64,7 @@ const HUB_META: Record<string, { description: string; icon: LucideIcon }> = {
   "/value": { description: "VORP, surplus rankings, and your manual adjustments.", icon: BarChart3 },
   "/arbitration": { description: "Targets, Monte Carlo simulation, and budget planner.", icon: Gavel },
   "/mock-draft": { description: "Practice keeper auction against AI opponents.", icon: Target },
+  "/podcast/power-rankings": { description: "Rank the league ahead of the week, then reveal the consolidated order live on the show.", icon: Mic },
 };
 
 /** Strip the query so a featured href resolves to its metadata. */
@@ -126,6 +128,7 @@ export default async function Home() {
     isAuthenticated: !!user,
     isAdmin: !!user?.isAdmin,
     hasProjectionsAccess: hasAccess,
+    isPodcaster: !!user?.isPodcaster,
     viewerTeam,
   };
 

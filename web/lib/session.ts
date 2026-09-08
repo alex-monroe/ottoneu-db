@@ -62,11 +62,20 @@ function base64UrlToString(base64Url: string): string {
 
 /**
  * Signs a session with user info using HMAC-SHA256
+ *
+ * The payload is positional and colon-delimited. `isPodcaster` was appended
+ * after `hasProjectionsAccess`, which makes a v2 payload seven fields where v1
+ * had six — see {@link verifySession} for why both still verify.
  */
-export async function signSession(userId: string, isAdmin: boolean, hasProjectionsAccess: boolean): Promise<string> {
+export async function signSession(
+  userId: string,
+  isAdmin: boolean,
+  hasProjectionsAccess: boolean,
+  isPodcaster: boolean = false,
+): Promise<string> {
   const key = await getSessionKey();
 
-  const payloadStr = `user:${userId}:${isAdmin}:${hasProjectionsAccess}:${Date.now()}:${crypto.randomUUID()}`;
+  const payloadStr = `user:${userId}:${isAdmin}:${hasProjectionsAccess}:${isPodcaster}:${Date.now()}:${crypto.randomUUID()}`;
   const payloadBase64Url = stringToBase64Url(payloadStr);
 
   const signatureBuffer = await crypto.subtle.sign("HMAC", key, enc.encode(payloadBase64Url));
@@ -80,7 +89,12 @@ export interface SessionInfo {
   userId?: string;
   isAdmin?: boolean;
   hasProjectionsAccess?: boolean;
+  isPodcaster?: boolean;
 }
+
+/** Field counts for the two payload shapes this verifier accepts. */
+const V1_FIELDS = 6; // user:id:admin:projections:timestamp:nonce
+const V2_FIELDS = 7; // …with isPodcaster inserted before the timestamp
 
 /**
  * Verifies a session token. Returns session info if valid.
@@ -113,7 +127,21 @@ export async function verifySession(token: string | undefined | null): Promise<S
     }
 
     const payloadStr = base64UrlToString(payloadBase64Url);
-    const [status, userId, isAdminStr, hasProjectionsAccessStr, timestampStr, nonce] = payloadStr.split(':');
+    const fields = payloadStr.split(':');
+
+    // Cookies live for seven days, so adding a role to the payload cannot
+    // invalidate every session in flight: a v1 payload still verifies (its
+    // signature is untouched) and simply has no podcaster bit, which reads as
+    // false — the same answer the database gives for every account that was
+    // not granted the role. Anything that is neither shape is a forgery or a
+    // future format, and is rejected rather than parsed positionally.
+    if (fields.length !== V1_FIELDS && fields.length !== V2_FIELDS) {
+      return { valid: false };
+    }
+    const isV2 = fields.length === V2_FIELDS;
+    const [status, userId, isAdminStr, hasProjectionsAccessStr] = fields;
+    const isPodcasterStr = isV2 ? fields[4] : "false";
+    const [timestampStr, nonce] = fields.slice(isV2 ? 5 : 4);
 
     if (status !== "user" || !userId || !timestampStr || !nonce) {
       return { valid: false };
@@ -130,6 +158,7 @@ export async function verifySession(token: string | undefined | null): Promise<S
       userId,
       isAdmin: isAdminStr === "true",
       hasProjectionsAccess: hasProjectionsAccessStr === "true",
+      isPodcaster: isPodcasterStr === "true",
     };
   } catch (err) {
     console.error("Session verification error:", err);

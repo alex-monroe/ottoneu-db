@@ -115,17 +115,20 @@ system.
 
 | | |
 |---|---|
-| **Tables** | `users` · `oauth_clients` · `oauth_authorization_codes` · `oauth_refresh_tokens` |
+| **Tables** | `users` (three independent role flags: `is_admin` · `has_projections_access` · `is_podcaster`) · `oauth_clients` · `oauth_authorization_codes` · `oauth_refresh_tokens` · `power_ranking_ballots` · `power_ranking_entries` |
 | **Session auth** | `web/lib/auth.ts` · `session.ts` · `web/middleware.ts` |
 | **OAuth 2.1** | `web/lib/oauth/` — the site is its own authorization server (PKCE, rotating refresh tokens) |
 | **MCP server** | `web/lib/mcp/tools.ts` (tool registry) served at `/api/mcp/mcp` |
 | **Provisioning** | `scripts/oauth_client.py` · `just oauth-client` |
-| **Routes** | `/login` · `/admin` · `/admin/workflows` · `/oauth/authorize` · `/api/auth/*` · `/api/oauth/*` · `/api/mcp/[transport]` |
-| **Docs** | [references/mcp-server.md](references/mcp-server.md) |
+| **Routes** | `/login` · `/access` · `/admin` · `/admin/workflows` · `/podcast` · `/podcast/power-rankings` (+ `/reveal`) · `/oauth/authorize` · `/api/auth/*` · `/api/oauth/*` · `/api/podcast/*` · `/api/mcp/[transport]` |
+| **Docs** | [references/mcp-server.md](references/mcp-server.md) · [references/podcast-tools.md](references/podcast-tools.md) |
 
 **Watch out:** most gated features check `has_projections_access`, not merely "signed
-in". Access tokens are deliberately stateless (HMAC-signed, 1-hour TTL) and are not
-stored, so revocation takes up to an hour to take effect.
+in". The three role flags are independent — none implies another, and `/podcast` is
+gated on `is_podcaster` alone. The session cookie is a 7-day snapshot of all three, so
+a fresh grant needs `POST /api/auth/refresh` (which `/access` and `/podcast` both do)
+before middleware agrees. Access tokens are deliberately stateless (HMAC-signed,
+1-hour TTL) and are not stored, so revocation takes up to an hour to take effect.
 
 ---
 

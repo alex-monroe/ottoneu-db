@@ -144,6 +144,8 @@ interface NavigationProps {
   /** Earliest season a player counts as "active" in global search ranking. */
   activeSinceSeason: number;
   hasProjectionsAccess: boolean;
+  /** Whether to offer the podcast production tools. */
+  isPodcaster: boolean;
   /** The viewer's own team, which becomes the first item under "My Team". */
   viewerTeam: string | null;
 }
@@ -155,15 +157,16 @@ export default function Navigation({
   featuredGroup = null,
   activeSinceSeason,
   hasProjectionsAccess,
+  isPodcaster,
   viewerTeam,
 }: NavigationProps) {
   const groups: NavGroup[] = visibleNav(
-    { isAuthenticated, isAdmin, hasProjectionsAccess, viewerTeam },
+    { isAuthenticated, isAdmin, hasProjectionsAccess, isPodcaster, viewerTeam },
     teamHref,
   );
-  /** A group is padlocked when every item in it needs projections access. */
+  /** A group is padlocked when nothing in it is open to everyone. */
   const isLocked = (g: NavGroup) =>
-    g.items.every((i) => i.access === "projections" || i.access === "admin");
+    g.items.every((i) => i.access != null && i.access !== "public");
   const pathname = usePathname();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
