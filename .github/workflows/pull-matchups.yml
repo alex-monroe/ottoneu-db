@@ -1,8 +1,10 @@
 name: Pull Matchups
 
 # Keeps `league_matchups` — the game log behind the scoreboard, standings and
-# playoff picture — in step with Ottoneu. The scrape is one HTML page plus one
-# CSV export over plain HTTP: no browser, no login, no Playwright.
+# playoff picture — and `matchup_lineups` — the live week's lineups, from each
+# game's box score — in step with Ottoneu. One HTML page plus one CSV export,
+# then one box score per game, all over plain HTTP: no browser, no login, no
+# Playwright.
 #
 # The whole schedule is published before kickoff, so a run outside game time is
 # still useful (it picks up a re-drawn schedule or a newly generated playoff
@@ -30,6 +32,10 @@ on:
     - cron: "*/30 0-4 * * 1"
     # Tuesday 00:00–04:30 UTC (Mon 8pm–12:30am ET) — the Monday night game.
     - cron: "*/30 0-4 * * 2"
+    # Friday 00:00–04:30 UTC (Thu 8pm–12:30am ET) — the Thursday night game.
+    # Added with the lineup scrape: the live matchup projection is only as live
+    # as its last run, and Thursday is when a week's first lineups start scoring.
+    - cron: "*/30 0-4 * * 5"
 
 permissions:
   contents: read
@@ -78,3 +84,16 @@ jobs:
           [ -n "${{ inputs.week }}" ] && ARGS="$ARGS --week ${{ inputs.week }}"
           [ "${{ inputs.dry_run }}" = "true" ] && ARGS="$ARGS --dry-run"
           python scripts/scrape_matchups.py $ARGS
+
+      # Both lineups for every game of the live week, from the public box
+      # scores — six requests, a second apart. Runs after the schedule scrape so
+      # the week's games are already in league_matchups, and on the same
+      # cadence, so a lineup's points move with the scoreboard's totals.
+      - name: Scrape lineups
+        env:
+          OTTONEU_COOKIE: ${{ secrets.OTTONEU_COOKIE }}
+        run: |
+          ARGS=""
+          [ -n "${{ inputs.week }}" ] && ARGS="$ARGS --week ${{ inputs.week }}"
+          [ "${{ inputs.dry_run }}" = "true" ] && ARGS="$ARGS --dry-run"
+          python scripts/scrape_lineups.py $ARGS

@@ -205,10 +205,12 @@ covered by tests:
   healthy starter's, which breaks the same "missing = bye or inactive" promise
   the empty-stats filter above exists to keep. After each projections pass,
   `reconcile_dropped_players` deletes rows the source no longer projects — but
-  only when they hold no `actual_points`; a row that already has a result keeps
-  the result and has just its projection cleared, because a played game is the
-  whole reason a week is retained. On 2026-09-07 this retired 52 rows left over
-  from a 29 August pull. It runs **only on a projections pass and only when the
+  only when the player's game **has not started**. A row whose game has started
+  is kept untouched, projection included: a played game is the whole reason a
+  week is retained, and its projection is the pre-game forecast it is judged
+  against. (It used to keep the result but clear the projection, which erased
+  exactly the number projected-vs-actual needs.) On 2026-09-07 this retired 52
+  rows left over from a 29 August pull. It runs **only on a projections pass and only when the
   payload produced records**, so a source outage cannot take the board down with
   it, and the partial-by-nature actuals pass never retires anything.
 
@@ -222,6 +224,52 @@ rostered players had not entered the league yet.
 
 Validated against 2025 Week 1 actuals: **correlation 0.73, MAE 3.6 points**,
 which is the expected range for weekly fantasy projections.
+
+## The kickoff freeze
+
+**A projection stops being a forecast at kickoff, so the ingest stops updating
+it.** Sleeper keeps revising a week's projections after its games are played.
+Found on the 2026 opener: the morning after NE @ SEA (Wednesday 9 September),
+every player in that finished game came back re-stamped (`last_modified`
+minutes old) with a new number — Drake Maye 19.0 → 19.67, Sam Darnold
+16.38 → 17.11 — and the checked-in 2025 Week 1 fixture carries a
+`last_modified` a month after its game. Re-upserting those every morning
+silently replaced the number a lineup was set against with a post-game figure
+nobody could have seen beforehand.
+
+Each row now stores Sleeper's per-row game `date` as `game_date` (migration
+043). A player's game **has started** when either:
+
+- `game_date` is before today (America/New_York) — every NFL game is over by
+  the morning after its date; or
+- an actual is already recorded — covers rows written before `game_date`
+  existed.
+
+`apply_kickoff_freeze` then drops, before the upsert, any projection record for a
+started game whose stored row already holds a projection. Frozen records are
+*excluded* rather than written with fewer columns, because PostgREST fills a
+batch's missing keys with NULL. A started game with **no** stored projection is
+refused too — a forecast that first appears after kickoff is not a pre-game
+forecast — except on a backfill of a past week (`--week` other than the current
+one), where a post-hoc projection is the only one there will ever be.
+
+Why a *date* rather than a kickoff time: nothing in the pipeline knows kickoff
+times, and the scheduled runs are placed so a same-day refresh is always
+pre-kickoff (7am ET daily; noon ET Sunday). The one gap is a Sunday-morning
+international game, which the noon run reaches mid-game. The workflow also runs
+the **actuals passes before the projections pass**, so the "actual recorded"
+signal is in place before anything is refreshed.
+
+**2026 Week 1 caveat:** the NE @ SEA rows had already been overwritten once,
+post-game, before the freeze existed (a run at 14:53 UTC on 10 September), so
+their stored projections are Sleeper's first post-game revision rather than the
+last pre-game one — a drift of tenths of a point. Every later game freezes
+correctly. The existing Week 1 rows were given a `game_date` by a one-off
+backfill when migration 043 was applied.
+
+The frozen projection is what `/scoreboard/[gameId]` shows beside each player's
+points, and what the live matchup projection is built from — see
+[matchups-and-standings.md](matchups-and-standings.md#lineups-and-the-live-matchup-projection).
 
 ## Retention
 
@@ -247,7 +295,7 @@ because the week has two moments that matter:
 
 | Cron (UTC) | Local | What it does | Why |
 | --- | --- | --- | --- |
-| `0 11 * * *` | ~7am ET, daily | Projections for the current week, **plus actuals** for the current and previous week | Sleeper revises all week as injury and snap news lands, so a single Tuesday pull is stale by Sunday. 7am ET is the one time no game is in progress — Sunday's are final, Monday night's has not started — which is why this is the run that writes actuals. |
+| `0 11 * * *` | ~7am ET, daily | Actuals for the current and previous week, **then** projections for the current week (actuals first, so a played game is frozen before anything is refreshed) | Sleeper revises all week as injury and snap news lands, so a single Tuesday pull is stale by Sunday. 7am ET is the one time no game is in progress — Sunday's are final, Monday night's has not started — which is why this is the run that writes actuals. |
 | `0 16 * * 0` | 12pm EDT / 11am EST, Sundays | Projections only | Inactives are announced ~90 minutes before the 1pm ET window. This is the most valuable projection update of the week for start/sit, and the 7am run is far too early to catch it. |
 
 Projections on both schedules are **gated on `is_weekly_ingest_window()`** —

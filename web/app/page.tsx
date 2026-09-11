@@ -24,6 +24,8 @@ import { getAuthenticatedUser } from "@/lib/auth";
 import { getViewerTeam } from "@/lib/viewer-team";
 import { toTeamGame } from "@/lib/teams";
 import { getLeagueStatus } from "@/lib/matchups";
+import { fetchLiveWeek } from "@/lib/matchup-lineups";
+import { scoreboardProjection, type LiveGame } from "@/lib/live-matchup";
 import { NAV_GROUPS, HUB_EXCLUDED_GROUPS, canSee, type NavItem, type Viewer } from "@/lib/nav";
 import ScoreboardCard from "@/components/ScoreboardCard";
 import StandingsTable from "@/components/StandingsTable";
@@ -122,6 +124,9 @@ export default async function Home() {
     getLeagueStatus(),
     getViewerTeam(),
   ]);
+  // Each game's live projection, once lineups have been scraped for the week.
+  const live: Map<number, LiveGame> =
+    league?.week != null ? await fetchLiveWeek(league.season, league.week) : new Map();
   const ui = PHASE_UI[ctx.phase];
   const hasAccess = !!user?.hasProjectionsAccess;
   const viewer: Viewer = {
@@ -248,7 +253,11 @@ export default async function Home() {
                   {league.matchups
                     .filter((m) => m.week === league.week)
                     .map((m) => (
-                      <ScoreboardCard key={m.game_id} matchup={m} />
+                      <ScoreboardCard
+                        key={m.game_id}
+                        matchup={m}
+                        projection={scoreboardProjection(live.get(m.game_id))}
+                      />
                     ))}
                 </div>
               </div>

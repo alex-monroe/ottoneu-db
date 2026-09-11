@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { LEAGUE_ID } from "@/lib/config";
 import type { Matchup } from "@/lib/standings";
+import type { ScoreboardProjection } from "@/lib/live-matchup";
 import TeamName from "./TeamName";
 
 /**
@@ -28,37 +30,55 @@ function TeamRow({
   score,
   showScore,
   won,
+  projected,
 }: {
   name: string;
   score: number | null;
   showScore: boolean;
   won: boolean;
+  projected: number | null;
 }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
       <span className={`truncate text-sm ${won ? "font-semibold" : ""}`}>
         <TeamName name={name} mine={won} />
       </span>
-      <span
-        className={`shrink-0 tabular-nums text-sm ${
-          won
-            ? "font-semibold text-ink"
-            : "text-ink-subtle"
-        }`}
-      >
-        {showScore ? (score ?? 0).toFixed(2) : "—"}
+      <span className="flex shrink-0 items-baseline gap-2 tabular-nums">
+        {projected != null && (
+          <span className="text-xs text-ink-subtle" title="Live projection">
+            {projected.toFixed(1)}
+          </span>
+        )}
+        <span
+          className={`w-14 text-right text-sm ${
+            won
+              ? "font-semibold text-ink"
+              : "text-ink-subtle"
+          }`}
+        >
+          {showScore ? (score ?? 0).toFixed(2) : "—"}
+        </span>
       </span>
     </div>
   );
 }
 
-export default function ScoreboardCard({ matchup }: { matchup: Matchup }) {
+export default function ScoreboardCard({
+  matchup,
+  projection = null,
+}: {
+  matchup: Matchup;
+  projection?: ScoreboardProjection | null;
+}) {
   const played = matchup.status !== "scheduled";
   const home = matchup.home_score ?? 0;
   const away = matchup.away_score ?? 0;
   // A lead in a live game is not a win, so only a final game bolds a winner.
   const decided = matchup.status === "final";
   const typeLabel = TYPE_LABELS[matchup.game_type];
+  // Once a game is final the projection has converged on the score; showing
+  // both would just print every number twice.
+  const showProjection = projection != null && !decided;
 
   return (
     // Not a single wrapping link any more: each team name leads to its own
@@ -89,19 +109,33 @@ export default function ScoreboardCard({ matchup }: { matchup: Matchup }) {
         )}
       </div>
       <div className="space-y-1">
+        {showProjection && (
+          <div className="flex justify-end gap-2 text-[10px] font-semibold uppercase tracking-wide text-ink-subtle">
+            <span>Proj</span>
+            <span className="w-14 text-right">Score</span>
+          </div>
+        )}
         <TeamRow
           name={matchup.home_team_name}
           score={matchup.home_score}
           showScore={played}
           won={decided && home > away}
+          projected={showProjection ? projection.home : null}
         />
         <TeamRow
           name={matchup.away_team_name}
           score={matchup.away_score}
           showScore={played}
           won={decided && away > home}
+          projected={showProjection ? projection.away : null}
         />
       </div>
+      <Link
+        href={`/scoreboard/${matchup.game_id}`}
+        className="mt-2 inline-block text-xs text-accent hover:underline"
+      >
+        Lineups{projection != null ? " & live projection" : ""} →
+      </Link>
     </div>
   );
 }

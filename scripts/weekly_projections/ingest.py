@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Optional
 
 from scripts.config import fetch_all_rows, get_supabase_client
@@ -25,7 +25,7 @@ from scripts.feature_projections.external_sources.player_matcher import (
     build_player_index,
     match_player,
 )
-from scripts.nfl_week import current_nfl_week
+from scripts.nfl_week import current_nfl_week, today_in_league_tz
 from scripts.weekly_projections.scoring import normalised_stats, score_stat_line
 from scripts.weekly_projections.sources import sleeper
 from scripts.weekly_projections.sources.base import WeeklyRow
@@ -108,6 +108,7 @@ def build_records(
             record["projected_points"] = points
             record["projected_stats"] = stats
             record["opponent"] = row.opponent
+            record["game_date"] = row.game_date
             record["projected_at"] = now
         records.append(record)
 
@@ -136,35 +137,123 @@ def _dedupe(records: list[dict], actuals: bool) -> list[dict]:
     return list(best.values())
 
 
+def _as_date(value) -> Optional[date]:
+    if isinstance(value, date):
+        return value
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        return date.fromisoformat(value[:10])
+    except ValueError:
+        return None
+
+
+def game_has_started(row: dict, today: date) -> bool:
+    """Whether a stored row's game is under way or over, as of `today` (ET).
+
+    Two signals, either sufficient:
+
+      * the game date is before today — every NFL game is over by the morning
+        after its date, so this is exact for a completed day;
+      * an actual is already recorded — covers rows written before `game_date`
+        was stored, and is true of any game the actuals pass has seen.
+
+    Deliberately a *date*, not a kickoff time: nothing in this pipeline knows
+    kickoff times, and the scheduled runs are placed so that a same-day refresh
+    is always pre-kickoff (7am ET daily, noon ET Sunday). The one gap is a
+    Sunday-morning international game, which the noon run reaches mid-game.
+    """
+    if row.get("actual_points") is not None:
+        return True
+    game_date = _as_date(row.get("game_date"))
+    return game_date is not None and game_date < today
+
+
+def apply_kickoff_freeze(
+    records: list[dict],
+    existing: list[dict],
+    today: date,
+    allow_post_kickoff_fill: bool = False,
+) -> tuple[list[dict], list[str]]:
+    """Drop projection records that would rewrite history. Returns (writable, frozen_ids).
+
+    **A projection is a forecast, and a forecast stops being one at kickoff.**
+    Sleeper keeps revising a week's projections after its games are played —
+    rows for a game that finished the night before come back re-stamped with a
+    new number the next morning, and the checked-in 2025 Week 1 fixture carries
+    a `last_modified` a month after the game. Re-upserting those every day
+    quietly replaced the number a lineup was set against with a post-game
+    revision, so "projected vs actual" compared the actual to a figure nobody
+    could have seen beforehand.
+
+    So once a player's game has started (see `game_has_started`) his stored
+    projection is frozen: the record is not written at all. Frozen rows are
+    excluded rather than upserted with fewer columns because PostgREST fills a
+    batch's missing keys with NULL, which would erase the very projection this
+    exists to keep.
+
+    A record for a started game with no stored projection is not a pre-game
+    forecast either — it first appeared after kickoff — so it is refused too,
+    unless `allow_post_kickoff_fill` is set. That is the backfill case: ingesting
+    a past week, where a post-hoc projection is the only one there will ever be.
+    Even then a stored projection is never overwritten.
+
+    Pure, so the decision is testable without a database.
+    """
+    stored = {str(row["player_id"]): row for row in existing}
+    writable: list[dict] = []
+    frozen: list[str] = []
+    for record in records:
+        player_id = str(record["player_id"])
+        prior = stored.get(player_id)
+        # A projection record never carries an actual, so it only speaks to the
+        # date; the stored row can also say "already played".
+        started = game_has_started(record, today) or (
+            prior is not None and game_has_started(prior, today)
+        )
+        if not started:
+            writable.append(record)
+        elif prior is not None and prior.get("projected_points") is not None:
+            frozen.append(player_id)
+        elif allow_post_kickoff_fill:
+            writable.append(record)
+        else:
+            frozen.append(player_id)
+    return writable, frozen
+
+
 def partition_dropped_rows(
-    existing: list[dict], projected_ids: set[str]
+    existing: list[dict], projected_ids: set[str], today: date
 ) -> tuple[list[str], list[str]]:
-    """Split the week's stored rows into (delete, clear-the-projection).
+    """Split the week's stored rows the source no longer projects into (delete, keep).
 
     `existing` is every row we already hold for one (season, week, source);
     `projected_ids` is who the source projected in the payload we just fetched.
     Anything stored but no longer projected is stale and must not keep sitting
-    on the board — but a row can hold more than its projection, so the two cases
-    part ways:
+    on the board — unless its game has already started:
 
-      * No `actual_points` — delete. Nothing left in the row is worth keeping.
-      * An actual already stored — keep the row, clear only the projection.
-        A played game is the entire reason a week is retained; throwing it away
-        to tidy up a stale forecast would lose real history.
+      * Game not started — delete. A player cut, waived or ruled out before
+        kickoff has no forecast worth keeping, and "missing = bye or inactive"
+        is what the UI and the MCP note promise.
+      * Game started — keep the row untouched, projection included. The
+        projection is now the pre-game forecast the week is judged against, and
+        a played game is the entire reason a week is retained. (This used to
+        clear the projection on a played row, which erased exactly the number
+        "projected vs actual" needs.)
 
     Pure, so the decision is testable without a database.
     """
     delete: list[str] = []
-    clear: list[str] = []
+    keep: list[str] = []
     for row in existing:
         player_id = str(row["player_id"])
         if player_id in projected_ids:
             continue
-        if row.get("actual_points") is None:
-            delete.append(player_id)
+        if game_has_started(row, today):
+            keep.append(player_id)
         else:
-            clear.append(player_id)
-    return delete, clear
+            delete.append(player_id)
+    return delete, keep
 
 
 def _chunks(values: list[str], size: int = 200):
@@ -173,12 +262,25 @@ def _chunks(values: list[str], size: int = 200):
         yield values[start : start + size]
 
 
+def fetch_existing_rows(supabase, season: int, week: int, source: str) -> list[dict]:
+    """Every row already stored for one (season, week, source) — what the freeze
+    and the dropped-player reconciliation both decide against."""
+    return fetch_all_rows(
+        supabase,
+        TABLE,
+        "player_id, game_date, actual_points, projected_points",
+        filters=[("eq", "season", season), ("eq", "week", week), ("eq", "source", source)],
+    )
+
+
 def reconcile_dropped_players(
     supabase,
     season: int,
     week: int,
     source: str,
     projected_ids: set[str],
+    existing: list[dict],
+    today: date,
     dry_run: bool = False,
 ) -> tuple[int, int]:
     """Retire rows the source has stopped projecting for this week.
@@ -190,49 +292,36 @@ def reconcile_dropped_players(
     tool both make, that **a missing week means a bye or an inactive**: the
     stale row is indistinguishable from a healthy starter's.
 
-    Returns (deleted, cleared).
-    """
-    existing = fetch_all_rows(
-        supabase,
-        TABLE,
-        "player_id, actual_points",
-        filters=[("eq", "season", season), ("eq", "week", week), ("eq", "source", source)],
-    )
-    delete_ids, clear_ids = partition_dropped_rows(existing, projected_ids)
+    Rows whose game has started are never touched; see `partition_dropped_rows`.
 
-    if not delete_ids and not clear_ids:
-        print("  No dropped players to retire.")
-        return 0, 0
+    Returns (deleted, kept).
+    """
+    delete_ids, keep_ids = partition_dropped_rows(existing, projected_ids, today)
+
+    if not delete_ids:
+        print(
+            "  No dropped players to retire."
+            + (f" ({len(keep_ids)} no longer projected but already played — kept)" if keep_ids else "")
+        )
+        return 0, len(keep_ids)
 
     if dry_run:
         print(
-            f"  [dry-run] would delete {len(delete_ids)} dropped rows and clear the "
-            f"projection on {len(clear_ids)} that already hold an actual"
+            f"  [dry-run] would delete {len(delete_ids)} dropped rows; "
+            f"{len(keep_ids)} no longer projected but already played would be kept"
         )
-        return len(delete_ids), len(clear_ids)
+        return len(delete_ids), len(keep_ids)
 
     for batch in _chunks(delete_ids):
         supabase.table(TABLE).delete().eq("season", season).eq("week", week).eq(
             "source", source
         ).in_("player_id", batch).execute()
 
-    if clear_ids:
-        cleared = {
-            "projected_points": None,
-            "projected_stats": None,
-            "opponent": None,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }
-        for batch in _chunks(clear_ids):
-            supabase.table(TABLE).update(cleared).eq("season", season).eq(
-                "week", week
-            ).eq("source", source).in_("player_id", batch).execute()
-
     print(
         f"  Retired {len(delete_ids)} dropped players"
-        + (f", kept {len(clear_ids)} that already played (projection cleared)" if clear_ids else "")
+        + (f", kept {len(keep_ids)} that already played" if keep_ids else "")
     )
-    return len(delete_ids), len(clear_ids)
+    return len(delete_ids), len(keep_ids)
 
 
 def purge_old_seasons(supabase, current_season: int, dry_run: bool = False) -> None:
@@ -263,10 +352,10 @@ def ingest(
 
     supabase = get_supabase_client()
 
+    current = current_nfl_week()
     if season is None or week is None:
-        resolved_season, resolved_week = current_nfl_week()
-        season = season if season is not None else resolved_season
-        week = week if week is not None else resolved_week
+        season = season if season is not None else current[0]
+        week = week if week is not None else current[1]
 
     if season is None or week is None:
         print(
@@ -297,13 +386,32 @@ def ingest(
         if len(unmatched) > 20:
             print(f"    ... and {len(unmatched) - 20} more")
 
+    # Every matched player, frozen or not: a frozen player is still projected by
+    # the source, so the reconciliation must not see him as dropped.
+    projected_ids = {r["player_id"] for r in records}
+    existing: list[dict] = []
+    today = today_in_league_tz()
+    if not actuals:
+        existing = fetch_existing_rows(supabase, season, week, source)
+        # Ingesting any week other than the current one is a backfill: every game
+        # is already played, so a post-hoc projection is the only one available.
+        records, frozen = apply_kickoff_freeze(
+            records, existing, today,
+            allow_post_kickoff_fill=(season, week) != current,
+        )
+        if frozen:
+            print(
+                f"  Froze {len(frozen)} players whose game has started — their "
+                "pre-kickoff projection is kept, not overwritten"
+            )
+
     if dry_run:
         print(f"\n[dry-run] would upsert {len(records)} rows into {TABLE}")
         for record in records[:5]:
             print(f"  {json.dumps(record, default=str)}")
-        if not actuals and records:
+        if not actuals and projected_ids:
             reconcile_dropped_players(
-                supabase, season, week, source, {r["player_id"] for r in records}, dry_run=True
+                supabase, season, week, source, projected_ids, existing, today, dry_run=True
             )
         purge_old_seasons(supabase, season, dry_run=True)
         return 0
@@ -315,14 +423,14 @@ def ingest(
         print(f"  Upserted {len(records)} rows into {TABLE}")
 
     # Only on a projections pass, and only when the source actually returned a
-    # slate. `records` being empty is the guard that matters: an outage or a
-    # silently-emptied payload would otherwise look like "the source projects
+    # slate. `projected_ids` being empty is the guard that matters: an outage or
+    # a silently-emptied payload would otherwise look like "the source projects
     # nobody this week" and take the whole board down with it. The actuals pass
     # is a partial view by nature — early in the week most players simply have
     # not played — so it must never retire anything.
-    if not actuals and records:
+    if not actuals and projected_ids:
         reconcile_dropped_players(
-            supabase, season, week, source, {r["player_id"] for r in records}
+            supabase, season, week, source, projected_ids, existing, today
         )
 
     purge_old_seasons(supabase, season)
