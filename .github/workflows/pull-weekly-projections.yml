@@ -122,14 +122,13 @@ jobs:
             echo "targeted=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Ingest this week's projections
-        if: steps.gate.outputs.ingest == 'true'
-        run: |
-          ARGS=""
-          [ -n "${{ inputs.week }}" ] && ARGS="$ARGS --week ${{ inputs.week }}"
-          [ -n "${{ inputs.season }}" ] && ARGS="$ARGS --season ${{ inputs.season }}"
-          python -m scripts.weekly_projections.ingest $ARGS
-
+      # ACTUALS RUN BEFORE PROJECTIONS. The projections pass freezes a player once
+      # his game has started (ingest.apply_kickoff_freeze) — by game date, and by
+      # "an actual is already recorded". Writing actuals first means the second
+      # signal is in place before any projection is refreshed, so a played game's
+      # pre-kickoff projection cannot be overwritten with the post-game revision
+      # the source publishes the next morning.
+      #
       # Results for the week now in progress. Without this a played week shows
       # its projection with no result until the following Tuesday — so all
       # Sunday night and Monday, exactly when people want to see how it went,
@@ -157,6 +156,14 @@ jobs:
           else
             echo "No previous week to backfill."
           fi
+
+      - name: Ingest this week's projections
+        if: steps.gate.outputs.ingest == 'true'
+        run: |
+          ARGS=""
+          [ -n "${{ inputs.week }}" ] && ARGS="$ARGS --week ${{ inputs.week }}"
+          [ -n "${{ inputs.season }}" ] && ARGS="$ARGS --season ${{ inputs.season }}"
+          python -m scripts.weekly_projections.ingest $ARGS
 
       - name: Summary
         if: always()

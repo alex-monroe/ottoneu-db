@@ -72,9 +72,11 @@ function GameRow({ game }: { game: TeamGame }) {
         {game.won === true ? "W" : game.won === false ? "L" : played ? "—" : ""}
       </td>
       <td className="px-3 py-2 text-right text-sm tabular-nums text-ink-muted">
-        {played
-          ? `${game.score!.toFixed(2)} – ${game.opponentScore!.toFixed(2)}`
-          : (game.statusLabel ?? "Scheduled")}
+        <Link href={`/scoreboard/${game.game_id}`} className="hover:text-accent hover:underline">
+          {played
+            ? `${game.score!.toFixed(2)} – ${game.opponentScore!.toFixed(2)}`
+            : (game.statusLabel ?? "Scheduled")}
+        </Link>
       </td>
     </tr>
   );

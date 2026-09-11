@@ -139,7 +139,7 @@ The app mixes three vocabularies — Ottoneu economics, NFL production stats and
 
 Projection methodology (`ActiveModelCard`) is shown to **everyone with projections access**. It used to be admin-only, which meant the people reading the projections were the ones forbidden from seeing how they were made.
 
-`web/lib/freshness.ts` answers "how old is this". Every table this app owns carries a timestamp (`league_prices.updated_at`, `transactions.scraped_at`, `player_projections.updated_at`, `league_matchups.scraped_at`, `weekly_projections.projected_at`); `<DataFreshness source="rosters" />` renders it and warns past a threshold. This matters more here than in most apps: the Ottoneu scrape has been Cloudflare-blocked before and simply stopped updating, with a stale roster looking identical to a fresh one.
+`web/lib/freshness.ts` answers "how old is this". Every table this app owns carries a timestamp (`league_prices.updated_at`, `transactions.scraped_at`, `player_projections.updated_at`, `league_matchups.scraped_at`, `matchup_lineups.scraped_at`, `weekly_projections.projected_at`); `<DataFreshness source="rosters" />` renders it and warns past a threshold. This matters more here than in most apps: the Ottoneu scrape has been Cloudflare-blocked before and simply stopped updating, with a stale roster looking identical to a fresh one.
 
 `PhaseNote` finally makes the season phase change what a page *shows* rather than only what the banner *says* — `/arbitration`, `/projected-salary` and `/mock-draft` declare the phases they belong to and flag themselves out of window.
 

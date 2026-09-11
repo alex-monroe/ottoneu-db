@@ -20,3 +20,6 @@ class WeeklyRow:
     season: int
     stats: dict = field(default_factory=dict)
     opponent: str | None = None
+    # ISO date of the player's NFL game. The ingest uses it to freeze a
+    # projection once the game has started — see ingest.apply_kickoff_freeze.
+    game_date: str | None = None

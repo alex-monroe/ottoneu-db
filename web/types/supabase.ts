@@ -506,6 +506,92 @@ export type Database = {
           },
         ]
       }
+      matchup_lineups: {
+        Row: {
+          created_at: string
+          game_id: number
+          game_info: string | null
+          game_state: string
+          id: string
+          injury_status: string | null
+          is_starter: boolean
+          league_id: number
+          nfl_team: string | null
+          ottoneu_id: number
+          player_id: string | null
+          player_name: string
+          points: number | null
+          position: string | null
+          scraped_at: string
+          season: number
+          side: string
+          slot: string
+          slot_number: number
+          stat_line: string | null
+          team_id: number
+          team_name: string
+          week: number
+        }
+        Insert: {
+          created_at?: string
+          game_id: number
+          game_info?: string | null
+          game_state?: string
+          id?: string
+          injury_status?: string | null
+          is_starter: boolean
+          league_id: number
+          nfl_team?: string | null
+          ottoneu_id: number
+          player_id?: string | null
+          player_name: string
+          points?: number | null
+          position?: string | null
+          scraped_at?: string
+          season: number
+          side: string
+          slot: string
+          slot_number?: number
+          stat_line?: string | null
+          team_id: number
+          team_name: string
+          week: number
+        }
+        Update: {
+          created_at?: string
+          game_id?: number
+          game_info?: string | null
+          game_state?: string
+          id?: string
+          injury_status?: string | null
+          is_starter?: boolean
+          league_id?: number
+          nfl_team?: string | null
+          ottoneu_id?: number
+          player_id?: string | null
+          player_name?: string
+          points?: number | null
+          position?: string | null
+          scraped_at?: string
+          season?: number
+          side?: string
+          slot?: string
+          slot_number?: number
+          stat_line?: string | null
+          team_id?: number
+          team_name?: string
+          week?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matchup_lineups_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       model_projections: {
         Row: {
           created_at: string
@@ -1228,6 +1314,7 @@ export type Database = {
         Row: {
           actual_points: number | null
           actual_stats: Json | null
+          game_date: string | null
           id: string
           opponent: string | null
           player_id: string
@@ -1242,6 +1329,7 @@ export type Database = {
         Insert: {
           actual_points?: number | null
           actual_stats?: Json | null
+          game_date?: string | null
           id?: string
           opponent?: string | null
           player_id: string
@@ -1256,6 +1344,7 @@ export type Database = {
         Update: {
           actual_points?: number | null
           actual_stats?: Json | null
+          game_date?: string | null
           id?: string
           opponent?: string | null
           player_id?: string

@@ -98,6 +98,22 @@ export async function fetchMatchups(season: number): Promise<Matchup[]> {
   return (data ?? []).map(shape);
 }
 
+/** One game by Ottoneu's game id, or null when it is not stored. */
+export async function fetchMatchup(gameId: number): Promise<Matchup | null> {
+  const { data, error } = await supabase
+    .from("league_matchups")
+    .select(COLUMNS)
+    .eq("league_id", LEAGUE_ID)
+    .eq("game_id", gameId)
+    .maybeSingle();
+
+  if (error || !data) {
+    if (error) console.error(`fetchMatchup(${gameId}) error`, error);
+    return null;
+  }
+  return shape(data);
+}
+
 /** Seasons with a stored schedule, newest first. */
 export async function fetchMatchupSeasons(): Promise<number[]> {
   const { data, error } = await supabase

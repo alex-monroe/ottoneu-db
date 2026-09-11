@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 import pytest
 
-from scripts.weekly_projections.ingest import build_records, partition_dropped_rows
+from scripts.weekly_projections.ingest import (
+    apply_kickoff_freeze,
+    build_records,
+    partition_dropped_rows,
+)
 from scripts.weekly_projections.scoring import normalised_stats, score_stat_line
 from scripts.weekly_projections.sources import sleeper
 from scripts.weekly_projections.sources.base import WeeklyRow
@@ -328,6 +334,9 @@ class TestEmptyStatsIsNotAnError:
         assert score_stat_line(rows[0].stats) == 24.0
 
 
+TODAY = date(2026, 9, 11)  # a Friday: Wednesday's and Thursday's games are over
+
+
 class TestRetiringDroppedPlayers:
     """A player the source stops projecting must not keep yesterday's number.
 
@@ -338,41 +347,147 @@ class TestRetiringDroppedPlayers:
     both make: a missing week means a bye or an inactive.
     """
 
-    def _row(self, player_id, actual=None):
-        return {"player_id": player_id, "actual_points": actual}
+    def _row(self, player_id, actual=None, game_date="2026-09-13"):
+        return {"player_id": player_id, "actual_points": actual, "game_date": game_date}
 
     def test_still_projected_players_are_left_alone(self):
         existing = [self._row("a"), self._row("b")]
-        assert partition_dropped_rows(existing, {"a", "b"}) == ([], [])
+        assert partition_dropped_rows(existing, {"a", "b"}, TODAY) == ([], [])
 
     def test_dropped_player_with_no_result_is_deleted(self):
         existing = [self._row("a"), self._row("gone")]
-        delete, clear = partition_dropped_rows(existing, {"a"})
+        delete, keep = partition_dropped_rows(existing, {"a"}, TODAY)
         assert delete == ["gone"]
-        assert clear == []
+        assert keep == []
 
-    def test_dropped_player_who_already_played_keeps_the_row(self):
-        # A played game is the whole reason a week is retained. Deleting it to
-        # tidy up a stale forecast would throw away real history, so the row
-        # survives and only the projection is cleared.
+    def test_dropped_player_who_already_played_keeps_the_row_and_projection(self):
+        # A played game is the whole reason a week is retained, and its
+        # projection is the pre-game forecast it is judged against. This used to
+        # clear the projection, which erased exactly what projected-vs-actual needs.
         existing = [self._row("played", actual=18.4)]
-        delete, clear = partition_dropped_rows(existing, set())
+        delete, keep = partition_dropped_rows(existing, set(), TODAY)
         assert delete == []
-        assert clear == ["played"]
+        assert keep == ["played"]
 
     def test_a_zero_actual_still_counts_as_having_played(self):
         # 0.0 is a real result — a player who suited up and did nothing. Truthiness
         # would misread it as "no actual" and delete the row.
         existing = [self._row("goose egg", actual=0)]
-        delete, clear = partition_dropped_rows(existing, set())
-        assert (delete, clear) == ([], ["goose egg"])
+        assert partition_dropped_rows(existing, set(), TODAY) == ([], ["goose egg"])
+
+    def test_a_started_game_with_no_actual_yet_is_kept(self):
+        # Thursday's game is over by Friday morning, but the actuals pass runs
+        # after the projections pass — so the row has no result yet. Its date
+        # alone must protect it.
+        existing = [self._row("thursday", game_date="2026-09-10")]
+        assert partition_dropped_rows(existing, set(), TODAY) == ([], ["thursday"])
+
+    def test_a_game_later_today_is_not_started(self):
+        # Sunday morning: a player ruled out for the 1pm game drops off the
+        # board, and "missing = inactive" should say so.
+        existing = [self._row("ruled out", game_date="2026-09-13")]
+        assert partition_dropped_rows(existing, set(), date(2026, 9, 13)) == (["ruled out"], [])
 
     def test_empty_table_is_a_no_op(self):
-        assert partition_dropped_rows([], {"a"}) == ([], [])
+        assert partition_dropped_rows([], {"a"}, TODAY) == ([], [])
 
     def test_player_ids_are_compared_as_strings(self):
         # fetch_all_rows hands back whatever PostgREST decoded; the payload side
         # is built from matched player ids. Both must land in the same space or
         # every row would look dropped.
         existing = [{"player_id": "abc", "actual_points": None}]
-        assert partition_dropped_rows(existing, {"abc"}) == ([], [])
+        assert partition_dropped_rows(existing, {"abc"}, TODAY) == ([], [])
+
+
+class TestKickoffFreeze:
+    """A projection stops being a forecast at kickoff, so it stops being updated.
+
+    Found on the 2026 opener: the morning after NE @ SEA, Sleeper returned every
+    player in that finished game re-stamped with a revised number (Drake Maye
+    19.0 -> 19.67). The daily upsert would have replaced the projection a lineup
+    was set against with a post-game revision nobody could have seen.
+    """
+
+    def _record(self, player_id, game_date, points=10.0):
+        return {"player_id": player_id, "game_date": game_date, "projected_points": points}
+
+    def _stored(self, player_id, game_date=None, projected=12.0, actual=None):
+        return {
+            "player_id": player_id, "game_date": game_date,
+            "projected_points": projected, "actual_points": actual,
+        }
+
+    def test_unstarted_games_are_refreshed(self):
+        records = [self._record("sun", "2026-09-13"), self._record("mon", "2026-09-14")]
+        existing = [self._stored("sun", "2026-09-13")]
+        writable, frozen = apply_kickoff_freeze(records, existing, TODAY)
+        assert [r["player_id"] for r in writable] == ["sun", "mon"]
+        assert frozen == []
+
+    def test_a_game_on_a_past_date_is_frozen(self):
+        records = [self._record("thu", "2026-09-10", points=99.0)]
+        existing = [self._stored("thu", "2026-09-10", projected=14.5)]
+        writable, frozen = apply_kickoff_freeze(records, existing, TODAY)
+        assert writable == []
+        assert frozen == ["thu"]
+
+    def test_todays_games_are_still_refreshed(self):
+        # The Sunday-noon run exists to catch inactives ~90 minutes before the
+        # 1pm window; freezing on the game date itself would defeat it.
+        records = [self._record("sun", "2026-09-13")]
+        existing = [self._stored("sun", "2026-09-13")]
+        writable, _ = apply_kickoff_freeze(records, existing, date(2026, 9, 13))
+        assert len(writable) == 1
+
+    def test_a_stored_actual_freezes_a_row_with_no_game_date(self):
+        # Rows written before game_date was stored carry no date, but an actual
+        # means the game has been played.
+        records = [self._record("legacy", "2026-09-09")]
+        existing = [self._stored("legacy", game_date=None, actual=9.82)]
+        _, frozen = apply_kickoff_freeze(records, existing, date(2026, 9, 9))
+        assert frozen == ["legacy"]
+
+    def test_a_first_projection_after_kickoff_is_refused(self):
+        # A backup who only appears in the payload after his game is not a
+        # pre-game forecast, and must not be presented as one.
+        records = [self._record("late", "2026-09-10")]
+        writable, frozen = apply_kickoff_freeze(records, [], TODAY)
+        assert (writable, frozen) == ([], ["late"])
+
+    def test_a_row_with_only_an_actual_is_not_given_a_post_hoc_projection(self):
+        records = [self._record("lock", "2026-09-09")]
+        existing = [self._stored("lock", projected=None, actual=12.78)]
+        writable, frozen = apply_kickoff_freeze(records, existing, TODAY)
+        assert (writable, frozen) == ([], ["lock"])
+
+    def test_backfill_fills_gaps_but_never_overwrites(self):
+        # Ingesting a past week: a post-hoc projection is the only one there will
+        # ever be, so gaps may be filled — but a stored one is still the original.
+        records = [self._record("gap", "2025-09-07"), self._record("kept", "2025-09-07")]
+        existing = [self._stored("kept", "2025-09-07")]
+        writable, frozen = apply_kickoff_freeze(
+            records, existing, TODAY, allow_post_kickoff_fill=True
+        )
+        assert [r["player_id"] for r in writable] == ["gap"]
+        assert frozen == ["kept"]
+
+    def test_record_carries_the_game_date(self):
+        row = WeeklyRow(name="Josh Allen", position="QB", team="BUF", week=1, season=2026,
+                        stats={"passing_yards": 250}, opponent="BAL", game_date="2026-09-13")
+        index = {"QB": [{"id": "uuid-qb", "name": "Josh Allen", "norm_name": "josh allen",
+                         "nfl_team": "BUF"}]}
+        (record,), _ = build_records([row], index, "sleeper", actuals=False)
+        assert record["game_date"] == "2026-09-13"
+
+    def test_sleeper_date_is_parsed(self):
+        entry = _sleeper_row("Josh Allen", "QB", "BUF", {"pass_yd": 250})
+        entry["date"] = "2026-09-13"
+        (row,) = sleeper.parse([entry], 2026, 1)
+        assert row.game_date == "2026-09-13"
+
+    def test_missing_or_garbled_sleeper_date_is_none(self):
+        for value in (None, "", "TBD", 20260913):
+            entry = _sleeper_row("Josh Allen", "QB", "BUF", {"pass_yd": 250})
+            entry["date"] = value
+            (row,) = sleeper.parse([entry], 2026, 1)
+            assert row.game_date is None

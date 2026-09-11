@@ -6,10 +6,10 @@ that knows the league has games.
 
 | | |
 |---|---|
-| **Table** | `league_matchups` (migration 037) |
-| **Scraper** | `scripts/scrape_matchups.py` — `just scrape-matchups` |
-| **Derivation** | `web/lib/standings.ts` (pure) · `web/lib/matchups.ts` (fetchers) |
-| **Routes** | `/scoreboard` (public) · the homepage league-status section |
+| **Tables** | `league_matchups` (migration 037) · `matchup_lineups` (migration 044) |
+| **Scrapers** | `scripts/scrape_matchups.py` — `just scrape-matchups` · `scripts/scrape_lineups.py` — `just scrape-lineups` |
+| **Derivation** | `web/lib/standings.ts` + `web/lib/live-matchup.ts` (pure) · `web/lib/matchups.ts` + `web/lib/matchup-lineups.ts` (fetchers) |
+| **Routes** | `/scoreboard` and `/scoreboard/[gameId]` (public) · the homepage league-status section |
 | **MCP tools** | `get_scoreboard` · `get_standings` |
 | **Workflow** | `.github/workflows/pull-matchups.yml` |
 
@@ -117,12 +117,65 @@ accumulating from the 2026 season forward; earlier seasons will stay empty
 unless someone enumerates game ids, which is not a polite thing to do to
 somebody else's server.
 
-## What is deliberately not stored (yet)
+## Lineups and the live matchup projection
 
-`/football/{league}/game/{game_id}` is a full box score: every started player
-with `data-player-id` (Ottoneu's id, which joins straight to `players.ottoneu_id`),
-slot, projected points, actual points and a stat line. That is the natural next
-table — it would let a matchup view show *who* won somebody the week, and it
-would pair with `weekly_projections` for projection-vs-result at the lineup
-level. It is six extra requests per week and a second parser, so it was left out
-of the first cut rather than doubling the surface area of one change.
+`league_matchups` says who played whom; `matchup_lineups` says **who each team
+actually started**. It is scraped from each game's public box score,
+`/football/{league}/game/{game_id}` — both teams' full rosters with lineup slot,
+`data-player-id` (Ottoneu's id, which joins straight to `players.ottoneu_id`),
+the player's NFL game line and live points. One row per (game, player), bench
+included; rows for a game are replaced wholesale each scrape (upsert, then prune
+anyone no longer on the page), so a player cut or traded mid-week does not
+linger.
+
+`just scrape-lineups` scrapes every game of the **live fantasy week** — the one
+whose `starts_on`–`ends_on` window contains today (ET). Ottoneu's windows run
+Wednesday to Tuesday, so Tuesday morning's run still lands in the week Monday
+night finished. `--week N` backfills a week. It runs as a second step of
+`pull-matchups.yml`, on the same cadence (six requests a run, a second apart),
+which now includes a Thursday-night window.
+
+### Parsing: two traps
+
+- **The page never closes its `<tr>`s**, so html.parser nests every row inside
+  the one before it. The parser does not walk rows: it finds each
+  `td[data-player-id]` and reads that player's fields by the per-player classes
+  Ottoneu stamps on them (`player-points-{id}`, `player-game-info-{id}`,
+  `player-stat-details-{id}`), searched inside the details table only — the
+  per-team summary tables further down repeat the same classes.
+- **Game state is derived from the game line**, like matchup status: a kickoff
+  time (`Sun 1:00pm @IND`) is `scheduled`, a W/L/T result (`L 10-13 @SEA`) is
+  `final`, `BYE` is `bye`, and anything else is `in_progress`. The line itself is
+  stored verbatim in `game_info`. Unplayed points are `---` on the page and NULL
+  in the table, distinct from a real 0.
+
+A manager who has not set a lineup has every player on the bench (Marin County,
+2026 Week 1). That is data, not a parse failure: the game page shows the empty
+starting slots.
+
+### Ottoneu's "Proj" column is not stored
+
+The box score has a projection column, but Ottoneu **overwrites it with the
+actual score once a player has played** (Drake Maye, Week 1: Proj 9.82, Pts
+9.82). It cannot answer "what was he projected?", so it is ignored. The site's
+projection is `weekly_projections.projected_points`, which the ingest freezes at
+kickoff (see [weekly-projections.md](weekly-projections.md#the-kickoff-freeze)).
+
+### The live projection is derived, not stored
+
+Like the standings, the matchup projection is computed at read time
+(`web/lib/live-matchup.ts`) from the lineup rows joined to the frozen weekly
+projections:
+
+| Starter's game | Counts toward the live projection |
+|---|---|
+| final / bye | his points |
+| in progress | points so far + projection × share of the game left (read from the clock in the game line; ½ if unreadable) |
+| not started | his original projection (0 if the source has none) |
+
+Bench players never count. **Pre-game** is the same lineup's original
+projections summed — what the matchup looked like before anyone played. Both
+render on `/scoreboard/[gameId]` (slot-against-slot lineups, each player's
+original projection beside his points, the benches) and the live figure on each
+`/scoreboard` card. `/matchup` stays the *optimal*-lineup planner and links to
+the real game; team schedules link to it too.

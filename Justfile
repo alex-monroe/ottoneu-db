@@ -302,6 +302,11 @@ scrape-calendar *args:
 scrape-matchups *args:
     {{python}} scripts/scrape_matchups.py {{args}}
 
+# Scrape each game's box score (both lineups, slots, live points) into matchup_lineups.
+# e.g. just scrape-lineups --dry-run ; just scrape-lineups --week 3
+scrape-lineups *args:
+    {{python}} scripts/scrape_lineups.py {{args}}
+
 # ──────────────────────────────────────────────
 # Ad-hoc DB queries
 # ──────────────────────────────────────────────
