@@ -101,6 +101,19 @@ before the first game is final — both are cases where a `0` or a "seed 1" woul
 model as a fact about a season that has not started. See
 [docs/references/matchups-and-standings.md](references/matchups-and-standings.md).
 
+**Lineups** are a second table, `matchup_lineups`, ingested by `scripts/scrape_lineups.py`
+(`just scrape-lineups`) from each game's public box score — one row per (game, player),
+bench included, with slot / points / game state / injury. Ottoneu's own **Proj** column is
+deliberately not stored (it turns into the actual after a game). Each side's **live
+matchup projection** is derived from `matchup_lineups` + `weekly_projections` at read time
+(`web/lib/live-matchup.ts`), never stored: finished starters contribute their `points`,
+in-progress and scheduled starters contribute their pre-kickoff
+`weekly_projections.projected_points` — the freeze from
+[weekly-projections.md § the kickoff freeze](references/weekly-projections.md#the-kickoff-freeze)
+is what keeps those numbers honest after Sleeper revises. Surfaces: `/scoreboard/[gameId]`
+(both lineups slot against slot), scoreboard cards, and the homepage's league-status
+section.
+
 ### Worker Task Modules (`scripts/tasks/`)
 
 Each task type lives in its own module (`pull_nfl_stats`, `pull_player_stats`). `__init__.py` defines the task-type constants and the `TaskResult` dataclass. The worker no longer launches a browser (the Ottoneu scraping moved to the HTTP tools above).
