@@ -2,6 +2,8 @@ import { CalendarDays } from "lucide-react";
 import ScoreboardCard from "@/components/ScoreboardCard";
 import StandingsTable from "@/components/StandingsTable";
 import { fetchLeagueStatus, fetchMatchupSeasons } from "@/lib/matchups";
+import { fetchLiveWeek } from "@/lib/matchup-lineups";
+import { scoreboardProjection, type LiveGame } from "@/lib/live-matchup";
 import { formatRecord } from "@/lib/standings";
 import WeekPicker from "./WeekPicker";
 import { getViewerTeam } from "@/lib/viewer-team";
@@ -73,6 +75,10 @@ export default async function ScoreboardPage({ searchParams }: Props) {
     : status.week ?? status.weeks[0];
 
   const slate = status.matchups.filter((m) => m.week === week);
+  // Lineups exist only for weeks that were scraped while being played; for
+  // any other week this is an empty map and the cards show scores alone.
+  const live: Map<number, LiveGame> =
+    week != null ? await fetchLiveWeek(status.season, week) : new Map();
   const window = weekWindow(slate[0]?.starts_on ?? null, slate[0]?.ends_on ?? null);
   const inField = status.playoffs.seeds.filter((s) => s.in_field);
   const chasing = status.playoffs.seeds.filter((s) => !s.in_field && !s.eliminated);
@@ -120,9 +126,19 @@ export default async function ScoreboardPage({ searchParams }: Props) {
           </h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {slate.map((m) => (
-              <ScoreboardCard key={m.game_id} matchup={m} />
+              <ScoreboardCard
+                key={m.game_id}
+                matchup={m}
+                projection={scoreboardProjection(live.get(m.game_id))}
+              />
             ))}
           </div>
+          {live.size > 0 && (
+            <p className="mt-2 text-xs text-ink-subtle">
+              Proj is each lineup&apos;s live projection: points already scored plus the
+              original projection of every starter still to play.
+            </p>
+          )}
         </section>
 
         <section>

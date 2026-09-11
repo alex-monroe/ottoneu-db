@@ -260,6 +260,9 @@ export default async function MatchupPage({ searchParams }: Props) {
           </>
         }
         links={[
+          // This page is the planner — both sides at their *optimal* nine. The
+          // lineups actually started, and the live projection, are on the game.
+          { href: `/scoreboard/${game.game_id}`, label: "Actual lineups & live projection" },
           {
             href: `/lineup?week=${ctx.week}&team=${encodeURIComponent(viewerTeam)}`,
             label: "Edit your lineup",

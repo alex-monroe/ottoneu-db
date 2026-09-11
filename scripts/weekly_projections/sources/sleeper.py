@@ -26,6 +26,7 @@ Run `just weekly-projections-probe` to dump a live payload and confirm the keys.
 from __future__ import annotations
 
 import time
+from datetime import date
 from typing import Iterable
 
 import requests
@@ -209,9 +210,24 @@ def parse(payload: list[dict], season: int, week: int) -> list[WeeklyRow]:
                 season=int(entry.get("season") or season),
                 stats=_to_ottoneu_stats(stats),
                 opponent=(entry.get("opponent") or None),
+                game_date=_iso_date(entry.get("date")),
             )
         )
     return rows
+
+
+def _iso_date(value) -> str | None:
+    """Sleeper's `date` ("2026-09-13") as an ISO date, or None if absent/garbled.
+
+    Only rows that are actually projected carry one; the unprojected player
+    universe has `date: null`, and those rows are skipped downstream anyway.
+    """
+    if not isinstance(value, str):
+        return None
+    try:
+        return date.fromisoformat(value[:10]).isoformat()
+    except ValueError:
+        return None
 
 
 def fetch(
