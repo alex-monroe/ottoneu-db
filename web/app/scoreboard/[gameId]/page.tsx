@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { LEAGUE_ID } from "@/lib/config";
 import { fetchMatchup } from "@/lib/matchups";
@@ -45,10 +46,15 @@ const TYPE_LABELS: Record<string, string> = {
   consolation: "Consolation",
 };
 
-async function load(params: Props["params"]) {
-  const gameId = Number((await params).gameId);
+// Request-scoped, so generateMetadata and the page share one read.
+const fetchGame = cache(async (segment: string) => {
+  const gameId = Number(segment);
   if (!Number.isInteger(gameId) || gameId <= 0) return null;
   return fetchMatchup(gameId);
+});
+
+async function load(params: Props["params"]) {
+  return fetchGame((await params).gameId);
 }
 
 export async function generateMetadata({ params }: Props) {
