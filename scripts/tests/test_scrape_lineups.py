@@ -164,7 +164,10 @@ class TestDeriveGameState:
             ("T 20-20 NYG", 3.0, "final"),
             ("BYE", None, "bye"),
             # Anything that is neither a kickoff nor a result is a game under way.
-            ("Q3 5:12 7-10 @LA", 4.5, "in_progress"),
+            # Verbatim from the live 2026 Week 1 Thursday game: score, opponent,
+            # quarter, clock, ball on.
+            ("0-3 SF Q1 2:39 SF25", 1.3, "in_progress"),
+            ("3-0 @LA Q1 2:39 SF25", 3.0, "in_progress"),
             ("Half 14-3 SF", 2.0, "in_progress"),
             ("", 3.2, "in_progress"),
             ("", None, "scheduled"),

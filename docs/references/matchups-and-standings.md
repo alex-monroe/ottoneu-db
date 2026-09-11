@@ -145,7 +145,9 @@ which now includes a Thursday-night window.
   per-team summary tables further down repeat the same classes.
 - **Game state is derived from the game line**, like matchup status: a kickoff
   time (`Sun 1:00pm @IND`) is `scheduled`, a W/L/T result (`L 10-13 @SEA`) is
-  `final`, `BYE` is `bye`, and anything else is `in_progress`. The line itself is
+  `final`, `BYE` is `bye`, and anything else is `in_progress` — observed live as
+  `0-3 SF Q1 2:39 SF25` (score, opponent, quarter, clock, ball on), whose clock
+  the live projection reads. The line itself is
   stored verbatim in `game_info`. Unplayed points are `---` on the page and NULL
   in the table, distinct from a real 0.
 

@@ -88,6 +88,12 @@ describe("remainingFraction", () => {
     expect(remainingFraction(info)).toBeCloseTo(expected);
   });
 
+  it("reads Ottoneu's live game line", () => {
+    // Verbatim from the 2026 Week 1 Thursday game: score, opponent, quarter,
+    // clock, ball on. 2:39 left in the 1st = 47.65 of 60 minutes to play.
+    expect(remainingFraction("0-3 SF Q1 2:39 SF25")).toBeCloseTo(47.65 / 60);
+  });
+
   it("falls back to a half when the clock cannot be read", () => {
     expect(remainingFraction("7-10 @LA")).toBe(UNKNOWN_CLOCK_REMAINING);
     expect(remainingFraction(null)).toBe(UNKNOWN_CLOCK_REMAINING);
