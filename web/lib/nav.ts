@@ -50,6 +50,8 @@ export const NAV_GROUPS: NavGroup[] = [
       // The community ranking — public, and where listeners vote. The hosts'
       // own ballot and reveal stay in the "Podcast" group.
       { href: "/power-rankings", label: "Power Rankings" },
+      // Public board; picking needs a sign-in, which the page asks for itself.
+      { href: "/pickem", label: "Pick'em" },
       { href: "/teams", label: "Teams" },
       { href: "/rosters", label: "Rosters" },
       { href: "/arb-progress", label: "Arbitration Progress" },

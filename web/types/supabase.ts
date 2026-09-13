@@ -759,6 +759,79 @@ export type Database = {
           },
         ]
       }
+      pickem_picks: {
+        Row: {
+          created_at: string
+          game_id: number
+          league_id: number
+          picked_team_id: number
+          season: number
+          updated_at: string
+          user_id: string
+          week: number
+        }
+        Insert: {
+          created_at?: string
+          game_id: number
+          league_id: number
+          picked_team_id: number
+          season: number
+          updated_at?: string
+          user_id: string
+          week: number
+        }
+        Update: {
+          created_at?: string
+          game_id?: number
+          league_id?: number
+          picked_team_id?: number
+          season?: number
+          updated_at?: string
+          user_id?: string
+          week?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pickem_picks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pickem_players: {
+        Row: {
+          created_at: string
+          display_name: string
+          league_id: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          league_id: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          league_id?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pickem_players_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_contracts: {
         Row: {
           apy: number | null
