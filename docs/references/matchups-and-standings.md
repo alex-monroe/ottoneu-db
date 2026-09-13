@@ -181,3 +181,49 @@ render on `/scoreboard/[gameId]` (slot-against-slot lineups, each player's
 original projection beside his points, the benches) and the live figure on each
 `/scoreboard` card. `/matchup` stays the *optimal*-lineup planner and links to
 the real game; team schedules link to it too.
+
+## Weekly pick'em
+
+`/pickem` is a mini-game on top of the game log: signed-in accounts pick the
+winner of every matchup in the current week, and a public board shows how
+everyone did. Picks and board names are the only stored state
+(`pickem_picks`, `pickem_players`, migration 046); **results are derived** from
+`league_matchups` at read time, exactly like the standings, so the board is
+live on a Sunday afternoon. Everything lives in `web/lib/pickem.ts`.
+
+**The lock is a clock.** A week locks **Thursday 20:00 ET** of that NFL week,
+fifteen minutes before Thursday Night Football, or **12:00 ET on Thanksgiving**
+(first game 12:30). It is computed from `league_calendar` via the Week 1
+anchor, DST-correct, with no stored lock time. `league_matchups.status` cannot
+be the lock: Ottoneu flips a week to `in_progress` when the fantasy week opens
+on **Wednesday**, a day before any NFL game (2026 Week 1 read in-progress on
+Sep 9). Only the current NFL week can be picked, and the API re-checks the week,
+the lock, the game and the team against the server's schedule on every pick. No
+calendar date for the season means the week stays closed rather than guessing.
+Non-Thursday openers other than Thanksgiving (a Christmas Day game before Thursday, say)
+are **not** modelled; if the NFL schedules one, the lock rule needs a date
+exception.
+
+**Nobody sees anybody else's picks before the lock.** `buildBoard(…, revealed:
+false)` returns a player count and nothing else, so the page has no picks to
+leak. After the lock the board shows each player's record and, per game, who
+picked each side.
+
+**Scoring.** One point per pick of the winner of a **final** game. A lead in a
+live game is still pending. A tied game is a push: no point, not a miss.
+Players are ranked on points alone and share a rank when level (1, 2, 2, 4) —
+tie-breaking on fewer misses would reward skipping games.
+
+**Board names, not emails.** The board is public, so each player picks the name
+they appear under (prefilled with their bound team). Names are unique per league
+case-insensitively (a unique index), and a league franchise's name is reserved
+for that franchise's own manager (`displayNameProblem`), so nobody can post
+picks as someone else's team.
+
+Picks point at Ottoneu's `game_id` and `team_id`, not at `league_matchups` rows —
+there is deliberately no foreign key, so a re-drawn schedule scrape can never
+cascade-delete a week of picks. `buildBoard` ignores a pick whose game or team is
+no longer on the slate.
+
+Routes: `/pickem` (`?week=N`), `PUT /api/pickem/pick` (save, change, or clear
+with `teamId: null`), `PUT /api/pickem/name`.

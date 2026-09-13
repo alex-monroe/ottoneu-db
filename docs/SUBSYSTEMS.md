@@ -115,13 +115,13 @@ system.
 
 | | |
 |---|---|
-| **Tables** | `users` (three independent role flags: `is_admin` · `has_projections_access` · `is_podcaster`) · `oauth_clients` · `oauth_authorization_codes` · `oauth_refresh_tokens` · `power_ranking_ballots` · `power_ranking_entries` · `power_ranking_publications` |
+| **Tables** | `users` (three independent role flags: `is_admin` · `has_projections_access` · `is_podcaster`) · `oauth_clients` · `oauth_authorization_codes` · `oauth_refresh_tokens` · `power_ranking_ballots` · `power_ranking_entries` · `power_ranking_publications` · `pickem_picks` · `pickem_players` |
 | **Session auth** | `web/lib/auth.ts` · `session.ts` · `web/middleware.ts` |
 | **OAuth 2.1** | `web/lib/oauth/` — the site is its own authorization server (PKCE, rotating refresh tokens) |
 | **MCP server** | `web/lib/mcp/tools.ts` (tool registry) served at `/api/mcp/mcp` |
 | **Provisioning** | `scripts/oauth_client.py` · `just oauth-client` |
-| **Routes** | `/login` · `/access` · `/admin` · `/admin/workflows` · `/podcast` · `/podcast/power-rankings` (+ `/reveal`) · `/power-rankings` (+ `/vote`) · `/oauth/authorize` · `/api/auth/*` · `/api/oauth/*` · `/api/podcast/*` · `/api/power-rankings/ballot` · `/api/mcp/[transport]` |
-| **Docs** | [references/mcp-server.md](references/mcp-server.md) · [references/podcast-tools.md](references/podcast-tools.md) |
+| **Routes** | `/login` · `/access` · `/admin` · `/admin/workflows` · `/podcast` · `/podcast/power-rankings` (+ `/reveal`) · `/power-rankings` (+ `/vote`) · `/pickem` · `/oauth/authorize` · `/api/auth/*` · `/api/oauth/*` · `/api/podcast/*` · `/api/power-rankings/ballot` · `/api/pickem/*` · `/api/mcp/[transport]` |
+| **Docs** | [references/mcp-server.md](references/mcp-server.md) · [references/podcast-tools.md](references/podcast-tools.md) · [references/matchups-and-standings.md](references/matchups-and-standings.md#weekly-pickem) (pick'em) |
 
 **Watch out:** most gated features check `has_projections_access`, not merely "signed
 in". The three role flags are independent — none implies another, and `/podcast` is
