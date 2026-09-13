@@ -22,6 +22,7 @@ function ballot(userId: string, order: string[]): Ballot {
   return {
     userId,
     displayName: userId,
+    voterKind: "host",
     submittedAt: "2026-09-08T12:00:00Z",
     entries: order.map((teamName, i) => ({ teamName, rank: i + 1, note: null })),
   };

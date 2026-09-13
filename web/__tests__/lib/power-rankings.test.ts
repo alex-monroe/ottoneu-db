@@ -32,6 +32,7 @@ function ballot(
   return {
     userId,
     displayName: userId,
+    voterKind: "host",
     submittedAt,
     entries: order.map((teamName, i) => ({
       teamName,
@@ -148,6 +149,7 @@ describe("consolidate", () => {
     const partial: Ballot = {
       userId: "wads",
       displayName: "wads",
+      voterKind: "host",
       submittedAt: "2026-09-08T12:00:00Z",
       entries: [
         { teamName: "Alpha", rank: 1, note: null },

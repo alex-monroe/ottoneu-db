@@ -48,7 +48,16 @@ export async function PUT(req: NextRequest) {
   }
 
   try {
-    await saveBallot({ userId: user.userId, season, week, order, notes, prepNotes, submit });
+    await saveBallot({
+      userId: user.userId,
+      voterKind: "host",
+      season,
+      week,
+      order,
+      notes,
+      prepNotes,
+      submit,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Could not save the ballot";
     return NextResponse.json({ error: message }, { status: 500 });

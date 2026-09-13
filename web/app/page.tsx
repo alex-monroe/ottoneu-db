@@ -16,6 +16,7 @@ import {
   Shield,
   UserPlus,
   Mic,
+  ListOrdered,
   type LucideIcon,
 } from "lucide-react";
 import { getSeasonContextNow } from "@/lib/season";
@@ -55,6 +56,7 @@ const HUB_META: Record<string, { description: string; icon: LucideIcon }> = {
   "/lineup": { description: "Set this week's lineup from the per-game projections.", icon: LayoutGrid },
   "/projected-salary": { description: "Your roster against projected value, with cap space.", icon: DollarSign },
   "/scoreboard": { description: "Every week's matchups, the standings, and the playoff picture.", icon: Swords },
+  "/power-rankings": { description: "The community power rankings — listeners and the podcast hosts, every vote averaged. Cast your ballot each week.", icon: ListOrdered },
   "/teams": { description: "Each team's roster, cap space, record and schedule in one place.", icon: Shield },
   "/rosters": { description: "League-wide roster view at any date in the season.", icon: ClipboardList },
   "/arb-progress": { description: "League-wide arbitration completion and allocations.", icon: Activity },
