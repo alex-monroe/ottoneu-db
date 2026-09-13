@@ -47,6 +47,9 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "League",
     items: [
       { href: "/scoreboard", label: "Scoreboard" },
+      // The community ranking — public, and where listeners vote. The hosts'
+      // own ballot and reveal stay in the "Podcast" group.
+      { href: "/power-rankings", label: "Power Rankings" },
       { href: "/teams", label: "Teams" },
       { href: "/rosters", label: "Rosters" },
       { href: "/arb-progress", label: "Arbitration Progress" },

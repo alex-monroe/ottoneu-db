@@ -13,7 +13,7 @@ import {
 import type { TeamRecord } from "@/lib/power-rankings";
 import type { TeamWeekSnapshot } from "@/lib/team-snapshot";
 import { MAX_NOTE_LENGTH, MAX_PREP_NOTE_LENGTH } from "@/lib/schemas/power-ranking";
-import TeamLineupHover from "./TeamLineupHover";
+import TeamLineupHover from "@/components/TeamLineupHover";
 
 interface Props {
   season: number;

@@ -258,3 +258,20 @@ export const getCurrentNflWeek = cache(
 export const getDisplayWeeks = cache(
   async (): Promise<DisplayWeeks> => displayWeeks(await fetchCalendarRows()),
 );
+
+/**
+ * Week 1's opening Tuesday for one NFL season, or null when the calendar has no
+ * kickoff for it. Pure; see {@link getSeasonAnchor}.
+ *
+ * For callers that need a *specific* week's dates (the community power ranking
+ * publishes on that week's Thursday) rather than "which week is today".
+ */
+export function seasonAnchor(calendarRows: CalendarRow[], season: number): string | null {
+  return anchors(calendarRows).find((a) => a.season === season)?.anchor ?? null;
+}
+
+/** Resolve one season's Week 1 Tuesday once per server request (React-cached). */
+export const getSeasonAnchor = cache(
+  async (season: number): Promise<string | null> =>
+    seasonAnchor(await fetchCalendarRows(), season),
+);

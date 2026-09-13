@@ -39,3 +39,28 @@ export const SaveBallotSchema = z.object({
 });
 
 export type SaveBallotInput = z.infer<typeof SaveBallotSchema>;
+
+/**
+ * A listener's ballot. The order and the lock, nothing else: listeners have no
+ * on-air note to read out and no working notes, so the fields are not accepted
+ * rather than silently dropped.
+ */
+export const SaveListenerBallotSchema = z
+    .object({
+        season: z.number().int().min(2000).max(2100),
+        week: z.number().int().min(1).max(NFL_REGULAR_SEASON_WEEKS),
+        /** Teams best-first; position in the array is the rank. */
+        order: z.array(z.string().trim().min(1).max(120)).max(64),
+        /** True locks the ballot in and counts it; false keeps it a draft. */
+        submit: z.boolean(),
+    })
+    .strict();
+
+export type SaveListenerBallotInput = z.infer<typeof SaveListenerBallotSchema>;
+
+/** A host's publish / hold / back-to-schedule decision for one week. */
+export const SetPublicationSchema = z.object({
+    season: z.number().int().min(2000).max(2100),
+    week: z.number().int().min(1).max(NFL_REGULAR_SEASON_WEEKS),
+    action: z.enum(["publish", "hold", "schedule"]),
+});

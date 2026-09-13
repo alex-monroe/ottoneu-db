@@ -1504,6 +1504,7 @@ export type Database = {
           submitted_at: string | null
           updated_at: string
           user_id: string
+          voter_kind: string
           week: number
         }
         Insert: {
@@ -1514,6 +1515,7 @@ export type Database = {
           submitted_at?: string | null
           updated_at?: string
           user_id: string
+          voter_kind?: string
           week: number
         }
         Update: {
@@ -1524,6 +1526,7 @@ export type Database = {
           submitted_at?: string | null
           updated_at?: string
           user_id?: string
+          voter_kind?: string
           week?: number
         }
         Relationships: [
@@ -1564,6 +1567,44 @@ export type Database = {
             columns: ["ballot_id"]
             isOneToOne: false
             referencedRelation: "power_ranking_ballots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      power_ranking_publications: {
+        Row: {
+          held: boolean
+          league_id: number
+          published_at: string | null
+          season: number
+          updated_at: string
+          updated_by: string | null
+          week: number
+        }
+        Insert: {
+          held?: boolean
+          league_id: number
+          published_at?: string | null
+          season: number
+          updated_at?: string
+          updated_by?: string | null
+          week: number
+        }
+        Update: {
+          held?: boolean
+          league_id?: number
+          published_at?: string | null
+          season?: number
+          updated_at?: string
+          updated_by?: string | null
+          week?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "power_ranking_publications_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
