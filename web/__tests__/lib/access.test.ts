@@ -219,3 +219,18 @@ describe("public API routes", () => {
     expect(isPublicApiRoute("/api/podcast/power-rankings")).toBe(false);
   });
 });
+
+describe("community power rankings", () => {
+  test("the public ranking and the listener vote page are not gated routes", () => {
+    for (const route of ["/power-rankings", "/power-rankings/vote"]) {
+      expect(accessRedirect(route, ANON)).toBeNull();
+      expect(requiresPodcaster(route)).toBe(false);
+    }
+  });
+
+  test("the hosts' own tools stay host-only", () => {
+    expect(requiresPodcaster("/podcast/power-rankings")).toBe(true);
+    expect(requiresPodcaster("/api/podcast/power-rankings/publication")).toBe(true);
+    expect(requiresPodcaster("/api/power-rankings/ballot")).toBe(false);
+  });
+});

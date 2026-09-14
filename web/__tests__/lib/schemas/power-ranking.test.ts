@@ -9,6 +9,8 @@
 
 import {
   SaveBallotSchema,
+  SaveListenerBallotSchema,
+  SetPublicationSchema,
   MAX_NOTE_LENGTH,
   MAX_PREP_NOTE_LENGTH,
 } from "@/lib/schemas/power-ranking";
@@ -97,5 +99,34 @@ describe("prepNotes", () => {
       expect(parsed.data.notes).toEqual({ Alpha: "read this out" });
       expect(parsed.data.prepNotes).toEqual({ Bravo: "do not read this out" });
     }
+  });
+});
+
+describe("SaveListenerBallotSchema", () => {
+  const LISTENER = { season: 2026, week: 3, order: ["Alpha", "Bravo"], submit: false };
+
+  test("accepts an order and a lock", () => {
+    expect(SaveListenerBallotSchema.safeParse(LISTENER).success).toBe(true);
+  });
+
+  test("rejects notes outright — listeners have nothing to read out", () => {
+    expect(
+      SaveListenerBallotSchema.safeParse({ ...LISTENER, notes: { Alpha: "hi" } }).success,
+    ).toBe(false);
+    expect(
+      SaveListenerBallotSchema.safeParse({ ...LISTENER, prepNotes: { Alpha: "hi" } }).success,
+    ).toBe(false);
+  });
+});
+
+describe("SetPublicationSchema", () => {
+  test.each(["publish", "hold", "schedule"])("accepts %s", (action) => {
+    expect(SetPublicationSchema.safeParse({ season: 2026, week: 3, action }).success).toBe(true);
+  });
+
+  test("rejects anything else", () => {
+    expect(
+      SetPublicationSchema.safeParse({ season: 2026, week: 3, action: "delete" }).success,
+    ).toBe(false);
   });
 });

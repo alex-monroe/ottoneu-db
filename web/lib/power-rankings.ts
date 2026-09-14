@@ -49,10 +49,20 @@
  *   the reveal have no field for it to leak through — privacy by construction
  *   rather than by remembering to strip it. The one read that returns it,
  *   `fetchPrepNotes`, takes a `userId` and returns only that host's own.
+ *
+ * ## Host ballots and listener ballots
+ *
+ * Signed-in listeners can cast a ballot too (`voter_kind = 'listener'`,
+ * migration 045). Those votes feed the public community ranking in
+ * `./community-rankings` and **never the reveal**. That separation also lives
+ * in which reads exist: `fetchBallots` returns host ballots unless a caller
+ * asks for `"everyone"` by name, and the only caller that does is the
+ * community ranking. So the reveal, the host hub and the host ballot page —
+ * none of which pass a scope — cannot count a listener, or list one by name.
  */
 
 import { cache } from "react";
-import { getSupabaseAdmin } from "./supabase";
+import { fetchAllRows, getSupabaseAdmin } from "./supabase";
 import { LEAGUE_ID } from "./config";
 import { getDisplayWeeks } from "./nfl-week";
 import { getLeagueStatus } from "./matchups";
@@ -63,6 +73,19 @@ import { formatRecord } from "./standings";
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+
+/**
+ * Whose ballot this is. Stamped from `is_podcaster` when the ballot is saved, so
+ * a host whose role is later revoked keeps their locked ballot in the episode
+ * they already recorded.
+ */
+export type VoterKind = "host" | "listener";
+
+/**
+ * Which ballots a read returns. `"hosts"` is the default everywhere; only the
+ * community ranking asks for `"everyone"`.
+ */
+export type BallotScope = "hosts" | "everyone";
 
 export interface BallotEntry {
   teamName: string;
@@ -76,6 +99,7 @@ export interface Ballot {
   userId: string;
   /** Who to credit on air: their bound team, else their email's local part. */
   displayName: string;
+  voterKind: VoterKind;
   /** Null while the ballot is still a draft. */
   submittedAt: string | null;
   entries: BallotEntry[];
@@ -245,47 +269,62 @@ function displayNameFor(user: { email: string; team_name: string | null }): stri
 interface BallotRow {
   id: string;
   user_id: string;
+  voter_kind: string;
   submitted_at: string | null;
 }
 
 /**
  * Every ballot for one week, drafts included, with the entries attached.
  *
- * Two queries plus a name lookup rather than one embedded select: the row
- * counts here are a dozen teams times a couple of hosts, and keeping the
+ * **Host ballots only, unless `scope` says `"everyone"`.** The reveal, the host
+ * hub and the host ballot page all call this without a scope, which is what
+ * keeps a listener's vote out of the countdown and a listener's name off the
+ * hosts' screens. Pinned by `power-rankings.test.ts`.
+ *
+ * Two queries plus a name lookup rather than one embedded select: keeping the
  * generated Supabase types honest about the join is more trouble than the
- * round-trip is worth.
+ * round-trip is worth. The entries are paginated because listener ballots make
+ * the count open-ended — twelve rows a ballot passes 1000 at 84 voters.
  */
-export async function fetchBallots(season: number, week: number): Promise<Ballot[]> {
+export async function fetchBallots(
+  season: number,
+  week: number,
+  scope: BallotScope = "hosts",
+): Promise<Ballot[]> {
   const db = getSupabaseAdmin();
-  const { data: ballotRows } = await db
+  let ballotQuery = db
     .from("power_ranking_ballots")
-    .select("id, user_id, submitted_at")
+    .select("id, user_id, voter_kind, submitted_at")
     .eq("league_id", LEAGUE_ID)
     .eq("season", season)
-    .eq("week", week)
-    .order("created_at", { ascending: true }); // pagination-safe: one row per host per week
+    .eq("week", week);
+  if (scope === "hosts") ballotQuery = ballotQuery.eq("voter_kind", "host");
+  const { data: ballotRows } = await ballotQuery.order("created_at", { ascending: true }); // pagination-safe: one row per account per week
 
   const ballots = (ballotRows ?? []) as BallotRow[];
   if (ballots.length === 0) return [];
 
-  const [{ data: entryRows }, { data: userRows }] = await Promise.all([
-    db
-      .from("power_ranking_entries")
-      .select("ballot_id, team_name, rank, note")
-      .in("ballot_id", ballots.map((b) => b.id))
-      .order("rank", { ascending: true }), // pagination-safe: teams × hosts, well under 1000
+  const [entryRows, { data: userRows }] = await Promise.all([
+    fetchAllRows((from, to) =>
+      db
+        .from("power_ranking_entries")
+        .select("ballot_id, team_name, rank, note")
+        .in("ballot_id", ballots.map((b) => b.id))
+        .order("ballot_id", { ascending: true })
+        .order("team_name", { ascending: true })
+        .range(from, to),
+    ),
     db
       .from("users")
       .select("id, email, team_name")
-      .in("id", ballots.map((b) => b.user_id)), // pagination-safe: one row per host
+      .in("id", ballots.map((b) => b.user_id)), // pagination-safe: one row per voter, bounded by the site's accounts
   ]);
 
   const names = new Map(
     (userRows ?? []).map((u) => [u.id, displayNameFor(u)] as const),
   );
   const byBallot = new Map<string, BallotEntry[]>();
-  for (const row of entryRows ?? []) {
+  for (const row of entryRows) {
     const list = byBallot.get(row.ballot_id) ?? [];
     list.push({ teamName: row.team_name, rank: row.rank, note: row.note ?? null });
     byBallot.set(row.ballot_id, list);
@@ -293,10 +332,53 @@ export async function fetchBallots(season: number, week: number): Promise<Ballot
 
   return ballots.map((b) => ({
     userId: b.user_id,
-    displayName: names.get(b.user_id) ?? "Unknown host",
+    displayName: names.get(b.user_id) ?? "Unknown voter",
+    voterKind: b.voter_kind === "listener" ? "listener" : "host",
     submittedAt: b.submitted_at,
-    entries: byBallot.get(b.id) ?? [],
+    entries: (byBallot.get(b.id) ?? []).sort((x, y) => x.rank - y.rank),
   }));
+}
+
+/**
+ * One account's own ballot for one week, whichever kind it is, or null.
+ *
+ * The listener vote page reads through this rather than the all-voters scope
+ * of `fetchBallots`, so rendering one listener's ballot never loads anybody
+ * else's.
+ */
+export async function fetchOwnBallot(
+  season: number,
+  week: number,
+  userId: string,
+): Promise<Ballot | null> {
+  const db = getSupabaseAdmin();
+  const { data: row } = await db
+    .from("power_ranking_ballots")
+    .select("id, voter_kind, submitted_at")
+    .eq("league_id", LEAGUE_ID)
+    .eq("season", season)
+    .eq("week", week)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!row) return null;
+
+  const { data: entries } = await db
+    .from("power_ranking_entries")
+    .select("team_name, rank, note")
+    .eq("ballot_id", row.id)
+    .order("rank", { ascending: true }); // pagination-safe: one row per team, twelve of them
+
+  return {
+    userId,
+    displayName: "",
+    voterKind: row.voter_kind === "listener" ? "listener" : "host",
+    submittedAt: row.submitted_at,
+    entries: (entries ?? []).map((e) => ({
+      teamName: e.team_name,
+      rank: e.rank,
+      note: e.note ?? null,
+    })),
+  };
 }
 
 /** Only the ballots that count towards the reveal. */
@@ -345,6 +427,9 @@ export async function fetchPrepNotes(
 /**
  * The consolidated week, including last week's order for the movement arrows.
  * React-cached so the hub, the ballot page and the reveal share one read.
+ *
+ * Hosts only — this is the reveal. The all-votes ranking is
+ * `fetchCommunityRankings` in `./community-rankings`.
  */
 export const fetchWeekRankings = cache(
   async (season: number, week: number, teams: readonly string[]): Promise<WeekRankings> => {
@@ -370,6 +455,12 @@ export const fetchWeekRankings = cache(
 
 export interface SaveBallotInput {
   userId: string;
+  /**
+   * Required, with no default: a write that forgot it would otherwise land as
+   * whichever kind the default named, and a listener ballot defaulting to
+   * "host" is a listener vote in the reveal.
+   */
+  voterKind: VoterKind;
   season: number;
   week: number;
   /** Teams best-first. Position in the array is the rank. */
@@ -392,7 +483,7 @@ export interface SaveBallotInput {
  */
 export async function saveBallot(input: SaveBallotInput): Promise<void> {
   const db = getSupabaseAdmin();
-  const { userId, season, week, order, notes = {}, prepNotes = {}, submit } = input;
+  const { userId, voterKind, season, week, order, notes = {}, prepNotes = {}, submit } = input;
 
   const { data: ballot, error: ballotError } = await db
     .from("power_ranking_ballots")
@@ -402,6 +493,7 @@ export async function saveBallot(input: SaveBallotInput): Promise<void> {
         season,
         week,
         user_id: userId,
+        voter_kind: voterKind,
         submitted_at: submit ? new Date().toISOString() : null,
         updated_at: new Date().toISOString(),
       },

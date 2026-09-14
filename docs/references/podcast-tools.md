@@ -153,6 +153,78 @@ mid-episode should start clean rather than restore a stale position. The
 "biggest split" callout is held back until the countdown finishes so it cannot
 give away a slot that has not been read out.
 
+## Community power rankings
+
+Listeners get a ballot too, and their votes produce a **second, public
+ranking**. The two results never mix: the reveal is the hosts' order and nobody
+else's; the community ranking is everyone's.
+
+| Route | What it is |
+|-------|------------|
+| `/power-rankings` | The community ranking. Public once a week is published; hosts can preview an unpublished week. In the League nav group. |
+| `/power-rankings/vote` | A listener's ballot for the current week. Signed-in, not a host. |
+| `PUT /api/power-rankings/ballot` | Save or lock in a listener ballot. |
+| `PUT /api/podcast/power-rankings/publication` | Publish now / hold / back to schedule (hosts only). |
+
+### Keeping listener votes out of the reveal
+
+Listener ballots live in the same two tables as host ballots — they are the same
+object, a total order for one week that is a draft until locked — separated by
+`power_ranking_ballots.voter_kind` (migration 045), stamped from `is_podcaster`
+**when the ballot is saved**. So a host whose role is revoked does not pull a
+locked ballot out of an episode that was already recorded.
+
+The separation is enforced by which reads exist, the same way `prep_note` is:
+
+- `fetchBallots(season, week)` returns **host ballots only** unless the caller
+  passes `"everyone"`. The reveal, the hub and the host ballot page pass no
+  scope, so they cannot count a listener or list one by name.
+- The only caller that passes `"everyone"` is `fetchCommunityRankings` in
+  `web/lib/community-rankings.ts`. `community-rankings.test.ts` walks `app/`,
+  `lib/` and `components/` and fails if anything else does.
+- `saveBallot` has no default `voterKind`; each route states its own.
+- The hub shows listener *counts* (`countListenerBallots`, a head-only count),
+  never listener ballots. The vote page reads the viewer's own ballot through
+  `fetchOwnBallot`, scoped to one `user_id`.
+- The listener API re-reads `is_podcaster` and refuses hosts: a host saving
+  there would convert their ballot to a listener one.
+
+### What the public page shows
+
+The reveal's own `consolidate` — mean rank, ties to conviction — over every
+submitted ballot, with **each ballot weighted equally**, host or listener. It is
+then reduced to a `CommunityRow` with no per-voter fields: overall mean, the
+hosts' mean and the listeners' mean separately, best/worst rank, first-place
+votes and movement. No names (listeners never agreed to be shown) and no notes
+(host on-air notes should not publish ahead of the episode). A test pins the
+exact key set. Movement is shown only against a previous week that is itself
+public, or the arrows would give away a held week's order.
+
+### When a week goes public
+
+By default at **Thursday 09:00 America/New_York** of the week being ranked —
+the hosts have had Tuesday and Wednesday to record, and Thursday night's kickoff
+has not yet made the ranking stale. Computed from the season's Week 1 Tuesday
+(`seasonAnchor` in `web/lib/nfl-week.ts`) through `Intl`, so it stays 09:00
+local across the end of daylight saving (13:00 UTC in September, 14:00 UTC from
+November). With no calendar date it fails closed: private until published.
+
+From the `/podcast` hub a host can override one week:
+
+| Action | Row in `power_ranking_publications` | Effect |
+|--------|-------------------------------------|--------|
+| (none) | no row | Public from Thursday 09:00 ET |
+| Publish now | `published_at = now()` | Public immediately |
+| Hold past Thursday | `held = true` | Private until published by hand |
+| Back to Thursday schedule | row deleted | Back to the default |
+
+**Publishing closes listener voting** for that week, and voting is only ever
+open on the current week (`listenerVotingOpen`), so a ranking people have read
+cannot be rewritten underneath them. Hosts can still edit their own ballots
+after publication (the reveal needs that), which does move the public ranking.
+Unpublishing and holding a public week reopens listener voting if it is still
+the current week.
+
 ## Adding another podcast tool
 
 1. Add the route under `/podcast/<tool>` and its API under `/api/podcast/<tool>`.
