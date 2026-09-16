@@ -120,7 +120,7 @@ system.
 | **OAuth 2.1** | `web/lib/oauth/` — the site is its own authorization server (PKCE, rotating refresh tokens) |
 | **MCP server** | `web/lib/mcp/tools.ts` (tool registry) served at `/api/mcp/mcp` |
 | **Provisioning** | `scripts/oauth_client.py` · `just oauth-client` |
-| **Routes** | `/login` · `/access` · `/admin` · `/admin/workflows` · `/podcast` · `/podcast/power-rankings` (+ `/reveal`) · `/power-rankings` (+ `/vote`) · `/pickem` · `/oauth/authorize` · `/api/auth/*` · `/api/oauth/*` · `/api/podcast/*` · `/api/power-rankings/ballot` · `/api/pickem/*` · `/api/mcp/[transport]` |
+| **Routes** | `/login` · `/access` · `/admin` · `/admin/workflows` · `/podcast` · `/podcast/recap` · `/podcast/power-rankings` (+ `/reveal`) · `/power-rankings` (+ `/vote`) · `/pickem` · `/oauth/authorize` · `/api/auth/*` · `/api/oauth/*` · `/api/podcast/*` · `/api/power-rankings/ballot` · `/api/pickem/*` · `/api/mcp/[transport]` |
 | **Docs** | [references/mcp-server.md](references/mcp-server.md) · [references/podcast-tools.md](references/podcast-tools.md) · [references/matchups-and-standings.md](references/matchups-and-standings.md#weekly-pickem) (pick'em) |
 
 **Watch out:** most gated features check `has_projections_access`, not merely "signed

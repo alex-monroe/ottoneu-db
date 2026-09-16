@@ -74,6 +74,7 @@ export const PODCAST_HOME = "/podcast";
  */
 export const PODCASTER_ROUTES = [
   "/podcast/power-rankings",
+  "/podcast/recap",
   "/api/podcast",
 ] as const;
 
