@@ -1,8 +1,17 @@
 # Podcast tools
 
 Production tooling for the league's podcast, behind a **third role** that is
-independent of everything else on the site. Routes live under `/podcast`; the
-first tool is the power-rankings consolidator.
+independent of everything else on the site. Routes live under `/podcast`. Two
+tools so far, one pointing each way: the **power-rankings consolidator** looks
+forward at the week about to be played, and the **weekly recap** looks back at
+the one that just was.
+
+| Route | What it is |
+|-------|------------|
+| `/podcast` | Hub. Ungated — see below. |
+| `/podcast/recap?week=N` | [Weekly recap](#weekly-recap): episode prep for the week that just finished. |
+| `/podcast/power-rankings?week=N` | [Your ballot](#power-rankings) for the upcoming week. |
+| `/podcast/power-rankings/reveal?week=N` | The live countdown. Open this while recording. |
 
 ## The `podcaster` role
 
@@ -225,6 +234,89 @@ after publication (the reveal needs that), which does move the public ranking.
 Unpublishing and holding a public week reopens listener voting if it is still
 the current week.
 
+## Weekly recap
+
+`/podcast/recap?week=N` — one finished week, looked at backwards, in the order
+the show tends to talk about it. This is the episode-prep page: it is opened
+with a microphone already running, so it is a wide page of dense lists rather
+than an article.
+
+**Nothing on it is stored.** Every number is derived at read time in
+`web/lib/weekly-recap.ts` from rows three other subsystems already own:
+
+| Source | What it contributes |
+|--------|---------------------|
+| `matchup_lineups` | who each team started and benched, and what they scored |
+| `weekly_projections` | each player's forecast, frozen at his own kickoff |
+| `league_matchups` | the six results |
+| `power_ranking_*` | the hosts' consolidated order for that same week |
+
+That is the same choice the standings make, for the same reason: a stored recap
+can only be as fresh as the job that wrote it, and it can disagree with the box
+score it was supposed to summarise. You cannot have that happen while two people
+are reading it out loud.
+
+### Three kinds of surprise, which are three different claims
+
+The show argues about all three and the page keeps them apart:
+
+1. **Against the projection** (`RecapPlayer.surprise`) — a player against the
+   third party's forecast for that game. This is the tightest of the three
+   because of the [kickoff freeze](weekly-projections.md#the-kickoff-freeze):
+   the number he is measured against is the one that was on the board before he
+   played, not a revision published afterwards.
+2. **Against the projected total** (`RecapSide.beat`) — a team against the sum
+   of its own starters' projections. A team can beat its projection and still
+   lose, which is usually the better sentence. An **upset** is the
+   lower-projected side winning; with no stored lineup it is `null` rather than
+   `false`, since "false" would read on the page as *chalk*.
+3. **Against the power ranking** (`TeamWeek.powerSurprise`) — ranked position
+   minus scoring position for the week. Positive means the team outscored where
+   the hosts had it, negative means the ranking was too kind. This one is about
+   the hosts rather than the teams, so each host's own placement rides along on
+   the row and the on-air note is on the hover.
+
+### The rules that keep the lists honest
+
+- **A missing projection is not a zero.** `projected` is null for a bye, an
+  inactive, or a player the source does not carry. Those players are left out of
+  the surprise lists rather than credited with beating a forecast of zero, and
+  the page reports how many starters it dropped so the lists do not read as
+  complete.
+- **Overachievers include the bench; busts do not.** A benched player blowing
+  past his forecast is a story about a manager who missed it. The same player
+  falling short cost nobody anything and is not an item.
+- **No minimum-projection floor.** Ranking on the raw shortfall already keeps a
+  low-forecast player off the top: someone forecast 3.2 who scored nothing never
+  outranks someone forecast 18.4 who scored four.
+- **Top performers are starters only.** The bench has its own list, so a player
+  cannot appear in both and the two sections stay separate facts.
+- **Teams level on points share a scoring rank** rather than being ordered
+  arbitrarily.
+
+### Left on the bench
+
+`benchMisses` re-runs `optimizeLineup` over the points players *actually*
+scored, so it is pure hindsight and the page says so — nobody could have set
+that lineup. Reusing the optimizer rather than re-deriving the slot maths is the
+point: the eligibility family is laminar and the greedy fill is provably optimal
+over it, and that proof should live in one place. It is keyed on `ottoneu_id`
+rather than our own `player_id`, which can be null for an unmatched player (and
+two nulls would collide).
+
+An **empty starting slot** shows up here naturally: a team that started nobody
+at kicker gets a "sat on the bench" entry with nothing displaced.
+
+### Which week it opens on
+
+The last week that is *finished*, not the one being played — on the Tuesday you
+record, that is the slate that just ended. A week still in progress is reachable
+from the picker but never the default, because a half-played week reads as a
+league of busts. Weeks with no games at all are not offered.
+
+Ballots are read through `fetchWeekRankings`, which is host-scoped: the recap
+does not count listener ballots and cannot name one.
+
 ## Adding another podcast tool
 
 1. Add the route under `/podcast/<tool>` and its API under `/api/podcast/<tool>`.
@@ -233,3 +325,10 @@ the current week.
 3. Call `requirePodcaster("/podcast/<tool>")` at the top of the page.
 4. Add a nav entry with `access: "podcaster"` in `web/lib/nav.ts`, and a
    `HUB_META` entry in `web/app/page.tsx` if it should appear on the homepage.
+5. Add a card for it on the `/podcast` hub, which is where a host starts.
+
+**Adding a segment to the recap** is smaller than adding a tool: write it as a
+pure function over the same rows in `web/lib/weekly-recap.ts`, pin it in
+`web/__tests__/lib/weekly-recap.test.ts`, hang it off `WeeklyRecap`, and give it
+a `<Section>` on the page. The page is explicitly a first pass meant to grow
+that way.
