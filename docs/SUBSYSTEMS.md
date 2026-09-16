@@ -12,7 +12,7 @@ and never the reverse.
                      ├──> 3. Season projections ──> 4. Valuation & web analytics
   2. NFL statistics ─┘                                        │
                                                               ├──> 6. Drafting & simulation
-  5. Accounts, auth & MCP ────────────────────────────────┘
+  5. Accounts, auth & MCP ────────────────────────────────────┘
 ```
 
 ---
