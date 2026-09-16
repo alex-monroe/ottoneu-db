@@ -96,7 +96,7 @@ docs/
 │   └── [segment-analysis.md](docs/generated/segment-analysis.md)            # Segmented projection accuracy analysis
 ├── references/
 │   ├── [autonomous-operation.md](docs/references/autonomous-operation.md)        # Permission-friction strategy: allowlist, prompt metrics, devcontainer
-│   ├── environment-variables.md           # .env and .env.local variable reference
+│   ├── environment-variables.md       # .env and .env.local variable reference
 │   ├── [league-explorer.md](docs/references/league-explorer.md)             # Cross-league survey: other Ottoneu leagues → local SQLite (just league-explorer)
 │   ├── [roster-csv-reconciliation.md](docs/references/roster-csv-reconciliation.md)  # /csv/rosters → league_prices sync (just reconcile-roster) — Cloudflare-blocked-scrape fallback
 │   ├── [auction-simulator.md](docs/references/auction-simulator.md)         # Offline Monte-Carlo keeper-auction sim (scripts/auction_simulator.py)
