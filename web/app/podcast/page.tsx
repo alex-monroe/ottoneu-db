@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Mic, ListOrdered, Play, Lock, Users } from "lucide-react";
+import { Mic, ListOrdered, Play, Lock, Users, Rewind } from "lucide-react";
 import { getAuthenticatedUser, getLiveAccessState } from "@/lib/auth";
 import { isValidRedirect } from "@/lib/utils";
 import PageShell, { PageHeader } from "@/components/PageShell";
@@ -122,7 +122,24 @@ export default async function PodcastHub({ searchParams }: Props) {
         description="Everything here is for making the show. Nobody outside the hosts can see it — except the community rankings, once you publish them."
       />
 
-      <section className="grid gap-4 sm:grid-cols-2">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Link
+          // No week param: the recap resolves the last *finished* week itself,
+          // which is the one you are about to talk about — not ctx.week, which
+          // is the upcoming slate the ballot ranks.
+          href="/podcast/recap"
+          className="group rounded-lg border border-line bg-raised p-5 transition-colors hover:border-accent"
+        >
+          <span className="inline-flex rounded-md bg-accent-soft p-2 text-accent">
+            <Rewind size={18} aria-hidden="true" />
+          </span>
+          <h2 className="mt-3 font-semibold text-ink">Weekly recap</h2>
+          <p className="mt-1 text-sm text-ink-muted">
+            The week that just finished: the six games, who went off, who did not, where
+            last week&apos;s ranking was wrong, and what everyone left on the bench.
+          </p>
+        </Link>
+
         <Link
           href={`/podcast/power-rankings?week=${ctx.week}`}
           className="group rounded-lg border border-line bg-raised p-5 transition-colors hover:border-accent"

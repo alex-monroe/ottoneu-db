@@ -89,6 +89,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Podcast",
     requiresAuth: true,
     items: [
+      { href: "/podcast/recap", label: "Weekly Recap", access: "podcaster" },
       { href: "/podcast/power-rankings", label: "Power Rankings", access: "podcaster" },
     ],
   },
