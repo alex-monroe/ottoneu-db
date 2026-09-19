@@ -207,3 +207,28 @@ external services, and answers questions that are otherwise unanswerable
   regressions, not to hit zero. Zero-prompt operation is what Layer 4 is for.
 - **Denominator drift**: more background-job usage lowers the rate without any
   real improvement. Compare like-for-like periods.
+
+## E2E test account
+
+Most pages sit behind the `ottoneu_auth` session cookie (`/value`, `/arbitration`,
+`/weekly`, … need `has_projections_access`), so an anonymous browser only sees the
+landing hub and `/login`. Agents use a dedicated user instead of a personal account:
+**non-admin, non-podcaster, projections access only**.
+
+- **Credentials:** `E2E_EMAIL` / `E2E_PASSWORD`. Never commit values.
+  - Devcontainer: export them in your *host* shell before opening the container;
+    `devcontainer.json` forwards them via `${localEnv:…}`.
+  - Claude Code cloud sessions: add them under the environment's *Environment
+    variables* in the desktop app / claude.ai/code, and allow `sofa-db.vercel.app`
+    in its network settings. Start a new session after changing them.
+  - GitHub Actions (only if CI ever needs it): repository *secrets*, same names.
+- **Sign in once:** `just e2e-login` posts to `/api/auth/login` and writes a
+  Playwright `storageState` to `.cache/e2e/storage-state.json` (gitignored). Point
+  it at production with `E2E_BASE_URL=https://sofa-db.vercel.app`. Load it with
+  `browser.new_context(storage_state=…)`.
+- **It is a production row.** Local dev and the live site share one Supabase
+  project, so anything the account submits (pick'em picks, power-ranking ballots)
+  is real data. Agents should browse, not submit.
+- **Rotating the password:** the site uses its own `users` table (bcrypt), not
+  Supabase Auth. Hash a new password with `bcryptjs` (cost 12) and `UPDATE users
+  SET password_hash = … WHERE email = '<E2E_EMAIL>'`, then update every place above.

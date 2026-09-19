@@ -15,7 +15,9 @@
     "source=ottoneu-web-node-modules,target=${containerWorkspaceFolder}/web/node_modules,type=volume"
   ],
   "containerEnv": {
-    "DEVCONTAINER": "true"
+    "DEVCONTAINER": "true",
+    "E2E_EMAIL": "${localEnv:E2E_EMAIL}",
+    "E2E_PASSWORD": "${localEnv:E2E_PASSWORD}"
   },
   "postCreateCommand": "bash .devcontainer/post-create.sh",
   "postStartCommand": "sudo chown -R vscode:vscode /home/vscode/.claude && sudo bash .devcontainer/init-firewall.sh",
