@@ -124,6 +124,12 @@ roster-context season="2026":
 oauth-client *args:
     {{python}} scripts/oauth_client.py {{args}}
 
+# Sign in as the e2e agent user and save a Playwright storageState (.cache/e2e/storage-state.json)
+# Needs E2E_EMAIL / E2E_PASSWORD; target the live site with E2E_BASE_URL=https://sofa-db.vercel.app
+# See docs/references/autonomous-operation.md#e2e-test-account
+e2e-login:
+    {{python}} scripts/e2e_login.py
+
 # Explore other public Ottoneu leagues → local SQLite (discover | scrape | report | query)
 # e.g. just league-explorer discover ; just league-explorer scrape --discovered
 # See docs/references/league-explorer.md
