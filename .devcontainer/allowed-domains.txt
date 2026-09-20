@@ -65,6 +65,9 @@ www.fantasypros.com
 # send an honest identifying User-Agent (no browser spoofing).
 api.sleeper.com
 
+# Live site — lets the e2e user (`just e2e-login`) check production.
+sofa-db.vercel.app
+
 # Supabase (project ref rbinbcwinchphipvcfqk)
 # Data plane (PostgREST/REST — the anon-key path the Next.js app uses):
 rbinbcwinchphipvcfqk.supabase.co
