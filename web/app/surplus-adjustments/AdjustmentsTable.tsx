@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { SurplusPlayer, PlayerHoverData } from "@/lib/types";
+import { FULL_SEASON_GAMES, MIN_PLAYER_SALARY } from "@/lib/config";
 import PlayerHoverCard from "@/components/PlayerHoverCard";
 
 interface AdjustmentEntry {
@@ -210,16 +211,20 @@ export default function AdjustmentsTable({
     });
   }, [players, filterPos, filterTeam, filterModified, adjustments, sortKey, sortDir, getProj, dollarPerVorp]);
 
-  // Derive dollar value from a target PPG
+  // Derive dollar value from a target PPG. Mirrors calculateSurplus exactly:
+  // every player costs at least the salary floor, and above-replacement
+  // production buys the rest.
   const dollarValueFromPpg = (targetPpg: number, replacementPpg: number): number => {
-    const vorp = (targetPpg - replacementPpg) * 17;
-    return Math.round(Math.max(vorp * dollarPerVorp, 1));
+    const vorp = (targetPpg - replacementPpg) * FULL_SEASON_GAMES;
+    const value = vorp > 0 ? MIN_PLAYER_SALARY + vorp * dollarPerVorp : MIN_PLAYER_SALARY;
+    return Math.round(Math.max(value, MIN_PLAYER_SALARY));
   };
 
-  // Derive PPG from a target dollar value
+  // Derive PPG from a target dollar value — the inverse of the above.
   const ppgFromDollarValue = (targetDollarValue: number, replacementPpg: number): number => {
     if (dollarPerVorp === 0) return replacementPpg;
-    return (targetDollarValue / dollarPerVorp / 17) + replacementPpg;
+    const vorp = (targetDollarValue - MIN_PLAYER_SALARY) / dollarPerVorp;
+    return vorp / FULL_SEASON_GAMES + replacementPpg;
   };
 
   const updateAdjustment = (playerId: string, value: number) => {

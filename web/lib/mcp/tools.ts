@@ -39,7 +39,8 @@ import {
 } from "../data";
 import { fetchProjectionBoard } from "../analysis";
 import { fetchRosterData, reconstructRostersAtDate } from "../roster-reconstruction";
-import { calculateSurplus, computeDollarPerVorp } from "../surplus";
+import { calculateSurplus, computeDollarPerVorp, distributableCap } from "../surplus";
+import { calculateEarnedValue } from "../earned-value";
 import { analyzeArbTargets } from "./arb";
 // team-binding, not viewer-team: this layer authenticates by bearer token and
 // must not pull the cookie-session chain into the MCP bundle.
@@ -82,6 +83,7 @@ import {
   getTransactionsShape,
   getProjectionsShape,
   getPlayerValuesShape,
+  getEarnedValueShape,
   getArbitrationAnalysisShape,
   getDepthChartShape,
   getVegasLinesShape,
@@ -546,7 +548,7 @@ async function getPlayerValues(rawArgs: unknown): Promise<McpToolResult> {
     .slice(0, limit);
 
   return jsonResult({
-    methodology: `Dollar values allocate ~87.5% of total league cap ($${NUM_TEAMS * CAP_PER_TEAM}) across positive-VORP production (min ${MIN_GAMES} games). Surplus = dollar_value − salary.`,
+    methodology: `Dollar values split the distributable cap ($${distributableCap()} = $${NUM_TEAMS * CAP_PER_TEAM} league cap minus the $1 salary floor on every roster spot) across positive-VORP production (min ${MIN_GAMES} games). Replacement level is the marginal ownable player — leaguewide lineup demand plus bye/injury depth, with the superflex slots allocated to whichever position offers the best next player. Surplus = dollar_value − salary.`,
     dollar_per_vorp: round(dollarPerVorp, 3),
     count: rows.length,
     players: rows.map((p) => ({
@@ -559,6 +561,48 @@ async function getPlayerValues(rawArgs: unknown): Promise<McpToolResult> {
       surplus: p.surplus,
       vorp: round(p.full_season_vorp),
       ppg: round(p.ppg),
+      games_played: p.games_played,
+    })),
+  });
+}
+
+async function getEarnedValue(rawArgs: unknown): Promise<McpToolResult> {
+  const args = z.object(getEarnedValueShape).parse(rawArgs);
+  const limit = clampLimit(args.limit, 25, 100);
+  // End-of-season salaries predate the +$4/+$1 bump, so this compares a
+  // player's production against the price he was actually carried at.
+  const players = await fetchPlayersEndOfSeason();
+  const earned = calculateEarnedValue(players);
+  const sortKey = args.sort ?? "earned_value";
+
+  const rows = earned
+    .filter(
+      (p) =>
+        (!args.position || p.position === args.position) &&
+        (args.team_name === undefined || sameTeam(p.team_name, args.team_name)),
+    )
+    .sort((a, b) => b[sortKey] - a[sortKey])
+    .slice(0, limit);
+
+  return jsonResult({
+    methodology:
+      `Retrospective ("Player Rater") value from actual season points, not projections: ` +
+      `season totals ranked within position, baselined at the marginal ownable player, ` +
+      `then the distributable cap ($${distributableCap()}) split across production above that ` +
+      `baseline. Availability is observed rather than modelled — a player who missed time ` +
+      `earned less. realized_surplus = earned_value − the salary actually paid that season. ` +
+      `Counts points scored on a bench, since it works from season totals.`,
+    count: rows.length,
+    players: rows.map((p) => ({
+      name: p.name,
+      position: p.position,
+      nfl_team: p.nfl_team,
+      fantasy_team: p.team_name,
+      salary: p.price,
+      earned_value: p.earned_value,
+      realized_surplus: p.realized_surplus,
+      total_points: round(p.total_points),
+      points_above_replacement: p.points_above_replacement,
       games_played: p.games_played,
     })),
   });
@@ -970,6 +1014,13 @@ export const MCP_TOOLS: McpToolDef[] = [
     description: "VORP-based dollar values and surplus (value minus salary) for players with current-season stats, using end-of-season salaries. The core keep/cut/trade valuation metric in this format.",
     schema: getPlayerValuesShape,
     handler: getPlayerValues,
+  },
+  {
+    name: "get_earned_value",
+    description:
+      "Retrospective auction value: what each player was actually worth based on the points he scored, versus the salary he was carried at. The after-the-fact grade on an auction buy, an arbitration dollar, or a keep/cut call — use get_player_values for the forward-looking projection instead.",
+    schema: getEarnedValueShape,
+    handler: getEarnedValue,
   },
   {
     name: "get_arbitration_analysis",

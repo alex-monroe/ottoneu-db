@@ -488,6 +488,56 @@ describe("get_player_values", () => {
     });
 });
 
+describe("get_earned_value", () => {
+    test("ranks by earned value and reports realized surplus against salary paid", async () => {
+        mockEndOfSeason.mockResolvedValue(buildPool());
+        const body = payload(await tool("get_earned_value").handler({ limit: 5 }));
+        const players = body.players as {
+            earned_value: number;
+            realized_surplus: number;
+            salary: number;
+        }[];
+
+        expect(players).toHaveLength(5);
+        const values = players.map((p) => p.earned_value);
+        expect(values).toEqual([...values].sort((a, b) => b - a));
+        for (const p of players) {
+            expect(p.realized_surplus).toBe(p.earned_value - p.salary);
+        }
+    });
+
+    test("sort=realized_surplus surfaces the bargains instead of the best players", async () => {
+        mockEndOfSeason.mockResolvedValue(buildPool());
+        const body = payload(
+            await tool("get_earned_value").handler({ sort: "realized_surplus", limit: 5 })
+        );
+        const surpluses = (body.players as { realized_surplus: number }[]).map(
+            (p) => p.realized_surplus
+        );
+        expect(surpluses).toEqual([...surpluses].sort((a, b) => b - a));
+    });
+
+    test("uses end-of-season salaries, which predate the +$4 bump", async () => {
+        mockEndOfSeason.mockResolvedValue(buildPool());
+        await tool("get_earned_value").handler({});
+        expect(mockEndOfSeason).toHaveBeenCalled();
+        expect(mockPreArb).not.toHaveBeenCalled();
+    });
+
+    test("is distinct from get_player_values — actuals, not projections", async () => {
+        mockEndOfSeason.mockResolvedValue(buildPool());
+        const earned = payload(await tool("get_earned_value").handler({ limit: 3 }));
+        const projected = payload(await tool("get_player_values").handler({ limit: 3 }));
+        expect(earned.methodology).not.toBe(projected.methodology);
+        // The earned rows carry production, not a projected dollar value.
+        expect(earned.players as unknown[]).not.toHaveLength(0);
+        for (const p of earned.players as Record<string, unknown>[]) {
+            expect(p).toHaveProperty("points_above_replacement");
+            expect(p).not.toHaveProperty("dollar_value");
+        }
+    });
+});
+
 describe("get_arbitration_analysis", () => {
     test("excludes the requested team from the target pool", async () => {
         mockPreArb.mockResolvedValue(buildPool());
