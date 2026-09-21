@@ -1,5 +1,6 @@
 import { fetchAndMergeProjectedData, fetchHoverExtras, buildHoverDataMap, calculateSurplus, fetchPlayersPreArb, LEAGUE_ID } from "@/lib/analysis";
-import { getStatsSeason, getProjectionSeason } from "@/lib/season";
+import { getProjectionSeason } from "@/lib/season";
+import { getEffectiveStatsSeason } from "@/lib/stats-season";
 import { computeDollarPerVorp } from "@/lib/surplus";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
@@ -14,7 +15,7 @@ import Link from "next/link";
 export default async function AdjustmentsSection() {
   const [user, viewerTeam] = await Promise.all([getAuthenticatedUser(), getViewerTeam()]);
   const [statsSeason, projectionSeason] = await Promise.all([
-    getStatsSeason(),
+    getEffectiveStatsSeason(),
     getProjectionSeason(),
   ]);
   const [allPlayers, projectedPlayers, adjRes] = await Promise.all([

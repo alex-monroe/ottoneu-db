@@ -49,6 +49,31 @@ year at **Start of Season**. Everything else derives:
 | `statsSeason` | = `leagueSeason` if NFL games have started (≥ `regular_season_start`), else `leagueSeason − 1` (last completed) |
 | `arbitrationSeason` | = `leagueSeason` |
 
+#### `statsSeason` vs what `player_stats` actually holds
+
+`statsSeason` answers "which season are we in", not "which season can the
+database answer for". The two diverge every year at `regular_season_start`:
+the field flips to the new season, but `player_stats` has no rows for it until
+`pull_player_stats` has run. Since every consumer of `fetchPlayers*` drops
+players with no stats row (`if (!pStats) continue`), that gap is not a partial
+view — it is an empty one. Observed live in week 2 of 2026: `/players` showed a
+dash for PPG/Points/GP on all 1,269 players, `/rosters` the same on all 239, and
+`/value` (VORP + surplus), `/free-agents` and `/projected-salary` each rendered
+their "no data" empty state.
+
+So reads of **actual production** go through `getEffectiveStatsSeason()`
+(`web/lib/stats-season.ts`), which takes `statsSeason` and clamps it back to the
+newest season `player_stats` actually has. The clamp is one-directional — it
+never jumps *forward* past the calendar — and stops applying as soon as the
+current season loads, so in-season numbers light up with no deploy. Use it for
+anything reading `player_stats` (and for the labels beside those numbers, so the
+heading cannot claim a season the rows do not come from); keep plain
+`getStatsSeason()` for season-cycle questions and keep `projectionSeason` for
+`player_projections` reads such as `buildProjectionMap`.
+
+The clamp is a floor, not the fix: `.github/workflows/pull-player-stats.yml`
+(Tuesdays, Sep–Feb) is what keeps the current season loaded.
+
 ### Phases (5, matching the offseason → in-season cycle)
 
 Within season label Y:

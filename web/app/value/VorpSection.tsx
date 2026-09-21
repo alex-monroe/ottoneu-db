@@ -7,7 +7,7 @@ import {
   NUM_TEAMS,
   CAP_PER_TEAM,
 } from "@/lib/analysis";
-import { getStatsSeason } from "@/lib/season";
+import { getEffectiveStatsSeason } from "@/lib/stats-season";
 import { fetchPlayersEndOfSeason } from "@/lib/data";
 import { getAuthenticatedUser } from "@/lib/auth";
 import VorpClient from "@/app/vorp/VorpClient";
@@ -20,7 +20,7 @@ export default async function VorpSection() {
   const [allPlayers, user, statsSeason] = await Promise.all([
     fetchPlayersEndOfSeason(),
     getAuthenticatedUser(),
-    getStatsSeason(),
+    getEffectiveStatsSeason(),
   ]);
   const { players, replacementPpg, replacementN } = calculateVorp(allPlayers);
   const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);

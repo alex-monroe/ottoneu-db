@@ -1,6 +1,7 @@
 import { supabase, fetchAllRows } from "./supabase";
 import { LEAGUE_ID, CAP_PER_TEAM, NFL_REGULAR_SEASON_WEEKS } from "./config";
 import { getSeasonContextNow, type SeasonContext } from "./season";
+import { getEffectiveStatsSeason } from "./stats-season";
 
 // === Types ===
 
@@ -110,8 +111,14 @@ export async function fetchRosterData(season?: number): Promise<RosterData> {
   // Player stats give the PPG context: the current season shows the most
   // recent completed NFL season (pre-kickoff there is nothing else to show),
   // while a past season shows its own — those games are in the books.
+  // `getEffectiveStatsSeason()` is what keeps the first half of that true once
+  // kickoff passes: `ctx.statsSeason` flips to the new season on
+  // `regular_season_start`, which blanked every PPG column here until
+  // `pull_player_stats` had run for it. See lib/stats-season.ts.
   const statsSeason =
-    leagueSeason === ctx.leagueSeason ? ctx.statsSeason : leagueSeason;
+    leagueSeason === ctx.leagueSeason
+      ? await getEffectiveStatsSeason()
+      : leagueSeason;
   // Paginate the league-wide reads (players ~1,252, league_prices ~1,252, and
   // transactions which can approach the cap) past PostgREST's 1000-row default.
   const [transactions, players, stats, leaguePrices] = await Promise.all([
