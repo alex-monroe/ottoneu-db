@@ -23,7 +23,7 @@ export default async function ProjectedSalaryPage() {
   ]);
   const roster = analyzeProjectedSalary(allPlayers, viewerTeam);
   const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
-  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap);
+  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap, !!user?.hasProjectionsAccess);
 
   if (roster.length === 0) {
     // Two different situations, and telling them apart is the whole point of

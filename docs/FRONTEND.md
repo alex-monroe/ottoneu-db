@@ -106,7 +106,7 @@ re-implements the shell or reintroduces sub-AA caption colours.
 | `PlayerName` | Player name renderer with link/hover-card/plain-text modes |
 | `TeamName` | Canonical league-team renderer — the team counterpart to `PlayerName`. Links to `/teams/[name]`, renders "FA" as plain text, and weights the viewer's own team via `mine` (it keeps the link colour — emphasis must not cost the affordance). Route every team name through this rather than printing the string |
 | `StatValue` | Numeric stat formatter with currency/decimal/number/null handling |
-| `PlayerHoverCard` | Rich hover preview card for player context |
+| `PlayerHoverCard` | Rich hover preview card for player context. Earned value is opt-in (`buildHoverDataMap(..., hasProjectionsAccess)`) — it is a gated valuation and hover cards render on public routes too |
 | `Explain` | In-product glossary popover. `<Explain term="vorp" />` renders a "?" that defines one term from `web/lib/glossary.ts`. `DataTable` renders it automatically for any column carrying `explain`, and `Th`/`SummaryCard` take the same prop, so tag the column factory rather than the page. The panel portals to `document.body` — it lives inside `overflow-x-auto` scroll containers that would otherwise clip it |
 | `states.tsx` | Shared `EmptyState` / `NoAccessState` / `ErrorState` / `TableSkeleton`. `TableSkeleton` backs the root `app/loading.tsx`, which is what gives every navigation feedback while its server component runs. Use these instead of hand-rolling — a missing-data notice is an `h2` at body scale, never a page-sized heading |
 | `DataFreshness` | "Rosters updated 3 hours ago" caption, from `web/lib/freshness.ts`. Turns `--warning` past `staleAfterHours` |

@@ -31,7 +31,7 @@ export default async function AdjustmentsSection() {
   ]);
 
   const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
-  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap);
+  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap, !!user?.hasProjectionsAccess);
 
   const surplusPlayers = calculateSurplus(allPlayers).filter(
     (p) => p.position !== "K"

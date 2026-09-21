@@ -65,6 +65,8 @@ export default async function ArbProgressPage() {
   ]);
 
   const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
+  // No earned value here: /arb-progress is a public route (not in
+  // PROJECTIONS_ROUTES), and earned value is a gated dollar valuation.
   const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap);
 
   const teams: TeamStatus[] = teamsRes.data ?? [];

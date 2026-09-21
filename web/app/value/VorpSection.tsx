@@ -32,7 +32,7 @@ export default async function VorpSection() {
   ]);
   const { players, replacementPpg, replacementN, salaryImpliedPpg } = calculateVorp(allPlayers);
   const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
-  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap);
+  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap, !!user?.hasProjectionsAccess);
 
   if (players.length === 0) {
     return (

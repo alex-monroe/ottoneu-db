@@ -24,7 +24,7 @@ export default async function SurplusSection() {
     getViewerTeam(),
   ]);
   const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
-  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap);
+  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap, !!user?.hasProjectionsAccess);
   const surplusPlayers = calculateSurplus(allPlayers);
 
   if (surplusPlayers.length === 0) {

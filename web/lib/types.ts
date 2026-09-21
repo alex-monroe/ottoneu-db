@@ -326,6 +326,13 @@ export interface PlayerHoverData {
   projection_method?: string;
   ds_auction_value?: number | null;
   market_auction_value?: number | null;
+  /**
+   * What this player's actual production was worth (web/lib/earned-value.ts),
+   * for the season whose stats the page is showing. Absent when the caller did
+   * not pass a full league pool — replacement level is a property of the pool,
+   * so a filtered list cannot produce an honest one.
+   */
+  earned_value?: number;
 }
 
 // === Position Constants ===

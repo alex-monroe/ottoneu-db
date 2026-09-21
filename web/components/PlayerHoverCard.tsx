@@ -74,6 +74,28 @@ export default function PlayerHoverCard({
                     {hoverData.games_played}
                   </span>
                 </div>
+                {hoverData.earned_value != null && (
+                  <div className="flex justify-between col-span-2 pt-1 border-t border-line">
+                    <span className="text-ink-subtle">
+                      Earned
+                      <span
+                        className="ml-1 cursor-help underline decoration-dotted underline-offset-2"
+                        title="What his actual production was worth, priced the same way as an auction dollar. Compare it to the salary above."
+                      >
+                        ?
+                      </span>
+                    </span>
+                    <span
+                      className={`font-mono font-medium ${
+                        hoverData.earned_value >= hoverData.price
+                          ? "text-positive"
+                          : "text-negative"
+                      }`}
+                    >
+                      ${hoverData.earned_value}
+                    </span>
+                  </div>
+                )}
                 {hoverData.projected_ppg != null && (
                   <div className="flex justify-between col-span-2 pt-1 border-t border-line">
                     <span className="text-accent font-medium">
