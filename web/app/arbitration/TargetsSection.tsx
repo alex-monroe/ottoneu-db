@@ -14,7 +14,8 @@ import {
   LEAGUE_ID,
   getHistoricalSeasonsForYear,
 } from "@/lib/analysis";
-import { getStatsSeason, getProjectionSeason } from "@/lib/season";
+import { getProjectionSeason } from "@/lib/season";
+import { getEffectiveStatsSeason } from "@/lib/stats-season";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { getViewerTeam } from "@/lib/viewer-team";
@@ -35,7 +36,7 @@ export default async function TargetsSection({ mode }: { mode: ValueMode }) {
   // Fetch adjustments in all modes (needed for indicator dot)
   const [user, statsSeason, projectionSeason, viewerTeam] = await Promise.all([
     getAuthenticatedUser(),
-    getStatsSeason(),
+    getEffectiveStatsSeason(),
     getProjectionSeason(),
     getViewerTeam(),
   ]);

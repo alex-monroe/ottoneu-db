@@ -1,0 +1,82 @@
+name: Pull Player Stats
+
+# Keeps `player_stats` current for the season being played.
+#
+# Before this workflow existed the ONLY paths into `player_stats` were manual:
+# `backfill-player-stats.yml` (workflow_dispatch) and `scripts/backfill_historical.py`.
+# Nothing scheduled ever ran `pull_player_stats`, so the table stopped at the
+# last season somebody had backfilled by hand. That is invisible all offseason
+# and breaks the site the moment the league rolls over: `stats_season` follows
+# `league_calendar` and flips to the new season at `regular_season_start`, and
+# every read that joins on it (`/players`, `/rosters`, `/value`, `/free-agents`,
+# `/projected-salary`) then finds nothing. Observed live in week 2 of 2026 —
+# a dash for PPG/Points/GP on all 1,269 players.
+#
+# The web layer now clamps back to the newest loaded season (web/lib/stats-season.ts)
+# so the pages stay populated through that gap; this workflow is what closes the
+# gap instead of papering over it.
+
+on:
+  schedule:
+    # Tuesdays 14:00 UTC (~9-10am ET), September-February only. The NFL week
+    # flips Tuesday 00:00 ET (scripts/nfl_week.py), and nflverse republishes
+    # stats_player_reg_{year}.parquet after Monday night, so Tuesday morning is
+    # the first moment a full week is available. Outside those months the season
+    # is over and the last run already captured the final numbers.
+    - cron: "0 14 * 9-12,1-2 2"
+
+  workflow_dispatch:
+    inputs:
+      seasons:
+        description: "Season year(s) to pull — space-separated. Blank = the current stats season."
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          # Runs scripts/worker.py, which imports the full app stack. Install the
+          # package WITH its pyproject-pinned dependencies so versions stay a
+          # single source of truth rather than a hand-maintained list.
+          pip install -e .
+
+      - name: Create .env
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_SECRET_KEY }}" >> .env
+
+      - name: Resolve target season
+        id: season
+        # Resolved from `league_calendar` at run time, never hardcoded — the same
+        # resolver the site uses, so the job and the pages cannot disagree about
+        # which season is current.
+        run: |
+          if [ -n "${{ inputs.seasons }}" ]; then
+            echo "seasons=${{ inputs.seasons }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "seasons=$(python -c 'from scripts.season import stats_season; print(stats_season())')" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Enqueue and run the player stats pull
+        run: |
+          echo "Pulling player_stats for: ${{ steps.season.outputs.seasons }}"
+          python scripts/enqueue.py player-stats --seasons ${{ steps.season.outputs.seasons }}
+          python scripts/worker.py

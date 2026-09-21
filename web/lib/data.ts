@@ -11,7 +11,8 @@
 
 import { supabase, fetchAllRows } from "./supabase";
 import { LEAGUE_ID } from "./config";
-import { getStatsSeason, getProjectionSeason, getSalarySnapshotDates } from "./season";
+import { getProjectionSeason, getSalarySnapshotDates } from "./season";
+import { getEffectiveStatsSeason } from "./stats-season";
 import type {
   Player,
   PlayerListItem,
@@ -98,7 +99,7 @@ async function buildSalaryMapAtDate(
  * (arb targets, simulation).
  */
 export async function fetchPlayersAtDate(salaryDate: string): Promise<Player[]> {
-  const statsSeason = await getStatsSeason();
+  const statsSeason = await getEffectiveStatsSeason();
   // Paginate players (~1,252 with ottoneu_id>0 now exceeds the 1000-row cap).
   const [players, stats, salaryMap] = await Promise.all([
     fetchAllRows((from, to) =>
@@ -162,7 +163,7 @@ export async function fetchPlayersPreArb(): Promise<Player[]> {
  * Salary comes exclusively from `league_prices`.
  */
 export async function fetchPlayers(): Promise<Player[]> {
-  const statsSeason = await getStatsSeason();
+  const statsSeason = await getEffectiveStatsSeason();
   // Paginate players (~1,252) and league_prices (~1,252) past the 1000-row cap.
   const [players, stats, prices] = await Promise.all([
     fetchAllRows((from, to) =>
@@ -216,7 +217,7 @@ export async function fetchPlayers(): Promise<Player[]> {
  * Salary comes exclusively from `league_prices` — no transaction override.
  */
 export async function fetchPlayerList(): Promise<PlayerListItem[]> {
-  const statsSeason = await getStatsSeason();
+  const statsSeason = await getEffectiveStatsSeason();
   // Paginate players (~1,252) and league_prices (~1,252) past the 1000-row cap
   // so the directory isn't silently missing ~20% of players.
   const [players, stats, prices] = await Promise.all([

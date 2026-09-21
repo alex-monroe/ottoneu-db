@@ -2,7 +2,8 @@ import {
   fetchProjectionBoard,
   getHistoricalSeasonsForYear,
 } from "@/lib/analysis";
-import { getStatsSeason, getProjectionSeason } from "@/lib/season";
+import { getProjectionSeason } from "@/lib/season";
+import { getEffectiveStatsSeason } from "@/lib/stats-season";
 import ActiveModelCard from "@/components/ActiveModelCard";
 import ProjectionsClient from "./ProjectionsClient";
 import PageShell, { PageHeader } from "@/components/PageShell";
@@ -18,13 +19,17 @@ interface Props {
 export default async function ProjectionsPage({ searchParams }: Props) {
   const params = await searchParams;
   const [statsSeason, projectionSeason] = await Promise.all([
-    getStatsSeason(),
+    getEffectiveStatsSeason(),
     getProjectionSeason(),
   ]);
 
   // Selectable projection years: the just-completed season (backtest view) and
-  // the upcoming projection season (forward-looking). Deduped when they coincide
-  // (during the in-season phase, statsSeason === projectionSeason).
+  // the upcoming projection season (forward-looking). Deduped when they
+  // coincide — which is once the season being played has actual stats loaded,
+  // not merely once it has started. Before the clamp in lib/stats-season.ts
+  // these collapsed to one option at kickoff and `isForward` went false, so the
+  // live season billed itself as a "backtest … vs. actual 2026 results" with an
+  // empty actual column for all 799 players.
   const projectionYears = Array.from(
     new Set([statsSeason, projectionSeason])
   ).sort((a, b) => a - b);
