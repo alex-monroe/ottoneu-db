@@ -1,8 +1,18 @@
 import { PositionTierData, FlexTierData, TierStat, POSITION_COLORS, Position } from '@/lib/types';
+import type { StatWindow } from '@/lib/stat-window';
 
 interface Props {
   positionTiers: PositionTierData[];
   flexTier: FlexTierData;
+  /**
+   * Which slice of season the tiers are built from.
+   *
+   * These benchmarks are the page's most quotable numbers — "the #12 WR averages
+   * 13 PPG" is the kind of line that gets repeated — and in week 2 the #12 WR is
+   * whoever had the best Sunday, not the twelfth-best receiver in football. The
+   * heading has to carry the window or the number travels without it.
+   */
+  window?: StatWindow;
 }
 
 function TierTable({ tiers }: { tiers: TierStat[] }) {
@@ -35,12 +45,29 @@ function TierTable({ tiers }: { tiers: TierStat[] }) {
   );
 }
 
-export default function PositionTierBreakdown({ positionTiers, flexTier }: Props) {
+export default function PositionTierBreakdown({ positionTiers, flexTier, window: w }: Props) {
   return (
     <section>
-      <h2 className="text-xl font-semibold mb-4 text-ink">
+      <h2 className="text-xl font-semibold text-ink">
         Position Tier Benchmarks
+        {w ? ` — ${w.label}` : ''}
       </h2>
+      <p className="mb-4 mt-1 text-sm text-ink-subtle">
+        {w && !w.complete ? (
+          <>
+            PPG and salary at each rank over {w.games} game
+            {w.games === 1 ? '' : 's'} of football. A rank this early reflects one
+            or two good afternoons as much as it reflects a tier, so read these as
+            where the season has started, not where it will finish.
+          </>
+        ) : (
+          <>
+            The PPG and the salary at each rank, computed independently: #12 PPG is
+            the twelfth-best scorer&apos;s rate, #12 salary the twelfth-highest
+            price at that position.
+          </>
+        )}
+      </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {positionTiers.map(({ position, tiers }) => (
           <div

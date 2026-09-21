@@ -9,6 +9,36 @@ import { computeReplacementLevels } from "./replacement";
 import { Player, VorpPlayer } from "./types";
 
 /**
+ * The games-played floor a pool can actually satisfy.
+ *
+ * `MIN_GAMES` (4) exists to keep a one-game fluke out of the replacement-level
+ * pool. Applied literally to a season in progress it removes *everybody*: in
+ * week 2 no player has four games, `qualified` comes back empty, and /value,
+ * /free-agents and /projected-salary each render their "no data" state on a
+ * table that is full. That is the same failure the stats-season clamp was
+ * written for, arriving by a different door — `player_stats` now gets a row for
+ * the season being played (.github/workflows/pull-player-stats.yml), so the
+ * filter starts meeting two-game seasons every autumn.
+ *
+ * So the floor is capped at the depth of the pool it is filtering. Mid-season it
+ * relaxes to "has played every game so far", which is the strictest thing the
+ * data can express; from week 4 on it is `MIN_GAMES` again and nothing changes.
+ *
+ * This is deliberately derived from the rows rather than from a StatWindow: it
+ * then fixes every caller, including the ones that never learn about windows.
+ */
+export function effectiveMinGames(players: Player[], minGames: number): number {
+    let deepest = 0;
+    for (const p of players) {
+        // College prospects carry no NFL games and bypass the filter entirely,
+        // so they must not drag the ceiling down to zero.
+        if (!p.is_college && p.games_played > deepest) deepest = p.games_played;
+    }
+    if (deepest === 0) return minGames;
+    return Math.min(minGames, deepest);
+}
+
+/**
  * Availability-adjusted per-game value used for the VORP math (#587 stage c2).
  *
  * When a player carries a projected_games estimate (set only on the projection
@@ -88,7 +118,10 @@ export function calculateVorp(
     replacementN: Record<string, number>;
     /** Diagnostic only — the superseded salary-implied baseline, for comparison. */
     salaryImpliedPpg: Record<string, number>;
+    /** The games-played floor actually applied — see {@link effectiveMinGames}. */
+    minGamesApplied: number;
 } {
+    const minGamesFloor = effectiveMinGames(players, minGames);
     // Exclude kickers from VORP analysis: they occupy a starting slot but the
     // market prices every kicker at the salary floor, so there is no surplus to
     // allocate. Excluding them here also keeps the K slot out of the lineup
@@ -96,10 +129,16 @@ export function calculateVorp(
     // College players (is_college=true) are included even with 0 games
     // when they have a projected PPG from the college_prospect method.
     const qualified = players.filter(
-        (p) => (p.games_played >= minGames || p.is_college) && p.position !== 'K'
+        (p) => (p.games_played >= minGamesFloor || p.is_college) && p.position !== 'K'
     );
     if (qualified.length === 0) {
-        return { players: [], replacementPpg: {}, replacementN: {}, salaryImpliedPpg: {} };
+        return {
+            players: [],
+            replacementPpg: {},
+            replacementN: {},
+            salaryImpliedPpg: {},
+            minGamesApplied: minGamesFloor,
+        };
     }
 
     // College prospects are held out of the baseline: they are not part of the
@@ -141,5 +180,11 @@ export function calculateVorp(
         };
     });
 
-    return { players: vorpPlayers, replacementPpg, replacementN, salaryImpliedPpg };
+    return {
+        players: vorpPlayers,
+        replacementPpg,
+        replacementN,
+        salaryImpliedPpg,
+        minGamesApplied: minGamesFloor,
+    };
 }

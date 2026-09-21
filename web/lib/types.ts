@@ -71,7 +71,11 @@ export interface EarnedValuePlayer extends Player {
   replacement_points: number;
   points_above_replacement: number;
   earned_value: number;
+  /** Salary the spot has cost over the window; equals `price` on a full season. */
+  salary_to_date: number;
   realized_surplus: number;
+  /** Dollars earned per dollar paid, or null for an unpriced spot. */
+  return_on_salary: number | null;
 }
 
 export interface ArbitrationTarget extends SurplusPlayer {

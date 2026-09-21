@@ -228,6 +228,101 @@ this league — but the sharper measure is available to us and to almost nobody 
 
 ---
 
+## 4a. The stat window: reading any of this mid-season
+
+`web/lib/stat-window.ts` · `<StatWindowNote>` · `<StatWindowPicker>`
+
+Everything above was written when `player_stats` only ever held **finished** seasons, so no number
+on the site needed a caveat about its sample. That stopped being true when
+[`pull-player-stats.yml`](../../.github/workflows/pull-player-stats.yml) started running every
+Tuesday during the season: the table now carries a row for the season being played, and because it
+is keyed `(player_id, season)` and holds season-**to-date** totals, a two-game row is
+indistinguishable in shape from a seventeen-game one. The same code that said *"the #12 WR averaged
+13.4 PPG last year"* says the same sentence off two Sundays, with the same confidence.
+
+A `StatWindow` makes that explicit and travels with the numbers it describes:
+
+| Field | Source | Why that source |
+| --- | --- | --- |
+| `complete` | the season cycle (`season.ts`) | The calendar is the authority on whether a season is over. Deriving it here — rather than from row contents — is what guarantees a finished season always takes the no-op path. |
+| `games` | the rows themselves (p90 of `games_played`) | The scale can then never disagree with the numbers it scales. If the stats pull is a week behind the schedule, the window is a week behind too, which is correct. A percentile rather than the max so one stale row cannot claim a finished season. |
+| `weeksPlayed` | `league_matchups` | Used **only** in the human sentence, so a disagreement between the schedule and the stats table is cosmetic. |
+| `fraction` | `games / FULL_SEASON_GAMES` | The single scale factor the dollar math applies. |
+
+### The invariant everything rests on
+
+**`fraction === 1` is a strict no-op.** Every window-aware formula reduces to exactly the arithmetic
+it did before the module existed, so the retrospective pages cannot change behaviour. One code path,
+not two. Guarded by `__tests__/lib/stat-window.test.ts` ("the no-op guarantee") and by the fact that
+all of `surplus-economy.test.ts` and `earned-value.test.ts` still pass unchanged.
+
+### What actually changes in a partial window
+
+Only two things, and both live in one place each:
+
+1. **The pot is prorated** — `distributableCap(fraction)`. Through two of seventeen games the league
+   has earned two seventeenths of its cap, not all of it. Pricing a fortnight of points against the
+   whole $4,560 would hand out a full season's money for two Sundays.
+2. **The salary is prorated to match** — `salary_to_date = price × fraction`. This is the one that
+   matters. Setting a fortnight of earnings against a full year's price is the single comparison
+   that would make the whole view lie.
+
+Because both sides take the same factor, mid-season `realized_surplus` is exactly `fraction ×` what
+it would be at full scale: **the ranking and the sign never move, only the units.** That is why the
+small dollar figures in week 2 are safe to read, and why a little imprecision in `fraction` (bye
+weeks make it a slight overestimate from week 5 on) cannot mislead — it scales both sides equally.
+
+It is also why `return_on_salary` — dollars earned per dollar paid, 1.00 being break-even — is the
+column to read off a small sample. Being a ratio it is free of the scale entirely, so it is the same
+number whether you are looking at two weeks or a whole season.
+
+### What is deliberately *not* rescaled
+
+`full_season_vorp` stays `VORP/G × 17` in every window. The factor cancels out of the dollar
+conversion (§3), so shortening it would change how VORP reads on screen without changing what anyone
+is worth — and the field name would start lying. The VORP and Surplus panels instead **say** that
+their figures are full-season claims resting on however much football the window holds, and point at
+the Earned tab, whose arithmetic is confined to what has actually been played.
+
+### The games floor had to move too
+
+`MIN_GAMES` is 4, and applied literally to a season in progress it removes *everybody*: in week 2 no
+player has four games, so `calculateVorp` returned an empty pool and `/value`, `/free-agents` and
+`/projected-salary` each rendered a "no data" state over a table that was full. This is the same
+class of failure the [stats-season clamp](../../web/lib/stats-season.ts) was written for, arriving by
+a different door.
+
+`effectiveMinGames()` caps the floor at the depth of the pool it is filtering. Mid-season it relaxes
+to "has played every game so far"; from week 4 on it is `MIN_GAMES` again and nothing changes. It is
+derived from the rows rather than from a `StatWindow` **on purpose**, so it protects every caller —
+including the ones that never learn windows exist.
+
+### Where it surfaces
+
+- `/value` grows an **Earned** tab, which leads the tab order while a season is in progress because
+  it is the only panel there that makes no claim about football that has not happened yet. It
+  carries a per-team scoreboard — what each roster's salary has actually bought — which is the
+  in-season read on the shape of the league.
+- `/value` and `/players?tab=efficiency` both take a `?season=` picker, because during the season
+  "what has happened so far" and "what happened last year" are different questions.
+- `<StatWindowNote>` states the sample on every panel that reads production. It renders **nothing**
+  for a finished season: there is no caveat to make.
+- The min-games slider on the efficiency scatter stops at the games played, rather than at 17 where
+  fifteen of its stops would simply blank the chart.
+- MCP `get_earned_value` returns a `stat_window` block with an explicit caveat. This matters more
+  there than anywhere: a caller reading `earned_value: 142` cannot tell a finished season from two
+  Sundays, and will state it as settled fact either way.
+
+### When it turns on
+
+The in-season path activates the moment `player_stats` holds a row for the season being played —
+i.e. after the first Tuesday `pull-player-stats.yml` run of the season. Until then the
+[stats-season clamp](../../web/lib/stats-season.ts) keeps the site on the last finished season,
+every window is `complete`, and the site looks exactly as it did. Nothing needs deploying to switch
+over; a `workflow_dispatch` run of **Pull Player Stats** brings it forward by hand.
+
+---
+
 ## 5. What this unlocks
 
 Three things that were not previously computable:

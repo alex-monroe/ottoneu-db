@@ -158,3 +158,63 @@ describe("calculateVorp — availability adjustment (#587 c2)", () => {
             .toBeCloseTo(b.find((p) => p.player_id === "n")!.vorp_per_game, 5);
     });
 });
+
+describe("effectiveMinGames — the games floor a partial season can satisfy", () => {
+    /**
+     * The failure this prevents: `MIN_GAMES` is 4, and `pull-player-stats.yml`
+     * now writes a `player_stats` row for the season being played. In week 2 no
+     * player has four games, so a literal filter qualified nobody, `calculateVorp`
+     * returned an empty pool, and /value, /free-agents and /projected-salary each
+     * rendered a "no data" state over a table that was full.
+     *
+     * The clamp is derived from the rows rather than from a StatWindow on purpose,
+     * so it protects every caller — including the ones that never learn windows
+     * exist.
+     */
+    test("relaxes the floor to the deepest player in a two-game season", () => {
+        const players = [
+            makePlayer({ player_id: "a", position: "RB", ppg: 20, games_played: 2 }),
+            makePlayer({ player_id: "b", position: "RB", ppg: 10, games_played: 2 }),
+            makePlayer({ player_id: "c", position: "WR", ppg: 14, games_played: 1 }),
+        ];
+        const { players: result, minGamesApplied } = calculateVorp(players, 4);
+        expect(minGamesApplied).toBe(2);
+        // Not empty — which is the whole point.
+        expect(result.map((p) => p.player_id).sort()).toEqual(["a", "b"]);
+    });
+
+    test("leaves the floor alone once the season is deep enough", () => {
+        const players = [
+            makePlayer({ player_id: "a", position: "RB", ppg: 20, games_played: 2 }),
+            makePlayer({ player_id: "b", position: "RB", ppg: 10, games_played: 10 }),
+        ];
+        const { minGamesApplied } = calculateVorp(players, 4);
+        expect(minGamesApplied).toBe(4);
+    });
+
+    test("is not dragged to zero by college prospects", () => {
+        // Prospects carry no NFL games and bypass the filter anyway; letting them
+        // set the ceiling would drop the floor to 0 and admit every one-game fluke.
+        const players = [
+            makePlayer({
+                player_id: "prospect",
+                position: "RB",
+                ppg: 12,
+                games_played: 0,
+                is_college: true,
+            }),
+            makePlayer({ player_id: "a", position: "RB", ppg: 20, games_played: 9 }),
+            makePlayer({ player_id: "b", position: "RB", ppg: 4, games_played: 1 }),
+        ];
+        const { players: result, minGamesApplied } = calculateVorp(players, 4);
+        expect(minGamesApplied).toBe(4);
+        expect(result.map((p) => p.player_id).sort()).toEqual(["a", "prospect"]);
+    });
+
+    test("falls back to the requested floor when nobody has played", () => {
+        const players = [
+            makePlayer({ player_id: "a", position: "RB", games_played: 0 }),
+        ];
+        expect(calculateVorp(players, 4).minGamesApplied).toBe(4);
+    });
+});

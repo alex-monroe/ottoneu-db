@@ -3,11 +3,21 @@
 import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, Legend } from 'recharts'
 import { useState } from 'react'
 import { ChartPoint, TooltipProps, Position, POSITIONS, POSITION_COLORS } from '@/lib/types'
+import { FULL_SEASON_GAMES } from '@/lib/config'
 import PositionFilter from './PositionFilter'
 
 interface ScatterChartProps {
     data: ChartPoint[]
     onMinGamesChange?: (n: number) => void
+    /**
+     * Upper bound for the min-games slider. Defaults to a full NFL season.
+     *
+     * Mid-season the slider has to stop at the games that have been played: left
+     * at 17 in week 2, fifteen of its seventeen stops empty the chart, and a
+     * filter whose only effect is to blank the page reads as a broken control
+     * rather than as "nobody has that many games yet".
+     */
+    maxGames?: number
 }
 
 const CustomTooltip = ({ active, payload, metric }: TooltipProps & { metric?: 'PPG' | 'PPS' }) => {
@@ -41,7 +51,11 @@ const CustomTooltip = ({ active, payload, metric }: TooltipProps & { metric?: 'P
     return null
 }
 
-export default function PlayerScatterChart({ data, onMinGamesChange }: ScatterChartProps) {
+export default function PlayerScatterChart({
+    data,
+    onMinGamesChange,
+    maxGames = FULL_SEASON_GAMES,
+}: ScatterChartProps) {
     // Basic interaction state if needed, simpler to just use Recharts default for now.
     // Group data by position for the legend to work naturally with colors
     const [selectedPositions, setSelectedPositions] = useState<Position[]>([...POSITIONS]);
@@ -84,13 +98,18 @@ export default function PlayerScatterChart({ data, onMinGamesChange }: ScatterCh
                     </div>
 
                     <div className="flex items-center gap-2 bg-sunken px-3 py-2 rounded-lg border border-line">
-                        <label htmlFor="min-games-range" className="text-sm font-medium text-ink-muted">Min Games: {minGames}</label>
+                        <label htmlFor="min-games-range" className="text-sm font-medium text-ink-muted">
+                            Min Games: {minGames}
+                            {maxGames < FULL_SEASON_GAMES && (
+                                <span className="text-ink-subtle"> / {maxGames}</span>
+                            )}
+                        </label>
                         <input
                             id="min-games-range"
                             type="range"
                             min="0"
-                            max="17"
-                            value={minGames}
+                            max={maxGames}
+                            value={Math.min(minGames, maxGames)}
                             onChange={(e) => { const n = Number(e.target.value); setMinGames(n); onMinGamesChange?.(n) }}
                             className="w-24 accent-blue-600"
                             aria-label="Minimum Games Played"

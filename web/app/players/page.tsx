@@ -1,8 +1,14 @@
-import { fetchPlayerList, fetchPlayers } from "@/lib/data";
+import {
+    fetchPlayerList,
+    fetchPlayerSet,
+    listStatWindowSeasons,
+} from "@/lib/data";
 import PlayerSearch from "@/components/PlayerSearch";
 import PlayerEfficiencyClient from "@/components/PlayerEfficiencyClient";
+import StatWindowNote from "@/components/StatWindowNote";
+import StatWindowPicker from "@/components/StatWindowPicker";
 import Tabs from "@/components/Tabs";
-import { ChartPoint } from "@/lib/types";
+import type { ChartPoint, Player } from "@/lib/types";
 import PageShell from "@/components/PageShell";
 
 export const revalidate = 3600; // Revalidate every hour
@@ -13,7 +19,7 @@ export const metadata = {
 };
 
 /** Build the salary-vs-production scatter points (skips zero-PPG players). */
-function buildEfficiencyData(players: Awaited<ReturnType<typeof fetchPlayers>>): ChartPoint[] {
+function buildEfficiencyData(players: Player[]): ChartPoint[] {
     return players
         .map((player) => {
             const ppg = player.ppg;
@@ -41,16 +47,28 @@ function buildEfficiencyData(players: Awaited<ReturnType<typeof fetchPlayers>>):
 }
 
 interface Props {
-    searchParams: Promise<{ tab?: string }>;
+    searchParams: Promise<{ tab?: string; season?: string }>;
 }
 
 export default async function PlayersPage({ searchParams }: Props) {
-    const { tab } = await searchParams;
-    const [players, efficiencyPlayers] = await Promise.all([
+    const { tab, season } = await searchParams;
+
+    // The efficiency chart and the tier benchmarks are a read of one season's
+    // production, so they get the same season switch /value has: during the
+    // season, "what has happened so far" and "what happened last year" are
+    // different questions and a manager wants to see both.
+    const seasons = await listStatWindowSeasons();
+    const requested = Number(season);
+    const chosen = seasons.includes(requested) ? requested : seasons[0];
+
+    const [players, { players: efficiencyPlayers, window }] = await Promise.all([
         fetchPlayerList(),
-        fetchPlayers(),
+        fetchPlayerSet(chosen),
     ]);
     const efficiencyData = buildEfficiencyData(efficiencyPlayers);
+    const seasonLabels: Record<number, string> = Object.fromEntries(
+        seasons.map((s) => [s, s === window.season ? window.shortLabel : String(s)]),
+    );
 
     const directory = (
         <div className="space-y-6">
@@ -69,16 +87,27 @@ export default async function PlayersPage({ searchParams }: Props) {
 
     const efficiency = (
         <div className="space-y-8">
-            <header>
-                <h2 className="text-2xl font-bold tracking-tight text-ink">
-                    Player Efficiency
-                </h2>
-                <p className="text-ink-subtle mt-2">
-                    Salary vs. production (Points Per Game or Points Per Snap).
-                </p>
+            <header className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold tracking-tight text-ink">
+                        Player Efficiency — {window.label}
+                    </h2>
+                    <p className="text-ink-subtle mt-2">
+                        Salary vs. production (Points Per Game or Points Per Snap).
+                    </p>
+                </div>
+                {seasons.length > 1 && (
+                    <StatWindowPicker
+                        seasons={seasons}
+                        current={window.season}
+                        labels={seasonLabels}
+                    />
+                )}
             </header>
 
-            <PlayerEfficiencyClient data={efficiencyData} />
+            <StatWindowNote window={window} what="rates" />
+
+            <PlayerEfficiencyClient data={efficiencyData} window={window} />
 
             <section className="bg-sunken rounded-lg p-6 border border-line">
                 <h3 className="text-lg font-semibold mb-4 text-ink">Analysis Notes</h3>

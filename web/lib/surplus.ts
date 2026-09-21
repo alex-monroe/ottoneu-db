@@ -27,11 +27,25 @@ import { calculateVorp } from "./vorp";
  * Ottoneu auction distributes only the *uncommitted* cap (the rest is tied up
  * in keepers), so in-year auction prices run below these values by whatever
  * share of the cap is already committed. See docs/references/player-valuation.md.
+ *
+ * ## Prorating to a partial season
+ *
+ * `fraction` scales the pot to the slice of season being priced — the stat
+ * window's `fraction` (web/lib/stat-window.ts). A full season passes 1 and this
+ * is the arithmetic above, unchanged.
+ *
+ * Through two weeks of a season the league has not yet spent its cap on
+ * production; it has spent two seventeenths of it. Pricing two weeks of points
+ * against the whole $4,560 would hand out a full season's money for a fortnight
+ * of football, and every value on screen would read as a season-long figure
+ * nobody has earned yet. Scaling the pot instead keeps the dollars denominated
+ * in *what has happened so far*, which is the only frame in which they can be
+ * set beside the salary paid so far and compared honestly.
  */
-export function distributableCap(): number {
+export function distributableCap(fraction: number = 1): number {
     const leagueCap = NUM_TEAMS * CAP_PER_TEAM;
     const salaryFloor = NUM_TEAMS * ROSTER_SPOTS * MIN_PLAYER_SALARY;
-    return leagueCap - salaryFloor;
+    return (leagueCap - salaryFloor) * fraction;
 }
 
 /**

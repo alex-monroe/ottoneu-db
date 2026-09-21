@@ -40,6 +40,9 @@ Strategy and format economics: [references/ottoneu-strategy.md](references/otton
 | **Dollar value** | VORP converted into auction dollars: the **distributable cap** (league cap minus the $1 floor on every roster spot) split across all positive VORP, plus $1. Values sum to the league cap by construction — an auction is a closed economy. `web/lib/surplus.ts`. |
 | **Surplus value** | `dollar_value − salary`. Positive means a bargain, negative means overpaid. This is the number most roster decisions turn on. Implemented in `web/lib/surplus.ts`. |
 | **Earned value** | The retrospective twin of dollar value: the same conversion run on **actual** season points instead of projections (the FanGraphs "Player Rater" idea). Availability is observed, not modelled — a player who missed half a season earned half the money. `web/lib/earned-value.ts`. |
+| **Stat window** | How much football is behind a production number: a finished season (17 games) or however much of a season in progress has been played. `player_stats` is keyed `(player_id, season)` and holds season-**to-date** totals, so a two-game row looks exactly like a seventeen-game one — the window is what tells them apart, and what the dollar math is prorated by. `web/lib/stat-window.ts`. |
+| **Paid so far** (`salary_to_date`) | The share of a salary a roster spot has cost over the window: `price × fraction`. Mid-season earned value must be compared against this, not against the full-season price — a fortnight of points set against a year's salary flatters every player on the board. |
+| **Return on salary** | Dollars earned per dollar paid; 1.00 is break-even. A **ratio**, so it is unaffected by how much of the season is in view — which makes it the one earned-value figure worth quoting off a small sample. |
 | **Realized surplus** | `earned_value − the salary actually paid that season`. The after-the-fact grade on an auction buy, an arbitration dollar, or a keep/cut call — as opposed to `surplus`, which is a forecast. |
 | **The Witchcraft** | The repo owner's team. Some views (e.g. `/projected-salary`) are written from its perspective. |
 
@@ -115,7 +118,7 @@ reasoning behind it is in
 |---|---|---|
 | League constants | `scripts/config.py` | `web/lib/config.ts` |
 | Scoring rules | `scripts/feature_projections/external_sources/scoring.py` | `web/lib/scoring.ts` |
-| VORP / surplus / earned value | — (lives in TypeScript) | `web/lib/replacement.ts`, `web/lib/vorp.ts`, `web/lib/surplus.ts`, `web/lib/earned-value.ts` |
+| VORP / surplus / earned value | — (lives in TypeScript) | `web/lib/replacement.ts`, `web/lib/vorp.ts`, `web/lib/surplus.ts`, `web/lib/earned-value.ts`, `web/lib/stat-window.ts` |
 | Features | `scripts/feature_projections/features/` | — |
 | Model definitions | `scripts/feature_projections/model_config.py` | — |
 | Evaluation harness | `scripts/feature_projections/holdout_eval.py`, `significance.py` | — |

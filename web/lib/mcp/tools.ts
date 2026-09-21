@@ -33,6 +33,7 @@ import {
   fetchPlayerProjection,
   fetchDraftSharksValue,
   fetchPlayersEndOfSeason,
+  fetchPlayerSetEndOfSeason,
   fetchPlayersPreArb,
   fetchActiveProjectionModel,
   fetchDraftSharksMap,
@@ -571,8 +572,13 @@ async function getEarnedValue(rawArgs: unknown): Promise<McpToolResult> {
   const limit = clampLimit(args.limit, 25, 100);
   // End-of-season salaries predate the +$4/+$1 bump, so this compares a
   // player's production against the price he was actually carried at.
-  const players = await fetchPlayersEndOfSeason();
-  const earned = calculateEarnedValue(players);
+  //
+  // The window matters more here than anywhere else on the site. A caller reading
+  // "earned_value: 142" has no way to tell a finished season from two Sundays, and
+  // will state it as a settled fact either way — so the dollars are prorated to
+  // the football actually played and the payload says how much that is.
+  const { players, window } = await fetchPlayerSetEndOfSeason();
+  const earned = calculateEarnedValue(players, window);
   const sortKey = args.sort ?? "earned_value";
 
   const rows = earned
@@ -586,12 +592,26 @@ async function getEarnedValue(rawArgs: unknown): Promise<McpToolResult> {
 
   return jsonResult({
     methodology:
-      `Retrospective ("Player Rater") value from actual season points, not projections: ` +
-      `season totals ranked within position, baselined at the marginal ownable player, ` +
-      `then the distributable cap ($${distributableCap()}) split across production above that ` +
-      `baseline. Availability is observed rather than modelled — a player who missed time ` +
-      `earned less. realized_surplus = earned_value − the salary actually paid that season. ` +
-      `Counts points scored on a bench, since it works from season totals.`,
+      `Retrospective ("Player Rater") value from actual points scored, not projections: ` +
+      `totals ranked within position, baselined at the marginal ownable player, ` +
+      `then the distributable cap ($${round(distributableCap(window.fraction))}) split across ` +
+      `production above that baseline. Availability is observed rather than modelled — a ` +
+      `player who missed time earned less. realized_surplus = earned_value − salary_to_date. ` +
+      `Counts points scored on a bench, since it works from totals.`,
+    stat_window: {
+      season: window.season,
+      label: window.label,
+      complete: window.complete,
+      games_of_17: window.games,
+      weeks_played: window.weeksPlayed,
+      caveat: window.complete
+        ? `A finished season: these dollars are a full season's worth and salary_to_date is the whole salary.`
+        : `${window.season} is still being played. Every dollar here is prorated to the ` +
+          `${window.games} game(s) played so far — both earned_value and salary_to_date — so ` +
+          `they are NOT full-season figures and must not be quoted as though they were. ` +
+          `Ranks off this few games are mostly noise. return_on_salary (dollars earned per ` +
+          `dollar paid) is scale-free and the only figure here worth quoting directly.`,
+    },
     count: rows.length,
     players: rows.map((p) => ({
       name: p.name,
@@ -599,8 +619,10 @@ async function getEarnedValue(rawArgs: unknown): Promise<McpToolResult> {
       nfl_team: p.nfl_team,
       fantasy_team: p.team_name,
       salary: p.price,
+      salary_to_date: p.salary_to_date,
       earned_value: p.earned_value,
       realized_surplus: p.realized_surplus,
+      return_on_salary: p.return_on_salary,
       total_points: round(p.total_points),
       points_above_replacement: p.points_above_replacement,
       games_played: p.games_played,
@@ -1018,7 +1040,7 @@ export const MCP_TOOLS: McpToolDef[] = [
   {
     name: "get_earned_value",
     description:
-      "Retrospective auction value: what each player was actually worth based on the points he scored, versus the salary he was carried at. The after-the-fact grade on an auction buy, an arbitration dollar, or a keep/cut call — use get_player_values for the forward-looking projection instead.",
+      "Retrospective auction value: what each player was actually worth based on the points he scored, versus the salary he was carried at. The after-the-fact grade on an auction buy, an arbitration dollar, or a keep/cut call — use get_player_values for the forward-looking projection instead. Mid-season the dollars are prorated to the games played so far, on both sides; read stat_window before quoting any figure from it, and prefer return_on_salary, which is scale-free.",
     schema: getEarnedValueShape,
     handler: getEarnedValue,
   },
