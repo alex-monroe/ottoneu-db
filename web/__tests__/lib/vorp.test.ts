@@ -81,28 +81,36 @@ describe("calculateVorp — edge cases", () => {
     });
 
     test("player below replacement has negative VORP", () => {
-        // 30 RBs rostered: 6 bottom-quartile at $1 with mixed ppg, 24 above.
-        // Below-replacement player's ppg < replacement threshold.
+        // 90 RBs, strictly descending in PPG. With RB the only position in the
+        // pool it absorbs every contested slot, so leaguewide demand is
+        // 12 × (2 starters + 1 flex + 2 depth) = 60 — well inside a 90-deep
+        // pool, which puts the baseline at a real player rather than clamping
+        // to the worst one.
         const players: Player[] = [];
-        for (let i = 0; i < 30; i++) {
+        for (let i = 0; i < 90; i++) {
+            const ppg = 50 - i * 0.5;
             players.push(
                 makePlayer({
                     player_id: `rb${i}`,
                     position: "RB",
                     team_name: "Team A",
-                    price: i < 8 ? 1 : 30 + i,
-                    ppg: i < 8 ? 5 + i * 0.5 : 15 + i * 0.3,
+                    price: Math.max(1, 60 - i),
+                    ppg,
                     games_played: 16,
-                    total_points: (i < 8 ? 5 + i * 0.5 : 15 + i * 0.3) * 16,
+                    total_points: ppg * 16,
                 })
             );
         }
-        const { players: result, replacementPpg } = calculateVorp(players);
+        const { players: result, replacementPpg, replacementN } = calculateVorp(players);
 
+        expect(replacementN.RB).toBe(60);
         expect(replacementPpg.RB).toBeGreaterThan(0);
-        const cheap = result.find((p) => p.player_id === "rb0")!;
-        expect(cheap.vorp_per_game).toBeLessThan(0);
-        expect(cheap.full_season_vorp).toBeLessThan(0);
+        // rb0 is the best RB — comfortably above replacement.
+        expect(result.find((p) => p.player_id === "rb0")!.vorp_per_game).toBeGreaterThan(0);
+        // rb89 is the worst — below it.
+        const worst = result.find((p) => p.player_id === "rb89")!;
+        expect(worst.vorp_per_game).toBeLessThan(0);
+        expect(worst.full_season_vorp).toBeLessThan(0);
     });
 
     test("rounds vorp_per_game to 2 decimals and full_season_vorp to 1 decimal", () => {

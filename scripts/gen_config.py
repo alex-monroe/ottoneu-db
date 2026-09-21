@@ -47,7 +47,9 @@ TS_OVERRIDES: Dict[str, str] = {
         '["QB", "RB", "WR", "TE", "K"];'
     ),
     "COLLEGE_POSITIONS": "export const COLLEGE_POSITIONS: readonly string[] = config.COLLEGE_POSITIONS;",
-    "REPLACEMENT_LEVEL": "export const REPLACEMENT_LEVEL: Record<string, number> = config.REPLACEMENT_LEVEL;",
+    # Starters-per-team by position, indexed by an arbitrary position string.
+    "STARTING_LINEUP": "export const STARTING_LINEUP: Record<string, number> = config.STARTING_LINEUP;",
+    "FLEX_POSITIONS": "export const FLEX_POSITIONS: readonly string[] = config.FLEX_POSITIONS;",
 }
 
 

@@ -36,8 +36,11 @@ Strategy and format economics: [references/ottoneu-strategy.md](references/otton
 | **PPS** | Points per snap — `total_points / snaps`. An efficiency measure independent of playing time. |
 | **Replacement level** | The production a team could get for free at a position. Here it is the *median* starter-quality player at that position across the league, not a fixed rank. |
 | **VORP** | Value Over Replacement Player — `ppg − replacement_ppg` at the player's position. Turns raw scoring into positional scarcity. Kickers are excluded. Implemented in `web/lib/vorp.ts`. |
-| **Dollar value** | VORP converted into auction dollars, by dividing the league's total spendable cap on above-replacement production by its total VORP. |
+| **Replacement level** | The **marginal ownable player**: leaguewide demand derived from the lineup (`NUM_TEAMS × STARTING_LINEUP`) plus bye/injury depth (`BENCH_DEPTH_PER_TEAM`), with the superflex and depth slots allocated to whichever position offers the best next player. In this format QB demand lands at 24, which is where the Superflex QB premium comes from — it is computed, not assumed. `web/lib/replacement.ts`. |
+| **Dollar value** | VORP converted into auction dollars: the **distributable cap** (league cap minus the $1 floor on every roster spot) split across all positive VORP, plus $1. Values sum to the league cap by construction — an auction is a closed economy. `web/lib/surplus.ts`. |
 | **Surplus value** | `dollar_value − salary`. Positive means a bargain, negative means overpaid. This is the number most roster decisions turn on. Implemented in `web/lib/surplus.ts`. |
+| **Earned value** | The retrospective twin of dollar value: the same conversion run on **actual** season points instead of projections (the FanGraphs "Player Rater" idea). Availability is observed, not modelled — a player who missed half a season earned half the money. `web/lib/earned-value.ts`. |
+| **Realized surplus** | `earned_value − the salary actually paid that season`. The after-the-fact grade on an auction buy, an arbitration dollar, or a keep/cut call — as opposed to `surplus`, which is a forecast. |
 | **The Witchcraft** | The repo owner's team. Some views (e.g. `/projected-salary`) are written from its perspective. |
 
 ---
@@ -112,7 +115,7 @@ reasoning behind it is in
 |---|---|---|
 | League constants | `scripts/config.py` | `web/lib/config.ts` |
 | Scoring rules | `scripts/feature_projections/external_sources/scoring.py` | `web/lib/scoring.ts` |
-| VORP / surplus | — (lives in TypeScript) | `web/lib/vorp.ts`, `web/lib/surplus.ts` |
+| VORP / surplus / earned value | — (lives in TypeScript) | `web/lib/replacement.ts`, `web/lib/vorp.ts`, `web/lib/surplus.ts`, `web/lib/earned-value.ts` |
 | Features | `scripts/feature_projections/features/` | — |
 | Model definitions | `scripts/feature_projections/model_config.py` | — |
 | Evaluation harness | `scripts/feature_projections/holdout_eval.py`, `significance.py` | — |

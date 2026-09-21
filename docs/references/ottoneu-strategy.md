@@ -31,22 +31,30 @@ accounting for raises, arbitration, and roster-spot scarcity?"*
 Raw projected points rank players. **Surplus value ranks *roster decisions*.** A player is only an
 asset to the degree his production is worth more than what he costs.
 
-This repo computes it concretely (`web/lib/surplus.ts`, `web/lib/vorp.ts`):
+This repo computes it concretely (`web/lib/replacement.ts`, `web/lib/vorp.ts`,
+`web/lib/surplus.ts` — full derivation in [player-valuation.md](player-valuation.md)):
 
-1. **VORP** — points per game above positional replacement level. Replacement level is the *median
-   PPG of the bottom-salary quartile of rostered players at that position* (a "market consensus"
-   replacement, not a fixed rank). Kickers are excluded from VORP.
-2. **Dollar value** — total positive VORP across the league is mapped onto the *spendable* cap:
+1. **VORP** — points per game above positional replacement level. Replacement level is the
+   *marginal ownable player*: leaguewide demand is derived from the lineup (starting slots plus
+   bye/injury depth), with the superflex and depth slots allocated to whichever position offers
+   the best next player. In this format that puts QB demand at 24 (see §3 — the premium is
+   computed, not assumed). Kickers are excluded from VORP. How deep the pool goes
+   (`BENCH_DEPTH_PER_TEAM`) is the one calibration knob; see
+   [player-valuation.md](player-valuation.md).
+2. **Dollar value** — the league's spendable money is mapped onto total positive VORP:
    ```
-   total nominal cap   = 12 teams × $400        = $4,800
-   spendable-on-surplus = $4,800 × 0.875         = $4,200   ← the 0.875 is from web/lib/surplus.ts
-   dollar_per_VORP      = $4,200 / Σ(positive full-season VORP)
+   league cap      = 12 teams × $400            = $4,800
+   salary floor    = (12 × 20 spots) × $1       =   $240   ← every spot must be filled
+   distributable   = $4,800 − $240              = $4,560
+   dollar_per_VORP = $4,560 / Σ(positive full-season VORP)
+   dollar_value    = $1 + (VORP × dollar_per_VORP)
    ```
-   The full league cap is **$4,800**. The `0.875` factor assumes ~87.5% of cap chases
-   above-replacement production; the remaining ~12.5% (~$600) is the $1 minimum-salary floor every
-   team pays for replacement-level roster filler, which isn't bidding on VORP. So `$4,200` is
-   "spendable-on-surplus cap," **not** the total cap.
+   An auction is a closed economy, so values sum to exactly the league cap. A player at or below
+   replacement is worth the $1 floor and nothing more.
 3. **Surplus = dollar_value − salary.**
+
+These are *full-reset* values — what the league would pay if every contract cleared at once. A
+real in-year auction only distributes the **uncommitted** cap, so observed clears run lower.
 
 **Keep/cut thresholds used in the app** (`analyzeProjectedSalary`):
 `surplus ≥ +10` Strong Keep · `≥ 0` Keep · `≥ −5` Borderline · `< −5` Cut Candidate.
