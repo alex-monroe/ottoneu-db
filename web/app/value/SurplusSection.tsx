@@ -3,24 +3,31 @@ import {
   buildHoverDataMap,
   calculateSurplus,
 } from "@/lib/analysis";
-import { getEffectiveStatsSeason } from "@/lib/stats-season";
 import { fetchPlayersEndOfSeason } from "@/lib/data";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { getViewerTeam } from "@/lib/viewer-team";
+import type { StatWindow } from "@/lib/stat-window";
 import SurplusTables from "./SurplusTables";
 import { EmptyState } from "@/components/states";
 import DataFreshness from "@/components/DataFreshness";
+import StatWindowNote from "@/components/StatWindowNote";
 
 /**
  * Surplus value rankings panel (bargains, overpaid, my team, FAs, team summary).
  * Fetches + computes server-side and hands serializable data to the client
  * SurplusTables (which builds the function-bearing columns).
+ *
+ * The dollar values here are a **full-season price** — what the market would pay
+ * for a player producing at the rate on record. Over a finished season that is a
+ * settled figure. Mid-season it is a season-long claim resting on however much
+ * football the window holds, which is a forecast in retrospective clothing, so
+ * the panel says so and points at the Earned tab, whose arithmetic is confined to
+ * what has actually been played.
  */
-export default async function SurplusSection() {
-  const [allPlayers, user, statsSeason, viewerTeam] = await Promise.all([
-    fetchPlayersEndOfSeason(),
+export default async function SurplusSection({ window: w }: { window: StatWindow }) {
+  const [allPlayers, user, viewerTeam] = await Promise.all([
+    fetchPlayersEndOfSeason(w.season),
     getAuthenticatedUser(),
-    getEffectiveStatsSeason(),
     getViewerTeam(),
   ]);
   const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
@@ -100,7 +107,7 @@ export default async function SurplusSection() {
     <div className="space-y-8">
       <header>
         <h2 className="text-2xl font-bold tracking-tight text-ink">
-          Surplus Value Rankings ({statsSeason})
+          Surplus Value Rankings ({w.label})
         </h2>
         <p className="text-ink-subtle mt-2">
           Dollar value (from VORP) minus current salary. Positive surplus =
@@ -108,6 +115,16 @@ export default async function SurplusSection() {
         </p>
         <DataFreshness source="rosters" className="mt-1" />
       </header>
+
+      <StatWindowNote window={w} what="values" />
+      {!w.complete && (
+        <p className="text-sm text-ink-subtle">
+          These are full-season prices implied by {w.games} game
+          {w.games === 1 ? "" : "s"} of production — what a player would be worth
+          if he kept this up all year. For what the salaries have earned so far,
+          with no assumption about the rest of the season, see the Earned tab.
+        </p>
+      )}
 
       <SurplusTables
         bestBargains={bestBargains}

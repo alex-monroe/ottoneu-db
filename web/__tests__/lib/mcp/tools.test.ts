@@ -31,6 +31,7 @@ jest.mock("@/lib/data", () => ({
     fetchPlayerProjection: jest.fn(),
     fetchDraftSharksValue: jest.fn(),
     fetchPlayersEndOfSeason: jest.fn(),
+    fetchPlayerSetEndOfSeason: jest.fn(),
     fetchPlayersPreArb: jest.fn(),
     fetchActiveProjectionModel: jest.fn(),
     fetchDraftSharksMap: jest.fn(),
@@ -77,6 +78,7 @@ import {
     fetchPlayerProjection,
     fetchDraftSharksValue,
     fetchPlayersEndOfSeason,
+    fetchPlayerSetEndOfSeason,
     fetchPlayersPreArb,
     fetchActiveProjectionModel,
     fetchDraftSharksMap,
@@ -91,6 +93,7 @@ import {
     fetchPlayerWeeklyProjections,
 } from "@/lib/weekly-projections";
 import { getDisplayWeeks } from "@/lib/nfl-week";
+import { buildStatWindow, fullSeasonWindow } from "@/lib/stat-window";
 
 const mockWeeklyBoard = fetchWeeklyBoard as jest.MockedFunction<typeof fetchWeeklyBoard>;
 const mockWeeklyAsOf = fetchWeeklyAsOf as jest.MockedFunction<typeof fetchWeeklyAsOf>;
@@ -106,6 +109,9 @@ const mockPlayerDetail = fetchPlayerDetail as jest.MockedFunction<typeof fetchPl
 const mockPlayerProjection = fetchPlayerProjection as jest.MockedFunction<typeof fetchPlayerProjection>;
 const mockDraftSharks = fetchDraftSharksValue as jest.MockedFunction<typeof fetchDraftSharksValue>;
 const mockEndOfSeason = fetchPlayersEndOfSeason as jest.MockedFunction<typeof fetchPlayersEndOfSeason>;
+const mockPlayerSet = fetchPlayerSetEndOfSeason as jest.MockedFunction<
+    typeof fetchPlayerSetEndOfSeason
+>;
 const mockPreArb = fetchPlayersPreArb as jest.MockedFunction<typeof fetchPlayersPreArb>;
 const mockBoard = fetchProjectionBoard as jest.MockedFunction<typeof fetchProjectionBoard>;
 const mockRosterData = fetchRosterData as jest.MockedFunction<typeof fetchRosterData>;
@@ -489,25 +495,33 @@ describe("get_player_values", () => {
 });
 
 describe("get_earned_value", () => {
+    /** The tool reads rows and their stat window together — see lib/data.ts. */
+    function mockSeason(window = fullSeasonWindow(2025)) {
+        mockPlayerSet.mockResolvedValue({ players: buildPool(), window });
+    }
+
     test("ranks by earned value and reports realized surplus against salary paid", async () => {
-        mockEndOfSeason.mockResolvedValue(buildPool());
+        mockSeason();
         const body = payload(await tool("get_earned_value").handler({ limit: 5 }));
         const players = body.players as {
             earned_value: number;
             realized_surplus: number;
             salary: number;
+            salary_to_date: number;
         }[];
 
         expect(players).toHaveLength(5);
         const values = players.map((p) => p.earned_value);
         expect(values).toEqual([...values].sort((a, b) => b - a));
         for (const p of players) {
+            // Over a finished season "paid so far" is the whole salary.
+            expect(p.salary_to_date).toBe(p.salary);
             expect(p.realized_surplus).toBe(p.earned_value - p.salary);
         }
     });
 
     test("sort=realized_surplus surfaces the bargains instead of the best players", async () => {
-        mockEndOfSeason.mockResolvedValue(buildPool());
+        mockSeason();
         const body = payload(
             await tool("get_earned_value").handler({ sort: "realized_surplus", limit: 5 })
         );
@@ -518,13 +532,14 @@ describe("get_earned_value", () => {
     });
 
     test("uses end-of-season salaries, which predate the +$4 bump", async () => {
-        mockEndOfSeason.mockResolvedValue(buildPool());
+        mockSeason();
         await tool("get_earned_value").handler({});
-        expect(mockEndOfSeason).toHaveBeenCalled();
+        expect(mockPlayerSet).toHaveBeenCalled();
         expect(mockPreArb).not.toHaveBeenCalled();
     });
 
     test("is distinct from get_player_values — actuals, not projections", async () => {
+        mockSeason();
         mockEndOfSeason.mockResolvedValue(buildPool());
         const earned = payload(await tool("get_earned_value").handler({ limit: 3 }));
         const projected = payload(await tool("get_player_values").handler({ limit: 3 }));
@@ -534,6 +549,44 @@ describe("get_earned_value", () => {
         for (const p of earned.players as Record<string, unknown>[]) {
             expect(p).toHaveProperty("points_above_replacement");
             expect(p).not.toHaveProperty("dollar_value");
+        }
+    });
+
+    test("declares a finished season as complete, with no caveat to apply", async () => {
+        mockSeason();
+        const body = payload(await tool("get_earned_value").handler({ limit: 1 }));
+        const w = body.stat_window as Record<string, unknown>;
+        expect(w.complete).toBe(true);
+        expect(w.season).toBe(2025);
+    });
+
+    test("warns a caller off quoting mid-season dollars as full-season figures", async () => {
+        // The failure mode this guards: an LLM reads earned_value 142 off two
+        // Sundays and reports it as what the player is worth for the year. The
+        // payload has to say, in the response itself, that the number is prorated
+        // and that ranks this early are noise.
+        mockSeason(
+            buildStatWindow({
+                season: 2026,
+                complete: false,
+                gamesPlayed: Array(40).fill(2),
+                weeksPlayed: 2,
+            })
+        );
+        const body = payload(await tool("get_earned_value").handler({ limit: 5 }));
+        const w = body.stat_window as Record<string, unknown>;
+        expect(w.complete).toBe(false);
+        expect(w.games_of_17).toBe(2);
+        expect(w.weeks_played).toBe(2);
+        expect(String(w.caveat)).toMatch(/prorated/i);
+        expect(String(w.caveat)).toMatch(/not full-season/i);
+        expect(String(w.caveat)).toMatch(/return_on_salary/);
+
+        // And both sides of the comparison must actually be prorated, or the
+        // caveat is describing something the numbers do not do.
+        const players = body.players as { salary: number; salary_to_date: number }[];
+        for (const p of players) {
+            if (p.salary > 1) expect(p.salary_to_date).toBeLessThan(p.salary);
         }
     });
 });

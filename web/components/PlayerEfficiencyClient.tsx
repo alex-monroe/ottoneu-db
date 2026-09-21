@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { ChartPoint, PositionTierData, FlexTierData, TierStat, Position, POSITIONS } from '@/lib/types'
+import type { StatWindow } from '@/lib/stat-window'
 import PlayerScatterChart from './ScatterChart'
 import PositionTierBreakdown from './PositionTierBreakdown'
 
@@ -25,7 +26,14 @@ function computeTier(byPpg: ChartPoint[], bySalary: ChartPoint[], rank: number):
   }
 }
 
-export default function PlayerEfficiencyClient({ data }: { data: ChartPoint[] }) {
+export default function PlayerEfficiencyClient({
+  data,
+  window: w,
+}: {
+  data: ChartPoint[]
+  /** Which slice of season `data` is, so the controls and captions can say so. */
+  window?: StatWindow
+}) {
   const [minGames, setMinGames] = useState(0)
 
   const { positionTiers, flexTier } = useMemo(() => {
@@ -68,9 +76,17 @@ export default function PlayerEfficiencyClient({ data }: { data: ChartPoint[] })
   return (
     <>
       <section>
-        <PlayerScatterChart data={data} onMinGamesChange={setMinGames} />
+        <PlayerScatterChart
+          data={data}
+          onMinGamesChange={setMinGames}
+          maxGames={w && !w.complete ? w.games : undefined}
+        />
       </section>
-      <PositionTierBreakdown positionTiers={positionTiers} flexTier={flexTier} />
+      <PositionTierBreakdown
+        positionTiers={positionTiers}
+        flexTier={flexTier}
+        window={w}
+      />
     </>
   )
 }

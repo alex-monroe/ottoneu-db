@@ -15,22 +15,35 @@ import {
   BENCH_DEPTH_PER_TEAM,
 } from "@/lib/config";
 import { distributableCap } from "@/lib/surplus";
-import { getEffectiveStatsSeason } from "@/lib/stats-season";
 import { fetchPlayersEndOfSeason } from "@/lib/data";
 import { getAuthenticatedUser } from "@/lib/auth";
+import type { StatWindow } from "@/lib/stat-window";
+import StatWindowNote from "@/components/StatWindowNote";
 import VorpClient from "@/app/vorp/VorpClient";
 
 /**
  * VORP analysis panel. Rendered inside the tabbed /value page; provides its own
  * data fetching but no page chrome (the parent supplies <main> + heading).
+ *
+ * VORP per game is honest over any amount of football — it is a rate minus a
+ * rate. Full-season VORP is that rate times seventeen, which over a season in
+ * progress is an extrapolation, so the panel labels it as one rather than
+ * silently rescaling: the factor cancels out of the dollar conversion, so
+ * shortening it would change how the number reads without changing what anyone
+ * is worth.
  */
-export default async function VorpSection() {
-  const [allPlayers, user, statsSeason] = await Promise.all([
-    fetchPlayersEndOfSeason(),
+export default async function VorpSection({ window: w }: { window: StatWindow }) {
+  const [allPlayers, user] = await Promise.all([
+    fetchPlayersEndOfSeason(w.season),
     getAuthenticatedUser(),
-    getEffectiveStatsSeason(),
   ]);
-  const { players, replacementPpg, replacementN, salaryImpliedPpg } = calculateVorp(allPlayers);
+  const {
+    players,
+    replacementPpg,
+    replacementN,
+    salaryImpliedPpg,
+    minGamesApplied,
+  } = calculateVorp(allPlayers);
   const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
   const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap, !!user?.hasProjectionsAccess);
 
@@ -84,13 +97,23 @@ export default async function VorpSection() {
     <div className="space-y-8">
       <header>
         <h2 className="text-2xl font-bold tracking-tight text-ink">
-          VORP Analysis ({statsSeason})
+          VORP Analysis ({w.label})
         </h2>
         <p className="text-ink-subtle mt-2">
           Value Over Replacement Player — measures positional scarcity.
           Higher VORP = more valuable above replacement level.
         </p>
       </header>
+
+      <StatWindowNote window={w} what="rates" />
+      {!w.complete && (
+        <p className="text-sm text-ink-subtle">
+          VORP/G is a rate and reads the same on any amount of football. Full VORP
+          multiplies it by a {FULL_SEASON_GAMES}-game season, so on {w.games} game
+          {w.games === 1 ? "" : "s"} of production it is an extrapolation — treat it
+          as &ldquo;if this rate held all year&rdquo;, not as banked value.
+        </p>
+      )}
 
       {/* Methodology */}
       <section className="bg-sunken rounded-lg p-5 border border-line space-y-4 text-sm text-ink-muted">
@@ -124,7 +147,15 @@ export default async function VorpSection() {
             The replacement player at a position is the <em>last one worth a roster
             spot</em> once every team has filled its lineup plus bye-week and injury cover
             ({BENCH_DEPTH_PER_TEAM} spots per team). His PPG is the baseline. Only players
-            with at least {MIN_GAMES} games played qualify for the pool. The benchmarks table below shows where each baseline landed, next to the
+            with at least {minGamesApplied} game{minGamesApplied === 1 ? "" : "s"} played
+            qualify for the pool
+            {minGamesApplied < MIN_GAMES && (
+              <>
+                {" "}— relaxed from the usual {MIN_GAMES} because no player has
+                {" "}{MIN_GAMES} games yet this season
+              </>
+            )}
+            . The benchmarks table below shows where each baseline landed, next to the
             older salary-implied estimate (the median PPG of the bottom-salary quartile of
             rostered players) for comparison — that one is kept as a diagnostic only, because
             it reads the market&apos;s own prices back into the values we then judge those

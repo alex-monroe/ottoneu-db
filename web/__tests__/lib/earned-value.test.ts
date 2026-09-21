@@ -15,6 +15,7 @@ import {
 } from "@/lib/earned-value";
 import { distributableCap } from "@/lib/surplus";
 import { allocateLineupDemand } from "@/lib/replacement";
+import { buildStatWindow, fullSeasonWindow } from "@/lib/stat-window";
 import { MIN_PLAYER_SALARY, NUM_TEAMS, STARTING_LINEUP, FLEX_SLOTS } from "@/lib/config";
 import type { Player } from "@/lib/types";
 
@@ -206,5 +207,124 @@ describe("computeDollarPerEarnedPoint", () => {
 
     test("returns 0 on an empty pool", () => {
         expect(computeDollarPerEarnedPoint([])).toBe(0);
+    });
+});
+
+describe("computeEarnedValue — a season in progress", () => {
+    /**
+     * These guard the two claims the in-season view rests on:
+     *
+     *   1. A window covering a full season is a **strict no-op**, so the
+     *      retrospective pages cannot change behaviour.
+     *   2. Prorating scales both sides by the same factor, so the ranking and the
+     *      sign of `realized_surplus` never move — only the units. That is what
+     *      makes the small dollar figures in week 2 safe to read, and it is why
+     *      `return_on_salary` is scale-free.
+     */
+    const week2 = buildStatWindow({
+        season: 2026,
+        complete: false,
+        gamesPlayed: Array(50).fill(2),
+    });
+
+    /** Two weeks of the same pool: everybody's totals scaled to 2 of 17 games. */
+    function partialPool(): EarnedValueInput[] {
+        const f = week2.fraction;
+        return seasonPool().map((r) => ({ ...r, total_points: r.total_points * f }));
+    }
+
+    test("a full-season window changes nothing", () => {
+        const pool = seasonPool();
+        const plain = computeEarnedValue(pool);
+        const windowed = computeEarnedValue(pool, fullSeasonWindow(2025));
+        expect(windowed.map((p) => p.earned_value)).toEqual(
+            plain.map((p) => p.earned_value),
+        );
+        expect(windowed.map((p) => p.realized_surplus)).toEqual(
+            plain.map((p) => p.realized_surplus),
+        );
+        // Over a finished season "paid so far" is simply the salary.
+        for (const p of windowed) expect(p.salary_to_date).toBe(p.price);
+    });
+
+    test("prorates the pot, so two weeks hand out two weeks of money", () => {
+        const priced = computeEarnedValue(partialPool(), week2);
+        const total = priced.reduce((sum, p) => sum + p.earned_value, 0);
+        const fullSeason = computeEarnedValue(seasonPool()).reduce(
+            (sum, p) => sum + p.earned_value,
+            0,
+        );
+        // Not exact: every row is rounded to cents, and there are hundreds of
+        // them. Within a tenth of a percent of the prorated pot is the claim.
+        const expected = fullSeason * week2.fraction;
+        expect(Math.abs(total - expected) / expected).toBeLessThan(0.001);
+    });
+
+    test("prorates the salary to match, so the comparison stays like-for-like", () => {
+        const priced = computeEarnedValue(partialPool(), week2);
+        const dear = priced.find((p) => p.price === 50)!;
+        // A $50 player has cost his owner 2/17 of $50 so far, not $50.
+        expect(dear.salary_to_date).toBeCloseTo(50 * week2.fraction, 1);
+        expect(dear.salary_to_date).toBeLessThan(dear.price);
+    });
+
+    test("the sign of realized surplus is unchanged by prorating", () => {
+        // The whole design rests on this: `fraction` only rescales, so nobody
+        // crosses from beating their price to missing it because of the window —
+        // which is also why a little imprecision from bye weeks cannot mislead.
+        const full = computeEarnedValue(seasonPool());
+        const partial = computeEarnedValue(partialPool(), week2);
+        let checked = 0;
+        for (let i = 0; i < full.length; i++) {
+            // A player who broke exactly even over the season is a coin toss at
+            // cent precision, and "he is within a dollar of his price" is not a
+            // claim this guards. Everyone else must land on the same side.
+            if (Math.abs(full[i].realized_surplus) < 1) continue;
+            checked++;
+            expect(Math.sign(partial[i].realized_surplus)).toBe(
+                Math.sign(full[i].realized_surplus),
+            );
+        }
+        expect(checked).toBeGreaterThan(50);
+    });
+
+    test("return on salary is the same number at any window", () => {
+        const full = computeEarnedValue(seasonPool());
+        const partial = computeEarnedValue(partialPool(), week2);
+        const priced = full
+            .map((p, i) => [p, partial[i]] as const)
+            .filter(([f]) => f.price > 1);
+        expect(priced.length).toBeGreaterThan(10);
+        for (const [f, p] of priced) {
+            // Both are taken from unrounded dollars, so this is exact bar the
+            // final round to two places.
+            expect(p.return_on_salary!).toBeCloseTo(f.return_on_salary!, 1);
+        }
+    });
+
+    test("an unpriced spot has no return rather than an infinite one", () => {
+        const priced = computeEarnedValue(
+            [...seasonPool(), row({ position: "RB", total_points: 200, price: 0 })],
+            week2,
+        );
+        expect(priced[priced.length - 1].return_on_salary).toBeNull();
+    });
+
+    test("a window with no football played prices nothing", () => {
+        // Before kickoff, or before the stats pull has run. Handing out a full
+        // season's cap over an empty table is the failure to avoid.
+        const empty = buildStatWindow({ season: 2026, complete: false, gamesPlayed: [] });
+        expect(computeEarnedValue(seasonPool(), empty)).toEqual([]);
+    });
+
+    test("keeps a decimal mid-season, whole dollars once the season is done", () => {
+        const partial = computeEarnedValue(partialPool(), week2);
+        // Prorating a $1 floor to a fortnight would round the entire bottom of
+        // the board to $0 if these were whole dollars.
+        expect(partial.some((p) => !Number.isInteger(p.earned_value))).toBe(true);
+        // The salary floor has to stay visible rather than rounding away to $0.
+        expect(partial.every((p) => p.earned_value > 0)).toBe(true);
+        const full = computeEarnedValue(seasonPool(), fullSeasonWindow(2025));
+        expect(full.every((p) => Number.isInteger(p.earned_value))).toBe(true);
     });
 });
