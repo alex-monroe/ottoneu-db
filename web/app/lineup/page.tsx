@@ -45,6 +45,7 @@ export default async function LineupPage({ searchParams }: Props) {
       weeks={ctx.weeks}
       hasWeekly={ctx.hasWeekly}
       viewerTeam={viewerTeam}
+      statsSeason={ctx.statsSeason}
     />
   );
 }

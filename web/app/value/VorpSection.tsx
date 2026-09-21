@@ -15,7 +15,7 @@ import {
   BENCH_DEPTH_PER_TEAM,
 } from "@/lib/config";
 import { distributableCap } from "@/lib/surplus";
-import { getStatsSeason } from "@/lib/season";
+import { getEffectiveStatsSeason } from "@/lib/stats-season";
 import { fetchPlayersEndOfSeason } from "@/lib/data";
 import { getAuthenticatedUser } from "@/lib/auth";
 import VorpClient from "@/app/vorp/VorpClient";
@@ -28,7 +28,7 @@ export default async function VorpSection() {
   const [allPlayers, user, statsSeason] = await Promise.all([
     fetchPlayersEndOfSeason(),
     getAuthenticatedUser(),
-    getStatsSeason(),
+    getEffectiveStatsSeason(),
   ]);
   const { players, replacementPpg, replacementN, salaryImpliedPpg } = calculateVorp(allPlayers);
   const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);

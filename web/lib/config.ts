@@ -11,9 +11,11 @@
  *   - The current season / phase / salary-snapshot dates are NOT static config —
  *     they are resolved from the league_calendar table (web/lib/season.ts:
  *     getStatsSeason / getProjectionSeason / getLeagueSeason / getSalarySnapshotDates).
- *   - REPLACEMENT_LEVEL approximates fantasy-relevant players per position in a
- *     12-team superflex league (2 QBs start/team); fallback when the
- *     salary-implied method lacks data.
+ *   - STARTING_LINEUP / FLEX_SLOTS / BENCH_DEPTH_PER_TEAM define the player
+ *     pool the valuation prices. Replacement level is derived from them at
+ *     runtime (web/lib/replacement.ts) rather than being a per-position
+ *     constant; BENCH_DEPTH_PER_TEAM is the one calibration knob. See
+ *     docs/references/player-valuation.md.
  *   - Database salaries already reflect the end-of-season $4/$1 bump.
  *   - NFL_TEAM_CODES is a Set for O(1) college-player detection.
  *   - MY_TEAM is the **operator's** team, not "the current user's team". Read

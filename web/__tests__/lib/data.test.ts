@@ -38,6 +38,10 @@ function makeBuilder(table: string) {
     builder.lte = chain("lte");
     builder.order = chain("order");
     builder.range = chain("range");
+    // `getEffectiveStatsSeason()` probes the newest loaded season with
+    // `.order(...).limit(1)`; the fixtures carry no `season`, so it resolves to
+    // null and the season clamp is a no-op for these tests.
+    builder.limit = chain("limit");
 
     const result = () => {
         const entry = tableResults.get(table);
