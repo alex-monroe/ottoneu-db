@@ -32,6 +32,8 @@ interface Props {
   weeks: number[];
   hasWeekly: boolean;
   viewerTeam: string | null;
+  /** Season behind the "last season" metric — resolved, never hardcoded. */
+  statsSeason: number;
 }
 
 const fmt = (n: number) => n.toFixed(1);
@@ -58,6 +60,7 @@ export default function LineupClient({
   weeks,
   hasWeekly,
   viewerTeam,
+  statsSeason,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -140,7 +143,7 @@ export default function LineupClient({
       ? `Week ${week} projected points`
       : metric === "projected"
         ? "Projected PPG"
-        : "2025 PPG";
+        : `${statsSeason} PPG`;
 
   return (
     <PageShell>
@@ -286,7 +289,7 @@ export default function LineupClient({
                     : "bg-raised text-ink-muted hover:bg-sunken"
                 }`}
               >
-                2025 PPG
+                {statsSeason} PPG
               </button>
             </div>
           </div>

@@ -74,8 +74,16 @@ function Side({
         {/* These were plain spans. Every other surface in the app makes a
             player name clickable; there is no reason this one shouldn't. */}
         <PlayerName name={player.name} ottoneuId={player.ottoneu_id} />
+        {/* Team first, then this week's opponent — the same order `/lineup` and
+            `/free-agents` use. This slot used to render `weekly_opponent ??
+            nfl_team`, which labelled Joe Burrow "HOU" (who he plays) instead of
+            "CIN" (who he plays *for*), and silently swapped back to his own team
+            on a bye — two different meanings in one unlabelled three-letter slot. */}
         <span className="block text-xs text-ink-subtle">
-          {player.weekly_opponent ?? player.nfl_team}
+          {player.nfl_team}
+          {metric === "weekly" && player.weekly_opponent
+            ? ` ${player.weekly_opponent}`
+            : ""}
         </span>
       </span>
       <span className="shrink-0 tabular-nums font-medium text-ink-muted">

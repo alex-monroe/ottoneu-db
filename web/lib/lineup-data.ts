@@ -11,6 +11,7 @@ import { fetchRosterData, reconstructRostersAtDate } from "./roster-reconstructi
 import { fetchHoverExtras } from "./analysis";
 import { fetchWeeklyByPlayer } from "./weekly-projections";
 import { getDisplayWeeks } from "./nfl-week";
+import { getEffectiveStatsSeason } from "./stats-season";
 import { fetchAvailableWeeks } from "./weekly-projections";
 import type { LineupPlayer } from "./lineup";
 
@@ -28,6 +29,13 @@ export interface LineupWeekContext {
   teams: LineupTeam[];
   /** True when the selected week actually has third-party projections. */
   hasWeekly: boolean;
+  /**
+   * The season `LineupPlayer.ppg` is measured over, for labelling the
+   * "last season" metric. Resolved at runtime rather than hardcoded — the
+   * button used to read "2025 PPG" as a string literal, which was wrong the
+   * moment the season cycle advanced and silently wrong every year after.
+   */
+  statsSeason: number;
 }
 
 /**
@@ -40,9 +48,10 @@ export async function fetchLineupWeek(
   requestedWeek: number | undefined,
   hasProjections: boolean,
 ): Promise<LineupWeekContext> {
-  const [data, display] = await Promise.all([
+  const [data, display, statsSeason] = await Promise.all([
     fetchRosterData(),
     getDisplayWeeks(),
+    getEffectiveStatsSeason(),
   ]);
 
   const season = display.season;
@@ -55,9 +64,16 @@ export async function fetchLineupWeek(
         ? display.upcoming
         : (weeks[0] ?? null);
 
+  // `hasProjections` gates the weekly forecast too, not just our seasonal model.
+  // It used to gate only `fetchHoverExtras`, so a signed-out visitor got
+  // `projected_ppg: 0` (correctly withheld) alongside a real `weekly_points` for
+  // all 239 rostered players — the same third-party numbers `/weekly` is in
+  // PROJECTIONS_ROUTES to protect. Both pages already degrade gracefully when
+  // this comes back empty: `hasWeekly` goes false and the metric falls through
+  // to `last_season`.
   const [{ projMap }, weekly] = await Promise.all([
     fetchHoverExtras(hasProjections),
-    season != null && week != null
+    hasProjections && season != null && week != null
       ? fetchWeeklyByPlayer(season, week)
       : Promise.resolve(new Map()),
   ]);
@@ -91,5 +107,5 @@ export async function fetchLineupWeek(
     }),
   }));
 
-  return { season, week, weeks, teams, hasWeekly: weekly.size > 0 };
+  return { season, week, weeks, teams, hasWeekly: weekly.size > 0, statsSeason };
 }

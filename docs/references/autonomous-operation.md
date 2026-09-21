@@ -210,10 +210,22 @@ external services, and answers questions that are otherwise unanswerable
 
 ## E2E test account
 
-Most pages sit behind the `ottoneu_auth` session cookie (`/value`, `/arbitration`,
-`/weekly`, … need `has_projections_access`), so an anonymous browser only sees the
-landing hub and `/login`. Agents use a dedicated user instead of a personal account:
-**non-admin, non-podcaster, projections access only**.
+The analysis pages sit behind the `ottoneu_auth` session cookie — everything in
+`PROJECTIONS_ROUTES` (`/value`, `/arbitration`, `/weekly`, `/projections`,
+`/free-agents`, `/depth-charts`, …) needs `has_projections_access` and redirects
+an anonymous browser to `/login`. Agents use a dedicated user instead of a
+personal account: **non-admin, non-podcaster, projections access only**.
+
+Note that "anonymous sees nothing" is **not** true and never was: the league-facing
+pages (`/players`, `/rosters`, `/teams`, `/lineup`, `/matchup`, `/pickem`,
+`/scoreboard`, `/power-rankings`, `/arb-progress`, `/snake-draft`, `/podcast`)
+render for a signed-out visitor, salaries and owners included. What they withhold
+is the *gated numbers*: `/lineup` and `/matchup` degrade rather than redirect, so
+without projections access they serve neither our seasonal model (`projected_ppg`)
+nor the third-party weekly forecast (`weekly_points`), and fall through to the
+`last_season` metric. `web/lib/access.ts` is the source of truth for which routes
+redirect; `web/lib/lineup-data.ts` for what the degraded pages omit. Every
+`/api/*` route requires a session regardless, so nothing is writable signed-out.
 
 - **Credentials:** `E2E_EMAIL` / `E2E_PASSWORD`. Never commit values.
   - Devcontainer: export them in your *host* shell before opening the container;
