@@ -104,6 +104,17 @@ Both ends are wrong, in opposite directions:
   chase current production — real Ottoneu rosters spend theirs on prospects, injured stashes and
   lottery tickets.
 
+**An external anchor.** The board we measure against publishes its own VORP, so the baseline its
+analysts used is recoverable: VORP crosses zero at their replacement rank. For a 12-team league
+they put it at QB16 / RB43 / WR59 / TE20 — **138 players, 11.5 per team**. Their lineup
+(QB1/RB2/WR2/TE1/FLEX1) has the same *seven* non-kicker starting slots ours does, so the total
+pool size is directly comparable even though the superflex slot moves the positional split. That
+implies a bench depth of **≈4.5**, not 2 — professional analysts price a noticeably deeper pool
+than this repo currently does. Worth weighing against the two considerations pulling the other
+way: Ottoneu is half-PPR (slightly compressing skill-position value relative to their full PPR),
+and Ottoneu rosters are 20 deep with several spots on prospects and IR stashes that chase no
+current production at all.
+
 So it is a number rather than a principle, and it lives in `config.json` where it can be fitted
 against real clears rather than argued about. The default of 2 puts the pool at ~108, deliberately
 close to the scale the superseded hand-typed ranks produced — so this change alters the **shape**
@@ -254,10 +265,12 @@ Three things that were not previously computable:
   forward-looking metric alongside the season-total one, not a replacement.
 - **Fit `BENCH_DEPTH_PER_TEAM` against real clears.** The default of 2 is reasoned, not measured:
   it was chosen to hold overall scale near the previous board while the positional shape corrects.
-  The right way to settle it is to regress our dollar values against actual auction clears
-  (`transactions`) and published superflex market values (`draft_sharks_values`) and pick the depth
-  that minimises error. That needs DB access and has not been done — treat the current value as a
-  placeholder with a defensible prior, not a result.
+  The external anchor in §2 puts professional analysts at ≈4.5 for an equivalent 12-team lineup,
+  which is a strong hint that 2 is too shallow — but an anchor from a different scoring format is
+  not a measurement. The right way to settle it is to regress our dollar values against actual
+  auction clears (`transactions`) and published superflex market values (`draft_sharks_values`)
+  and pick the depth that minimises error. That needs DB access and has not been done — treat the
+  current value as a placeholder with a defensible prior, not a result.
 - **Calibrate the deflator against real clears.** §3 prices a full-reset market with no deflation.
   Whether Ottoneu auctions systematically clear below that (in-season FA money held back, cap
   committed to keepers) is an empirical question answerable from the same data. If there is a
@@ -268,5 +281,16 @@ Three things that were not previously computable:
   are finite and managers pay for certainty. The machinery to test this already exists
   (`scripts/auction_simulator.py`, `/mock-draft`) — run the Monte Carlo to equilibrium prices and
   compare. Where they diverge is where the linear model is lying.
-- **No UI for earned value yet.** The library and the MCP tool are live; a `/value` tab or a
-  post-auction review page is not built.
+- **Earned value UI is partial.** It is on the player card (a header tile for the latest season,
+  and an `Earned $` column across the season-stats table) and on the player hover card, both
+  behind `hasProjectionsAccess` — it is a dollar valuation, and `/players` is a public route, so
+  it is gated like everything in `PROJECTIONS_ROUTES`. `buildHoverDataMap` defaults the field
+  **off** so a future caller on a public page cannot leak it by omission. Still missing: a
+  `/value` tab ranking the league by earned value, and the post-auction review page that would
+  put `earned_value` beside the price actually paid.
+- **Realized surplus is not shown anywhere in the UI.** It needs the salary a player was carried
+  at *during* that season, and `league_prices` only holds today's. Reconstructing a historical
+  salary is `roster-reconstruction.ts`'s job; until that is wired in, the season-stats column
+  deliberately shows earned value alone rather than quietly subtracting the wrong number. The MCP
+  tool does report it, because it works from the current season's end-of-season snapshot, which
+  *is* the right salary.
