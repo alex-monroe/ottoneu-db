@@ -164,8 +164,12 @@ weekly from the Ottoneu finances page (plain HTTP, honest User-Agent, no login).
 `web/lib/season-ui.ts` (`PHASE_UI`, `describeNextBoundary`, the `<PhaseBanner>`
 in the root layout, and the amber phase accent on `Navigation`). The
 `SEASON_OVERRIDE` / `PHASE_OVERRIDE` env vars short-circuit the date math for
-testing or off-schedule events. Full design rationale and migration history:
-[docs/exec-plans/season-cycle.md](exec-plans/season-cycle.md).
+testing or off-schedule events. Reads of **actual production** go through
+`getEffectiveStatsSeason()` (`web/lib/stats-season.ts`) instead of raw
+`getStatsSeason()` — it clamps back to the newest season `player_stats` actually
+holds so the season-rollover window (calendar flipped, `pull_player_stats` not
+yet run) does not render every stats-joined page empty. Full design rationale
+and migration history: [docs/exec-plans/season-cycle.md](exec-plans/season-cycle.md).
 
 ## Authentication & Authorization
 
