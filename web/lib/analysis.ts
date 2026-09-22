@@ -12,6 +12,7 @@ import { supabase, fetchAllRows } from "./supabase";
 import { LEAGUE_ID } from "./config";
 import { getStatsSeason, getProjectionSeason } from "./season";
 import { fetchPlayers, fetchDraftSharksMap, type DraftSharksValue } from "./data";
+import { calculateEarnedValue } from "./earned-value";
 import type { Player, PlayerHoverData, BacktestPlayer, ProjectionModel, BacktestMetrics } from "./types";
 
 // Re-export from config/arb-logic for backward compatibility
@@ -229,8 +230,24 @@ export async function fetchProjectionMap(
 export function buildHoverDataMap(
   players: Player[],
   projMap: Record<string, { ppg: number; method: string; games?: number | null }> | null = null,
-  dsMap: Record<string, DraftSharksValue> | null = null
+  dsMap: Record<string, DraftSharksValue> | null = null,
+  /**
+   * Whether the viewer may see earned value. It is a dollar valuation, gated
+   * like every other one (`PROJECTIONS_ROUTES` in lib/access.ts) — and hover
+   * cards render on public pages too, `/arb-progress` among them, so this
+   * defaults to **off**: a new caller has to ask for it rather than leak it.
+   * Pass the same `hasProjectionsAccess` the projection/Draft Sharks maps use.
+   */
+  includeEarnedValue = false
 ): Record<string, PlayerHoverData> {
+  // Earned value needs the whole league pool to place replacement level, and
+  // `players` already is one on every caller (each passes the full fetch, not a
+  // filtered view). Computing it here rather than in each page keeps it free —
+  // no extra query — and keeps the pool honest.
+  const earnedById = includeEarnedValue
+    ? new Map(calculateEarnedValue(players).map((p) => [p.player_id, p.earned_value]))
+    : new Map<string, number>();
+
   return Object.fromEntries(
     players
       .filter((p) => p.ottoneu_id != null)
@@ -244,6 +261,9 @@ export function buildHoverDataMap(
           team_name: p.team_name,
           ppg: p.ppg,
           games_played: p.games_played,
+          ...(earnedById.has(p.player_id)
+            ? { earned_value: earnedById.get(p.player_id) }
+            : {}),
           ...(projMap?.[p.player_id]
             ? {
                 projected_ppg: projMap[p.player_id].ppg,

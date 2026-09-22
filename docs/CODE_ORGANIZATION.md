@@ -42,7 +42,7 @@
 All configuration constants live here:
 - League settings (`LEAGUE_ID`, `MY_TEAM`, `HISTORICAL_SEASONS`). `MY_TEAM` is the **operator's default only** since #712 — every UI/analysis view resolves "my team" from `users.team_name` via `getViewerTeam()` (`web/lib/viewer-team.ts`), and `MY_TEAM` is applied *only* when an admin account is unbound. Never reintroduce `MY_TEAM` into a component, analysis function, or MCP tool. The current/active season is **not** a static config value — it is resolved at runtime from `league_calendar` via `scripts/season.py` (`league_season`, `projection_season`, `stats_season`, `arbitration_season`) and `web/lib/season.ts`.
 - Fantasy rules (`NUM_TEAMS`, `CAP_PER_TEAM`, `POSITIONS`)
-- Analysis thresholds (`MIN_GAMES`, `REPLACEMENT_LEVEL`)
+- Analysis thresholds (`MIN_GAMES`, `STARTING_LINEUP`, `FLEX_SLOTS`, `FLEX_POSITIONS`, `ROSTER_SPOTS`, `MIN_PLAYER_SALARY`, `FULL_SEASON_GAMES`)
 - Arbitration constants
 - Shared Supabase client via `get_supabase_client()`
 

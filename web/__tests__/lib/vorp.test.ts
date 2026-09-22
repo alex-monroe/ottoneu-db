@@ -81,28 +81,36 @@ describe("calculateVorp — edge cases", () => {
     });
 
     test("player below replacement has negative VORP", () => {
-        // 30 RBs rostered: 6 bottom-quartile at $1 with mixed ppg, 24 above.
-        // Below-replacement player's ppg < replacement threshold.
+        // 90 RBs, strictly descending in PPG. With RB the only position in the
+        // pool it absorbs every contested slot, so leaguewide demand is
+        // 12 × (2 starters + 1 flex + 2 depth) = 60 — well inside a 90-deep
+        // pool, which puts the baseline at a real player rather than clamping
+        // to the worst one.
         const players: Player[] = [];
-        for (let i = 0; i < 30; i++) {
+        for (let i = 0; i < 90; i++) {
+            const ppg = 50 - i * 0.5;
             players.push(
                 makePlayer({
                     player_id: `rb${i}`,
                     position: "RB",
                     team_name: "Team A",
-                    price: i < 8 ? 1 : 30 + i,
-                    ppg: i < 8 ? 5 + i * 0.5 : 15 + i * 0.3,
+                    price: Math.max(1, 60 - i),
+                    ppg,
                     games_played: 16,
-                    total_points: (i < 8 ? 5 + i * 0.5 : 15 + i * 0.3) * 16,
+                    total_points: ppg * 16,
                 })
             );
         }
-        const { players: result, replacementPpg } = calculateVorp(players);
+        const { players: result, replacementPpg, replacementN } = calculateVorp(players);
 
+        expect(replacementN.RB).toBe(60);
         expect(replacementPpg.RB).toBeGreaterThan(0);
-        const cheap = result.find((p) => p.player_id === "rb0")!;
-        expect(cheap.vorp_per_game).toBeLessThan(0);
-        expect(cheap.full_season_vorp).toBeLessThan(0);
+        // rb0 is the best RB — comfortably above replacement.
+        expect(result.find((p) => p.player_id === "rb0")!.vorp_per_game).toBeGreaterThan(0);
+        // rb89 is the worst — below it.
+        const worst = result.find((p) => p.player_id === "rb89")!;
+        expect(worst.vorp_per_game).toBeLessThan(0);
+        expect(worst.full_season_vorp).toBeLessThan(0);
     });
 
     test("rounds vorp_per_game to 2 decimals and full_season_vorp to 1 decimal", () => {
@@ -148,5 +156,65 @@ describe("calculateVorp — availability adjustment (#587 c2)", () => {
         // projected_games == 17 (full) and projected_games == undefined behave identically.
         expect(a.find((p) => p.player_id === "g")!.vorp_per_game)
             .toBeCloseTo(b.find((p) => p.player_id === "n")!.vorp_per_game, 5);
+    });
+});
+
+describe("effectiveMinGames — the games floor a partial season can satisfy", () => {
+    /**
+     * The failure this prevents: `MIN_GAMES` is 4, and `pull-player-stats.yml`
+     * now writes a `player_stats` row for the season being played. In week 2 no
+     * player has four games, so a literal filter qualified nobody, `calculateVorp`
+     * returned an empty pool, and /value, /free-agents and /projected-salary each
+     * rendered a "no data" state over a table that was full.
+     *
+     * The clamp is derived from the rows rather than from a StatWindow on purpose,
+     * so it protects every caller — including the ones that never learn windows
+     * exist.
+     */
+    test("relaxes the floor to the deepest player in a two-game season", () => {
+        const players = [
+            makePlayer({ player_id: "a", position: "RB", ppg: 20, games_played: 2 }),
+            makePlayer({ player_id: "b", position: "RB", ppg: 10, games_played: 2 }),
+            makePlayer({ player_id: "c", position: "WR", ppg: 14, games_played: 1 }),
+        ];
+        const { players: result, minGamesApplied } = calculateVorp(players, 4);
+        expect(minGamesApplied).toBe(2);
+        // Not empty — which is the whole point.
+        expect(result.map((p) => p.player_id).sort()).toEqual(["a", "b"]);
+    });
+
+    test("leaves the floor alone once the season is deep enough", () => {
+        const players = [
+            makePlayer({ player_id: "a", position: "RB", ppg: 20, games_played: 2 }),
+            makePlayer({ player_id: "b", position: "RB", ppg: 10, games_played: 10 }),
+        ];
+        const { minGamesApplied } = calculateVorp(players, 4);
+        expect(minGamesApplied).toBe(4);
+    });
+
+    test("is not dragged to zero by college prospects", () => {
+        // Prospects carry no NFL games and bypass the filter anyway; letting them
+        // set the ceiling would drop the floor to 0 and admit every one-game fluke.
+        const players = [
+            makePlayer({
+                player_id: "prospect",
+                position: "RB",
+                ppg: 12,
+                games_played: 0,
+                is_college: true,
+            }),
+            makePlayer({ player_id: "a", position: "RB", ppg: 20, games_played: 9 }),
+            makePlayer({ player_id: "b", position: "RB", ppg: 4, games_played: 1 }),
+        ];
+        const { players: result, minGamesApplied } = calculateVorp(players, 4);
+        expect(minGamesApplied).toBe(4);
+        expect(result.map((p) => p.player_id).sort()).toEqual(["a", "prospect"]);
+    });
+
+    test("falls back to the requested floor when nobody has played", () => {
+        const players = [
+            makePlayer({ player_id: "a", position: "RB", games_played: 0 }),
+        ];
+        expect(calculateVorp(players, 4).minGamesApplied).toBe(4);
     });
 });

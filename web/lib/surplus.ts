@@ -1,10 +1,58 @@
-import { NUM_TEAMS, CAP_PER_TEAM } from "./config";
+import { NUM_TEAMS, CAP_PER_TEAM, ROSTER_SPOTS, MIN_PLAYER_SALARY } from "./config";
 import { Player, SurplusPlayer, ProjectedSalaryPlayer } from "./types";
 import { calculateVorp } from "./vorp";
 
 /**
+ * The money a league has to spend on production *above* replacement level.
+ *
+ * An auction is a closed economy: every dollar of cap ends up on somebody, so
+ * dollar values are not absolute — they are a share of a fixed pot. Every one
+ * of the league's roster spots must be filled, and the cheapest a spot can be
+ * filled for is the minimum salary, so that floor is committed before any
+ * bidding starts. What is left is what actually chases production:
+ *
+ *   league cap     = 12 teams × $400            = $4,800
+ *   salary floor   = (12 × 20 spots) × $1       =   $240
+ *   distributable  = $4,800 − $240              = $4,560
+ *
+ * This replaced a flat `× 0.875` factor ($4,200), which was the same idea
+ * carrying a magic number instead of the arithmetic. Deriving it has a property
+ * the constant lacked: dollar values now sum to exactly the league cap, because
+ * every rostered player is priced at `MIN_PLAYER_SALARY + his share of the
+ * remainder`.
+ *
+ * Note this prices a **full-reset market** — what the league would pay if every
+ * contract cleared at once — which is the frame the FanGraphs auction
+ * calculator uses and the right one for "what is this player worth". An actual
+ * Ottoneu auction distributes only the *uncommitted* cap (the rest is tied up
+ * in keepers), so in-year auction prices run below these values by whatever
+ * share of the cap is already committed. See docs/references/player-valuation.md.
+ *
+ * ## Prorating to a partial season
+ *
+ * `fraction` scales the pot to the slice of season being priced — the stat
+ * window's `fraction` (web/lib/stat-window.ts). A full season passes 1 and this
+ * is the arithmetic above, unchanged.
+ *
+ * Through two weeks of a season the league has not yet spent its cap on
+ * production; it has spent two seventeenths of it. Pricing two weeks of points
+ * against the whole $4,560 would hand out a full season's money for a fortnight
+ * of football, and every value on screen would read as a season-long figure
+ * nobody has earned yet. Scaling the pot instead keeps the dollars denominated
+ * in *what has happened so far*, which is the only frame in which they can be
+ * set beside the salary paid so far and compared honestly.
+ */
+export function distributableCap(fraction: number = 1): number {
+    const leagueCap = NUM_TEAMS * CAP_PER_TEAM;
+    const salaryFloor = NUM_TEAMS * ROSTER_SPOTS * MIN_PLAYER_SALARY;
+    return (leagueCap - salaryFloor) * fraction;
+}
+
+/**
  * Calculates the surplus value (dollar_value - salary) for each player based on their VORP.
- * Allocates a percentage of the total league cap across all positive VORP production.
+ *
+ * Every player is worth at least the minimum salary; above-replacement players
+ * additionally split the distributable cap in proportion to their VORP.
  */
 export function calculateSurplus(
     players: Player[],
@@ -13,21 +61,19 @@ export function calculateSurplus(
     const { players: vorpPlayers } = calculateVorp(players);
     if (vorpPlayers.length === 0) return [];
 
-    const totalPositiveVorp = vorpPlayers
-        .filter((p) => p.full_season_vorp > 0)
-        .reduce((sum, p) => sum + p.full_season_vorp, 0);
-
-    if (totalPositiveVorp === 0) return [];
-
-    // ~87.5% of total league cap goes to above-replacement players
-    const totalCap = NUM_TEAMS * CAP_PER_TEAM * 0.875;
-    const dollarPerVorp = totalCap / totalPositiveVorp;
+    const dollarPerVorp = computeDollarPerVorpFrom(vorpPlayers);
+    if (dollarPerVorp === 0) return [];
 
     return vorpPlayers.map((p) => {
-        const rawDollarValue = p.full_season_vorp * dollarPerVorp;
-        const baseDollarValue = Math.round(Math.max(rawDollarValue, 1));
+        // A below-replacement player is worth the floor every roster spot costs,
+        // and nothing more — which is what the market pays for bench filler.
+        const rawDollarValue =
+            p.full_season_vorp > 0
+                ? MIN_PLAYER_SALARY + p.full_season_vorp * dollarPerVorp
+                : MIN_PLAYER_SALARY;
+        const baseDollarValue = Math.round(Math.max(rawDollarValue, MIN_PLAYER_SALARY));
         const adjustment = adjustments?.get(p.player_id) ?? 0;
-        const dollarValue = Math.round(Math.max(baseDollarValue + adjustment, 1));
+        const dollarValue = Math.round(Math.max(baseDollarValue + adjustment, MIN_PLAYER_SALARY));
         return {
             ...p,
             dollar_value: dollarValue,
@@ -39,14 +85,22 @@ export function calculateSurplus(
 /**
  * Computes the dollar-per-VORP conversion rate from a set of players.
  * Useful for reverse-engineering PPG targets from dollar values.
+ *
+ * This is the market price of a point of production — it drifts every season
+ * with the projection set and roster composition, and is not a constant.
  */
 export function computeDollarPerVorp(players: Player[]): number {
     const { players: vorpPlayers } = calculateVorp(players);
+    return computeDollarPerVorpFrom(vorpPlayers);
+}
+
+/** Shared rate calculation, so the rate and the values can never disagree. */
+function computeDollarPerVorpFrom(vorpPlayers: { full_season_vorp: number }[]): number {
     const totalPositiveVorp = vorpPlayers
         .filter((p) => p.full_season_vorp > 0)
         .reduce((sum, p) => sum + p.full_season_vorp, 0);
     if (totalPositiveVorp === 0) return 0;
-    return (NUM_TEAMS * CAP_PER_TEAM * 0.875) / totalPositiveVorp;
+    return distributableCap() / totalPositiveVorp;
 }
 
 /**

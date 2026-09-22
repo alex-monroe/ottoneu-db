@@ -77,14 +77,15 @@ All tools are read-only and use the anon Supabase client (every table touched ha
 | `get_player` | Full player card: stats by season, projection, auction values, recent transactions. By `ottoneu_id` or name. |
 | `get_transactions` | League transaction log, newest first (real clock order), with team/type/date filters. Rows carry `source` + `feed_quality`; see [Reading the transaction feed](#reading-the-transaction-feed). |
 | `get_projections` | Active-model projection board (ranked, includes rookies). Free agents come back with `salary: null` — see [Free agents have no salary](#free-agents-have-no-salary). |
-| `get_player_values` | VORP-based dollar values + surplus (`calculateSurplus` over end-of-season salaries). |
+| `get_player_values` | VORP-based dollar values + surplus (`calculateSurplus` over end-of-season salaries). Forward-looking. |
+| `get_earned_value` | Retrospective ("Player Rater") value from **actual** season points vs the salary actually paid — `realized_surplus` grades a buy after the fact. `calculateEarnedValue`; see [player-valuation.md](player-valuation.md). |
 | `get_arbitration_analysis` | Ranked arb targets with post-raise surplus; `exclude_team` parameterizes the perspective (`web/lib/mcp/arb.ts`). |
 | `get_arbitration_progress` | Live scraped arb state: team completion, top raises with projected finals, per-team spending. |
 | `get_depth_chart` | Opening-day NFL depth tiers with prior-season tier + projected PPG. |
 | `get_vegas_lines` | Preseason implied totals + win totals per NFL team. |
 | `get_weekly_projections` | Per-game projections for one NFL week from a third-party source (Sleeper), re-scored under league rules. Defaults to the upcoming week (rolls over Tuesdays); a played week keeps its projection beside the actual result. Filters: `week`, `season`, `position`, `team_name` (`"FA"`), `min_points`. **Not** the same as `get_projections` — the response carries a `note` saying so, plus `source`, `as_of`, and `scoring`. |
 
-Responses are JSON text content with rounded numbers and capped list sizes (token-friendly for LLM consumers). The tool handlers only *compose* the existing data layer (`web/lib/data.ts`, `analysis.ts`, `roster-reconstruction.ts`) and pure calculators (`surplus.ts`, `arb-progress.ts`) — no math is duplicated.
+Responses are JSON text content with rounded numbers and capped list sizes (token-friendly for LLM consumers). The tool handlers only *compose* the existing data layer (`web/lib/data.ts`, `analysis.ts`, `roster-reconstruction.ts`) and pure calculators (`surplus.ts`, `earned-value.ts`, `arb-progress.ts`) — no math is duplicated.
 
 ## Consumer-facing gotchas
 

@@ -7,24 +7,45 @@ import {
   NUM_TEAMS,
   CAP_PER_TEAM,
 } from "@/lib/analysis";
-import { getEffectiveStatsSeason } from "@/lib/stats-season";
+import {
+  ROSTER_SPOTS,
+  FULL_SEASON_GAMES,
+  STARTING_LINEUP,
+  FLEX_SLOTS,
+  BENCH_DEPTH_PER_TEAM,
+} from "@/lib/config";
+import { distributableCap } from "@/lib/surplus";
 import { fetchPlayersEndOfSeason } from "@/lib/data";
 import { getAuthenticatedUser } from "@/lib/auth";
+import type { StatWindow } from "@/lib/stat-window";
+import StatWindowNote from "@/components/StatWindowNote";
 import VorpClient from "@/app/vorp/VorpClient";
 
 /**
  * VORP analysis panel. Rendered inside the tabbed /value page; provides its own
  * data fetching but no page chrome (the parent supplies <main> + heading).
+ *
+ * VORP per game is honest over any amount of football — it is a rate minus a
+ * rate. Full-season VORP is that rate times seventeen, which over a season in
+ * progress is an extrapolation, so the panel labels it as one rather than
+ * silently rescaling: the factor cancels out of the dollar conversion, so
+ * shortening it would change how the number reads without changing what anyone
+ * is worth.
  */
-export default async function VorpSection() {
-  const [allPlayers, user, statsSeason] = await Promise.all([
-    fetchPlayersEndOfSeason(),
+export default async function VorpSection({ window: w }: { window: StatWindow }) {
+  const [allPlayers, user] = await Promise.all([
+    fetchPlayersEndOfSeason(w.season),
     getAuthenticatedUser(),
-    getEffectiveStatsSeason(),
   ]);
-  const { players, replacementPpg, replacementN } = calculateVorp(allPlayers);
+  const {
+    players,
+    replacementPpg,
+    replacementN,
+    salaryImpliedPpg,
+    minGamesApplied,
+  } = calculateVorp(allPlayers);
   const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
-  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap);
+  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap, !!user?.hasProjectionsAccess);
 
   if (players.length === 0) {
     return (
@@ -40,6 +61,10 @@ export default async function VorpSection() {
     position: pos,
     n: replacementN[pos] ?? 0,
     ppg: Math.round((replacementPpg[pos] ?? 0) * 100) / 100,
+    salaryImplied:
+      salaryImpliedPpg[pos] === undefined
+        ? null
+        : Math.round(salaryImpliedPpg[pos] * 100) / 100,
   }));
 
   // Top 15 overall for bar chart
@@ -72,13 +97,23 @@ export default async function VorpSection() {
     <div className="space-y-8">
       <header>
         <h2 className="text-2xl font-bold tracking-tight text-ink">
-          VORP Analysis ({statsSeason})
+          VORP Analysis ({w.label})
         </h2>
         <p className="text-ink-subtle mt-2">
           Value Over Replacement Player — measures positional scarcity.
           Higher VORP = more valuable above replacement level.
         </p>
       </header>
+
+      <StatWindowNote window={w} what="rates" />
+      {!w.complete && (
+        <p className="text-sm text-ink-subtle">
+          VORP/G is a rate and reads the same on any amount of football. Full VORP
+          multiplies it by a {FULL_SEASON_GAMES}-game season, so on {w.games} game
+          {w.games === 1 ? "" : "s"} of production it is an extrapolation — treat it
+          as &ldquo;if this rate held all year&rdquo;, not as banked value.
+        </p>
+      )}
 
       {/* Methodology */}
       <section className="bg-sunken rounded-lg p-5 border border-line space-y-4 text-sm text-ink-muted">
@@ -88,14 +123,19 @@ export default async function VorpSection() {
 
         <div>
           <h4 className="font-semibold text-ink-muted mb-1">
-            1. Define the replacement level
+            1. Work out how many players actually start
           </h4>
           <p>
-            In a keeper league with {NUM_TEAMS} teams × 20 roster spots, the waiver wire is
-            nearly empty of useful players — managers hoard backups and handcuffs. Instead of
-            using a fixed rank (which would assume the Nth-best player is freely available),
-            This analysis uses a dynamically calculated replacement level based on the number of non-Kicker players rostered on teams. Because there are empty roster spots on teams, there is effectively a &quot;free&quot; or &quot;salary implied&quot; player available.t minimum salary.
-            Kickers are excluded from VORP analysis.
+            Replacement level is derived from the lineup, not typed in by hand. Each of the{" "}
+            {NUM_TEAMS} teams starts {STARTING_LINEUP.QB} QB, {STARTING_LINEUP.RB} RB,{" "}
+            {STARTING_LINEUP.WR} WR, {STARTING_LINEUP.TE} TE and {FLEX_SLOTS} superflex, so the
+            league starts {NUM_TEAMS * STARTING_LINEUP.RB} RBs and{" "}
+            {NUM_TEAMS * STARTING_LINEUP.WR} WRs before the flex is filled. The{" "}
+            {NUM_TEAMS * (FLEX_SLOTS + BENCH_DEPTH_PER_TEAM)} remaining slots — superflex
+            plus the bye-week and injury cover every team carries — are then handed out one
+            at a time to whichever position offers the best <em>next</em> player. The
+            superflex slots go to quarterbacks in this format. Kickers are excluded throughout: every kicker clears
+            at the salary floor, so there is no surplus to hand out.
           </p>
         </div>
 
@@ -104,12 +144,22 @@ export default async function VorpSection() {
             2. Find replacement PPG
           </h4>
           <p>
-            Only players with at least {MIN_GAMES} games played qualify. For each position,
-            we identify all <em>rostered</em> qualified players in the bottom 25th percentile
-            of salaries — these are the players managers collectively decided weren&apos;t
-            worth more than the minimum. The <em>replacement PPG</em> is the median PPG of
-            that group. See the benchmarks table below for how many players were used and
-            each position&apos;s current replacement PPG.
+            The replacement player at a position is the <em>last one worth a roster
+            spot</em> once every team has filled its lineup plus bye-week and injury cover
+            ({BENCH_DEPTH_PER_TEAM} spots per team). His PPG is the baseline. Only players
+            with at least {minGamesApplied} game{minGamesApplied === 1 ? "" : "s"} played
+            qualify for the pool
+            {minGamesApplied < MIN_GAMES && (
+              <>
+                {" "}— relaxed from the usual {MIN_GAMES} because no player has
+                {" "}{MIN_GAMES} games yet this season
+              </>
+            )}
+            . The benchmarks table below shows where each baseline landed, next to the
+            older salary-implied estimate (the median PPG of the bottom-salary quartile of
+            rostered players) for comparison — that one is kept as a diagnostic only, because
+            it reads the market&apos;s own prices back into the values we then judge those
+            prices against.
           </p>
         </div>
 
@@ -119,9 +169,9 @@ export default async function VorpSection() {
           </h4>
           <p>
             For each player: <code className="bg-sunken px-1.5 py-0.5 rounded text-xs">VORP/G = Player PPG - Replacement PPG</code>.
-            A positive VORP/G means the player produces more per game than a freely
-            available replacement. A negative VORP/G means a waiver pickup would
-            outscore them.
+            A positive VORP/G means the player produces more per game than the worst
+            player anyone is willing to start. A negative VORP/G means he belongs on a
+            bench, where the market pays the salary floor.
           </p>
         </div>
 
@@ -130,10 +180,11 @@ export default async function VorpSection() {
             4. Project to a full season
           </h4>
           <p>
-            <code className="bg-sunken px-1.5 py-0.5 rounded text-xs">Full-Season VORP = VORP/G &times; 17</code>.
-            This extrapolates the per-game advantage over a full 17-game NFL season,
-            making it easy to compare players who missed time to those who played
-            every week.
+            <code className="bg-sunken px-1.5 py-0.5 rounded text-xs">Full-Season VORP = VORP/G &times; {FULL_SEASON_GAMES}</code>.
+            This extrapolates the per-game advantage over a full {FULL_SEASON_GAMES}-game NFL
+            season, making it easy to compare players who missed time to those who played
+            every week. It is a display scale only: it cancels out of the dollar conversion
+            below, so it sets how VORP reads on screen rather than what anyone is worth.
           </p>
         </div>
 
@@ -142,13 +193,17 @@ export default async function VorpSection() {
             5. Convert to dollar value (used in Surplus Value)
           </h4>
           <p>
-            The total league salary cap is {NUM_TEAMS} teams &times; ${CAP_PER_TEAM} = $
-            {NUM_TEAMS * CAP_PER_TEAM}. We assume ~87.5% of that (${Math.round(NUM_TEAMS * CAP_PER_TEAM * 0.875)}) goes to above-replacement
-            players. Each point of full-season VORP is worth{" "}
+            An auction is a closed economy, so a dollar value is a share of a fixed pot
+            rather than an absolute number. The league cap is {NUM_TEAMS} teams &times; $
+            {CAP_PER_TEAM} = ${NUM_TEAMS * CAP_PER_TEAM}. Every one of the{" "}
+            {NUM_TEAMS * ROSTER_SPOTS} roster spots has to be filled, and the cheapest a spot
+            can be filled for is $1, so ${NUM_TEAMS * ROSTER_SPOTS} is committed before any
+            bidding starts. That leaves{" "}
             <code className="bg-sunken px-1.5 py-0.5 rounded text-xs">
-              ${Math.round(NUM_TEAMS * CAP_PER_TEAM * 0.875)} &divide; total league VORP
-            </code>
-            , giving each player a dollar value. <em>Surplus</em> = dollar value - salary.
+              ${distributableCap()} &divide; total league VORP
+            </code>{" "}
+            per point of full-season VORP. Each player is worth $1 plus his share, so the
+            values sum to exactly the league cap. <em>Surplus</em> = dollar value - salary.
           </p>
         </div>
 
@@ -157,12 +212,14 @@ export default async function VorpSection() {
             Why this matters in superflex
           </h4>
           <p>
-            Because each team needs ~2 starting QBs, managers pay significantly more for
-            QBs than in standard formats — which means QBs priced at the salary floor are
-            rarer and worse. This produces a higher QB replacement baseline relative to
-            other positions, but elite QBs still tower above it. The top VORP chart
-            is typically dominated by quarterbacks because it correctly captures the
-            scarcity premium that makes QBs so expensive in superflex auctions.
+            Because the superflex slots go to quarterbacks, the league starts roughly{" "}
+            {NUM_TEAMS * (STARTING_LINEUP.QB + FLEX_SLOTS)} of them out of maybe 20–22
+            startable ones. Demand exceeds supply, so the QB baseline sits far higher than it
+            would in a one-QB league and elite QBs tower above it. The top VORP chart is
+            typically dominated by quarterbacks because it correctly captures the scarcity
+            premium that makes QBs so expensive in superflex auctions — and, unlike a
+            hand-set positional adjustment, nobody had to decide how big that premium should
+            be. It falls out of counting the slots.
           </p>
         </div>
       </section>
@@ -178,10 +235,13 @@ export default async function VorpSection() {
               <tr className="text-ink-subtle">
                 <th className="pr-6 py-1 text-left font-medium">Position</th>
                 <th className="pr-6 py-1 text-left font-medium">
-                  # Players Used
+                  Started Leaguewide
                 </th>
                 <th className="pr-6 py-1 text-left font-medium">
                   Replacement PPG
+                </th>
+                <th className="pr-6 py-1 text-left font-medium">
+                  Salary-Implied (diagnostic)
                 </th>
               </tr>
             </thead>
@@ -194,6 +254,9 @@ export default async function VorpSection() {
                   <td className="pr-6 py-1 font-medium">{b.position}</td>
                   <td className="pr-6 py-1">{b.n}</td>
                   <td className="pr-6 py-1">{b.ppg.toFixed(2)}</td>
+                  <td className="pr-6 py-1 text-ink-subtle">
+                    {b.salaryImplied === null ? "—" : b.salaryImplied.toFixed(2)}
+                  </td>
                 </tr>
               ))}
             </tbody>

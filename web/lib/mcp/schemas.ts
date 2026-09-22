@@ -60,6 +60,18 @@ export const getPlayerValuesShape = {
   limit: limitParam(25, 100),
 } satisfies z.ZodRawShape;
 
+export const getEarnedValueShape = {
+  position: positionEnum.optional(),
+  team_name: z.string().optional().describe("Filter to one fantasy team's players (exact name)"),
+  sort: z
+    .enum(["earned_value", "realized_surplus"])
+    .optional()
+    .describe(
+      "earned_value ranks by what the player was worth; realized_surplus ranks by how well the roster spot paid off (value minus the salary actually paid). Defaults to earned_value.",
+    ),
+  limit: limitParam(25, 100),
+} satisfies z.ZodRawShape;
+
 export const getArbitrationAnalysisShape = {
   exclude_team: z.string().optional().describe("Fantasy team whose roster to exclude from targets — pass your own team name, since you cannot allocate against yourself. Omit for a league-wide view."),
   limit: limitParam(30, 100),

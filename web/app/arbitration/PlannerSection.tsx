@@ -37,7 +37,7 @@ export default async function PlannerSection() {
     : { data: [], error: null };
 
   const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
-  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap);
+  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap, !!user?.hasProjectionsAccess);
 
   // Use raw values (no adjustments) so Value/Surplus columns match the arbitration page.
   // Adjustments are shown separately in the "Adj. Surplus" column.

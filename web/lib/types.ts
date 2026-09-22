@@ -61,6 +61,23 @@ export interface ProjectedSalaryPlayer extends SurplusPlayer {
   recommendation: string;
 }
 
+/**
+ * A player priced from what he actually scored (web/lib/earned-value.ts) rather
+ * than from a projection. Deliberately NOT a `SurplusPlayer` — it carries no
+ * `dollar_value`/`surplus`, because mixing a projected value and an earned one
+ * on the same row is how the two silently get compared to each other.
+ */
+export interface EarnedValuePlayer extends Player {
+  replacement_points: number;
+  points_above_replacement: number;
+  earned_value: number;
+  /** Salary the spot has cost over the window; equals `price` on a full season. */
+  salary_to_date: number;
+  realized_surplus: number;
+  /** Dollars earned per dollar paid, or null for an unpriced spot. */
+  return_on_salary: number | null;
+}
+
 export interface ArbitrationTarget extends SurplusPlayer {
   salary_after_arb: number;
   surplus_after_arb: number;
@@ -313,6 +330,13 @@ export interface PlayerHoverData {
   projection_method?: string;
   ds_auction_value?: number | null;
   market_auction_value?: number | null;
+  /**
+   * What this player's actual production was worth (web/lib/earned-value.ts),
+   * for the season whose stats the page is showing. Absent when the caller did
+   * not pass a full league pool — replacement level is a property of the pool,
+   * so a filtered list cannot produce an honest one.
+   */
+  earned_value?: number;
 }
 
 // === Position Constants ===

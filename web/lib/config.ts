@@ -11,9 +11,11 @@
  *   - The current season / phase / salary-snapshot dates are NOT static config —
  *     they are resolved from the league_calendar table (web/lib/season.ts:
  *     getStatsSeason / getProjectionSeason / getLeagueSeason / getSalarySnapshotDates).
- *   - REPLACEMENT_LEVEL approximates fantasy-relevant players per position in a
- *     12-team superflex league (2 QBs start/team); fallback when the
- *     salary-implied method lacks data.
+ *   - STARTING_LINEUP / FLEX_SLOTS / BENCH_DEPTH_PER_TEAM define the player
+ *     pool the valuation prices. Replacement level is derived from them at
+ *     runtime (web/lib/replacement.ts) rather than being a per-position
+ *     constant; BENCH_DEPTH_PER_TEAM is the one calibration knob. See
+ *     docs/references/player-valuation.md.
  *   - Database salaries already reflect the end-of-season $4/$1 bump.
  *   - NFL_TEAM_CODES is a Set for O(1) college-player detection.
  *   - MY_TEAM is the **operator's** team, not "the current user's team". Read
@@ -37,7 +39,13 @@ export const COLLEGE_POSITIONS: readonly string[] = config.COLLEGE_POSITIONS;
 export const SCORING_SETTINGS = config.SCORING_SETTINGS;
 export const MIN_GAMES = config.MIN_GAMES;
 export const NFL_REGULAR_SEASON_WEEKS = config.NFL_REGULAR_SEASON_WEEKS;
-export const REPLACEMENT_LEVEL: Record<string, number> = config.REPLACEMENT_LEVEL;
+export const ROSTER_SPOTS = config.ROSTER_SPOTS;
+export const MIN_PLAYER_SALARY = config.MIN_PLAYER_SALARY;
+export const FULL_SEASON_GAMES = config.FULL_SEASON_GAMES;
+export const STARTING_LINEUP: Record<string, number> = config.STARTING_LINEUP;
+export const FLEX_SLOTS = config.FLEX_SLOTS;
+export const BENCH_DEPTH_PER_TEAM = config.BENCH_DEPTH_PER_TEAM;
+export const FLEX_POSITIONS: readonly string[] = config.FLEX_POSITIONS;
 export const SALARY_REPLACEMENT_PERCENTILE = config.SALARY_REPLACEMENT_PERCENTILE;
 export const MIN_SALARY_PLAYERS = config.MIN_SALARY_PLAYERS;
 export const ARB_BUDGET_PER_TEAM = config.ARB_BUDGET_PER_TEAM;

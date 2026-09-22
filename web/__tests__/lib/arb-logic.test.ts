@@ -41,8 +41,9 @@ function makePlayer(overrides: Partial<Player> & { player_id: string; name: stri
 }
 
 /**
- * Build a roster of N players across various teams with enough depth
- * to trigger the salary-implied replacement path.
+ * Build a roster of N players across various teams — 36 per position, deep
+ * enough that every position's lineup-derived baseline lands on a real player
+ * rather than clamping to the worst one.
  */
 function buildLeaguePlayers(): Player[] {
     const teams = [
@@ -191,7 +192,7 @@ describe("calculateVorp", () => {
         }
     });
 
-    it("uses salary-implied replacement with enough rostered players", () => {
+    it("derives a replacement level for every position in the pool", () => {
         const players = buildLeaguePlayers();
         const result = calculateVorp(players);
 
@@ -200,27 +201,47 @@ describe("calculateVorp", () => {
             expect.arrayContaining(["QB", "RB", "WR", "TE"])
         );
 
-        // With 36 rostered players per position (12 teams × 3), salary-implied
-        // path should be used — replacementN should NOT equal the REPLACEMENT_LEVEL ranks
         for (const pos of ["QB", "RB", "WR", "TE"]) {
             expect(result.replacementPpg[pos]).toBeGreaterThan(0);
+            // Demand is derived from the lineup, not from how many happen to
+            // be rostered: 12 teams × starters, plus the superflex slots.
+            expect(result.replacementN[pos]).toBeGreaterThan(0);
+        }
+        // Total demand is every non-kicker slot the league fills: 12 teams ×
+        // (1 QB + 2 RB + 2 WR + 1 TE dedicated, + 1 superflex + 2 depth) = 108.
+        // Which position the contested slots land on is decided by the pool,
+        // not assumed — in this fixture every position is drawn from the same
+        // random range, so they split. replacement.test.ts covers the realistic
+        // case where the superflex slots all go to QB.
+        const totalDemand = ["QB", "RB", "WR", "TE"].reduce(
+            (sum, pos) => sum + result.replacementN[pos],
+            0
+        );
+        expect(totalDemand).toBe(108);
+        expect(result.replacementN["QB"]).toBeGreaterThanOrEqual(12);
+    });
+
+    it("still reports the salary-implied baseline as a diagnostic", () => {
+        const result = calculateVorp(buildLeaguePlayers());
+        // Kept for comparison on /value, but no longer what VORP is measured
+        // against — see web/lib/vorp.ts.
+        for (const pos of ["QB", "RB", "WR", "TE"]) {
+            expect(result.salaryImpliedPpg[pos]).toBeGreaterThan(0);
         }
     });
 
-    it("falls back to fixed-rank when few rostered players", () => {
-        // Only 2 rostered players (below MIN_SALARY_PLAYERS=3)
+    it("clamps to the worst available player when the pool is thinner than the lineup", () => {
+        // Three QBs exist but the league wants to start 24.
         const players = [
             makePlayer({ player_id: "1", name: "P1", position: "QB", ppg: 20, games_played: 10, total_points: 200, team_name: "Team A" }),
             makePlayer({ player_id: "2", name: "P2", position: "QB", ppg: 10, games_played: 10, total_points: 100, team_name: "Team B" }),
-            // Free agents don't count toward rostered
             makePlayer({ player_id: "3", name: "P3", position: "QB", ppg: 5, games_played: 10, total_points: 50, team_name: null }),
         ];
         const result = calculateVorp(players);
-        expect(result.replacementPpg["QB"]).toBeDefined();
-        // With 3 players total (2 rostered + 1 FA) and rank 24 exceeding count,
-        // the fallback uses the LAST player by total_points descending.
-        // The FA (ppg=5) is included and has the least total_points.
         expect(result.replacementPpg["QB"]).toBe(5);
+        // Free agents are part of the startable pool — the baseline is about
+        // who is available, not about who is already owned.
+        expect(result.players).toHaveLength(3);
     });
 
     it("excludes college players from replacement PPG calculation", () => {

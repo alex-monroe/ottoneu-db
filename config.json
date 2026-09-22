@@ -39,13 +39,24 @@
   },
   "MIN_GAMES": 4,
   "NFL_REGULAR_SEASON_WEEKS": 18,
-  "REPLACEMENT_LEVEL": {
-    "QB": 24,
-    "RB": 30,
-    "WR": 30,
-    "TE": 20,
-    "K": 13
+  "ROSTER_SPOTS": 20,
+  "MIN_PLAYER_SALARY": 1,
+  "FULL_SEASON_GAMES": 17,
+  "STARTING_LINEUP": {
+    "QB": 1,
+    "RB": 2,
+    "WR": 2,
+    "TE": 1,
+    "K": 1
   },
+  "FLEX_SLOTS": 1,
+  "BENCH_DEPTH_PER_TEAM": 2,
+  "FLEX_POSITIONS": [
+    "QB",
+    "RB",
+    "WR",
+    "TE"
+  ],
   "SALARY_REPLACEMENT_PERCENTILE": 0.25,
   "MIN_SALARY_PLAYERS": 3,
   "ARB_BUDGET_PER_TEAM": 60,

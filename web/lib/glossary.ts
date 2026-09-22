@@ -24,14 +24,48 @@ const ENTRIES = {
   vorp: {
     term: "VORP",
     definition:
-      "Value Over Replacement Player: points scored above what a freely available player at the same position would have scored. It is how a 14-PPG QB and a 14-PPG RB get told apart in a superflex league, where quarterbacks are scarce.",
+      "Value Over Replacement Player: points scored above the worst player at the same position anyone would bother to roster. It is how a 14-PPG QB and a 14-PPG RB get told apart in a superflex league, where quarterbacks are scarce.",
+    href: "/value?tab=vorp",
+  },
+  replacement_level: {
+    term: "Replacement level",
+    definition:
+      "The marginal ownable player at a position — the last one worth a roster spot once every team has filled its lineup and its bye-week and injury cover. The superflex slot goes to whichever position offers the best next player, which is why the QB baseline sits so much higher here than in a one-QB league.",
     href: "/value?tab=vorp",
   },
   dollar_value: {
     term: "Dollar value",
     definition:
-      "What a player is worth in salary, derived from VORP by spreading the league's total cap across all positive-VORP production. It is a price, not a prediction.",
+      "What a player is worth in salary. Every roster spot costs at least $1, and what is left of the league cap is split across all above-replacement production — so values add up to exactly the cap. It is a price, not a prediction.",
     href: "/value",
+  },
+  earned_value: {
+    term: "Earned value",
+    definition:
+      "The same dollar math run backwards, on the points a player actually scored rather than a projection — what he would have gone for with perfect foresight. A player who missed half the season earned half the money, because availability is observed here rather than forecast.",
+    href: "/value?tab=earned",
+  },
+  realized_surplus: {
+    term: "Realized surplus",
+    definition:
+      "Earned value minus the salary actually paid that season. Where surplus grades a roster decision in advance, this grades it after the fact.",
+  },
+  return_on_salary: {
+    term: "Return",
+    definition:
+      "Dollars earned per dollar paid — 1.00 is breaking even, 2.00 is twice the production the price asked for. Being a ratio, it reads the same whether you are looking at two weeks or a whole season, which makes it the number to trust mid-season.",
+    href: "/value?tab=earned",
+  },
+  salary_to_date: {
+    term: "Paid so far",
+    definition:
+      "The share of a salary the roster spot has cost over the football played so far. A full season's price set against a fortnight of points would flatter every player on the board, so both sides are scaled to the same stretch.",
+    href: "/value?tab=earned",
+  },
+  stat_window: {
+    term: "Stat window",
+    definition:
+      "How much football is behind the numbers on a page. A finished season is seventeen games; a season in progress is however many have been played, and every rate and rank on the page is only as settled as that sample.",
   },
   surplus: {
     term: "Surplus",

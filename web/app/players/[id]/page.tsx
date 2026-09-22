@@ -1,5 +1,6 @@
 import { fetchPlayerDetail, fetchPlayerProjection, fetchDraftSharksValue } from "@/lib/data";
 import { fetchPlayerWeeklyProjections, fetchWeeklyAsOf } from "@/lib/weekly-projections";
+import { fetchPlayerEarnedValue, type SeasonEarnedValue } from "@/lib/earned-value-data";
 import { getDisplayWeeks } from "@/lib/nfl-week";
 import WeeklyProjectionCard from "@/components/WeeklyProjectionCard";
 import { getAuthenticatedUser } from "@/lib/auth";
@@ -61,6 +62,25 @@ export default async function PlayerCardPage({
             : [new Map(), null];
     const weeklySource = [...weeklyRows.values()][0]?.source ?? "Sleeper";
 
+    // Earned value per season. Replacement level is a property of the whole
+    // season's pool, so this prices every finisher in each season the table
+    // shows and picks this player out — it cannot be read off his own row.
+    //
+    // Gated: /players is a public route, and earned value is a dollar valuation
+    // like the ones PROJECTIONS_ROUTES protects. Skipping it for anonymous
+    // visitors also spares them the multi-season pool read.
+    const earnedBySeason = user?.hasProjectionsAccess
+        ? await fetchPlayerEarnedValue(
+              player.id,
+              player.seasonStats.map((s) => s.season),
+          )
+        : new Map<number, SeasonEarnedValue>();
+
+    // Most recent season with a value, shown beside the salary in the header.
+    const latestEarned = player.seasonStats
+        .map((s) => earnedBySeason.get(s.season))
+        .find((v) => v != null);
+
     const posColor = POSITION_COLORS[player.position as Position] ?? "#6B7280";
 
     const age = player.birth_date
@@ -118,6 +138,23 @@ export default async function PlayerCardPage({
                                         </p>
                                         <p className="text-xs text-ink-subtle mt-0.5">
                                             Salary
+                                        </p>
+                                    </div>
+                                )}
+                                {latestEarned != null && (
+                                    <div className="text-center">
+                                        <p
+                                            className={`text-3xl font-bold font-mono ${
+                                                player.price != null &&
+                                                latestEarned.earned_value >= player.price
+                                                    ? "text-positive"
+                                                    : "text-negative"
+                                            }`}
+                                        >
+                                            ${latestEarned.earned_value}
+                                        </p>
+                                        <p className="text-xs text-ink-subtle mt-0.5">
+                                            Earned Value
                                         </p>
                                     </div>
                                 )}
@@ -219,6 +256,14 @@ export default async function PlayerCardPage({
                                         <th className="px-3 py-2.5 text-right font-semibold text-ink-muted">Snaps</th>
                                         <th className="px-3 py-2.5 text-right font-semibold text-ink-muted">PPG</th>
                                         <th className="px-3 py-2.5 text-right font-semibold text-ink-muted">PPS</th>
+                                        {user?.hasProjectionsAccess && (
+                                            <th
+                                                className="px-3 py-2.5 text-right font-semibold text-ink-muted"
+                                                title="What his production that season was worth at auction, priced against the league's finishers for that same year."
+                                            >
+                                                Earned $
+                                            </th>
+                                        )}
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -243,6 +288,13 @@ export default async function PlayerCardPage({
                                             <td className="px-3 py-2 text-right font-mono text-ink-muted">
                                                 {s.pps != null ? s.pps.toFixed(4) : "—"}
                                             </td>
+                                            {user?.hasProjectionsAccess && (
+                                                <td className="px-3 py-2 text-right font-mono text-ink-muted">
+                                                    {earnedBySeason.has(s.season)
+                                                        ? `$${earnedBySeason.get(s.season)!.earned_value}`
+                                                        : "—"}
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                 </tbody>

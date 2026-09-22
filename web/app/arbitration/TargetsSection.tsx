@@ -68,7 +68,7 @@ export default async function TargetsSection({ mode }: { mode: ValueMode }) {
   }
 
   const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
-  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap);
+  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap, !!user?.hasProjectionsAccess);
 
   const targets = analyzeArbitration(allPlayers, viewerTeam, adjustments) as ProjectedTarget[];
 

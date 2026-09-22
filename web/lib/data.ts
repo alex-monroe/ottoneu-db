@@ -9,9 +9,11 @@
  * Historical salary: transaction replay via `roster-reconstruction.ts`.
  */
 
+import { cache } from "react";
 import { supabase, fetchAllRows } from "./supabase";
 import { LEAGUE_ID } from "./config";
 import { getProjectionSeason, getSalarySnapshotDates } from "./season";
+import { resolveStatWindow, type StatWindow } from "./stat-window";
 import { getEffectiveStatsSeason } from "./stats-season";
 import type {
   Player,
@@ -97,9 +99,19 @@ async function buildSalaryMapAtDate(
  * See `getSalarySnapshotDates()`: the `seasonEnd` date for end-of-season
  * analysis (VORP, surplus), the `preArb` date for pre-arbitration analysis
  * (arb targets, simulation).
+ *
+ * `season` overrides which season's `player_stats` to read, for the pages that
+ * let a reader switch between the season being played and the last finished one
+ * (see `stat-window.ts`). It moves the **production** only: the salary snapshot
+ * stays whatever `salaryDate` asked for, because the question those pages answer
+ * is "what am I paying now against what he has done", and the salary in force is
+ * the one being paid. Omit it for the season the rest of the site is showing.
  */
-export async function fetchPlayersAtDate(salaryDate: string): Promise<Player[]> {
-  const statsSeason = await getEffectiveStatsSeason();
+export const fetchPlayersAtDate = cache(async function fetchPlayersAtDate(
+  salaryDate: string,
+  season?: number,
+): Promise<Player[]> {
+  const statsSeason = season ?? (await getEffectiveStatsSeason());
   // Paginate players (~1,252 with ottoneu_id>0 now exceeds the 1000-row cap).
   const [players, stats, salaryMap] = await Promise.all([
     fetchAllRows((from, to) =>
@@ -141,11 +153,49 @@ export async function fetchPlayersAtDate(salaryDate: string): Promise<Player[]> 
   }
 
   return merged;
-}
+});
 
 /** Fetch players with end-of-season salaries (before +$4/+$1 bump). */
-export async function fetchPlayersEndOfSeason(): Promise<Player[]> {
-  return fetchPlayersAtDate((await getSalarySnapshotDates()).seasonEnd);
+export async function fetchPlayersEndOfSeason(season?: number): Promise<Player[]> {
+  return fetchPlayersAtDate((await getSalarySnapshotDates()).seasonEnd, season);
+}
+
+/**
+ * The rows a value page renders, together with the {@link StatWindow} that says
+ * what slice of season they are.
+ *
+ * Fetching the two together is the point. A window measured from a *different*
+ * read than the one on screen could describe a different amount of football, and
+ * the whole guarantee of `stat-window.ts` is that the label and the scale come
+ * from the numbers being labelled and scaled.
+ */
+export const fetchPlayerSetEndOfSeason = cache(
+  async function fetchPlayerSetEndOfSeason(
+    season?: number,
+  ): Promise<{ players: Player[]; window: StatWindow }> {
+    const resolved = season ?? (await getEffectiveStatsSeason());
+    const players = await fetchPlayersEndOfSeason(resolved);
+    return {
+      players,
+      window: await resolveStatWindow(
+        resolved,
+        players.map((p) => p.games_played),
+      ),
+    };
+  },
+);
+
+/**
+ * Seasons a reader may switch between: the one being played and the last
+ * finished one.
+ *
+ * Capped at two deliberately. Going further back needs a historical salary
+ * snapshot per season, which `getSalarySnapshotDates()` cannot produce — it
+ * knows one rollover date, the current season's.
+ */
+export async function listStatWindowSeasons(): Promise<number[]> {
+  const current = await getEffectiveStatsSeason();
+  return [current, current - 1];
 }
 
 /** Fetch players with pre-arbitration salaries (after auto bump, before arb results). */
@@ -161,9 +211,14 @@ export async function fetchPlayersPreArb(): Promise<Player[]> {
  *
  * Only includes players that have current-season stats.
  * Salary comes exclusively from `league_prices`.
+ *
+ * `season` overrides which season's production to read — see
+ * {@link fetchPlayersAtDate} for why the salary side does not move with it.
  */
-export async function fetchPlayers(): Promise<Player[]> {
-  const statsSeason = await getEffectiveStatsSeason();
+export const fetchPlayers = cache(async function fetchPlayers(
+  season?: number,
+): Promise<Player[]> {
+  const statsSeason = season ?? (await getEffectiveStatsSeason());
   // Paginate players (~1,252) and league_prices (~1,252) past the 1000-row cap.
   const [players, stats, prices] = await Promise.all([
     fetchAllRows((from, to) =>
@@ -209,7 +264,26 @@ export async function fetchPlayers(): Promise<Player[]> {
   }
 
   return merged;
-}
+});
+
+/**
+ * The rows the efficiency chart renders, with the {@link StatWindow} describing
+ * them. Same contract as {@link fetchPlayerSetEndOfSeason}, over current
+ * `league_prices` salaries rather than a transaction-replayed snapshot.
+ */
+export const fetchPlayerSet = cache(async function fetchPlayerSet(
+  season?: number,
+): Promise<{ players: Player[]; window: StatWindow }> {
+  const resolved = season ?? (await getEffectiveStatsSeason());
+  const players = await fetchPlayers(resolved);
+  return {
+    players,
+    window: await resolveStatWindow(
+      resolved,
+      players.map((p) => p.games_played),
+    ),
+  };
+});
 
 /**
  * Fetch all players for the player directory page.
