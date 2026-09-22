@@ -131,7 +131,7 @@ update projections (run active model → promote → rookie/college fallback)
 
 The feature projection system (see below) generates per-player PPG projections and stores them in `model_projections`. `promote.py` copies the active model's projections into `player_projections`, which is what the web UI reads.
 
-VORP, surplus value, arbitration, projected salary, and the Monte Carlo arbitration simulation are computed **only** in the TypeScript web UI — `web/lib/vorp.ts`, `web/lib/surplus.ts`, `web/lib/arbitration.ts`, `web/lib/simulation.ts` — which is the single source of truth for those calculations. The former `analyze_*.py` report scripts (which duplicated this math to emit markdown) have been removed. `scripts/analysis_utils.py` now retains only `fetch_multi_season_stats`, the data-fetch helper used by the projection pipeline. The Python scraper and projection pipelines remain active.
+VORP, surplus value, earned value, arbitration, projected salary, and the Monte Carlo arbitration simulation are computed **only** in the TypeScript web UI — `web/lib/replacement.ts`, `web/lib/vorp.ts`, `web/lib/surplus.ts`, `web/lib/earned-value.ts`, `web/lib/arbitration.ts`, `web/lib/simulation.ts`, `web/lib/stat-window.ts` — which is the single source of truth for those calculations. The former `analyze_*.py` report scripts (which duplicated this math to emit markdown) have been removed. `scripts/analysis_utils.py` now retains only `fetch_multi_season_stats`, the data-fetch helper used by the projection pipeline. The Python scraper and projection pipelines remain active.
 
 ### Web Data Access Layer
 
@@ -146,8 +146,11 @@ All web data fetching goes through `web/lib/data.ts` — the single source of tr
 
 - **PPG** (Points Per Game) = total_points / games_played
 - **PPS** (Points Per Snap) = total_points / snaps
-- **VORP** (Value Over Replacement) = ppg - replacement_ppg at position
-- **Surplus Value** = dollar_value (from VORP) - salary
+- **VORP** (Value Over Replacement) = ppg − replacement_ppg at position. Replacement level is now **derived from the lineup** (`web/lib/replacement.ts`) — dedicated starting slots per position plus superflex + `BENCH_DEPTH_PER_TEAM` allocated one at a time to whichever `FLEX_POSITIONS` entry offers the best next player. The old hand-typed rank per position (QB24/RB30/…) and the salary-implied override are gone as the primary method; the salary-implied number is still surfaced as a diagnostic.
+- **Surplus Value** = dollar_value − salary. Dollar values run a **closed economy** (`web/lib/surplus.ts`): `distributable = NUM_TEAMS × CAP_PER_TEAM − NUM_TEAMS × ROSTER_SPOTS × MIN_PLAYER_SALARY` distributed in proportion to positive VORP, so values sum to exactly the league cap. This replaced a flat `× 0.875` factor.
+- **Earned Value** = the same closed-economy allocation run on actual season points (`web/lib/earned-value.ts`, MCP `get_earned_value`). Availability is observed rather than modelled; ranked on totals not PPG; no `MIN_GAMES` filter. Derived at read time like the standings — no table, no backfill.
+- **Realized Surplus** = earned_value − salary_paid. The retrospective grade on a buy/arbitration dollar/keep-cut call. Requires the salary the player was carried at during that season (`fetchPlayersEndOfSeason`).
+- **Stat Window** = how much football is behind a number (`web/lib/stat-window.ts`), because `player_stats` now holds season-to-date totals mid-season. `fraction === 1` is a strict no-op; in a partial window `distributableCap` and `salary_to_date` are prorated together so `realized_surplus` scales with the sample and the ranking never moves. `full_season_vorp` is not rescaled — the factor cancels in the dollar conversion.
 - Chart shows salary (Y-axis) vs. selected metric (X-axis), bubble size = total points
 
 ## Season Cycle (date-driven resolver)
