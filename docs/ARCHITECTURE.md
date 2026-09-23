@@ -37,7 +37,7 @@ dispatches them. Two task types remain:
 
 Jobs support dependencies, retries (up to 3 attempts), and batch grouping.
 
-> The Playwright roster/player-card scrape (`scrape_roster`, `scrape_player_card`, `ottoneu_scraper.py`) was removed in favor of the HTTP tools above. Playwright is still used by the standalone FanGraphs/Draft-Sharks/calendar scrapers.
+> The Playwright roster/player-card scrape (`scrape_roster`, `scrape_player_card`, `ottoneu_scraper.py`) was removed in favor of the HTTP tools above. Playwright is still used by the standalone FanGraphs and Draft-Sharks scrapers; `scrape_league_calendar.py` moved to plain HTTP in #700 (the FanGraphs login was unnecessary — the Calendar section renders for anonymous clients — and a spoofed browser UA was tripping Cloudflare).
 
 **Player identity across the college→NFL transition.** One human can hold multiple Ottoneu IDs over their lifecycle: a college prospect is backfilled with a placeholder `ottoneu_id` (and often a `draft_capital` row), then gets a *new* real id once drafted and rostered. `reconcile_roster.py` reconciles this when it first sees a rostered id (`choose_prospect_to_adopt`, in `scripts/prospect_adopt.py`): when no row owns the incoming real id, it adopts a same-`(name, position)` prospect record — one with a synthetic negative id **or** carrying draft capital — by updating its id, instead of creating a duplicate. (The one-off `scripts/merge_duplicate_drafted_players.py` reconciled the existing dupes; the guard prevents recurrence. See GH #483.)
 
@@ -59,6 +59,61 @@ matches players by `(normalized name, position)`. It runs standalone via `just s
 `Scrape Draft Sharks Auction Values` GitHub Action. The web app surfaces these values on
 player cards and hover cards for users with projections access.
 
+### Weekly Projections (Sleeper, in-season per-game)
+
+`weekly_projections` stores third-party per-game projections for one NFL week, ingested from
+Sleeper's public read-only API by `scripts/weekly_projections/ingest.py` and re-scored under
+Ottoneu's Half PPR rules (rather than trusting Sleeper's own point total — kickers differ,
+Ottoneu pays a 3/4/5 distance ladder where most sites pay a flat 3). Deliberately kept
+distinct from the season-long `player_projections`: `projected_points` (one game, third-party,
+market-aware) vs `projected_ppg` (season-long, ours, market-free). **Weekly projections must
+never feed `scripts/feature_projections/`** — enforced by `TestNoWeeklyProjectionsInModel`.
+
+The NFL-week primitive lives in twin resolvers (`scripts/nfl_week.py` + `web/lib/nfl-week.ts`)
+reading a shared boundary fixture so they cannot drift; the week rolls every **Tuesday 00:00 ET**,
+anchored on the first Thursday on or after `league_calendar.regular_season_start`. Retention is
+current season only (~11k rows), purged on ingest. Surfaces: `/weekly` board,
+`WeeklyProjectionCard` on the player page, MCP `get_weekly_projections`, and nested weekly
+context inside `get_player`. Refresh cadence: daily 11:00 UTC (projections + in-progress and
+previous-week actuals) plus Sunday 16:00 UTC (projections-only after inactives drop — #705).
+See [docs/references/weekly-projections.md](references/weekly-projections.md).
+
+### Matchups & Standings (in-season, derived at read time)
+
+`league_matchups` stores one row per Ottoneu game, keyed by Ottoneu's own stable `game_id`.
+`scripts/scrape_matchups.py` (`just scrape-matchups`) reads two public endpoints — `/schedule`
+for the game list, week windows, status labels and playoff badges, and `/csv/schedule` for
+the numeric team ids — over plain HTTP with an honest User-Agent through the shared
+`scripts/ottoneu_http.py` helper. The HTML leads; the CSV enriches with team ids, so either
+source going quiet still produces rows. Runs daily via `.github/workflows/pull-matchups.yml`,
+plus every 30 min through the Sunday and Monday night windows, and — deliberately — is
+**not** season-gated so the off-season pass catches next season's schedule the day it posts.
+
+**Standings, seeding and the playoff picture are DERIVED from `league_matchups` at read
+time** (`web/lib/standings.ts`), never stored in a second table. Only `game_type='regular'`
+counts; the tiebreak is wins then points for. `clinched` / `eliminated` are arithmetic-only
+and one-sided on purpose — silence beats telling a manager their season is over. A test
+pins the derivation to the league's real 2025 final standings, so if our math ever diverges
+from Ottoneu's it fails. Surfaces: `/scoreboard` (public), the homepage's league-status
+section (in-season), and MCP tools `get_scoreboard` / `get_standings`. A scheduled game
+returns `null` scores rather than Ottoneu's placeholder `0.00`, and nobody is seeded
+before the first game is final — both are cases where a `0` or a "seed 1" would read to a
+model as a fact about a season that has not started. See
+[docs/references/matchups-and-standings.md](references/matchups-and-standings.md).
+
+**Lineups** are a second table, `matchup_lineups`, ingested by `scripts/scrape_lineups.py`
+(`just scrape-lineups`) from each game's public box score — one row per (game, player),
+bench included, with slot / points / game state / injury. Ottoneu's own **Proj** column is
+deliberately not stored (it turns into the actual after a game). Each side's **live
+matchup projection** is derived from `matchup_lineups` + `weekly_projections` at read time
+(`web/lib/live-matchup.ts`), never stored: finished starters contribute their `points`,
+in-progress and scheduled starters contribute their pre-kickoff
+`weekly_projections.projected_points` — the freeze from
+[weekly-projections.md § the kickoff freeze](references/weekly-projections.md#the-kickoff-freeze)
+is what keeps those numbers honest after Sleeper revises. Surfaces: `/scoreboard/[gameId]`
+(both lineups slot against slot), scoreboard cards, and the homepage's league-status
+section.
+
 ### Worker Task Modules (`scripts/tasks/`)
 
 Each task type lives in its own module (`pull_nfl_stats`, `pull_player_stats`). `__init__.py` defines the task-type constants and the `TaskResult` dataclass. The worker no longer launches a browser (the Ottoneu scraping moved to the HTTP tools above).
@@ -76,7 +131,7 @@ update projections (run active model → promote → rookie/college fallback)
 
 The feature projection system (see below) generates per-player PPG projections and stores them in `model_projections`. `promote.py` copies the active model's projections into `player_projections`, which is what the web UI reads.
 
-VORP, surplus value, arbitration, projected salary, and the Monte Carlo arbitration simulation are computed **only** in the TypeScript web UI — `web/lib/vorp.ts`, `web/lib/surplus.ts`, `web/lib/arbitration.ts`, `web/lib/simulation.ts` — which is the single source of truth for those calculations. The former `analyze_*.py` report scripts (which duplicated this math to emit markdown) have been removed. `scripts/analysis_utils.py` now retains only `fetch_multi_season_stats`, the data-fetch helper used by the projection pipeline. The Python scraper and projection pipelines remain active.
+VORP, surplus value, earned value, arbitration, projected salary, and the Monte Carlo arbitration simulation are computed **only** in the TypeScript web UI — `web/lib/replacement.ts`, `web/lib/vorp.ts`, `web/lib/surplus.ts`, `web/lib/earned-value.ts`, `web/lib/arbitration.ts`, `web/lib/simulation.ts`, `web/lib/stat-window.ts` — which is the single source of truth for those calculations. The former `analyze_*.py` report scripts (which duplicated this math to emit markdown) have been removed. `scripts/analysis_utils.py` now retains only `fetch_multi_season_stats`, the data-fetch helper used by the projection pipeline. The Python scraper and projection pipelines remain active.
 
 ### Web Data Access Layer
 
@@ -91,8 +146,11 @@ All web data fetching goes through `web/lib/data.ts` — the single source of tr
 
 - **PPG** (Points Per Game) = total_points / games_played
 - **PPS** (Points Per Snap) = total_points / snaps
-- **VORP** (Value Over Replacement) = ppg - replacement_ppg at position
-- **Surplus Value** = dollar_value (from VORP) - salary
+- **VORP** (Value Over Replacement) = ppg − replacement_ppg at position. Replacement level is now **derived from the lineup** (`web/lib/replacement.ts`) — dedicated starting slots per position plus superflex + `BENCH_DEPTH_PER_TEAM` allocated one at a time to whichever `FLEX_POSITIONS` entry offers the best next player. The old hand-typed rank per position (QB24/RB30/…) and the salary-implied override are gone as the primary method; the salary-implied number is still surfaced as a diagnostic.
+- **Surplus Value** = dollar_value − salary. Dollar values run a **closed economy** (`web/lib/surplus.ts`): `distributable = NUM_TEAMS × CAP_PER_TEAM − NUM_TEAMS × ROSTER_SPOTS × MIN_PLAYER_SALARY` distributed in proportion to positive VORP, so values sum to exactly the league cap. This replaced a flat `× 0.875` factor.
+- **Earned Value** = the same closed-economy allocation run on actual season points (`web/lib/earned-value.ts`, MCP `get_earned_value`). Availability is observed rather than modelled; ranked on totals not PPG; no `MIN_GAMES` filter. Derived at read time like the standings — no table, no backfill.
+- **Realized Surplus** = earned_value − salary_paid. The retrospective grade on a buy/arbitration dollar/keep-cut call. Requires the salary the player was carried at during that season (`fetchPlayersEndOfSeason`).
+- **Stat Window** = how much football is behind a number (`web/lib/stat-window.ts`), because `player_stats` now holds season-to-date totals mid-season. `fraction === 1` is a strict no-op; in a partial window `distributableCap` and `salary_to_date` are prorated together so `realized_surplus` scales with the sample and the ranking never moves. `full_season_vorp` is not rescaled — the factor cancels in the dollar conversion.
 - Chart shows salary (Y-axis) vs. selected metric (X-axis), bubble size = total points
 
 ## Season Cycle (date-driven resolver)
@@ -109,16 +167,20 @@ weekly from the Ottoneu finances page (plain HTTP, honest User-Agent, no login).
 `web/lib/season-ui.ts` (`PHASE_UI`, `describeNextBoundary`, the `<PhaseBanner>`
 in the root layout, and the amber phase accent on `Navigation`). The
 `SEASON_OVERRIDE` / `PHASE_OVERRIDE` env vars short-circuit the date math for
-testing or off-schedule events. Full design rationale and migration history:
-[docs/exec-plans/season-cycle.md](exec-plans/season-cycle.md).
+testing or off-schedule events. Reads of **actual production** go through
+`getEffectiveStatsSeason()` (`web/lib/stats-season.ts`) instead of raw
+`getStatsSeason()` — it clamps back to the newest season `player_stats` actually
+holds so the season-rollover window (calendar flipped, `pull_player_stats` not
+yet run) does not render every stats-joined page empty. Full design rationale
+and migration history: [docs/exec-plans/season-cycle.md](exec-plans/season-cycle.md).
 
 ## Authentication & Authorization
 
-User accounts with email/password login stored in the `users` table. Passwords are hashed with bcrypt (`bcryptjs`). Sessions use HMAC-SHA256 signed tokens stored in HTTP-only cookies (7-day expiry). The session payload encodes `userId`, `isAdmin`, and `hasProjectionsAccess` — no DB lookup needed for authorization.
+User accounts with email/password login stored in the `users` table. Passwords are hashed with bcrypt (`bcryptjs`). Sessions use HMAC-SHA256 signed tokens stored in HTTP-only cookies (7-day expiry). The session payload encodes `userId`, `isAdmin`, `hasProjectionsAccess`, and `isPodcaster` (migration 040) — no DB lookup needed for authorization. The three role flags are **independent** — none implies another; `verifySession` accepts both the pre- and post-`isPodcaster` payload shapes, so adding the field did not sign anyone out.
 
 - **`SESSION_SECRET`** env var provides the HMAC signing key
-- **Route policy lives in one module** — `web/lib/access.ts` owns `PROJECTIONS_ROUTES`, `ADMIN_ROUTES`, `PUBLIC_API_ROUTES` and the `accessRedirect()` decision function. It is Edge-safe (no `next/headers`, no Supabase) because `web/middleware.ts` imports it. Matching is **segment-aware** (`/value` never matches `/valuation`), and `next.config.ts` `redirects()` run before middleware, so consolidated URLs arrive normalised
-- **Middleware** (`web/middleware.ts`) applies that policy: projections routes require `hasProjectionsAccess`, `/admin` requires `isAdmin`, and every other `/api` route requires a valid session
+- **Route policy lives in one module** — `web/lib/access.ts` owns `PROJECTIONS_ROUTES`, `ADMIN_ROUTES`, `PODCASTER_ROUTES`, `PUBLIC_API_ROUTES` and the `accessRedirect()` decision function. It is Edge-safe (no `next/headers`, no Supabase) because `web/middleware.ts` imports it. Matching is **segment-aware** (`/value` never matches `/valuation`), and `next.config.ts` `redirects()` run before middleware, so consolidated URLs arrive normalised. `/podcast` itself is deliberately **not** in `PODCASTER_ROUTES` — it is the hub that explains the role and calls `POST /api/auth/refresh` to pick up a fresh grant; the gated `/podcast/power-rankings` subtree redirects a non-podcaster there. See [references/podcast-tools.md](references/podcast-tools.md)
+- **Middleware** (`web/middleware.ts`) applies that policy: projections routes require `hasProjectionsAccess`, `/admin` requires `isAdmin`, podcaster routes require `isPodcaster`, and every other `/api` route requires a valid session
 - **Server components** call `requireProjectionsAccess()` (`web/lib/auth.ts`) rather than hand-rolling a check, so a route accidentally dropped from the list still fails closed
 - **A signed-in user without access goes to `/access`, never `/login`.** `/login` redirects an authenticated visitor onward, so routing them there produced an infinite redirect loop for every self-registered account (registration grants `has_projections_access: false`). `__tests__/lib/access.test.ts` pins the invariant that no gated route redirects a signed-in user back to itself
 - **Access requests:** `users.access_requested_at` records who is waiting. Self-registration stamps it, `POST /api/access-request` sets it for an existing account, and `/admin` sorts pending accounts to the top with a count badge — the only channel this app has for telling an admin somebody registered
