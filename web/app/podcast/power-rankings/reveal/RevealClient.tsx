@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowDown, RotateCcw, Undo2 } from "lucide-react";
 import type { ConsolidatedRow, TeamRecord } from "@/lib/power-rankings";
 import Movement from "@/components/RankMovement";
+import LastGameResult from "@/components/LastGameResult";
 
 interface Props {
   week: number;
@@ -59,6 +60,12 @@ function Card({
             {" · "}
             <span className="text-ink-subtle">mean rank {row.meanRank.toFixed(1)}</span>
           </p>
+
+          {record?.lastGame && (
+            <p className="mt-1">
+              <LastGameResult game={record.lastGame} size="sm" />
+            </p>
+          )}
 
           {/* Each host's own placement — the argument, in one line. */}
           <ul className="mt-3 flex flex-wrap gap-2">

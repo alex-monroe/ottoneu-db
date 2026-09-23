@@ -68,7 +68,7 @@ import { getDisplayWeeks } from "./nfl-week";
 import { getLeagueStatus } from "./matchups";
 import { getLeagueSeason } from "./season";
 import { fetchLeagueTeams } from "./team-binding";
-import { formatRecord } from "./standings";
+import { formatRecord, type Matchup } from "./standings";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -536,6 +536,50 @@ export interface TeamRecord {
   pointsFor: number;
   /** Where they actually sit in the standings — the fact a power ranking argues with. */
   standingsRank: number;
+  /** Their game the week before the one being ranked; null in week 1 or on a bye. */
+  lastGame: LastGame | null;
+}
+
+/**
+ * The most recent result going into a ranking — "they just dropped 140" or
+ * "they lost to the worst team in the league" is usually the first sentence
+ * said about a team, and the record alone cannot say it.
+ */
+export interface LastGame {
+  week: number;
+  opponent: string;
+  points: number | null;
+  opponentPoints: number | null;
+  /** Null until the game is final — a Monday-night score is not a result yet. */
+  result: "W" | "L" | "T" | null;
+  final: boolean;
+}
+
+/**
+ * Every team's game in the week before `week`, keyed by team name. A team with
+ * no game that week (a bye, or week 1 having no week 0) is simply absent.
+ */
+export function lastGames(
+  matchups: readonly Matchup[],
+  week: number,
+): Record<string, LastGame> {
+  const out: Record<string, LastGame> = {};
+  for (const m of matchups) {
+    if (m.week !== week - 1) continue;
+    const final = m.status === "final";
+    const sides = [
+      [m.home_team_name, m.home_score, m.away_team_name, m.away_score],
+      [m.away_team_name, m.away_score, m.home_team_name, m.home_score],
+    ] as const;
+    for (const [team, points, opponent, opponentPoints] of sides) {
+      let result: LastGame["result"] = null;
+      if (final && points != null && opponentPoints != null) {
+        result = points > opponentPoints ? "W" : points < opponentPoints ? "L" : "T";
+      }
+      out[team] = { week: m.week, opponent, points, opponentPoints, result, final };
+    }
+  }
+  return out;
 }
 
 export interface PowerRankingContext {
@@ -580,12 +624,17 @@ export async function fetchPowerRankingContext(
       : latestWeek;
 
   const standings = league?.standings ?? [];
+  // Only the league's own season: ranking an old season's week against this
+  // season's schedule would pair teams with games they never played.
+  const previous =
+    league && league.season === season ? lastGames(league.matchups, week) : {};
   const records: Record<string, TeamRecord> = {};
   for (const row of standings) {
     records[row.team_name] = {
       record: formatRecord(row),
       pointsFor: row.points_for,
       standingsRank: row.rank,
+      lastGame: previous[row.team_name] ?? null,
     };
   }
 

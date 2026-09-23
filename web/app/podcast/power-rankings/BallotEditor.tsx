@@ -11,6 +11,7 @@ import {
   Unlock,
 } from "lucide-react";
 import type { TeamRecord } from "@/lib/power-rankings";
+import LastGameResult from "@/components/LastGameResult";
 import type { TeamWeekSnapshot } from "@/lib/team-snapshot";
 import { MAX_NOTE_LENGTH, MAX_PREP_NOTE_LENGTH } from "@/lib/schemas/power-ranking";
 import TeamLineupHover from "@/components/TeamLineupHover";
@@ -335,6 +336,7 @@ export default function BallotEditor({
                       {record.standingsRank} in standings
                     </span>
                   )}
+                  {record?.lastGame && <LastGameResult game={record.lastGame} />}
                   {snapshot && (
                     <span
                       className="inline-flex items-baseline gap-1 rounded bg-accent-soft px-1.5 py-0.5 text-xs text-accent"
