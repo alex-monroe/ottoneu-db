@@ -10,7 +10,12 @@
 import "@testing-library/jest-dom";
 import { fireEvent, render, screen } from "@testing-library/react";
 import RevealClient from "@/app/podcast/power-rankings/reveal/RevealClient";
-import { consolidate, biggestDisagreement, type Ballot } from "@/lib/power-rankings";
+import {
+  consolidate,
+  biggestDisagreement,
+  type Ballot,
+  type LastGame,
+} from "@/lib/power-rankings";
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: jest.fn(), refresh: jest.fn(), replace: jest.fn() }),
@@ -37,6 +42,15 @@ const ROWS = consolidate(
   ["Delta", "Charlie", "Bravo", "Alpha"], // last week, so movement is non-null
 );
 
+function game(
+  opponent: string,
+  points: number,
+  opponentPoints: number,
+  result: LastGame["result"],
+): LastGame {
+  return { week: 2, opponent, points, opponentPoints, result, final: true };
+}
+
 function setup() {
   render(
     <RevealClient
@@ -48,10 +62,10 @@ function setup() {
         { userId: "wads", displayName: "wads" },
       ]}
       records={{
-        Alpha: { record: "2-0-0", pointsFor: 250.5, standingsRank: 1 },
-        Bravo: { record: "1-1-0", pointsFor: 210.1, standingsRank: 2 },
-        Charlie: { record: "1-1-0", pointsFor: 200.2, standingsRank: 3 },
-        Delta: { record: "0-2-0", pointsFor: 180.3, standingsRank: 4 },
+        Alpha: { record: "2-0-0", pointsFor: 250.5, standingsRank: 1, lastGame: game("Delta", 131.4, 98.2, "W") },
+        Bravo: { record: "1-1-0", pointsFor: 210.1, standingsRank: 2, lastGame: game("Charlie", 101, 110.5, "L") },
+        Charlie: { record: "1-1-0", pointsFor: 200.2, standingsRank: 3, lastGame: game("Bravo", 110.5, 101, "W") },
+        Delta: { record: "0-2-0", pointsFor: 180.3, standingsRank: 4, lastGame: game("Alpha", 98.2, 131.4, "L") },
       }}
       unranked={[]}
       split={biggestDisagreement(ROWS)}
@@ -72,6 +86,21 @@ describe("RevealClient", () => {
     for (const team of TEAMS) {
       expect(screen.queryByText(team)).not.toBeInTheDocument();
     }
+  });
+
+  it("shows each revealed team's result from the week before", () => {
+    setup();
+    fireEvent.click(screen.getByRole("button", { name: /Reveal #4/ }));
+    const last = ROWS[3].teamName;
+    const card = screen.getByRole("heading", { name: last }).closest("li") as HTMLElement;
+    const expected = {
+      Alpha: ["W", "131.4–98.2", "vs Delta"],
+      Bravo: ["L", "101.0–110.5", "vs Charlie"],
+      Charlie: ["W", "110.5–101.0", "vs Bravo"],
+      Delta: ["L", "98.2–131.4", "vs Alpha"],
+    }[last]!;
+    expect(card).toHaveTextContent("Wk 2");
+    for (const text of expected) expect(card).toHaveTextContent(text);
   });
 
   it("counts up from last place", () => {
