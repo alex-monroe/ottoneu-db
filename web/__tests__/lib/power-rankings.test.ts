@@ -15,10 +15,12 @@ import {
   consolidate,
   biggestDisagreement,
   isCompleteBallot,
+  lastGames,
   movementLabel,
   submittedOnly,
   type Ballot,
 } from "@/lib/power-rankings";
+import type { Matchup } from "@/lib/standings";
 
 const TEAMS = ["Alpha", "Bravo", "Charlie", "Delta"];
 
@@ -325,5 +327,63 @@ describe("prep notes stay out of consolidation", () => {
       "rank",
       "userId",
     ]);
+  });
+});
+
+describe("lastGames", () => {
+  function matchup(
+    week: number,
+    home: [string, number | null],
+    away: [string, number | null],
+    status: Matchup["status"] = "final",
+  ): Matchup {
+    return {
+      game_id: week * 100 + home[0].length,
+      season: 2026,
+      week,
+      home_team_id: 1,
+      home_team_name: home[0],
+      home_score: home[1],
+      away_team_id: 2,
+      away_team_name: away[0],
+      away_score: away[1],
+      status,
+      game_type: "regular",
+      starts_on: null,
+      ends_on: null,
+      status_label: null,
+    };
+  }
+
+  const MATCHUPS = [
+    matchup(1, ["Alpha", 90], ["Bravo", 100]),
+    matchup(2, ["Alpha", 131.4], ["Delta", 98.2]),
+    matchup(2, ["Bravo", 105], ["Charlie", 105]),
+    matchup(3, ["Alpha", 12.5], ["Charlie", 30], "in_progress"),
+  ];
+
+  it("reads the week before the one being ranked, from both sides", () => {
+    const games = lastGames(MATCHUPS, 3);
+    expect(games.Alpha).toEqual({
+      week: 2,
+      opponent: "Delta",
+      points: 131.4,
+      opponentPoints: 98.2,
+      result: "W",
+      final: true,
+    });
+    expect(games.Delta).toMatchObject({ opponent: "Alpha", result: "L" });
+    expect(games.Bravo.result).toBe("T");
+    expect(games.Charlie.result).toBe("T");
+  });
+
+  it("has no result until the game is final", () => {
+    const games = lastGames(MATCHUPS, 4);
+    expect(games.Alpha).toMatchObject({ points: 12.5, result: null, final: false });
+    expect(games.Bravo).toBeUndefined();
+  });
+
+  it("is empty in week 1", () => {
+    expect(lastGames(MATCHUPS, 1)).toEqual({});
   });
 });
