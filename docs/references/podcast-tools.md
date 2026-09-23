@@ -143,9 +143,12 @@ header and pinned by `web/__tests__/lib/power-rankings.test.ts`.
   rather than inventing a slot.
 
 Each revealed card carries the record, points for and standings position (the
-facts a power ranking argues with), every host's own placement, a `split N`
-badge when they were three or more places apart, and a movement chip against
-last week's consolidated order.
+facts a power ranking argues with), **last week's game** — opponent, score, and
+W/L/T once final, from `lastGames()` in `web/lib/power-rankings.ts` — every
+host's own placement, a `split N` badge when they were three or more places
+apart, and a movement chip against last week's consolidated order. The ballot
+page shows the same last-game line under each team while you rank, rendered by
+`web/components/LastGameResult.tsx`; a bye or week 1 simply omits it.
 
 ### The reveal screen
 
