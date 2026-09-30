@@ -9,12 +9,19 @@
  * white label — TE measured 2.15:1.
  */
 
-import { POSITION_COLORS, POSITION_COLORS_DARK, type Position } from "@/lib/types";
+import { POSITION_COLORS, POSITION_COLORS_DARK, type Position, type PositionalRank } from "@/lib/types";
+import { describePositionalRank, formatPositionalRank } from "@/lib/positional-rank";
 
 interface PositionBadgeProps {
   position: string;
   /** "sm" for compact contexts (hover cards, search dropdowns), "md" for tables/headers */
   size?: "sm" | "md";
+  /**
+   * When given, the badge reads "QB6" instead of "QB", with the season and
+   * field size in its tooltip. The rank's own position wins, so the label and
+   * the colour can never disagree.
+   */
+  rank?: PositionalRank | null;
 }
 
 const SIZE_CLASSES = {
@@ -25,14 +32,16 @@ const SIZE_CLASSES = {
 export default function PositionBadge({
   position,
   size = "md",
+  rank,
 }: PositionBadgeProps) {
-  const key = position as Position;
+  const key = (rank?.position ?? position) as Position;
   const light = POSITION_COLORS[key] ?? "#475569"; // slate-600
   const dark = POSITION_COLORS_DARK[key] ?? "#cbd5e1"; // slate-300
 
   return (
     <span
       className={`position-badge inline-block rounded font-bold ${SIZE_CLASSES[size]}`}
+      title={rank ? describePositionalRank(rank) : undefined}
       style={
         {
           "--pos-light": light,
@@ -40,7 +49,7 @@ export default function PositionBadge({
         } as React.CSSProperties
       }
     >
-      {position}
+      {rank ? formatPositionalRank(rank) : position}
     </span>
   );
 }

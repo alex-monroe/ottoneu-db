@@ -64,10 +64,10 @@ export default async function ArbProgressPage() {
     getAuthenticatedUser(),
   ]);
 
-  const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
+  const { projMap, dsMap, rankMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
   // No earned value here: /arb-progress is a public route (not in
   // PROJECTIONS_ROUTES), and earned value is a gated dollar valuation.
-  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap);
+  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap, false, rankMap);
 
   const teams: TeamStatus[] = teamsRes.data ?? [];
   const allocationRows = (allocationsRes.data ?? []) as AllocationRow[];

@@ -5,6 +5,7 @@ import Link from "next/link";
 import * as HoverCard from "@radix-ui/react-hover-card";
 import type { Column, PlayerHoverData } from "@/lib/types";
 import PositionBadge from "./PositionBadge";
+import { describePositionalRank } from "@/lib/positional-rank";
 
 interface PlayerHoverCardProps {
   name: string;
@@ -39,13 +40,19 @@ export default function PlayerHoverCard({
             <div className="space-y-2">
               {/* Header: Name + Position + Team */}
               <div className="flex items-center gap-2">
-                <PositionBadge position={hoverData.position} size="sm" />
+                <PositionBadge
+                  position={hoverData.position}
+                  size="sm"
+                  rank={hoverData.positional_rank}
+                />
                 <span className="font-semibold text-sm text-ink truncate">
                   {name}
                 </span>
               </div>
               <p className="text-xs text-ink-subtle">
                 {hoverData.nfl_team}
+                {hoverData.positional_rank &&
+                  ` · ${describePositionalRank(hoverData.positional_rank)}`}
               </p>
 
               {/* Stats grid */}

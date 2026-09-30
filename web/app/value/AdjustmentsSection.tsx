@@ -30,8 +30,8 @@ export default async function AdjustmentsSection() {
       : Promise.resolve({ data: [], error: null }),
   ]);
 
-  const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
-  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap, !!user?.hasProjectionsAccess);
+  const { projMap, dsMap, rankMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
+  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap, !!user?.hasProjectionsAccess, rankMap);
 
   const surplusPlayers = calculateSurplus(allPlayers).filter(
     (p) => p.position !== "K"
