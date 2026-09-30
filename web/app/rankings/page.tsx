@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { fetchPlayerSet, listStatWindowSeasons } from "@/lib/data";
 import { buildHoverDataMap, fetchHoverExtras } from "@/lib/analysis";
-import { rankByPosition } from "@/lib/positional-rank";
+import { minGamesForHeat, rankByPosition } from "@/lib/positional-rank";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { POSITIONS, type Position } from "@/lib/types";
 import PageShell from "@/components/PageShell";
@@ -9,7 +9,7 @@ import Tabs from "@/components/Tabs";
 import StatWindowNote from "@/components/StatWindowNote";
 import StatWindowPicker from "@/components/StatWindowPicker";
 import { EmptyState } from "@/components/states";
-import RankingsTable, { type RankingRow } from "./RankingsTable";
+import RankingsTable, { type RankingRow, type RankingSort } from "./RankingsTable";
 
 export const revalidate = 3600;
 
@@ -19,7 +19,7 @@ export const metadata = {
 };
 
 interface Props {
-  searchParams: Promise<{ pos?: string; season?: string }>;
+  searchParams: Promise<{ pos?: string; season?: string; sort?: string; min?: string }>;
 }
 
 /**
@@ -30,7 +30,7 @@ interface Props {
  * season the picker names, so the badge and the points beside it always agree.
  */
 export default async function RankingsPage({ searchParams }: Props) {
-  const { pos, season } = await searchParams;
+  const { pos, season, sort, min } = await searchParams;
 
   const seasons = await listStatWindowSeasons();
   const requested = Number(season);
@@ -41,6 +41,14 @@ export default async function RankingsPage({ searchParams }: Props) {
     getAuthenticatedUser(),
   ]);
   const ranks = rankByPosition(players, window.season);
+
+  // PPG mode's minimum-games floor defaults to the same quarter-of-the-season
+  // bar the fire/ice icons use, so the two views of "by PPG" agree.
+  const initialSort: RankingSort = sort === "ppg" ? "ppg" : "points";
+  const requestedMin = Number(min);
+  const initialMinGames = Number.isInteger(requestedMin)
+    ? Math.min(Math.max(requestedMin, 1), window.games)
+    : minGamesForHeat(window.games);
 
   const { projMap, dsMap, rankMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
   const hoverDataMap = buildHoverDataMap(
@@ -59,6 +67,7 @@ export default async function RankingsPage({ searchParams }: Props) {
       player_id: p.player_id,
       ottoneu_id: p.ottoneu_id,
       name: p.name,
+      position: p.position,
       nfl_team: p.nfl_team,
       team_name: p.team_name,
       price: p.price,
@@ -84,8 +93,8 @@ export default async function RankingsPage({ searchParams }: Props) {
           </h1>
           <p className="mt-2 max-w-prose text-ink-subtle">
             Where every player finishes at his position, by total points. Only
-            players who have played are ranked. Sort by PPG to see the rate
-            instead of the running total.
+            players who have played are ranked. Switch to PPG to rank the rate
+            instead of the running total, with a minimum-games floor.
           </p>
           <p className="mt-2 text-sm">
             <Link href="/players" className="text-accent hover:underline">
@@ -111,7 +120,16 @@ export default async function RankingsPage({ searchParams }: Props) {
           tabs={POSITIONS.map((p) => ({
             id: p,
             label: `${p} (${rowsByPosition.get(p)!.length})`,
-            content: <RankingsTable rows={rowsByPosition.get(p)!} hoverDataMap={hoverDataMap} />,
+            content: (
+              <RankingsTable
+                rows={rowsByPosition.get(p)!}
+                hoverDataMap={hoverDataMap}
+                season={window.season}
+                maxGames={window.games}
+                initialSort={initialSort}
+                initialMinGames={initialMinGames}
+              />
+            ),
           }))}
         />
       )}

@@ -11,6 +11,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { POSITION_COLORS, type Position } from "@/lib/types";
 import PositionBadge from "@/components/PositionBadge";
+import HeatIcon from "@/components/HeatIcon";
 import TeamName from "@/components/TeamName";
 import { teamHref } from "@/lib/teams";
 import StatValue from "@/components/StatValue";
@@ -127,6 +128,7 @@ export default async function PlayerCardPage({
                                         {player.name}
                                     </h1>
                                     <PositionBadge position={player.position} rank={currentRank} />
+                                    <HeatIcon rank={currentRank} />
                                 </div>
                                 <p className="text-ink-subtle mt-1">
                                     {player.nfl_team}{age != null ? ` · Age ${age}` : ""} · Ottoneu ID: {player.ottoneu_id}
@@ -134,6 +136,8 @@ export default async function PlayerCardPage({
                                 {currentRank && (
                                     <p className="text-sm text-ink-subtle mt-0.5">
                                         {describePositionalRank(currentRank)}
+                                        {currentRank.ppg_rank != null &&
+                                            ` · ${currentRank.position}${currentRank.ppg_rank} by PPG`}
                                         {" · "}
                                         <Link href={`/rankings?pos=${currentRank.position}`} className="text-accent hover:underline">
                                             {currentRank.position} rankings →

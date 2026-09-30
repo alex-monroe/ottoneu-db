@@ -5,6 +5,7 @@ import Link from "next/link";
 import * as HoverCard from "@radix-ui/react-hover-card";
 import type { Column, PlayerHoverData } from "@/lib/types";
 import PositionBadge from "./PositionBadge";
+import HeatIcon from "./HeatIcon";
 import { describePositionalRank } from "@/lib/positional-rank";
 
 interface PlayerHoverCardProps {
@@ -45,6 +46,7 @@ export default function PlayerHoverCard({
                   size="sm"
                   rank={hoverData.positional_rank}
                 />
+                <HeatIcon rank={hoverData.positional_rank} size="sm" />
                 <span className="font-semibold text-sm text-ink truncate">
                   {name}
                 </span>

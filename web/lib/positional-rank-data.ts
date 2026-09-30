@@ -11,6 +11,7 @@ import { cache } from "react";
 import { supabase, fetchAllRows } from "./supabase";
 import { getEffectiveStatsSeason } from "./stats-season";
 import { rankByPosition, type RankablePlayer } from "./positional-rank";
+import { observedGames } from "./stat-window";
 import type { PositionalRank } from "./types";
 
 /**
@@ -65,8 +66,12 @@ export async function fetchPositionalRanksBySeason(
     bySeason.set(season, pool);
   }
 
+  // How deep each season is comes from its own rows — the same measure the
+  // stat window uses — so fire/ice's "a quarter of the season" tracks the data
+  // actually loaded, not the schedule.
   for (const [season, pool] of bySeason) {
-    out.set(season, rankByPosition(pool, season));
+    const depth = observedGames(pool.map((p) => p.games_played));
+    out.set(season, rankByPosition(pool, season, depth ?? undefined));
   }
   return out;
 }
