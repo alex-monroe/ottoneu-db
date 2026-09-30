@@ -60,6 +60,7 @@ export interface TeamSpendingEntry {
   row: TeamSpendingRow;
   allocations: {
     player_name: string;
+    ottoneu_id: number;
     owner_team_name: string;
     amount: number;
   }[];
@@ -176,6 +177,7 @@ export function buildTeamSpending(details: AllocationDetailRow[]): TeamSpendingS
     entry.total += d.amount;
     entry.allocations.push({
       player_name: d.player_name,
+      ottoneu_id: d.ottoneu_id,
       owner_team_name: d.owner_team_name,
       amount: d.amount,
     });

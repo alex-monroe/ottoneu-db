@@ -1,6 +1,7 @@
 "use client";
 
 import DataTable, { Column } from "@/components/DataTable";
+import PlayerRankTag from "@/components/PlayerRankTag";
 import type { TeamSpendingEntry } from "@/lib/arb-progress";
 
 const COLUMNS: Column[] = [
@@ -74,6 +75,7 @@ export default function TeamSpendingTable({
                         ) : null}
                         <td className="py-0.5 pr-6 text-ink-subtle">
                           {a.player_name}
+                          <PlayerRankTag ottoneuId={a.ottoneu_id} />
                         </td>
                         <td className="text-right py-0.5 text-ink-muted">
                           ${a.amount}

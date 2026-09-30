@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Search, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { LEAGUE_ID } from "@/lib/config";
+import HeatIcon from "./HeatIcon";
+import { useRankLookup } from "./PositionalRanksProvider";
 import PositionBadge from "@/components/PositionBadge";
 
 interface SearchResult {
@@ -54,6 +56,7 @@ function lastSeasonOf(row: RawSearchRow): number {
 }
 
 export default function GlobalPlayerSearch({ activeSinceSeason }: { activeSinceSeason: number }) {
+    const rankOf = useRankLookup();
     const [query, setQuery] = useState("");
     const [results, setResults] = useState<SearchResult[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -226,7 +229,15 @@ export default function GlobalPlayerSearch({ activeSinceSeason }: { activeSinceS
                                             {player.nfl_team}
                                         </span>
                                     </div>
-                                    <PositionBadge position={player.position} size="sm" />
+                                    {/* The position chip becomes the rank tag once he has played. */}
+                                    <span className="flex shrink-0 items-center gap-0.5">
+                                        <PositionBadge
+                                            position={player.position}
+                                            rank={rankOf(player.ottoneu_id)}
+                                            size="sm"
+                                        />
+                                        <HeatIcon rank={rankOf(player.ottoneu_id)} size="sm" />
+                                    </span>
                                 </li>
                             ))}
                         </ul>

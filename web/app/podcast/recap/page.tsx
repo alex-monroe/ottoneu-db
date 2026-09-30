@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/states";
 import { Th } from "@/components/TableParts";
 import PositionBadge from "@/components/PositionBadge";
 import PlayerName from "@/components/PlayerName";
+import PlayerRankTag from "@/components/PlayerRankTag";
 import TeamName from "@/components/TeamName";
 import WeekPicker from "./WeekPicker";
 
@@ -410,7 +411,8 @@ function BenchCard({ miss }: { miss: BenchMiss }) {
             <dd className="text-ink">
               {miss.shouldHaveStarted.map((p) => (
                 <span key={p.ottoneuId} className="mr-2 inline-block whitespace-nowrap">
-                  {p.name}{" "}
+                  {p.name}
+                  <PlayerRankTag ottoneuId={p.ottoneuId} />{" "}
                   <span className="tabular-nums text-positive">{pts(p.points)}</span>
                 </span>
               ))}
@@ -423,7 +425,9 @@ function BenchCard({ miss }: { miss: BenchMiss }) {
             <dd className="text-ink-muted">
               {miss.shouldHaveSat.map((p) => (
                 <span key={p.ottoneuId} className="mr-2 inline-block whitespace-nowrap">
-                  {p.name} <span className="tabular-nums">{pts(p.points)}</span>
+                  {p.name}
+                  <PlayerRankTag ottoneuId={p.ottoneuId} />{" "}
+                  <span className="tabular-nums">{pts(p.points)}</span>
                 </span>
               ))}
             </dd>

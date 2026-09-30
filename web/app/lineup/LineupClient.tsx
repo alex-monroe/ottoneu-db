@@ -5,6 +5,9 @@ import { teamHref } from "@/lib/teams";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import PositionBadge from "@/components/PositionBadge";
+import PlayerRankTag from "@/components/PlayerRankTag";
+import { useRankLookup } from "@/components/PositionalRanksProvider";
+import { formatRankTagText } from "@/lib/positional-rank";
 import {
   LINEUP_SLOTS,
   SLOT_IDS,
@@ -82,6 +85,12 @@ export default function LineupClient({
     router.push(`/lineup?${params.toString()}`);
   };
   const [lineup, setLineup] = useState<Lineup>(emptyLineup());
+  const rankOf = useRankLookup();
+  /** " WR17 🔥" for a dropdown option, or "" when he has no rank yet. */
+  const rankSuffix = (ottoneuId?: number) => {
+    const r = rankOf(ottoneuId);
+    return r ? ` ${formatRankTagText(r)}` : "";
+  };
 
   const team = useMemo(
     () => teams.find((t) => t.team_name === teamName) ?? null,
@@ -359,7 +368,8 @@ export default function LineupClient({
                     <option value="">— empty —</option>
                     {options.map((p) => (
                       <option key={p.player_id} value={p.player_id}>
-                        {p.name} ({p.position}, {p.nfl_team}
+                        {p.name}
+                        {rankSuffix(p.ottoneu_id)} ({p.position}, {p.nfl_team}
                         {metric === "weekly" && p.weekly_opponent
                           ? ` ${p.weekly_opponent}`
                           : ""}
@@ -367,6 +377,11 @@ export default function LineupClient({
                       </option>
                     ))}
                   </select>
+                  {/* An <option> cannot hold the chip, so the chosen starter's
+                      tag sits beside the dropdown; the options carry it as text. */}
+                  <span className="w-20 shrink-0">
+                    {selected && <PlayerRankTag ottoneuId={selected.ottoneu_id} />}
+                  </span>
                   <span className="w-14 shrink-0 text-right text-sm font-semibold tabular-nums text-ink">
                     {selected ? scoreLabel(selected, metric) : "—"}
                   </span>
@@ -396,8 +411,11 @@ export default function LineupClient({
                   className="flex items-center gap-3 px-4 py-2 bg-raised text-sm"
                 >
                   <PositionBadge position={p.position} size="sm" />
-                  <span className="flex-1 min-w-0 truncate text-ink">
-                    {p.name}
+                  <span className="flex flex-1 min-w-0 items-center">
+                    <span className="truncate text-ink">{p.name}</span>
+                    <span className="shrink-0">
+                      <PlayerRankTag ottoneuId={p.ottoneu_id} />
+                    </span>
                   </span>
                   <span className="text-ink-subtle text-xs">
                     {p.nfl_team}

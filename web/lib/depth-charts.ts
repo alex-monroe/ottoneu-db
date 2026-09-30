@@ -10,6 +10,8 @@ import { supabase, fetchAllRows } from "./supabase";
 
 export interface DepthChartEntry {
   player_id: string;
+  /** For the /players/[id] link and the rank tag; null for a player Ottoneu does not carry. */
+  ottoneu_id: number | null;
   name: string;
   team: string;
   position: string;
@@ -48,13 +50,13 @@ type DepthRow = {
   team: string | null;
   position: string | null;
   depth_team: number;
-  players: { name: string } | { name: string }[] | null;
+  players: PlayerRef | PlayerRef[] | null;
 };
 
-function playerName(players: DepthRow["players"]): string {
-  if (!players) return "Unknown";
-  if (Array.isArray(players)) return players[0]?.name ?? "Unknown";
-  return players.name ?? "Unknown";
+type PlayerRef = { name: string; ottoneu_id: number | null };
+
+function playerRef(players: DepthRow["players"]): PlayerRef | null {
+  return (Array.isArray(players) ? players[0] : players) ?? null;
 }
 
 export async function fetchDepthChartsForSeason(
@@ -70,7 +72,7 @@ export async function fetchDepthChartsForSeason(
       fetchAllRows<DepthRow>((from, to) =>
         supabase
           .from("depth_charts")
-          .select("player_id, team, position, depth_team, players(name)")
+          .select("player_id, team, position, depth_team, players(name, ottoneu_id)")
           .eq("season", season)
           .order("player_id").range(from, to),
       ),
@@ -84,9 +86,13 @@ export async function fetchDepthChartsForSeason(
 
   return rows.map((r) => {
     const row = r as DepthRow;
+    const ref = playerRef(row.players);
     return {
       player_id: row.player_id,
-      name: playerName(row.players),
+      // The player card is keyed by Ottoneu ID, not players.id — linking the
+      // uuid 404'd every name on this page.
+      ottoneu_id: ref?.ottoneu_id || null,
+      name: ref?.name ?? "Unknown",
       team: row.team ?? "FA",
       position: row.position ?? "",
       depth_team: row.depth_team,

@@ -4,6 +4,9 @@ import "./globals.css";
 import NavigationWrapper from "@/components/NavigationWrapper";
 import PhaseBanner from "@/components/PhaseBanner";
 import SiteFooter from "@/components/SiteFooter";
+import PositionalRanksProvider from "@/components/PositionalRanksProvider";
+import { fetchCurrentRankTable } from "@/lib/positional-rank-data";
+import type { RankTable } from "@/lib/types";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,11 +23,26 @@ export const metadata: Metadata = {
   description: "Fantasy football analytics for Ottoneu leagues",
 };
 
-export default function RootLayout({
+/**
+ * The current season's positional ranks, for the rank tag beside every player
+ * name. A decoration, so a failed read degrades to no tags rather than taking
+ * every page down with it.
+ */
+async function loadRankTable(): Promise<RankTable | null> {
+  try {
+    return await fetchCurrentRankTable();
+  } catch (err) {
+    console.error("Positional rank table unavailable:", err);
+    return null;
+  }
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const rankTable = await loadRankTable();
   return (
     <html
       lang="en"
@@ -39,10 +57,12 @@ export default function RootLayout({
         >
           Skip to content
         </a>
-        <NavigationWrapper />
-        <PhaseBanner />
-        {children}
-        <SiteFooter />
+        <PositionalRanksProvider table={rankTable}>
+          <NavigationWrapper />
+          <PhaseBanner />
+          {children}
+          <SiteFooter />
+        </PositionalRanksProvider>
       </body>
     </html>
   );

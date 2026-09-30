@@ -13,7 +13,10 @@ import {
   describeHeat,
   describePositionalRank,
   formatPositionalRank,
+  formatRankTagText,
   minGamesForHeat,
+  packRankTable,
+  unpackRank,
   rankByPosition,
   rankByPpg,
   type RankablePlayer,
@@ -186,11 +189,47 @@ describe("rankByPosition — PPG rank and heat", () => {
   });
 });
 
+describe("RankTable — the compact per-page shape", () => {
+  const ranks = rankByPosition(
+    [
+      ...Array.from({ length: 40 }, (_, i) => row(`wr${i}`, "WR", 200 - i * 4, 16)),
+      row("star", "WR", 110, 5),
+      row("no-ottoneu-id", "WR", 1, 16),
+    ],
+    2025,
+    17,
+  );
+  const ids = new Map(
+    [...ranks.keys()].filter((id) => id !== "no-ottoneu-id").map((id, i) => [id, 1000 + i]),
+  );
+  const table = packRankTable(ranks, ids, 2025);
+
+  test("round-trips every rank by Ottoneu ID, heat and all", () => {
+    for (const [playerId, ottoneuId] of ids) {
+      expect(unpackRank(table, ottoneuId)).toEqual(ranks.get(playerId));
+    }
+    expect(unpackRank(table, ids.get("star"))?.heat).toBe("fire");
+  });
+
+  test("players without an Ottoneu ID are dropped, and misses are null", () => {
+    expect(Object.keys(table.rows)).toHaveLength(ids.size);
+    expect(unpackRank(table, 1)).toBeNull();
+    expect(unpackRank(table, undefined)).toBeNull();
+    expect(unpackRank(null, 1000)).toBeNull();
+  });
+});
+
 describe("formatting", () => {
   const r: PositionalRank = { position: "QB", rank: 6, of: 38, season: 2026 };
 
   test("the badge label", () => {
     expect(formatPositionalRank(r)).toBe("QB6");
+  });
+
+  test("the text-only tag, for a <select> option", () => {
+    expect(formatRankTagText(r)).toBe("QB6");
+    expect(formatRankTagText({ ...r, heat: "fire" })).toBe("QB6 🔥");
+    expect(formatRankTagText({ ...r, heat: "ice" })).toBe("QB6 ❄️");
   });
 
   test("heat explains itself with both ranks and the games floor", () => {

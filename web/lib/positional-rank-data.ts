@@ -10,9 +10,9 @@
 import { cache } from "react";
 import { supabase, fetchAllRows } from "./supabase";
 import { getEffectiveStatsSeason } from "./stats-season";
-import { rankByPosition, type RankablePlayer } from "./positional-rank";
+import { packRankTable, rankByPosition, type RankablePlayer } from "./positional-rank";
 import { observedGames } from "./stat-window";
-import type { PositionalRank } from "./types";
+import type { PositionalRank, RankTable } from "./types";
 
 /**
  * Positional ranks for every player in each of `seasons`, keyed
@@ -75,6 +75,34 @@ export async function fetchPositionalRanksBySeason(
   }
   return out;
 }
+
+/**
+ * The current season's ranks, keyed by Ottoneu ID, in the compact shape the
+ * root layout hands to `PositionalRanksProvider` so every player name on the
+ * site can carry its rank tag without each page fetching it.
+ */
+export const fetchCurrentRankTable = cache(async (): Promise<RankTable> => {
+  const [season, ranks, ids] = await Promise.all([
+    getEffectiveStatsSeason(),
+    fetchCurrentPositionalRanks(),
+    fetchOttoneuIds(),
+  ]);
+  return packRankTable(ranks, ids, season);
+});
+
+/** player_id → ottoneu_id for every player the site knows. */
+const fetchOttoneuIds = cache(async (): Promise<Map<string, number>> => {
+  // Paginate players (~1,252) past the 1000-row cap.
+  const rows = await fetchAllRows((from, to) =>
+    supabase
+      .from("players")
+      .select("id, ottoneu_id")
+      .gt("ottoneu_id", 0)
+      .order("id")
+      .range(from, to),
+  );
+  return new Map(rows.map((r) => [String(r.id), Number(r.ottoneu_id)]));
+});
 
 /**
  * Positional ranks for the current stats season — the season the site is

@@ -16,6 +16,7 @@
 import Link from "next/link";
 import type { PlayerHoverData } from "@/lib/types";
 import PlayerHoverCard from "./PlayerHoverCard";
+import PlayerRankTag from "./PlayerRankTag";
 import type React from "react";
 
 interface PlayerNameProps {
@@ -28,6 +29,11 @@ interface PlayerNameProps {
   hoverData?: PlayerHoverData;
   /** Optional inline elements to render after the name (e.g. Rookie/College badges) */
   badges?: React.ReactNode;
+  /**
+   * The "WR17 🔥" current-season rank tag after the name (PlayerRankTag). On by
+   * default so every list carries it; turn off where the row already shows it.
+   */
+  showRankTag?: boolean;
 }
 
 export default function PlayerName({
@@ -36,11 +42,15 @@ export default function PlayerName({
   mode = "link",
   hoverData,
   badges,
+  showRankTag = true,
 }: PlayerNameProps) {
+  const tag = showRankTag ? <PlayerRankTag ottoneuId={ottoneuId} /> : null;
+
   if (mode === "plain" || !ottoneuId) {
     return (
       <span className="text-ink font-medium">
         {name}
+        {tag}
         {badges}
       </span>
     );
@@ -53,6 +63,7 @@ export default function PlayerName({
           name={name}
           ottoneuId={ottoneuId}
           hoverData={hoverData}
+          showRankTag={showRankTag}
         />
         {badges}
       </span>
@@ -69,6 +80,7 @@ export default function PlayerName({
       >
         {name}
       </Link>
+      {tag}
       {badges}
     </span>
   );

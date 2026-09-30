@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { ArbitrationPlan, ArbitrationPlanWithAllocations } from "@/lib/types";
 import type { ArbPlannerPlayer } from "./types";
+import PlayerRankTag from "../PlayerRankTag";
 
 /**
  * Describes the single configurable metric column rendered between "Salary" and
@@ -93,6 +94,7 @@ export default function PlanComparison<T extends ArbPlannerPlayer>({
           name: player.name,
           position: player.position,
           team_name: player.team_name ?? "",
+          ottoneu_id: player.ottoneu_id,
           salary: player.price,
           metric: metricColumn.getValue(player),
           allocations: selectedPlans.map((plan) => plan.allocations[pid] ?? 0),
@@ -214,6 +216,7 @@ export default function PlanComparison<T extends ArbPlannerPlayer>({
                     ) : null}
                     <td className="px-3 py-2 text-ink">
                       {row.name}
+                      <PlayerRankTag ottoneuId={row.ottoneu_id} />
                     </td>
                     <td className="px-3 py-2 text-ink-muted">
                       {row.position}
