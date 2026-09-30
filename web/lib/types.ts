@@ -360,7 +360,19 @@ export interface PositionalRank {
   /** How many players at the position were ranked — "6th of 38". */
   of: number;
   season: number;
+  /**
+   * His PPG rank at the position among players with at least `ppg_min_games`
+   * games. Absent when he has fewer, or when the caller did not know how deep
+   * the season is.
+   */
+  ppg_rank?: number;
+  ppg_min_games?: number;
+  /** Set only when the PPG and total-points ranks disagree dramatically. */
+  heat?: Heat;
 }
+
+/** 🔥 rate far better than total; ❄️ total far better than rate. */
+export type Heat = "fire" | "ice";
 
 // === Position Constants ===
 

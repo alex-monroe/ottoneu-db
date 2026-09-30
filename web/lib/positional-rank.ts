@@ -15,7 +15,7 @@
  * player's own row, so it is derived on read (see positional-rank-data.ts) and
  * never stored.
  */
-import { POSITIONS, type Position, type PositionalRank } from "./types";
+import { POSITIONS, type Heat, type Position, type PositionalRank } from "./types";
 
 /** The fields ranking needs — `Player` satisfies it, so does a bare stats row. */
 export interface RankablePlayer {
@@ -31,15 +31,118 @@ function isPosition(p: string): p is Position {
 }
 
 /**
+ * The fewest games a player needs for his PPG to be ranked when judging
+ * fire/ice: a quarter of the games played so far this season, and never fewer
+ * than one. A player who has been out most of the year has a rate built on too
+ * little football to call him anything.
+ */
+export function minGamesForHeat(seasonGames: number): number {
+  return Math.max(1, Math.ceil(HEAT_MIN_GAMES_SHARE * seasonGames));
+}
+
+/**
+ * The fire/ice thresholds. Deliberately severe — the icon should be rare
+ * enough that seeing one means something. All three must hold:
+ *
+ *   - the ranks are at least {@link HEAT_MIN_GAP} spots apart,
+ *   - the worse rank is at least {@link HEAT_MIN_RATIO}× the better one, so a
+ *     12-spot gap at WR90 (noise) does not count the way one at WR6 does, and
+ *   - the better of the two is inside the top {@link HEAT_MAX_BETTER_RANK},
+ *     because nobody needs telling that WR99 by total is WR48 by rate.
+ *
+ * Calibrated against the league's actual seasons: 14 flags in 2025 and 16 in
+ * 2024 (~3% of qualifying players), almost all fire — stars who missed games.
+ * Ice is structurally rarer (a full-season compiler whose rate lags his total
+ * by half): two in 2024, none in 2025.
+ */
+export const HEAT_MIN_GAMES_SHARE = 0.25;
+export const HEAT_MIN_GAP = 12;
+export const HEAT_MIN_RATIO = 2;
+export const HEAT_MAX_BETTER_RANK = 36;
+
+/**
+ * "fire" when the PPG rank is far better than the total-points rank (he scores
+ * at a higher rate than his total says — usually missed games), "ice" when far
+ * worse (the total is volume, not rate). Null when neither is dramatic.
+ */
+export function classifyHeat(pointsRank: number, ppgRank: number): Heat | null {
+  const better = Math.min(pointsRank, ppgRank);
+  const worse = Math.max(pointsRank, ppgRank);
+  if (
+    worse - better < HEAT_MIN_GAP ||
+    worse < HEAT_MIN_RATIO * better ||
+    better > HEAT_MAX_BETTER_RANK
+  ) {
+    return null;
+  }
+  return ppgRank < pointsRank ? "fire" : "ice";
+}
+
+/**
+ * Rank players within each position by **PPG**, counting only those with at
+ * least `minGames` games. Equal PPG breaks towards more total points, then
+ * player_id. Same shape as {@link rankByPosition}; `of` is the qualifying count.
+ */
+export function rankByPpg(
+  players: readonly RankablePlayer[],
+  season: number,
+  minGames: number,
+): Map<string, PositionalRank> {
+  return rankWithin(
+    players.filter((p) => p.games_played >= Math.max(1, minGames)),
+    season,
+    (a, b) =>
+      b.ppg - a.ppg ||
+      b.total_points - a.total_points ||
+      a.player_id.localeCompare(b.player_id),
+  );
+}
+
+/**
  * Rank every player in `players` within his position, keyed by player_id.
  *
  * Ranks are unique (1, 2, 3 …, never 1, 1, 3): equal points break towards the
  * higher PPG — the same points in fewer games — then by player_id so the order
  * is stable across renders.
+ *
+ * With `seasonGames` (how many games deep the season is — `observedGames` in
+ * stat-window.ts), each player who has played at least
+ * {@link minGamesForHeat} games also carries his PPG rank among those players,
+ * and a `heat` when the two ranks disagree dramatically ({@link classifyHeat}).
  */
 export function rankByPosition(
   players: readonly RankablePlayer[],
   season: number,
+  seasonGames?: number,
+): Map<string, PositionalRank> {
+  const out = rankWithin(
+    players,
+    season,
+    (a, b) =>
+      b.total_points - a.total_points ||
+      b.ppg - a.ppg ||
+      a.player_id.localeCompare(b.player_id),
+  );
+  if (seasonGames == null) return out;
+
+  const minGames = minGamesForHeat(seasonGames);
+  for (const [id, ppgRank] of rankByPpg(players, season, minGames)) {
+    const r = out.get(id)!;
+    const heat = classifyHeat(r.rank, ppgRank.rank);
+    out.set(id, {
+      ...r,
+      ppg_rank: ppgRank.rank,
+      ppg_min_games: minGames,
+      ...(heat ? { heat } : {}),
+    });
+  }
+  return out;
+}
+
+function rankWithin(
+  players: readonly RankablePlayer[],
+  season: number,
+  compare: (a: RankablePlayer, b: RankablePlayer) => number,
 ): Map<string, PositionalRank> {
   const byPosition = new Map<Position, RankablePlayer[]>();
   for (const p of players) {
@@ -51,12 +154,7 @@ export function rankByPosition(
 
   const out = new Map<string, PositionalRank>();
   for (const [position, list] of byPosition) {
-    list.sort(
-      (a, b) =>
-        b.total_points - a.total_points ||
-        b.ppg - a.ppg ||
-        a.player_id.localeCompare(b.player_id),
-    );
+    list.sort(compare);
     list.forEach((p, i) => {
       out.set(p.player_id, { position, rank: i + 1, of: list.length, season });
     });
@@ -72,6 +170,17 @@ export function formatPositionalRank(r: Pick<PositionalRank, "position" | "rank"
 /** "6th of 38 QBs in 2026 by total points" — the badge's tooltip. */
 export function describePositionalRank(r: PositionalRank): string {
   return `${ordinal(r.rank)} of ${r.of} ${r.position}s in ${r.season} by total points`;
+}
+
+/** The fire/ice icon's explanation, or null when there is no heat. */
+export function describeHeat(r: PositionalRank): string | null {
+  if (!r.heat || r.ppg_rank == null) return null;
+  const byPpg = `${r.position}${r.ppg_rank} by PPG`;
+  const byTotal = `${r.position}${r.rank} by total points`;
+  const min = `min ${r.ppg_min_games} ${r.ppg_min_games === 1 ? "game" : "games"}`;
+  return r.heat === "fire"
+    ? `Scoring at a far better rate than his total shows: ${byPpg} vs ${byTotal} (${min})`
+    : `His total outruns his rate: ${byPpg} vs ${byTotal} (${min})`;
 }
 
 function ordinal(n: number): string {
