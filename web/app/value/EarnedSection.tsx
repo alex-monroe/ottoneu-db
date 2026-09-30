@@ -58,8 +58,8 @@ export default async function EarnedSection({
     );
   }
 
-  const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
-  const hoverDataMap = buildHoverDataMap(players, projMap, dsMap);
+  const { projMap, dsMap, rankMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
+  const hoverDataMap = buildHoverDataMap(players, projMap, dsMap, false, rankMap);
 
   const isRostered = (p: EarnedValuePlayer) =>
     p.team_name != null && p.team_name !== "" && p.team_name !== "FA";

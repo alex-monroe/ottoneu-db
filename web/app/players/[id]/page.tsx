@@ -1,6 +1,9 @@
 import { fetchPlayerDetail, fetchPlayerProjection, fetchDraftSharksValue } from "@/lib/data";
 import { fetchPlayerWeeklyProjections, fetchWeeklyAsOf } from "@/lib/weekly-projections";
 import { fetchPlayerEarnedValue, type SeasonEarnedValue } from "@/lib/earned-value-data";
+import { fetchPositionalRanksBySeason } from "@/lib/positional-rank-data";
+import { describePositionalRank, formatPositionalRank } from "@/lib/positional-rank";
+import { getEffectiveStatsSeason } from "@/lib/stats-season";
 import { getDisplayWeeks } from "@/lib/nfl-week";
 import WeeklyProjectionCard from "@/components/WeeklyProjectionCard";
 import { getAuthenticatedUser } from "@/lib/auth";
@@ -69,17 +72,27 @@ export default async function PlayerCardPage({
     // Gated: /players is a public route, and earned value is a dollar valuation
     // like the ones PROJECTIONS_ROUTES protects. Skipping it for anonymous
     // visitors also spares them the multi-season pool read.
-    const earnedBySeason = user?.hasProjectionsAccess
-        ? await fetchPlayerEarnedValue(
-              player.id,
-              player.seasonStats.map((s) => s.season),
-          )
-        : new Map<number, SeasonEarnedValue>();
+    //
+    // Positional rank is the same shape of problem — a property of each
+    // season's whole pool — but public: a finish is not a valuation.
+    const seasons = player.seasonStats.map((s) => s.season);
+    const [earnedBySeason, ranksBySeason, statsSeason] = await Promise.all([
+        user?.hasProjectionsAccess
+            ? fetchPlayerEarnedValue(player.id, seasons)
+            : Promise.resolve(new Map<number, SeasonEarnedValue>()),
+        fetchPositionalRanksBySeason(seasons),
+        getEffectiveStatsSeason(),
+    ]);
 
     // Most recent season with a value, shown beside the salary in the header.
     const latestEarned = player.seasonStats
         .map((s) => earnedBySeason.get(s.season))
         .find((v) => v != null);
+
+    const rankFor = (season: number) => ranksBySeason.get(season)?.get(player.id) ?? null;
+    // The header badge is the current season's rank only — a stale "WR3" from
+    // two years ago beside the name would read as today's.
+    const currentRank = rankFor(statsSeason);
 
     const posColor = POSITION_COLORS[player.position as Position] ?? "#6B7280";
 
@@ -113,11 +126,20 @@ export default async function PlayerCardPage({
                                     <h1 className="text-3xl font-bold text-ink">
                                         {player.name}
                                     </h1>
-                                    <PositionBadge position={player.position} />
+                                    <PositionBadge position={player.position} rank={currentRank} />
                                 </div>
                                 <p className="text-ink-subtle mt-1">
                                     {player.nfl_team}{age != null ? ` · Age ${age}` : ""} · Ottoneu ID: {player.ottoneu_id}
                                 </p>
+                                {currentRank && (
+                                    <p className="text-sm text-ink-subtle mt-0.5">
+                                        {describePositionalRank(currentRank)}
+                                        {" · "}
+                                        <Link href={`/rankings?pos=${currentRank.position}`} className="text-accent hover:underline">
+                                            {currentRank.position} rankings →
+                                        </Link>
+                                    </p>
+                                )}
                             </div>
 
                             <div className="flex items-center gap-6">
@@ -251,6 +273,12 @@ export default async function PlayerCardPage({
                                 <thead>
                                     <tr className="bg-sunken">
                                         <th className="px-3 py-2.5 text-left font-semibold text-ink-muted">Season</th>
+                                        <th
+                                            className="px-3 py-2.5 text-right font-semibold text-ink-muted"
+                                            title="Where he finished at his position that season, by total points."
+                                        >
+                                            Pos Rank
+                                        </th>
                                         <th className="px-3 py-2.5 text-right font-semibold text-ink-muted">Total Pts</th>
                                         <th className="px-3 py-2.5 text-right font-semibold text-ink-muted">Games</th>
                                         <th className="px-3 py-2.5 text-right font-semibold text-ink-muted">Snaps</th>
@@ -267,36 +295,45 @@ export default async function PlayerCardPage({
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {player.seasonStats.map((s, i) => (
-                                        <tr
-                                            key={s.season}
-                                            className={`border-t border-line ${i % 2 === 0 ? "bg-raised" : "bg-sunken"}`}
-                                        >
-                                            <td className="px-3 py-2 font-semibold text-ink-muted">{s.season}</td>
-                                            <td className="px-3 py-2 text-right font-mono text-ink-muted">
-                                                <StatValue value={s.total_points} format="decimal" />
-                                            </td>
-                                            <td className="px-3 py-2 text-right font-mono text-ink-muted">
-                                                <StatValue value={s.games_played} format="number" />
-                                            </td>
-                                            <td className="px-3 py-2 text-right font-mono text-ink-muted">
-                                                {s.snaps != null ? s.snaps.toLocaleString() : "—"}
-                                            </td>
-                                            <td className="px-3 py-2 text-right font-mono text-ink-muted">
-                                                <StatValue value={s.ppg} format="decimal" />
-                                            </td>
-                                            <td className="px-3 py-2 text-right font-mono text-ink-muted">
-                                                {s.pps != null ? s.pps.toFixed(4) : "—"}
-                                            </td>
-                                            {user?.hasProjectionsAccess && (
-                                                <td className="px-3 py-2 text-right font-mono text-ink-muted">
-                                                    {earnedBySeason.has(s.season)
-                                                        ? `$${earnedBySeason.get(s.season)!.earned_value}`
-                                                        : "—"}
+                                    {player.seasonStats.map((s, i) => {
+                                        const rank = rankFor(s.season);
+                                        return (
+                                            <tr
+                                                key={s.season}
+                                                className={`border-t border-line ${i % 2 === 0 ? "bg-raised" : "bg-sunken"}`}
+                                            >
+                                                <td className="px-3 py-2 font-semibold text-ink-muted">{s.season}</td>
+                                                <td
+                                                    className="px-3 py-2 text-right font-mono text-ink-muted"
+                                                    title={rank ? describePositionalRank(rank) : undefined}
+                                                >
+                                                    {rank ? formatPositionalRank(rank) : "—"}
                                                 </td>
-                                            )}
-                                        </tr>
-                                    ))}
+                                                <td className="px-3 py-2 text-right font-mono text-ink-muted">
+                                                    <StatValue value={s.total_points} format="decimal" />
+                                                </td>
+                                                <td className="px-3 py-2 text-right font-mono text-ink-muted">
+                                                    <StatValue value={s.games_played} format="number" />
+                                                </td>
+                                                <td className="px-3 py-2 text-right font-mono text-ink-muted">
+                                                    {s.snaps != null ? s.snaps.toLocaleString() : "—"}
+                                                </td>
+                                                <td className="px-3 py-2 text-right font-mono text-ink-muted">
+                                                    <StatValue value={s.ppg} format="decimal" />
+                                                </td>
+                                                <td className="px-3 py-2 text-right font-mono text-ink-muted">
+                                                    {s.pps != null ? s.pps.toFixed(4) : "—"}
+                                                </td>
+                                                {user?.hasProjectionsAccess && (
+                                                    <td className="px-3 py-2 text-right font-mono text-ink-muted">
+                                                        {earnedBySeason.has(s.season)
+                                                            ? `$${earnedBySeason.get(s.season)!.earned_value}`
+                                                            : "—"}
+                                                    </td>
+                                                )}
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>

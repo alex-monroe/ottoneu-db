@@ -13,7 +13,8 @@ import { LEAGUE_ID } from "./config";
 import { getStatsSeason, getProjectionSeason } from "./season";
 import { fetchPlayers, fetchDraftSharksMap, type DraftSharksValue } from "./data";
 import { calculateEarnedValue } from "./earned-value";
-import type { Player, PlayerHoverData, BacktestPlayer, ProjectionModel, BacktestMetrics } from "./types";
+import { fetchCurrentPositionalRanks } from "./positional-rank-data";
+import type { Player, PlayerHoverData, PositionalRank, BacktestPlayer, ProjectionModel, BacktestMetrics } from "./types";
 
 // Re-export from config/arb-logic for backward compatibility
 export * from "./arb-logic";
@@ -238,7 +239,14 @@ export function buildHoverDataMap(
    * defaults to **off**: a new caller has to ask for it rather than leak it.
    * Pass the same `hasProjectionsAccess` the projection/Draft Sharks maps use.
    */
-  includeEarnedValue = false
+  includeEarnedValue = false,
+  /**
+   * Current-season positional ranks, from `fetchHoverExtras`. Public — a rank
+   * is a finish, not a valuation — but deliberately *not* computed from
+   * `players`: several callers pass projection-merged rows, and ranking those
+   * would put a projected rank under an actual-rank label.
+   */
+  rankMap: Record<string, PositionalRank> | null = null
 ): Record<string, PlayerHoverData> {
   // Earned value needs the whole league pool to place replacement level, and
   // `players` already is one on every caller (each passes the full fetch, not a
@@ -264,6 +272,9 @@ export function buildHoverDataMap(
           ...(earnedById.has(p.player_id)
             ? { earned_value: earnedById.get(p.player_id) }
             : {}),
+          ...(rankMap?.[p.player_id]
+            ? { positional_rank: rankMap[p.player_id] }
+            : {}),
           ...(projMap?.[p.player_id]
             ? {
                 projected_ppg: projMap[p.player_id].ppg,
@@ -282,9 +293,10 @@ export function buildHoverDataMap(
 }
 
 /**
- * Fetch the projection-access-gated extras (projection map + Draft Sharks map)
- * used to enrich hover cards. Returns nulls when the user lacks access so
- * callers can pass the result straight into buildHoverDataMap.
+ * Fetch the extras used to enrich hover cards: the projection-access-gated
+ * projection and Draft Sharks maps (nulls when the user lacks access), plus the
+ * public current-season positional ranks. Callers pass the result straight
+ * into buildHoverDataMap.
  */
 export async function fetchHoverExtras(
   hasProjectionsAccess: boolean,
@@ -292,16 +304,19 @@ export async function fetchHoverExtras(
 ): Promise<{
   projMap: Record<string, { ppg: number; method: string }> | null;
   dsMap: Record<string, DraftSharksValue> | null;
+  rankMap: Record<string, PositionalRank>;
 }> {
+  const ranksPromise = fetchCurrentPositionalRanks().then((m) => Object.fromEntries(m));
   if (!hasProjectionsAccess) {
-    return { projMap: null, dsMap: null };
+    return { projMap: null, dsMap: null, rankMap: await ranksPromise };
   }
   const resolvedSeason = season ?? (await getProjectionSeason());
-  const [projMap, dsMap] = await Promise.all([
+  const [projMap, dsMap, rankMap] = await Promise.all([
     fetchProjectionMap(resolvedSeason),
     fetchDraftSharksMap(resolvedSeason),
+    ranksPromise,
   ]);
-  return { projMap, dsMap };
+  return { projMap, dsMap, rankMap };
 }
 
 export interface ProjectedPlayer extends Player {

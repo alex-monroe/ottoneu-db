@@ -52,8 +52,8 @@ export default async function SimulationSection({ mode }: { mode: ValueMode }) {
 
   const label = isProjected ? projectionSeason : statsSeason;
 
-  const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
-  const hoverDataMap = buildHoverDataMap(rawPlayers, projMap, dsMap, !!user?.hasProjectionsAccess);
+  const { projMap, dsMap, rankMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
+  const hoverDataMap = buildHoverDataMap(rawPlayers, projMap, dsMap, !!user?.hasProjectionsAccess, rankMap);
 
   return (
     <div className="space-y-8">

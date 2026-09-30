@@ -337,6 +337,29 @@ export interface PlayerHoverData {
    * so a filtered list cannot produce an honest one.
    */
   earned_value?: number;
+  /**
+   * Where he finishes at his position this season — "WR17"
+   * (web/lib/positional-rank.ts). Always the **current** stats season's
+   * actual finish, whatever pool the rest of the card was built from: several
+   * callers pass projection-merged rows, and a rank taken from those would be
+   * a projected rank under an actual-rank label.
+   */
+  positional_rank?: PositionalRank;
+}
+
+// === Positional Rank ===
+
+/**
+ * A player's finish within his position for one season: rank 6 of 38 QBs is
+ * "QB6". Ordered by total fantasy points among players who have played a game.
+ * See web/lib/positional-rank.ts.
+ */
+export interface PositionalRank {
+  position: Position;
+  rank: number;
+  /** How many players at the position were ranked — "6th of 38". */
+  of: number;
+  season: number;
 }
 
 // === Position Constants ===
