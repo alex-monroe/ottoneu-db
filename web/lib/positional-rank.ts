@@ -15,7 +15,7 @@
  * player's own row, so it is derived on read (see positional-rank-data.ts) and
  * never stored.
  */
-import { POSITIONS, type Heat, type Position, type PositionalRank } from "./types";
+import { POSITIONS, type Heat, type Position, type PositionalRank, type RankTable } from "./types";
 
 /** The fields ranking needs — `Player` satisfies it, so does a bare stats row. */
 export interface RankablePlayer {
@@ -162,9 +162,56 @@ function rankWithin(
   return out;
 }
 
+/**
+ * Pack a season's ranks (keyed by player_id) into a {@link RankTable} keyed by
+ * Ottoneu ID. Players with no Ottoneu ID are dropped — nothing can look them up.
+ */
+export function packRankTable(
+  ranks: ReadonlyMap<string, PositionalRank>,
+  ottoneuIdByPlayerId: ReadonlyMap<string, number>,
+  season: number,
+): RankTable {
+  const rows: RankTable["rows"] = {};
+  let minGames: number | null = null;
+  for (const [playerId, r] of ranks) {
+    const ottoneuId = ottoneuIdByPlayerId.get(playerId);
+    if (!ottoneuId) continue;
+    rows[ottoneuId] = [r.position, r.rank, r.of, r.ppg_rank ?? null, r.heat ?? null];
+    minGames ??= r.ppg_min_games ?? null;
+  }
+  return { season, ppg_min_games: minGames, rows };
+}
+
+/** One player's rank back out of a {@link RankTable}, or null. */
+export function unpackRank(
+  table: RankTable | null,
+  ottoneuId: number | null | undefined,
+): PositionalRank | null {
+  const row = ottoneuId ? table?.rows[ottoneuId] : undefined;
+  if (!table || !row) return null;
+  const [position, rank, of, ppgRank, heat] = row;
+  return {
+    position,
+    rank,
+    of,
+    season: table.season,
+    ...(ppgRank != null ? { ppg_rank: ppgRank, ppg_min_games: table.ppg_min_games ?? 1 } : {}),
+    ...(heat ? { heat } : {}),
+  };
+}
+
 /** "QB6". */
 export function formatPositionalRank(r: Pick<PositionalRank, "position" | "rank">): string {
   return `${r.position}${r.rank}`;
+}
+
+/**
+ * "WR17 🔥" — the rank tag as plain text, for places that cannot hold the chip
+ * (a `<select>`'s options).
+ */
+export function formatRankTagText(r: PositionalRank): string {
+  const icon = r.heat === "fire" ? " 🔥" : r.heat === "ice" ? " ❄️" : "";
+  return `${formatPositionalRank(r)}${icon}`;
 }
 
 /** "6th of 38 QBs in 2026 by total points" — the badge's tooltip. */

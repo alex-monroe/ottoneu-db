@@ -374,6 +374,19 @@ export interface PositionalRank {
 /** 🔥 rate far better than total; ❄️ total far better than rate. */
 export type Heat = "fire" | "ice";
 
+/**
+ * One season's positional ranks in the compact shape the root layout ships to
+ * every page (see `PositionalRanksProvider`), keyed by **Ottoneu ID** — the one
+ * identifier every player-name call site already has. A row is
+ * `[position, rank, of, ppg_rank | null, heat | null]`; the season and the PPG
+ * games floor are the same for every row, so they are stored once.
+ */
+export interface RankTable {
+  season: number;
+  ppg_min_games: number | null;
+  rows: Record<number, [Position, number, number, number | null, Heat | null]>;
+}
+
 // === Position Constants ===
 
 export type Position = 'QB' | 'RB' | 'WR' | 'TE' | 'K';

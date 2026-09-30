@@ -104,7 +104,8 @@ export default function RankingsTable({
         <PositionBadge position={row.positional_rank.position} rank={row.positional_rank} />
       ),
     },
-    playerNameCol<RankingRow>({ hoverDataMap }),
+    // The Rank column is the tag here; repeating it after every name is noise.
+    playerNameCol<RankingRow>({ hoverDataMap, showRankTag: false }),
     nflTeamCol<RankingRow>(),
     fantasyTeamCol<RankingRow>("Owner"),
     {

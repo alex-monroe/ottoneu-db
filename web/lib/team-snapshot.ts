@@ -36,6 +36,8 @@ import { sameTeamName } from "./teams";
 
 export interface SnapshotPlayer {
   playerId: string;
+  /** For the rank tag beside the name. */
+  ottoneuId?: number;
   name: string;
   position: string;
   nflTeam: string;
@@ -92,6 +94,7 @@ export interface TeamWeekSnapshots {
 function toSnapshotPlayer(p: LineupPlayer): SnapshotPlayer {
   return {
     playerId: p.player_id,
+    ...(p.ottoneu_id ? { ottoneuId: p.ottoneu_id } : {}),
     name: p.name,
     position: p.position,
     nflTeam: p.nfl_team,

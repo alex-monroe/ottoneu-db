@@ -3,6 +3,7 @@
 import Link from "next/link";
 import * as HoverCard from "@radix-ui/react-hover-card";
 import PositionBadge from "@/components/PositionBadge";
+import PlayerRankTag from "./PlayerRankTag";
 import type { SnapshotPlayer, TeamWeekSnapshot } from "@/lib/team-snapshot";
 
 interface Props {
@@ -44,8 +45,13 @@ function PlayerLine({ player, slot }: { player: SnapshotPlayer | null; slot?: st
         </span>
       )}
       {!slot && <PositionBadge position={player.position} size="sm" />}
-      <span className={`min-w-0 flex-1 truncate ${out ? "text-ink-subtle" : "text-ink"}`}>
-        {player.name}
+      <span className="flex min-w-0 flex-1 items-center">
+        <span className={`truncate ${out ? "text-ink-subtle" : "text-ink"}`}>
+          {player.name}
+        </span>
+        <span className="shrink-0">
+          <PlayerRankTag ottoneuId={player.ottoneuId} />
+        </span>
       </span>
       <span className="shrink-0 text-ink-subtle">{player.opponent ?? "—"}</span>
       <span

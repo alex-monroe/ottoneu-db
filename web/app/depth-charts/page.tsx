@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PlayerRankTag from "@/components/PlayerRankTag";
 import {
   fetchAvailableDepthChartSeasons,
   fetchDepthChartsForSeason,
@@ -195,12 +196,21 @@ function TeamCard({ team, entries }: { team: string; entries: DepthChartEntry[] 
                   className="flex items-center gap-2 text-sm"
                 >
                   <TierBadge depth={e.depth_team} />
-                  <Link
-                    href={`/players/${e.player_id}`}
-                    className="flex-1 truncate text-ink hover:underline"
-                  >
-                    {e.name}
-                  </Link>
+                  <span className="flex flex-1 min-w-0 items-center">
+                    {e.ottoneu_id ? (
+                      <Link
+                        href={`/players/${e.ottoneu_id}`}
+                        className="truncate text-ink hover:underline"
+                      >
+                        {e.name}
+                      </Link>
+                    ) : (
+                      <span className="truncate text-ink">{e.name}</span>
+                    )}
+                    <span className="shrink-0">
+                      <PlayerRankTag ottoneuId={e.ottoneu_id} />
+                    </span>
+                  </span>
                   <RoleChange entry={e} />
                   <span className="font-mono text-xs text-ink-subtle tabular-nums">
                     {formatPpg(e.projected_ppg)}
