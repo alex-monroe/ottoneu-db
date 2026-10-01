@@ -234,6 +234,31 @@ after publication (the reveal needs that), which does move the public ranking.
 Unpublishing and holding a public week reopens listener voting if it is still
 the current week.
 
+### The Discord post
+
+`.github/workflows/post-power-rankings.yml` posts the published week to the
+league Discord **once a week, Thursday 14:15 UTC** (10:15 EDT / 09:15 EST, so
+always after the 09:00 ET publish). The post is every team in order, its
+movement since last week (▲/▼/—, omitted with no public prior week) and a link
+to `/power-rankings?week=N`.
+
+- **Same code as the page.** `web/scripts/post-power-rankings.ts` (run with
+  `tsx`, `just post-power-rankings`) calls `fetchPowerRankingContext`,
+  `fetchPublicationStatuses` and `fetchCommunityRankings` directly, so there is
+  no second implementation of the consolidation or the schedule to drift. The
+  message is built from `CommunityRow` in `web/lib/discord-power-rankings.ts`,
+  so it has no per-voter fields to leak.
+- **Never posts a private week.** A held week makes the Thursday run log and
+  exit 0; once a host publishes it, run the workflow by hand (`week` input
+  optional). A week published early still posts on Thursday morning.
+- **No "already posted" marker.** The schedule fires once per week, so nothing
+  is stored; a manual re-run of a week already posted posts it again.
+- **Posts as the league's Discord bot** (the auction bot's account) through the
+  REST API: `DISCORD_TOKEN` is a GitHub Actions secret, the channel ID is in the
+  workflow. The bot needs Send Messages + Embed Links in that channel.
+- **Fails loudly on a broken secret.** The calendar read swallows errors, so the
+  script treats an unresolvable season as an error rather than the off-season.
+
 ## Weekly recap
 
 `/podcast/recap?week=N` — one finished week, looked at backwards, in the order
