@@ -30,8 +30,10 @@ import PlayerName from "@/components/PlayerName";
 export function playerNameCol<Row>(opts?: {
   hoverDataMap?: Record<string, PlayerHoverData> | null;
   label?: string;
+  /** The rank tag after the name; off where the table has its own rank column. */
+  showRankTag?: boolean;
 }): Column<Row> {
-  const { hoverDataMap, label = "Player" } = opts ?? {};
+  const { hoverDataMap, label = "Player", showRankTag = true } = opts ?? {};
 
   // Plain text — no links
   if (hoverDataMap === undefined) {
@@ -58,6 +60,7 @@ export function playerNameCol<Row>(opts?: {
             ottoneuId,
             mode: "hover",
             hoverData: hoverDataMap[playerId],
+            showRankTag,
           }) as React.ReactNode
         );
       }
@@ -67,6 +70,7 @@ export function playerNameCol<Row>(opts?: {
           name: String(value ?? "—"),
           ottoneuId,
           mode: "link",
+          showRankTag,
         }) as React.ReactNode
       );
     },

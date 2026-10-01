@@ -337,6 +337,54 @@ export interface PlayerHoverData {
    * so a filtered list cannot produce an honest one.
    */
   earned_value?: number;
+  /**
+   * Where he finishes at his position this season — "WR17"
+   * (web/lib/positional-rank.ts). Always the **current** stats season's
+   * actual finish, whatever pool the rest of the card was built from: several
+   * callers pass projection-merged rows, and a rank taken from those would be
+   * a projected rank under an actual-rank label.
+   */
+  positional_rank?: PositionalRank;
+}
+
+// === Positional Rank ===
+
+/**
+ * A player's finish within his position for one season: rank 6 of 38 QBs is
+ * "QB6". Ordered by total fantasy points among players who have played a game.
+ * See web/lib/positional-rank.ts.
+ */
+export interface PositionalRank {
+  position: Position;
+  rank: number;
+  /** How many players at the position were ranked — "6th of 38". */
+  of: number;
+  season: number;
+  /**
+   * His PPG rank at the position among players with at least `ppg_min_games`
+   * games. Absent when he has fewer, or when the caller did not know how deep
+   * the season is.
+   */
+  ppg_rank?: number;
+  ppg_min_games?: number;
+  /** Set only when the PPG and total-points ranks disagree dramatically. */
+  heat?: Heat;
+}
+
+/** 🔥 rate far better than total; ❄️ total far better than rate. */
+export type Heat = "fire" | "ice";
+
+/**
+ * One season's positional ranks in the compact shape the root layout ships to
+ * every page (see `PositionalRanksProvider`), keyed by **Ottoneu ID** — the one
+ * identifier every player-name call site already has. A row is
+ * `[position, rank, of, ppg_rank | null, heat | null]`; the season and the PPG
+ * games floor are the same for every row, so they are stored once.
+ */
+export interface RankTable {
+  season: number;
+  ppg_min_games: number | null;
+  rows: Record<number, [Position, number, number, number | null, Heat | null]>;
 }
 
 // === Position Constants ===

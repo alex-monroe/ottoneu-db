@@ -62,6 +62,8 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Players",
     items: [
       { href: "/players", label: "Player Directory" },
+      // Public: a finish is a fact about the season, not a gated valuation.
+      { href: "/rankings", label: "Positional Rankings" },
       { href: "/projections", label: "Season Projections", access: "projections" },
       // Per-game, third-party, in-season — a different thing entirely from the
       // season-long model above, so the label says which is which.

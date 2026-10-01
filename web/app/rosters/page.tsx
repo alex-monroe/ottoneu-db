@@ -35,7 +35,7 @@ export default async function RostersPage({ searchParams }: Props) {
   // replayable history — the floor on how far back the date picker may go.
   const earliestDate = data.transactions.find((t) => t.transaction_date)?.transaction_date ?? null;
   const snapshots = buildRosterSnapshots(ctx, undefined, { season, earliestDate });
-  const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
+  const { projMap, dsMap, rankMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
 
   // Build hoverDataMap from raw player + stats data
   const statsMap = new Map(data.stats.map((s) => [s.player_id, s]));
@@ -56,6 +56,7 @@ export default async function RostersPage({ searchParams }: Props) {
       team_name: lp?.team_name ?? null,
       ppg: pStats?.ppg ?? 0,
       games_played: pStats?.games_played ?? 0,
+      ...(rankMap[player.id] ? { positional_rank: rankMap[player.id] } : {}),
       ...(projMap?.[player.id]
         ? {
             projected_ppg: projMap[player.id].ppg,

@@ -98,7 +98,7 @@ TypeScript, not Python — this is the most common thing newcomers get wrong.
 | **Data access** | `web/lib/supabase.ts` (use `fetchAllRows` — the client caps at 1000 rows) · `players.ts` · `data.ts` |
 | **Python side** | `scripts/scrape_draft_sharks.py` (market values) · `scripts/weekly_projections/` (in-season per-game, from Sleeper) |
 | **Commands** | `just scrape-draft-sharks` · `just weekly-projections` · `just dev` |
-| **Routes** | `/` · `/players` · `/value` (VORP · Surplus · Adjustments) · `/arbitration` · `/projected-salary` · `/lineup` · `/weekly` · `/arb-planner-public` |
+| **Routes** | `/` · `/players` · `/rankings` · `/value` (VORP · Surplus · Adjustments) · `/arbitration` · `/projected-salary` · `/lineup` · `/weekly` · `/arb-planner-public` |
 | **Docs** | [FRONTEND.md](FRONTEND.md) · [references/ottoneu-strategy.md](references/ottoneu-strategy.md) · [references/weekly-projections.md](references/weekly-projections.md) |
 
 **Watch out:** `weekly_projections` (per-game, third-party, market-aware) and

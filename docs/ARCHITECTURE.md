@@ -139,7 +139,7 @@ All web data fetching goes through `web/lib/data.ts` — the single source of tr
 
 - **Salary source of truth:** `league_prices` table for current views. Historical salary uses transaction replay (`roster-reconstruction.ts`).
 - **Type hierarchy:** `CorePlayer → RosteredPlayer → StatsPlayer → Player` — each layer adds data from a different source (players table → league_prices → player_stats).
-- **Calculations are TypeScript-only:** VORP, surplus, arbitration, and projected salary are computed in `web/lib/` and are the canonical implementations.
+- **Calculations are TypeScript-only:** VORP, surplus, arbitration, projected salary, replacement level, earned value, stat window, and positional rank are computed in `web/lib/` (`vorp.ts`, `surplus.ts`, `arbitration.ts`, `simulation.ts`, `replacement.ts`, `earned-value.ts`, `stat-window.ts`, `positional-rank.ts`) and are the canonical implementations.
 - **Scoring formula:** `web/lib/scoring.ts` provides `calculateFantasyPoints()` — the Ottoneu Half PPR formula as a pure function of raw NFL stats.
 
 ### Key Metrics
@@ -151,6 +151,7 @@ All web data fetching goes through `web/lib/data.ts` — the single source of tr
 - **Earned Value** = the same closed-economy allocation run on actual season points (`web/lib/earned-value.ts`, MCP `get_earned_value`). Availability is observed rather than modelled; ranked on totals not PPG; no `MIN_GAMES` filter. Derived at read time like the standings — no table, no backfill.
 - **Realized Surplus** = earned_value − salary_paid. The retrospective grade on a buy/arbitration dollar/keep-cut call. Requires the salary the player was carried at during that season (`fetchPlayersEndOfSeason`).
 - **Stat Window** = how much football is behind a number (`web/lib/stat-window.ts`), because `player_stats` now holds season-to-date totals mid-season. `fraction === 1` is a strict no-op; in a partial window `distributableCap` and `salary_to_date` are prorated together so `realized_surplus` scales with the sample and the ranking never moves. `full_season_vorp` is not rescaled — the factor cancels in the dollar conversion.
+- **Positional Rank** = a player's finish at his position by total points for a season — "QB6", "WR17" (`web/lib/positional-rank.ts`). Derived on read from `player_stats`, never stored. Only players with a game are ranked; ties break on PPG then `player_id` so ranks are unique. Shipped globally through `PositionalRanksProvider` in the root layout, so `PlayerName`/`PlayerHoverCard` render the chip everywhere with no plumbing. A 🔥/❄️ `HeatIcon` beside the chip flags players whose PPG rank and total-points rank disagree dramatically (`classifyHeat`). Deliberately **public** — a finish is not a gated valuation.
 - Chart shows salary (Y-axis) vs. selected metric (X-axis), bubble size = total points
 
 ## Season Cycle (date-driven resolver)

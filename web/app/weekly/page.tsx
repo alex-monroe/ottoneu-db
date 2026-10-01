@@ -8,6 +8,7 @@ import {
   fetchWeeklyBoard,
 } from "@/lib/weekly-projections";
 import PositionBadge from "@/components/PositionBadge";
+import PlayerRankTag from "@/components/PlayerRankTag";
 import WeekFilters from "./WeekFilters";
 import PageShell from "@/components/PageShell";
 import DataFreshness from "@/components/DataFreshness";
@@ -134,9 +135,12 @@ export default async function WeeklyProjectionsPage({ searchParams }: Props) {
                     <td className="px-3 py-2 font-mono text-ink-subtle">{i + 1}</td>
                     <td className="px-3 py-2 font-medium text-ink">
                       {roster ? (
-                        <Link href={`/players/${roster.ottoneu_id}`} className="hover:underline">
-                          {r.name}
-                        </Link>
+                        <>
+                          <Link href={`/players/${roster.ottoneu_id}`} className="hover:underline">
+                            {r.name}
+                          </Link>
+                          <PlayerRankTag ottoneuId={roster.ottoneu_id} />
+                        </>
                       ) : (
                         r.name
                       )}

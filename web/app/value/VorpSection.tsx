@@ -44,8 +44,8 @@ export default async function VorpSection({ window: w }: { window: StatWindow })
     salaryImpliedPpg,
     minGamesApplied,
   } = calculateVorp(allPlayers);
-  const { projMap, dsMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
-  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap, !!user?.hasProjectionsAccess);
+  const { projMap, dsMap, rankMap } = await fetchHoverExtras(!!user?.hasProjectionsAccess);
+  const hoverDataMap = buildHoverDataMap(allPlayers, projMap, dsMap, !!user?.hasProjectionsAccess, rankMap);
 
   if (players.length === 0) {
     return (
