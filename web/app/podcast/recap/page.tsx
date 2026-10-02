@@ -33,7 +33,7 @@ import WeekPicker from "./WeekPicker";
  */
 
 export const metadata = {
-  title: "Weekly Recap | Ottoneu Analytics",
+  title: "Weekly Recap | SOFA DB",
   description: "Episode prep: the week that was, from every angle the show uses",
 };
 

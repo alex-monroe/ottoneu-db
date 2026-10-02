@@ -22,7 +22,7 @@ import TeamStatusGrid from "./TeamStatusGrid";
 import PageShell from "@/components/PageShell";
 
 export const metadata = {
-  title: "Arbitration Progress | Ottoneu Analytics",
+  title: "Arbitration Progress | SOFA DB",
   description: "Live arbitration allocation progress for Ottoneu League 309",
 };
 

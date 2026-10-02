@@ -22,7 +22,7 @@ import PositionBadge from "@/components/PositionBadge";
 export const revalidate = 3600;
 
 export const metadata = {
-  title: "Your Matchup | Ottoneu Analytics",
+  title: "Your Matchup | SOFA DB",
   description: "Your projected lineup against this week's opponent.",
 };
 

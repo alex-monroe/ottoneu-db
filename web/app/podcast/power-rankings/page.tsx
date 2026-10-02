@@ -10,7 +10,7 @@ import { fetchTeamWeekSnapshots } from "@/lib/team-snapshot";
 import BallotEditor from "./BallotEditor";
 
 export const metadata = {
-  title: "Power Rankings Ballot | Ottoneu Analytics",
+  title: "Power Rankings Ballot | SOFA DB",
   description: "Rank the league ahead of this week",
 };
 

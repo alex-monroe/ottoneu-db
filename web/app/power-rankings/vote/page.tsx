@@ -12,7 +12,7 @@ import { fetchTeamWeekSnapshots } from "@/lib/team-snapshot";
 import ListenerBallot from "./ListenerBallot";
 
 export const metadata = {
-  title: "Vote: Power Rankings | Ottoneu Analytics",
+  title: "Vote: Power Rankings | SOFA DB",
   description: "Cast your ballot for this week's community power rankings",
 };
 

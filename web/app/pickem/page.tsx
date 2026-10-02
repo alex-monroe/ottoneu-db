@@ -20,7 +20,7 @@ import PickSheet from "./PickSheet";
 import WeekPicker from "./WeekPicker";
 
 export const metadata = {
-  title: "Pick'em | Ottoneu Analytics",
+  title: "Pick'em | SOFA DB",
   description: "Pick the winner of every league matchup each week, and see how everyone did",
 };
 
