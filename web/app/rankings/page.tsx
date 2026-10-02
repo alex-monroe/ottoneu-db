@@ -14,7 +14,7 @@ import RankingsTable, { type RankingRow, type RankingSort } from "./RankingsTabl
 export const revalidate = 3600;
 
 export const metadata = {
-  title: "Positional Rankings | Ottoneu Analytics",
+  title: "Positional Rankings | SOFA DB",
   description: "Where every player finishes at his position — QB1, RB12, WR24 — by total points.",
 };
 

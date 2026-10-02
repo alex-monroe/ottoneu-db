@@ -10,7 +10,7 @@ import PageShell from "@/components/PageShell";
 export const revalidate = 0;
 
 export const metadata = {
-  title: "Arbitration | Ottoneu Analytics",
+  title: "Arbitration | SOFA DB",
   description: "Arbitration targets, simulation, and planner for League 309",
 };
 

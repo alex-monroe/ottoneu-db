@@ -5,7 +5,7 @@ import { isValidRedirect } from "@/lib/utils";
 import AccessActions from "./AccessActions";
 
 export const metadata = {
-  title: "Access | Ottoneu Analytics",
+  title: "Access | SOFA DB",
   description: "Projections access status for your account",
 };
 

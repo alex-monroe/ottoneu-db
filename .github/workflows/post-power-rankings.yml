@@ -1,0 +1,73 @@
+name: Post Power Rankings
+
+# Posts the week's community power ranking — every team in order, its movement
+# since last week, and a link to /power-rankings — to the league Discord.
+#
+# The ranking publishes itself Thursday 09:00 America/New_York
+# (web/lib/community-rankings.ts), so this runs once a week just after that.
+# 14:15 UTC is 10:15 EDT / 09:15 EST: after the publish time on both sides of
+# the daylight-saving change.
+#
+# The script never posts a week that is not public on the site. If a host is
+# holding a week back, the Thursday run logs that and exits cleanly; publish it
+# from /podcast, then run this workflow by hand.
+#
+# Posts as the league's existing Discord bot (the auction bot's token), which
+# needs Send Messages + Embed Links in the channel below.
+
+on:
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "Week to post (blank = the week being ranked now)"
+        required: false
+      dry_run:
+        description: "Print the message instead of posting it"
+        type: boolean
+        default: false
+
+  schedule:
+    - cron: "15 14 * * 4"
+
+permissions:
+  contents: read
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Post to Discord
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          # The script reads the same rows the public page does; the anon
+          # client's reads (calendar, standings, teams) work with the service
+          # key too, and it never leaves the runner.
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          DISCORD_CHANNEL_ID: "1396549904234709044"
+          SITE_URL: https://sofa-db.vercel.app
+          WEEK: ${{ inputs.week }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          ARGS=()
+          [ -n "$WEEK" ] && ARGS+=(--week "$WEEK")
+          [ "$DRY_RUN" = "true" ] && ARGS+=(--dry-run)
+          npm run post-power-rankings -- "${ARGS[@]}"

@@ -21,7 +21,7 @@ import { OAUTH_SCOPE } from "@/lib/oauth/constants";
 import ConsentForm from "./ConsentForm";
 
 export const metadata = {
-  title: "Authorize Access | Ottoneu Analytics",
+  title: "Authorize Access | SOFA DB",
 };
 
 interface AuthorizeParams {

@@ -313,6 +313,12 @@ scrape-matchups *args:
 scrape-lineups *args:
     {{python}} scripts/scrape_lineups.py {{args}}
 
+# Post the week's community power ranking to Discord (reads web/.env.local; needs
+# DISCORD_TOKEN + DISCORD_CHANNEL_ID unless --dry-run). Only ever posts a public week.
+# e.g. just post-power-rankings --dry-run ; just post-power-rankings --week 4
+post-power-rankings *args:
+    cd web && npm run post-power-rankings -- {{args}}
+
 # ──────────────────────────────────────────────
 # Ad-hoc DB queries
 # ──────────────────────────────────────────────

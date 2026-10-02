@@ -15,7 +15,7 @@ import {
 import WeekPicker from "./WeekPicker";
 
 export const metadata = {
-  title: "Power Rankings | Ottoneu Analytics",
+  title: "Power Rankings | SOFA DB",
   description: "The league's community power rankings, voted on by listeners and the podcast hosts",
 };
 
