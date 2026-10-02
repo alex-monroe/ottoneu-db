@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ottoneu Analytics",
+  title: "SOFA DB",
   description: "Fantasy football analytics for Ottoneu leagues",
 };
 

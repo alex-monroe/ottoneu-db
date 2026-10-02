@@ -8,7 +8,7 @@ import PageShell from "@/components/PageShell";
 export const revalidate = 3600;
 
 export const metadata = {
-  title: "Teams | Ottoneu Analytics",
+  title: "Teams | SOFA DB",
   description: "Every team in the league — roster, cap, record and schedule.",
 };
 

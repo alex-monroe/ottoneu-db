@@ -14,7 +14,7 @@ import PageShell from "@/components/PageShell";
 export const revalidate = 3600; // Revalidate every hour
 
 export const metadata = {
-    title: "Players | Ottoneu Analytics",
+    title: "Players | SOFA DB",
     description: "Browse and search all players in Ottoneu League 309",
 };
 

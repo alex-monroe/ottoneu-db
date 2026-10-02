@@ -21,7 +21,7 @@ import DataFreshness from "@/components/DataFreshness";
 export const revalidate = 3600;
 
 export const metadata = {
-  title: "Free Agents | Ottoneu Analytics",
+  title: "Free Agents | SOFA DB",
   description: "Unrostered players ranked by value, comparable against your own roster.",
 };
 

@@ -26,7 +26,7 @@ export async function generateMetadata({
     const player = await fetchPlayerDetail(Number(id));
     if (!player) return { title: "Player Not Found" };
     return {
-        title: `${player.name} | Ottoneu Analytics`,
+        title: `${player.name} | SOFA DB`,
         description: `Player card for ${player.name} — ${player.position}, ${player.nfl_team}`,
     };
 }

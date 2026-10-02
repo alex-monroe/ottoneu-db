@@ -61,8 +61,8 @@ export async function generateMetadata({ params }: Props) {
   const game = await load(params);
   return {
     title: game
-      ? `Week ${game.week}: ${game.home_team_name} vs ${game.away_team_name} | Ottoneu Analytics`
-      : "Game | Ottoneu Analytics",
+      ? `Week ${game.week}: ${game.home_team_name} vs ${game.away_team_name} | SOFA DB`
+      : "Game | SOFA DB",
     description: "Both lineups, original projections, and the live matchup projection.",
   };
 }

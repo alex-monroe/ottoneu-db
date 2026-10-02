@@ -10,7 +10,7 @@ import {
 import RevealClient from "./RevealClient";
 
 export const metadata = {
-  title: "Power Rankings Reveal | Ottoneu Analytics",
+  title: "Power Rankings Reveal | SOFA DB",
   description: "The consolidated countdown, revealed one slot at a time",
 };
 

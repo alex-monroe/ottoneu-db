@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: Props) {
   const teamName = await resolveTeamName(name);
   if (!teamName) return { title: "Team Not Found" };
   return {
-    title: `${teamName} | Ottoneu Analytics`,
+    title: `${teamName} | SOFA DB`,
     description: `Roster, record, schedule and value summary for ${teamName}.`,
   };
 }

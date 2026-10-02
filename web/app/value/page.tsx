@@ -11,7 +11,7 @@ import { fetchPlayerSetEndOfSeason, listStatWindowSeasons } from "@/lib/data";
 export const revalidate = 0;
 
 export const metadata = {
-  title: "Value | Ottoneu Analytics",
+  title: "Value | SOFA DB",
   description: "VORP, surplus value, and manual value adjustments for League 309",
 };
 

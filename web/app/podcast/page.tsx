@@ -18,7 +18,7 @@ import SessionSync from "./SessionSync";
 import PublicationControls from "./PublicationControls";
 
 export const metadata = {
-  title: "Podcast | Ottoneu Analytics",
+  title: "Podcast | SOFA DB",
   description: "Production tools for the league podcast",
 };
 
