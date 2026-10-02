@@ -18,7 +18,7 @@ The Supabase project (`OttoneuDB`, ref `rbinbcwinchphipvcfqk`) is **shared with 
 
 | Table | Purpose | Unique Constraint |
 |-------|---------|-------------------|
-| `users` | User accounts with email/password auth. Three independent role flags: `is_admin`, `has_projections_access`, and `is_podcaster` (migration 040 — the podcast production tools under `/podcast`; see [podcast-tools.md](../references/podcast-tools.md)). `team_name` binds the account to an Ottoneu team (migration 039). | `email` |
+| `users` | User accounts (bcrypt via `bcryptjs`), plus per-account flags/attributes the session cookie caches for 7 days: `is_admin`, `has_projections_access`, `is_podcaster` (migration 040 — the podcast production tools under `/podcast`, gated in `web/lib/access.ts` via `PODCASTER_ROUTES`; deliberately independent of the other two flags. See [podcast-tools.md](../references/podcast-tools.md)), `access_requested_at` (migration 038 — non-NULL = the user has asked; set on self-registration and by `POST /api/access-request`, drives the `/admin` pending-first sort), and `team_name` (migration 039 — the Ottoneu team this account manages, matching `league_prices.team_name`; NULL = unbound → `getViewerTeam()` returns `null` for non-admins and `config.MY_TEAM` for admins). Grant/revoke of any of these should be followed by `POST /api/auth/refresh` so the session picks it up before the 7-day TTL. Server-only (service key); RLS enabled, no anon policy | `email` |
 | `players` | Player metadata (includes `birth_date`, `is_college`) | `ottoneu_id` |
 | `player_stats` | Ottoneu fantasy season records (FK -> `players`) | `(player_id, season)` |
 | `nfl_stats` | Pure NFL stats from nflverse-data, 2010-present (FK -> `players`) | `(player_id, season)` |
