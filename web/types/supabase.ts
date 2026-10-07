@@ -759,6 +759,48 @@ export type Database = {
           },
         ]
       }
+      password_reset_tokens: {
+        Row: {
+          consumed_at: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          token_hash: string
+          user_id: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          token_hash: string
+          user_id: string
+        }
+        Update: {
+          consumed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          token_hash?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "password_reset_tokens_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "password_reset_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pickem_picks: {
         Row: {
           created_at: string
@@ -1692,6 +1734,7 @@ export type Database = {
           is_admin: boolean
           is_podcaster: boolean
           password_hash: string
+          password_reset_requested_at: string | null
           team_name: string | null
           updated_at: string
         }
@@ -1704,6 +1747,7 @@ export type Database = {
           is_admin?: boolean
           is_podcaster?: boolean
           password_hash: string
+          password_reset_requested_at?: string | null
           team_name?: string | null
           updated_at?: string
         }
@@ -1716,6 +1760,7 @@ export type Database = {
           is_admin?: boolean
           is_podcaster?: boolean
           password_hash?: string
+          password_reset_requested_at?: string | null
           team_name?: string | null
           updated_at?: string
         }
