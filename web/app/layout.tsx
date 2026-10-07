@@ -5,8 +5,10 @@ import NavigationWrapper from "@/components/NavigationWrapper";
 import PhaseBanner from "@/components/PhaseBanner";
 import SiteFooter from "@/components/SiteFooter";
 import PositionalRanksProvider from "@/components/PositionalRanksProvider";
+import TeamIconsProvider from "@/components/TeamIconsProvider";
 import { fetchCurrentRankTable } from "@/lib/positional-rank-data";
-import type { RankTable } from "@/lib/types";
+import { fetchTeamIconVersions } from "@/lib/team-icons-data";
+import type { RankTable, TeamIconVersions } from "@/lib/types";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,12 +39,26 @@ async function loadRankTable(): Promise<RankTable | null> {
   }
 }
 
+/**
+ * Which teams have an icon, for the icon beside every team name. Also a
+ * decoration: a failed read (or a missing service key in a preview build)
+ * means plain names, not a broken page.
+ */
+async function loadTeamIcons(): Promise<TeamIconVersions | null> {
+  try {
+    return await fetchTeamIconVersions();
+  } catch (err) {
+    console.error("Team icons unavailable:", err);
+    return null;
+  }
+}
+
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const rankTable = await loadRankTable();
+  const [rankTable, teamIcons] = await Promise.all([loadRankTable(), loadTeamIcons()]);
   return (
     <html
       lang="en"
@@ -58,10 +74,12 @@ export default async function RootLayout({
           Skip to content
         </a>
         <PositionalRanksProvider table={rankTable}>
-          <NavigationWrapper />
-          <PhaseBanner />
-          {children}
-          <SiteFooter />
+          <TeamIconsProvider versions={teamIcons}>
+            <NavigationWrapper />
+            <PhaseBanner />
+            {children}
+            <SiteFooter />
+          </TeamIconsProvider>
         </PositionalRanksProvider>
       </body>
     </html>

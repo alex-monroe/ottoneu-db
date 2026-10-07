@@ -1,6 +1,7 @@
 "use client";
 
 import { PlanValidation } from "@/lib/arb-planner-validation";
+import TeamName from "@/components/TeamName";
 
 interface BudgetTrackerProps {
   validation: PlanValidation;
@@ -62,7 +63,7 @@ export default function BudgetTracker({ validation }: BudgetTrackerProps) {
               className={`${bgColor} border ${borderColor} rounded-lg p-2 text-center`}
             >
               <div className="text-xs font-medium text-ink-muted truncate">
-                {ts.team_name}
+                <TeamName name={ts.team_name} plain />
               </div>
               <div className="text-lg font-bold text-ink">
                 ${ts.allocated}

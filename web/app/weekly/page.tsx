@@ -9,6 +9,7 @@ import {
 } from "@/lib/weekly-projections";
 import PositionBadge from "@/components/PositionBadge";
 import PlayerRankTag from "@/components/PlayerRankTag";
+import TeamName from "@/components/TeamName";
 import WeekFilters from "./WeekFilters";
 import PageShell from "@/components/PageShell";
 import DataFreshness from "@/components/DataFreshness";
@@ -162,7 +163,7 @@ export default async function WeeklyProjectionsPage({ searchParams }: Props) {
                       {isFA ? "—" : `$${roster?.price ?? 0}`}
                     </td>
                     <td className="px-3 py-2 text-ink-muted">
-                      {isFA ? "FA" : roster?.team_name}
+                      {isFA ? "FA" : <TeamName name={roster?.team_name} plain />}
                     </td>
                   </tr>
                 );

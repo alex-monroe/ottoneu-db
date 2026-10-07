@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { MockDraftTeamSeed } from "@/lib/mock-draft";
+import TeamName from "@/components/TeamName";
 import {
   committed,
   fillsANeed,
@@ -763,7 +764,7 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
                   >
                     <span className="truncate text-ink-muted">
                       {t.isUser ? "★ " : ""}
-                      {t.name}
+                      <TeamName name={t.name} plain />
                     </span>
                     <span className="whitespace-nowrap text-ink-subtle">
                       <span className="font-mono">${t.cap}</span> ·{" "}

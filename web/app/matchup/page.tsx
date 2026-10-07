@@ -127,9 +127,9 @@ function SlotComparison({
   return (
     <div className="overflow-hidden rounded-lg border border-line">
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-3 bg-sunken px-3 py-2 text-xs font-semibold uppercase tracking-wide text-ink-subtle sm:gap-x-4">
-        <span className="truncate">{myName}</span>
+        <span className="truncate"><TeamName name={myName} plain /></span>
         <span className="text-center">Slot</span>
-        <span className="truncate text-right">{theirName}</span>
+        <span className="truncate text-right"><TeamName name={theirName} plain /></span>
       </div>
       <ul className="divide-y divide-line">
         {LINEUP_SLOTS.map((slot) => {

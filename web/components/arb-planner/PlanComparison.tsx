@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { ArbitrationPlan, ArbitrationPlanWithAllocations } from "@/lib/types";
 import type { ArbPlannerPlayer } from "./types";
 import PlayerRankTag from "../PlayerRankTag";
+import TeamName from "../TeamName";
 
 /**
  * Describes the single configurable metric column rendered between "Salary" and
@@ -202,7 +203,7 @@ export default function PlanComparison<T extends ArbPlannerPlayer>({
                         className="px-3 py-2 font-medium text-ink align-top"
                         rowSpan={comparisonRows.filter((r) => r.team_name === row.team_name).length}
                       >
-                        <div>{row.team_name}</div>
+                        <div><TeamName name={row.team_name} plain /></div>
                         {teamTotals && (
                           <div className="text-xs text-ink-subtle mt-1">
                             {teamTotals.map((t, i) => (

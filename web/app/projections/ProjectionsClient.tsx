@@ -67,7 +67,7 @@ function buildColumns(
     },
     { key: "nfl_team", label: "Team" },
     { key: "age", label: "Age", format: "number" },
-    { key: "team_name", label: "Owner" },
+    { key: "team_name", label: "Owner", format: "team" },
     { key: "price", label: "Salary", format: "currency" },
     {
       key: "observed_ppg",

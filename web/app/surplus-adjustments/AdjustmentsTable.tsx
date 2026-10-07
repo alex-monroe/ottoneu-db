@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback } from "react";
 import { SurplusPlayer, PlayerHoverData } from "@/lib/types";
 import { FULL_SEASON_GAMES, MIN_PLAYER_SALARY } from "@/lib/config";
 import PlayerHoverCard from "@/components/PlayerHoverCard";
+import TeamName from "@/components/TeamName";
 
 interface AdjustmentEntry {
   adjustment: number;
@@ -463,7 +464,7 @@ export default function AdjustmentsTable({
                     {age ?? "—"}
                   </td>
                   <td className="px-3 py-2 text-ink-subtle whitespace-nowrap text-xs">
-                    {player.team_name ?? "FA"}
+                    <TeamName name={player.team_name} plain />
                   </td>
                   <td className="px-3 py-2 text-ink-muted whitespace-nowrap">
                     ${player.price}

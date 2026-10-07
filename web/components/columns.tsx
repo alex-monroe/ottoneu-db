@@ -92,9 +92,9 @@ export function nflTeamCol<Row>(label = "Team"): Column<Row> {
   return { key: "nfl_team", label };
 }
 
-/** Owner / team_name column. */
+/** Owner / team_name column — linked, with the team's icon. */
 export function ownerCol<Row>(label = "Owner"): Column<Row> {
-  return { key: "team_name", label };
+  return { key: "team_name", label, format: "team" };
 }
 
 /** Salary column (currency format). */

@@ -4,6 +4,8 @@ import Link from "next/link";
 import * as HoverCard from "@radix-ui/react-hover-card";
 import PositionBadge from "@/components/PositionBadge";
 import PlayerRankTag from "./PlayerRankTag";
+import TeamIcon from "./TeamIcon";
+import TeamName from "./TeamName";
 import type { SnapshotPlayer, TeamWeekSnapshot } from "@/lib/team-snapshot";
 
 interface Props {
@@ -89,6 +91,7 @@ export default function TeamLineupHover({ teamName, week, snapshot }: Props) {
           type="button"
           className="rounded font-semibold text-ink underline decoration-line-strong decoration-dotted underline-offset-4 hover:decoration-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
+          <TeamIcon name={teamName} size="xs" className="-mt-0.5 mr-1.5" />
           {teamName}
         </button>
       </HoverCard.Trigger>
@@ -103,7 +106,7 @@ export default function TeamLineupHover({ teamName, week, snapshot }: Props) {
           {snapshot ? (
             <div className="space-y-3">
               <div className="flex items-baseline justify-between gap-3">
-                <span className="truncate text-sm font-semibold text-ink">{teamName}</span>
+                <span className="truncate text-sm font-semibold text-ink"><TeamName name={teamName} plain /></span>
                 <span className="shrink-0 text-xs text-ink-subtle">
                   Week {week} ·{" "}
                   <span className="font-mono font-bold text-accent">

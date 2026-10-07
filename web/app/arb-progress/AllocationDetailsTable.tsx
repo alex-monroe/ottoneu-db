@@ -2,11 +2,12 @@
 
 import DataTable, { Column, HighlightRule } from "@/components/DataTable";
 import type { PlayerHoverData } from "@/lib/types";
+import TeamName from "@/components/TeamName";
 import type { Allocation, PlayerAllocationDetail } from "@/lib/arb-progress";
 
 const COLUMNS: Column[] = [
   { key: "name", label: "Player" },
-  { key: "team_name", label: "Owner" },
+  { key: "team_name", label: "Owner", format: "team" },
   { key: "current_salary", label: "Salary", format: "currency" },
   { key: "raise_amount", label: "Raise", format: "currency" },
   { key: "new_salary", label: "New Salary", format: "currency" },
@@ -83,7 +84,7 @@ export default function AllocationDetailsTable({
                 {sorted.map((d) => (
                   <tr key={d.allocating_team_name}>
                     <td className="py-0.5 pr-8 text-ink-muted">
-                      {d.allocating_team_name}
+                      <TeamName name={d.allocating_team_name} plain />
                     </td>
                     <td className="text-right py-0.5 text-ink-muted">
                       ${d.amount}

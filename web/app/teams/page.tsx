@@ -4,6 +4,7 @@ import { fetchTeamNames, teamHref, sameTeamName } from "@/lib/teams";
 import { getViewerTeam } from "@/lib/viewer-team";
 import { formatRecord } from "@/lib/standings";
 import PageShell from "@/components/PageShell";
+import TeamIcon from "@/components/TeamIcon";
 
 export const revalidate = 3600;
 
@@ -55,6 +56,7 @@ export default async function TeamsPage() {
               >
                 <span className="flex items-baseline justify-between gap-2">
                   <span className="font-semibold text-ink">
+                    <TeamIcon name={name} size="md" className="-mt-0.5 mr-2" />
                     {name}
                     {mine && (
                       <span className="ml-2 text-xs font-medium text-accent">

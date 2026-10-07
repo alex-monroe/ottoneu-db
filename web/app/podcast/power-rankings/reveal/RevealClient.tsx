@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowDown, RotateCcw, Undo2 } from "lucide-react";
+import TeamIcon from "@/components/TeamIcon";
 import type { ConsolidatedRow, TeamRecord } from "@/lib/power-rankings";
 import Movement from "@/components/RankMovement";
 import LastGameResult from "@/components/LastGameResult";
@@ -40,6 +41,7 @@ function Card({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <h3 className="text-xl font-bold tracking-tight text-ink sm:text-2xl">
+              <TeamIcon name={row.teamName} size="lg" className="-mt-1 mr-3" />
               {row.teamName}
             </h3>
             <Movement movement={row.movement} />
