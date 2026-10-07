@@ -2,6 +2,8 @@ import {
   lookupTeamIcon,
   MAX_TEAM_ICON_BYTES,
   parseTeamIconDataUrl,
+  iconLayout,
+  visibleBounds,
   teamIconSrc,
 } from "@/lib/team-icons";
 
@@ -69,5 +71,42 @@ describe("lookupTeamIcon", () => {
     expect(lookupTeamIcon(versions, "FA")).toBeNull();
     expect(lookupTeamIcon(versions, null)).toBeNull();
     expect(lookupTeamIcon(null, "The Witchcraft")).toBeNull();
+  });
+});
+
+describe("visibleBounds / iconLayout", () => {
+  /** A w×h RGBA buffer, opaque only inside `box`. */
+  function rgba(w: number, h: number, box?: { x: number; y: number; w: number; h: number }) {
+    const data = new Uint8ClampedArray(w * h * 4);
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        const inside = !box || (x >= box.x && x < box.x + box.w && y >= box.y && y < box.y + box.h);
+        data[(y * w + x) * 4 + 3] = inside ? 255 : 0;
+      }
+    return data;
+  }
+
+  test("finds the visible mark inside transparent margins", () => {
+    expect(visibleBounds(rgba(10, 12, { x: 2, y: 3, w: 5, h: 7 }), 10, 12)).toEqual({
+      x: 2, y: 3, w: 5, h: 7,
+    });
+  });
+
+  test("a fully transparent image has no bounds", () => {
+    expect(visibleBounds(new Uint8ClampedArray(4 * 4 * 4), 4, 4)).toBeNull();
+  });
+
+  test("a logo is trimmed and fit whole — a tall mark is not clipped", () => {
+    const { src, dest } = iconLayout(584, 661, { x: 69, y: 51, w: 434, h: 551 }, 128, 0.06);
+    expect(src).toEqual({ x: 69, y: 51, w: 434, h: 551 });
+    expect(dest.h).toBeCloseTo(128 * 0.88);
+    expect(dest.w).toBeLessThan(dest.h);
+    expect(dest.x).toBeCloseTo((128 - dest.w) / 2);
+  });
+
+  test("an opaque photo is center-cropped to a square", () => {
+    const { src, dest } = iconLayout(400, 300, { x: 0, y: 0, w: 400, h: 300 }, 128);
+    expect(src).toEqual({ x: 50, y: 0, w: 300, h: 300 });
+    expect(dest).toEqual({ x: 0, y: 0, w: 128, h: 128 });
   });
 });

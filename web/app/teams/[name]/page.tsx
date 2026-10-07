@@ -107,7 +107,7 @@ export default async function TeamPage({ params }: Props) {
         {/* Header */}
         <header className="rounded-xl border border-line bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-black p-6 sm:p-8">
           <div className="flex flex-wrap items-center gap-3">
-            <TeamIcon name={team.teamName} size="xl" className="ring-1 ring-line" />
+            <TeamIcon name={team.teamName} size="xl" />
             <h1 className="text-3xl font-bold tracking-tight text-ink">
               {team.teamName}
             </h1>

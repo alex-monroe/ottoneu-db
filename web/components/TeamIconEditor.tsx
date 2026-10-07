@@ -4,18 +4,24 @@
  * Upload, replace or remove a team's icon — shown on the team page to its
  * manager (and to admins).
  *
- * The browser does the image work: the chosen file is center-cropped to a
- * square and redrawn at TEAM_ICON_SIZE px on a canvas, so whatever the manager
- * picks (a 4MB phone photo, an animated GIF) arrives as a few-KB still image
- * the server only has to validate.
+ * The browser does the image work: the chosen file is trimmed to its visible
+ * mark (or, for a photo, center-cropped) and redrawn at TEAM_ICON_SIZE px on
+ * a canvas, so whatever the manager picks (a 4MB phone photo, an animated
+ * GIF) arrives as a few-KB still image the server only has to validate.
  */
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ImagePlus, Trash2 } from "lucide-react";
-import { TEAM_ICON_SIZE } from "@/lib/team-icons";
+import { TEAM_ICON_SIZE, iconLayout, visibleBounds } from "@/lib/team-icons";
 import { useTeamIconSrc } from "./TeamIconsProvider";
 
-/** Center-crop `file` to a square and re-encode it at TEAM_ICON_SIZE px. */
+/** Longest edge we inspect pixels at; larger uploads are scaled down first. */
+const ANALYZE_MAX = 1024;
+
+/**
+ * Turn `file` into a TEAM_ICON_SIZE px square: a logo is trimmed to its visible
+ * mark and fit whole; a photo is center-cropped (see `iconLayout`).
+ */
 async function toIconDataUrl(file: File): Promise<string> {
   const url = URL.createObjectURL(file);
   try {
@@ -25,24 +31,27 @@ async function toIconDataUrl(file: File): Promise<string> {
       el.onerror = () => reject(new Error("That file could not be read as an image."));
       el.src = url;
     });
-    const side = Math.min(img.naturalWidth, img.naturalHeight);
+
+    // Rasterize once at a bounded size so the pixel scan stays cheap.
+    const k = Math.min(1, ANALYZE_MAX / Math.max(img.naturalWidth, img.naturalHeight));
+    const work = document.createElement("canvas");
+    work.width = Math.max(1, Math.round(img.naturalWidth * k));
+    work.height = Math.max(1, Math.round(img.naturalHeight * k));
+    const wctx = work.getContext("2d", { willReadFrequently: true });
+    if (!wctx) throw new Error("Your browser could not process the image.");
+    wctx.drawImage(img, 0, 0, work.width, work.height);
+    const pixels = wctx.getImageData(0, 0, work.width, work.height).data;
+    const visible = visibleBounds(pixels, work.width, work.height);
+    if (!visible) throw new Error("That image is completely transparent.");
+    const { src, dest } = iconLayout(work.width, work.height, visible);
+
     const canvas = document.createElement("canvas");
     canvas.width = TEAM_ICON_SIZE;
     canvas.height = TEAM_ICON_SIZE;
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Your browser could not process the image.");
     ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(
-      img,
-      (img.naturalWidth - side) / 2,
-      (img.naturalHeight - side) / 2,
-      side,
-      side,
-      0,
-      0,
-      TEAM_ICON_SIZE,
-      TEAM_ICON_SIZE,
-    );
+    ctx.drawImage(work, src.x, src.y, src.w, src.h, dest.x, dest.y, dest.w, dest.h);
     // Browsers that cannot encode WebP (older Safari) fall back to PNG.
     return canvas.toDataURL("image/webp", 0.9);
   } finally {

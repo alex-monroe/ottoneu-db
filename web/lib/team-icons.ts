@@ -90,3 +90,70 @@ export function parseTeamIconDataUrl(dataUrl: string): ParsedTeamIcon {
   }
   return { ok: true, contentType, base64, bytes };
 }
+
+export interface Rect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/**
+ * Bounding box of the visible (non-transparent) pixels in RGBA `data`, or null
+ * when every pixel is transparent. Logos are often exported with generous
+ * transparent margins; trimming them lets the mark fill its tile.
+ */
+export function visibleBounds(
+  data: ArrayLike<number>,
+  width: number,
+  height: number,
+  alphaThreshold = 16,
+): Rect | null {
+  let minX = width, minY = height, maxX = -1, maxY = -1;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (data[(y * width + x) * 4 + 3] > alphaThreshold) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  return maxX < 0 ? null : { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+}
+
+/**
+ * Where to draw an image on the square icon canvas.
+ *
+ * - A logo with transparent margins: trim to its visible pixels and fit the
+ *   whole mark inside the square ("contain"), centered, with a small margin —
+ *   so a tall or wide mark is never clipped.
+ * - An opaque image (a photo): center-crop it to a square ("cover"), since
+ *   letterboxing a photo looks worse than losing its edges.
+ */
+export function iconLayout(
+  width: number,
+  height: number,
+  visible: Rect | null,
+  size = TEAM_ICON_SIZE,
+  margin = 0.06,
+): { src: Rect; dest: Rect } {
+  const trimmed =
+    visible != null &&
+    (visible.x > 0 || visible.y > 0 || visible.w < width || visible.h < height);
+
+  if (!trimmed) {
+    const side = Math.min(width, height);
+    return {
+      src: { x: (width - side) / 2, y: (height - side) / 2, w: side, h: side },
+      dest: { x: 0, y: 0, w: size, h: size },
+    };
+  }
+
+  const inner = size * (1 - 2 * margin);
+  const scale = inner / Math.max(visible.w, visible.h);
+  const w = visible.w * scale;
+  const h = visible.h * scale;
+  return { src: visible, dest: { x: (size - w) / 2, y: (size - h) / 2, w, h } };
+}
