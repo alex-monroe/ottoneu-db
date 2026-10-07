@@ -89,6 +89,10 @@ export const PUBLIC_API_ROUTES = [
   "/api/auth/login",
   "/api/auth/logout",
   "/api/auth/register",
+  // Signed-out by definition: the reset endpoint authenticates with the
+  // single-use token in its body.
+  "/api/auth/forgot-password",
+  "/api/auth/reset-password",
   "/api/mcp",
   "/api/oauth",
 ] as const;

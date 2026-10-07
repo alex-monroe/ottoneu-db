@@ -18,7 +18,7 @@ The Supabase project (`OttoneuDB`, ref `rbinbcwinchphipvcfqk`) is **shared with 
 
 | Table | Purpose | Unique Constraint |
 |-------|---------|-------------------|
-| `users` | User accounts with email/password auth. Three independent role flags: `is_admin`, `has_projections_access`, and `is_podcaster` (migration 040 — the podcast production tools under `/podcast`; see [podcast-tools.md](../references/podcast-tools.md)). `team_name` binds the account to an Ottoneu team (migration 039). | `email` |
+| `users` | User accounts with email/password auth. Three independent role flags: `is_admin`, `has_projections_access`, and `is_podcaster` (migration 040 — the podcast production tools under `/podcast`; see [podcast-tools.md](../references/podcast-tools.md)). `team_name` binds the account to an Ottoneu team (migration 039). `password_reset_requested_at` (migration 047) is set by `/forgot-password` and cleared when the password is reset — it puts the account in the `/admin` queue, since there is no mail infrastructure. | `email` |
 | `players` | Player metadata (includes `birth_date`, `is_college`) | `ottoneu_id` |
 | `player_stats` | Ottoneu fantasy season records (FK -> `players`) | `(player_id, season)` |
 | `nfl_stats` | Pure NFL stats from nflverse-data, 2010-present (FK -> `players`) | `(player_id, season)` |
@@ -54,6 +54,7 @@ The Supabase project (`OttoneuDB`, ref `rbinbcwinchphipvcfqk`) is **shared with 
 | `oauth_clients` | OAuth 2.1 clients registered against the MCP server, either via RFC 7591 dynamic client registration (`/api/oauth/register`) or manually (`just oauth-client`). Columns: `client_id`, `client_secret_hash` (SHA-256; NULL for public/PKCE-only clients), `client_name`, `redirect_uris`, `grant_types`, `scope`. Migration 034. Server-only (service key); RLS enabled, no anon policy. See [mcp-server.md](../references/mcp-server.md). | `client_id` |
 | `oauth_authorization_codes` | Single-use OAuth authorization codes (FK -> `oauth_clients`, `users`). Keyed by `code_hash`; carries the PKCE `code_challenge`, `redirect_uri`, `scope`, `expires_at`, and `consumed_at` (non-NULL = already exchanged, so a replay is rejected). Migration 034. Server-only (service key); RLS enabled, no anon policy. | `code_hash` (PK) |
 | `oauth_refresh_tokens` | Long-lived revocable OAuth refresh tokens (FK -> `oauth_clients`, `users`). Keyed by `token_hash`; `revoked_at` non-NULL disables it. Access tokens are deliberately **not** stored — they are stateless HMAC-signed values (`web/lib/oauth/tokens.ts`) with a 1-hour TTL, so MCP calls need no DB round-trip; revocation therefore takes effect within that hour. Migration 034. Server-only (service key); RLS enabled, no anon policy. | `token_hash` (PK) |
+| `password_reset_tokens` | Admin-issued, single-use password reset links (FK -> `users` twice: `user_id` is the account, `created_by` the issuing admin, `ON DELETE SET NULL`). Keyed by `token_hash` — only the SHA-256 is stored; the plaintext exists only in the `/reset-password?token=` URL an admin hands over. 24-hour `expires_at`; `consumed_at` is set on use (conditional UPDATE, so a replay is rejected) **and** when a newer link is issued for the same account, so only the latest link works. `web/lib/password-reset.ts`. Migration 047. Server-only (service key); RLS enabled, no anon policy. | `token_hash` (PK) |
 | `red_zone_usage` | Per-player-season red-zone (`yardline_100 ≤ 20`) and goal-line (`≤ 10`) opportunity counts — `rz_carries`, `rz_targets`, `rz_pass_attempts`, `gz_carries`, `gz_targets` — aggregated from nflverse play-by-play by `scripts/backfill_red_zone.py` (FK -> `players`; gsis ids crosswalked to `players.name`). Migration 032. The role-based, leakage-free "expected TDs" signal for the xFP base (issue #671 / spike #667): a goal-line back's RZ carries predict rushing TDs as durable role, not luck. Python-only read (service key); RLS enabled, no anon policy. | `(player_id, season)` |
 
 ### Projection tables detail
@@ -109,7 +110,7 @@ All public tables have RLS enabled. Server-side code uses the Supabase **service
 
 **Tables with an anon SELECT policy** (web reads via the anon client): `players`, `player_stats`, `nfl_stats`, `league_prices`, `transactions`, `surplus_adjustments`, `player_projections`, `projection_models`, `model_projections`, `backtest_results`, `arbitration_progress`, `arbitration_progress_teams`, `arbitration_allocation_details`, `team_vegas_lines`, `draft_sharks_values`, `league_calendar`, `depth_charts`, `weekly_projections`, `league_matchups`, `matchup_lineups`.
 
-**Tables with no anon policy** (server-only, anon fully blocked): `users`, `arbitration_plans`, `arbitration_plan_allocations`, `scraper_jobs`, `draft_capital`, `team_coaching`, `red_zone_usage`, `ngs_passing`, `player_contracts`, `oauth_clients`, `oauth_authorization_codes`, `oauth_refresh_tokens`, `power_ranking_ballots`, `power_ranking_entries`, `power_ranking_publications`, `pickem_picks`, `pickem_players`.
+**Tables with no anon policy** (server-only, anon fully blocked): `users`, `arbitration_plans`, `arbitration_plan_allocations`, `scraper_jobs`, `draft_capital`, `team_coaching`, `red_zone_usage`, `ngs_passing`, `player_contracts`, `oauth_clients`, `oauth_authorization_codes`, `oauth_refresh_tokens`, `password_reset_tokens`, `power_ranking_ballots`, `power_ranking_entries`, `power_ranking_publications`, `pickem_picks`, `pickem_players`.
 
 When adding a new table, decide upfront: does the web frontend read from it via the anon `supabase` client (see `web/lib/supabase.ts`)? If yes, the migration must `ENABLE ROW LEVEL SECURITY` *and* add a `FOR SELECT TO anon USING (true)` policy. If no, just enable RLS — server writes via the service key still work, and anon is locked out. The Supabase advisor (`mcp__supabase__get_advisors --type security`) will flag `rls_disabled_in_public` as a critical ERROR if either step is skipped. See migrations 015 and 026 for the canonical pattern.
 
@@ -124,6 +125,8 @@ When adding a new table, decide upfront: does the web frontend read from it via 
 - `oauth_authorization_codes.user_id` -> `users.id`
 - `oauth_refresh_tokens.client_id` -> `oauth_clients.client_id`
 - `oauth_refresh_tokens.user_id` -> `users.id`
+- `password_reset_tokens.user_id` -> `users.id`
+- `password_reset_tokens.created_by` -> `users.id`
 - `power_ranking_ballots.user_id` -> `users.id`
 - `power_ranking_entries.ballot_id` -> `power_ranking_ballots.id`
 - `pickem_picks.user_id` -> `users.id`

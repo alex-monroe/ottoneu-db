@@ -13,6 +13,8 @@ interface User {
   created_at: string;
   /** When they asked for projections access; null = never asked. */
   access_requested_at: string | null;
+  /** When they asked for a password reset link on /forgot-password; null = no open request. */
+  password_reset_requested_at: string | null;
   /** Ottoneu team this account manages; null = unbound. */
   team_name: string | null;
 }
@@ -36,6 +38,9 @@ export default function AdminPanel({ users, currentUserId, leagueTeams }: AdminP
   const [savingTeamId, setSavingTeamId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [issuingResetId, setIssuingResetId] = useState<string | null>(null);
+  const [resetLink, setResetLink] = useState<{ email: string; url: string; expiresAt: string } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const handleToggleAccess = async (userId: string, currentAccess: boolean) => {
     setTogglingId(userId);
@@ -103,6 +108,37 @@ export default function AdminPanel({ users, currentUserId, leagueTeams }: AdminP
     setSavingTeamId(null);
   };
 
+  // There is no mail infrastructure, so the admin is the delivery channel: the
+  // link is shown here to copy and send by hand. Works with or without a
+  // pending request, and re-issuing revokes the previous link.
+  const handleIssueResetLink = async (userId: string, email: string) => {
+    setIssuingResetId(userId);
+    setError("");
+    setCopied(false);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/reset-link`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Failed to create reset link");
+      } else {
+        setResetLink({ email, url: `${window.location.origin}${data.path}`, expiresAt: data.expiresAt });
+      }
+    } catch {
+      setError("Failed to create reset link");
+    }
+    setIssuingResetId(null);
+  };
+
+  const handleCopyResetLink = async () => {
+    if (!resetLink) return;
+    try {
+      await navigator.clipboard.writeText(resetLink.url);
+      setCopied(true);
+    } catch {
+      // Clipboard can be blocked; the input is selectable as a fallback.
+    }
+  };
+
   const handleDelete = async (userId: string) => {
     if (confirmDeleteId !== userId) {
       setConfirmDeleteId(userId);
@@ -164,6 +200,37 @@ export default function AdminPanel({ users, currentUserId, leagueTeams }: AdminP
         </div>
       )}
 
+      {resetLink && (
+        <div className="rounded-md border border-line bg-raised p-4 space-y-2" role="status">
+          <p className="text-sm text-ink">
+            Reset link for <span className="font-medium">{resetLink.email}</span>. Send it to them
+            directly — it works once, until{" "}
+            {new Date(resetLink.expiresAt).toLocaleString()}.
+          </p>
+          <div className="flex gap-2">
+            <input
+              readOnly
+              aria-label="Reset link"
+              value={resetLink.url}
+              onFocus={(e) => e.target.select()}
+              className="flex-1 min-w-0 rounded-md border border-line-strong px-3 py-1.5 text-sm font-mono bg-sunken text-ink"
+            />
+            <button
+              onClick={handleCopyResetLink}
+              className="px-3 py-1.5 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+            >
+              {copied ? "Copied" : "Copy"}
+            </button>
+            <button
+              onClick={() => setResetLink(null)}
+              className="px-3 py-1.5 text-sm text-ink-subtle hover:text-ink transition-colors"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Users table */}
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
@@ -190,6 +257,14 @@ export default function AdminPanel({ users, currentUserId, leagueTeams }: AdminP
                         className="inline-flex items-center rounded bg-amber-100 dark:bg-amber-950/60 px-1.5 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-300"
                       >
                         Awaiting access
+                      </span>
+                    )}
+                    {u.password_reset_requested_at && (
+                      <span
+                        title={`Requested ${new Date(u.password_reset_requested_at).toLocaleDateString()}`}
+                        className="inline-flex items-center rounded bg-amber-100 dark:bg-amber-950/60 px-1.5 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-300"
+                      >
+                        Reset requested
                       </span>
                     )}
                   </span>
@@ -254,21 +329,32 @@ export default function AdminPanel({ users, currentUserId, leagueTeams }: AdminP
                   {new Date(u.created_at).toLocaleDateString()}
                 </td>
                 <td className="px-4 py-3 text-sm">
-                  {u.id === currentUserId ? (
-                    <span className="text-ink-subtle text-xs">You</span>
-                  ) : (
+                  <span className="flex items-center gap-3">
                     <button
-                      onClick={() => handleDelete(u.id)}
-                      disabled={deletingId === u.id}
-                      className={`text-xs font-medium transition-colors disabled:opacity-50 ${
-                        confirmDeleteId === u.id
-                          ? "text-negative"
-                          : "text-ink-subtle hover:text-red-600 dark:hover:text-red-400"
+                      onClick={() => handleIssueResetLink(u.id, u.email)}
+                      disabled={issuingResetId === u.id}
+                      className={`text-xs font-medium whitespace-nowrap transition-colors disabled:opacity-50 ${
+                        u.password_reset_requested_at ? "text-accent" : "text-ink-subtle hover:text-ink"
                       }`}
                     >
-                      {confirmDeleteId === u.id ? "Confirm?" : deletingId === u.id ? "Deleting..." : "Delete"}
+                      {issuingResetId === u.id ? "Creating..." : "Reset link"}
                     </button>
-                  )}
+                    {u.id === currentUserId ? (
+                      <span className="text-ink-subtle text-xs">You</span>
+                    ) : (
+                      <button
+                        onClick={() => handleDelete(u.id)}
+                        disabled={deletingId === u.id}
+                        className={`text-xs font-medium transition-colors disabled:opacity-50 ${
+                          confirmDeleteId === u.id
+                            ? "text-negative"
+                            : "text-ink-subtle hover:text-red-600 dark:hover:text-red-400"
+                        }`}
+                      >
+                        {confirmDeleteId === u.id ? "Confirm?" : deletingId === u.id ? "Deleting..." : "Delete"}
+                      </button>
+                    )}
+                  </span>
                 </td>
               </tr>
             ))}
