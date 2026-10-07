@@ -319,6 +319,11 @@ scrape-lineups *args:
 post-power-rankings *args:
     cd web && npm run post-power-rankings -- {{args}}
 
+# Remind the league Discord to vote in this week's power rankings (only while
+# listener voting is open). e.g. just post-vote-reminder --dry-run
+post-vote-reminder *args:
+    cd web && npm run post-vote-reminder -- {{args}}
+
 # ──────────────────────────────────────────────
 # Ad-hoc DB queries
 # ──────────────────────────────────────────────
