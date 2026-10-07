@@ -291,7 +291,11 @@ export interface TeamBudgetStatus {
 export interface Column<Row = TableRow> {
   key: string;
   label: string;
-  format?: "currency" | "number" | "decimal" | "percent";
+  /**
+   * `"team"` renders the cell through `TeamName` (link + team icon). Unlike a
+   * `renderCell`, it is plain data, so a server component can pass it.
+   */
+  format?: "currency" | "number" | "decimal" | "percent" | "team";
   renderCell?: (value: unknown, row: Row) => React.ReactNode;
   /**
    * Glossary term for this column, rendered as a "?" beside the header.
@@ -386,6 +390,14 @@ export interface RankTable {
   ppg_min_games: number | null;
   rows: Record<number, [Position, number, number, number | null, Heat | null]>;
 }
+
+/**
+ * Which teams have an icon, in the shape the root layout ships to every page
+ * (see `TeamIconsProvider`): normalized team name (`teamIconKey`) → the icon's
+ * `updated_at` in epoch ms. The version goes in the icon URL, so a new upload
+ * is a new URL and the old one can be cached forever.
+ */
+export type TeamIconVersions = Record<string, number>;
 
 // === Position Constants ===
 

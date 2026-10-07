@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
+import TeamName from "@/components/TeamName";
 import type { Matchup } from "@/lib/standings";
 import { MAX_NAME_LENGTH } from "@/lib/schemas/pickem";
 
@@ -200,7 +201,7 @@ export default function PickSheet({
                   {chosen && (
                     <Check size={14} aria-hidden="true" className="shrink-0 text-accent" />
                   )}
-                  {teamName}
+                  <TeamName name={teamName} plain />
                 </span>
                 <span className="text-xs text-ink-subtle">
                   {label}

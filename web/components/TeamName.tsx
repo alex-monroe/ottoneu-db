@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { teamHref } from "@/lib/teams";
+import TeamIcon from "./TeamIcon";
 
 /**
  * Canonical league-team renderer — the team counterpart to `PlayerName`.
@@ -8,6 +11,10 @@ import { teamHref } from "@/lib/teams";
  * there was no way to get from a standings row, a roster header or a player's
  * card to the team itself. Route every team name through this so they all lead
  * to the same place and look the same doing it.
+ *
+ * It also carries the team's icon (see `TeamIconsProvider`) when its manager
+ * has set one. The icon is inline beside the text — not a flex wrapper — so a
+ * caller's `truncate` still ellipsizes the name.
  */
 
 interface TeamNameProps {
@@ -16,6 +23,8 @@ interface TeamNameProps {
   plain?: boolean;
   /** Emphasize the viewer's own team. */
   mine?: boolean;
+  /** Leave the icon off (a heading that shows it larger, say). */
+  noIcon?: boolean;
   className?: string;
 }
 
@@ -23,6 +32,7 @@ export default function TeamName({
   name,
   plain = false,
   mine = false,
+  noIcon = false,
   className = "",
 }: TeamNameProps) {
   const label = name?.trim();
@@ -32,9 +42,16 @@ export default function TeamName({
     return <span className={className}>{label || "FA"}</span>;
   }
 
+  const icon = noIcon ? null : (
+    <TeamIcon name={label} size="xs" className="-mt-0.5 mr-1.5" />
+  );
+
   if (plain) {
     return (
-      <span className={`${mine ? "font-semibold" : ""} ${className}`}>{label}</span>
+      <span className={`${mine ? "font-semibold" : ""} ${className}`}>
+        {icon}
+        {label}
+      </span>
     );
   }
 
@@ -47,6 +64,7 @@ export default function TeamName({
       // were never clickable. Emphasis is weight, not the loss of link colour.
       className={`text-accent hover:underline ${mine ? "font-semibold" : ""} ${className}`}
     >
+      {icon}
       {label}
     </Link>
   );

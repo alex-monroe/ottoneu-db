@@ -5,6 +5,7 @@ import type { GlossaryTerm } from "@/lib/glossary";
 import React, { useState } from "react";
 import type { Column, HighlightRule, PlayerHoverData, TableRow } from "@/lib/types";
 import PlayerHoverCard from "./PlayerHoverCard";
+import TeamName from "./TeamName";
 
 // Re-export types for backward compatibility with existing imports
 export type { Column, HighlightRule, TableRow };
@@ -189,6 +190,11 @@ export default function DataTable<Row>({
                           hoverData={hoverDataMap[read(row, "player_id") as string]}
                         />
                       );
+                    } else if (col.format === "team") {
+                      cellContent =
+                        cellValue == null || cellValue === "" ? "—" : (
+                          <TeamName name={String(cellValue)} />
+                        );
                     } else {
                       cellContent = formatCell(cellValue, col.format);
                     }

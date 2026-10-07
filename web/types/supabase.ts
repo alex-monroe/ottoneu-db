@@ -1345,6 +1345,44 @@ export type Database = {
         }
         Relationships: []
       }
+      team_icons: {
+        Row: {
+          content_type: string
+          created_at: string
+          image_data: string
+          league_id: number
+          team_name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          content_type: string
+          created_at?: string
+          image_data: string
+          league_id: number
+          team_name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          content_type?: string
+          created_at?: string
+          image_data?: string
+          league_id?: number
+          team_name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_icons_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_vegas_lines: {
         Row: {
           created_at: string

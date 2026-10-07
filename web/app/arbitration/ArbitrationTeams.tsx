@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import DataTable from "@/components/DataTable";
+import TeamName from "@/components/TeamName";
 import type { Column, PlayerHoverData } from "@/lib/types";
 import {
   playerNameCol,
@@ -86,7 +87,7 @@ export default function ArbitrationTeams({ teams, showProjectionColumns = false,
               className="w-full flex items-center justify-between px-4 py-3 bg-sunken hover:bg-sunken transition-colors text-left"
             >
               <span className="font-medium text-ink">
-                {team}{" "}
+                <TeamName name={team} plain />{" "}
                 <span className="text-sm font-normal text-ink-subtle">
                   ({players.length} target{players.length !== 1 ? "s" : ""})
                 </span>

@@ -5,6 +5,7 @@ import { PlayerHoverData } from "@/lib/types";
 import PlayerName from "@/components/PlayerName";
 import PositionBadge from "@/components/PositionBadge";
 import StatValue from "@/components/StatValue";
+import TeamName from "@/components/TeamName";
 import type { ArbPlannerPlayer } from "./types";
 
 interface TeamRosterSectionProps<T extends ArbPlannerPlayer> {
@@ -57,7 +58,7 @@ export default function TeamRosterSection<T extends ArbPlannerPlayer>({
         className="w-full flex items-center justify-between px-4 py-3 bg-sunken hover:bg-sunken transition-colors text-left"
       >
         <span className="font-medium text-ink">
-          {teamName}{" "}
+          <TeamName name={teamName} plain />{" "}
           <span className="text-sm font-normal text-ink-subtle">
             ({players.length} player{players.length !== 1 ? "s" : ""}
             {allocatedCount > 0 && `, ${allocatedCount} targeted`})

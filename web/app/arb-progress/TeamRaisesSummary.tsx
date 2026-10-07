@@ -30,7 +30,7 @@ export default function TeamRaisesSummary({
       </p>
       <DataTable
         columns={[
-          { key: "team_name", label: "Team" },
+          { key: "team_name", label: "Team", format: "team" },
           { key: "total_raise", label: "Total Raise", format: "currency" },
           { key: "player_count", label: "Players Affected", format: "number" },
         ]}

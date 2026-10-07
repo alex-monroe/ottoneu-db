@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Eye, Vote } from "lucide-react";
+import TeamName from "@/components/TeamName";
 import { getLiveAccessState } from "@/lib/auth";
 import PageShell, { PageHeader } from "@/components/PageShell";
 import { EmptyState } from "@/components/states";
@@ -39,7 +40,7 @@ function RankingRow({ row, record }: { row: CommunityRow; record?: string }) {
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="font-semibold text-ink">{row.teamName}</span>
+          <span className="font-semibold text-ink"><TeamName name={row.teamName} plain /></span>
           {row.movement !== null && <RankMovement movement={row.movement} />}
           {record && <span className="text-xs text-ink-subtle">{record}</span>}
         </div>

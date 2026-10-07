@@ -9,6 +9,8 @@ import { LEAGUE_ID, CAP_PER_TEAM } from "@/lib/config";
 import PositionBadge from "@/components/PositionBadge";
 import PlayerName from "@/components/PlayerName";
 import TeamName from "@/components/TeamName";
+import TeamIcon from "@/components/TeamIcon";
+import TeamIconEditor from "@/components/TeamIconEditor";
 import { Th } from "@/components/TableParts";
 import { NoAccessState } from "@/components/states";
 import SummaryCard from "@/components/SummaryCard";
@@ -94,6 +96,8 @@ export default async function TeamPage({ params }: Props) {
   const hasValue = !!user?.hasProjectionsAccess;
   const team = await fetchTeamPage(teamName, hasValue);
   const isMine = viewerTeam === teamName;
+  // A manager sets their own team's icon; admins can set anyone's.
+  const canEditIcon = isMine || !!user?.isAdmin;
 
   const played = team.schedule.filter((g) => g.score != null);
   const upcoming = team.schedule.filter((g) => g.score == null);
@@ -103,6 +107,7 @@ export default async function TeamPage({ params }: Props) {
         {/* Header */}
         <header className="rounded-xl border border-line bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-black p-6 sm:p-8">
           <div className="flex flex-wrap items-center gap-3">
+            <TeamIcon name={team.teamName} size="xl" className="ring-1 ring-line" />
             <h1 className="text-3xl font-bold tracking-tight text-ink">
               {team.teamName}
             </h1>
@@ -159,6 +164,11 @@ export default async function TeamPage({ params }: Props) {
               </a>
             )}
           </div>
+          {canEditIcon && (
+            <div className="mt-4">
+              <TeamIconEditor teamName={team.teamName} />
+            </div>
+          )}
         </header>
       <DataFreshness source="rosters" />
 

@@ -7,6 +7,7 @@ import { Lock, ExternalLink, ChevronDown, Menu, X } from "lucide-react";
 import GlobalPlayerSearch from "./GlobalPlayerSearch";
 import { visibleNav, type NavGroup } from "@/lib/nav";
 import { teamHref } from "@/lib/teams";
+import TeamIcon from "./TeamIcon";
 
 // Shared styling for a top-level nav item (inline desktop bar).
 function navItemClass(isActive: boolean): string {
@@ -54,7 +55,7 @@ function NavDropdown({
   locked = false,
 }: {
   label: string;
-  links: { href: string; label: string }[];
+  links: { href: string; label: string; dynamic?: "viewerTeam" }[];
   pathname: string;
   featured?: boolean;
   featuredLinks?: string[];
@@ -123,6 +124,7 @@ function NavDropdown({
                   : "text-ink-muted hover:bg-sunken"
                   }`}
               >
+                {link.dynamic === "viewerTeam" && <TeamIcon name={link.label} size="xs" />}
                 {link.label}
                 {featuredLinks?.includes(link.href) && !isActive && <FeaturedDot />}
               </Link>
@@ -323,6 +325,7 @@ export default function Navigation({
                   onClick={() => setMobileOpen(false)}
                   className={mobileItemClass(pathname === item.href)}
                 >
+                  {item.dynamic === "viewerTeam" && <TeamIcon name={item.label} size="xs" />}
                   {item.label}
                   {featuredLinks.includes(item.href) && pathname !== item.href && <FeaturedDot />}
                 </Link>

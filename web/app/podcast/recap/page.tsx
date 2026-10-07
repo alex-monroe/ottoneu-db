@@ -160,7 +160,7 @@ function GameSide({
       {/* Plain, not a TeamName link: the whole card is already a link to the
           game, and an anchor inside an anchor is invalid HTML that swallows
           clicks meant for the card. */}
-      <div className="truncate text-sm font-semibold text-ink">{teamName}</div>
+      <div className="truncate text-sm font-semibold text-ink"><TeamName name={teamName} plain /></div>
       <div
         className={`mt-0.5 text-xl font-bold tabular-nums sm:text-2xl ${
           won ? "text-ink" : "text-ink-muted"
