@@ -10,6 +10,7 @@ import { getViewerTeam } from "@/lib/viewer-team";
 import { teamHref } from "@/lib/teams";
 import Link from "next/link";
 import PageShell from "@/components/PageShell";
+import TeamName from "@/components/TeamName";
 import DataFreshness from "@/components/DataFreshness";
 
 /**
@@ -172,7 +173,7 @@ export default async function ScoreboardPage({ searchParams }: Props) {
                   {inField.map((s) => (
                     <li key={s.team_id} className="flex justify-between gap-3">
                       <span className="truncate text-ink-muted">
-                        {s.seed}. {s.team_name}
+                        {s.seed}. <TeamName name={s.team_name} plain />
                         {s.clinched && (
                           <span className="ml-2 text-[11px] font-semibold uppercase text-positive">
                             clinched
@@ -199,7 +200,7 @@ export default async function ScoreboardPage({ searchParams }: Props) {
                     {chasing.map((s) => (
                       <li key={s.team_id} className="flex justify-between gap-3">
                         <span className="truncate text-ink-muted">
-                          {s.team_name}
+                          <TeamName name={s.team_name} plain />
                         </span>
                         <span className="shrink-0 tabular-nums text-ink-subtle">
                           {formatRecord(s)} · {s.games_back} GB

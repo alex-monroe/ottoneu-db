@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Lock } from "lucide-react";
+import TeamName from "@/components/TeamName";
 import { getLiveAccessState } from "@/lib/auth";
 import PageShell, { PageHeader } from "@/components/PageShell";
 import { EmptyState } from "@/components/states";
@@ -65,7 +66,7 @@ function SidePickers({
       <p
         className={`text-sm ${result === "won" ? "font-semibold text-ink" : "text-ink-muted"}`}
       >
-        {teamName}
+        <TeamName name={teamName} plain />
         <span className="ml-1.5 text-xs font-normal text-ink-subtle">
           {pickers.length} pick{pickers.length === 1 ? "" : "s"}
         </span>

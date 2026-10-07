@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { isValidRedirect } from "@/lib/utils";
 
 type Mode = "login" | "register";
@@ -186,6 +187,17 @@ export default function LoginForm() {
               </div>
             )}
           </div>
+
+          {!isRegister && (
+            <div className="flex justify-end -mt-3">
+              <Link
+                href="/forgot-password"
+                className="text-sm text-accent hover:text-blue-500 dark:hover:text-blue-300 transition-colors"
+              >
+                Forgot password?
+              </Link>
+            </div>
+          )}
 
           {error && (
             <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4" role="alert" aria-live="assertive">

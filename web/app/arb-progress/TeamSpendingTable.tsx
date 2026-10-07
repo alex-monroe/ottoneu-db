@@ -2,10 +2,11 @@
 
 import DataTable, { Column } from "@/components/DataTable";
 import PlayerRankTag from "@/components/PlayerRankTag";
+import TeamName from "@/components/TeamName";
 import type { TeamSpendingEntry } from "@/lib/arb-progress";
 
 const COLUMNS: Column[] = [
-  { key: "team_name", label: "Team" },
+  { key: "team_name", label: "Team", format: "team" },
   { key: "total_spent", label: "Total Spent", format: "currency" },
   { key: "players_targeted", label: "Players Targeted", format: "number" },
   { key: "budget_remaining", label: "Budget Remaining", format: "currency" },
@@ -70,7 +71,7 @@ export default function TeamSpendingTable({
                             rowSpan={opp.allocs.length + 1}
                             className="py-0.5 pr-6 text-ink-muted font-medium align-top"
                           >
-                            {opp.team}
+                            <TeamName name={opp.team} plain />
                           </td>
                         ) : null}
                         <td className="py-0.5 pr-6 text-ink-subtle">

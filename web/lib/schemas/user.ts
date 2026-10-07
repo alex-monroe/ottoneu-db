@@ -24,3 +24,24 @@ export const UpdateUserSchema = z.object({
 });
 
 export type UpdateUserInput = z.infer<typeof UpdateUserSchema>;
+
+/** A "forgot password" request: just the account's email. */
+export const ForgotPasswordSchema = z.object({
+    email: z.string().trim().toLowerCase().email().max(254),
+});
+
+export type ForgotPasswordInput = z.infer<typeof ForgotPasswordSchema>;
+
+/** Setting a new password from an admin-issued reset link. */
+export const ResetPasswordSchema = z
+    .object({
+        token: z.string().min(1).max(256),
+        password: z.string().min(6).max(72),
+        confirmPassword: z.string(),
+    })
+    .refine((v) => v.password === v.confirmPassword, {
+        message: "Passwords do not match",
+        path: ["confirmPassword"],
+    });
+
+export type ResetPasswordInput = z.infer<typeof ResetPasswordSchema>;

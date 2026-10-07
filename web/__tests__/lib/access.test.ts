@@ -208,6 +208,9 @@ describe("route matching is segment-aware", () => {
 describe("public API routes", () => {
   test("auth, MCP and OAuth endpoints carry their own auth", () => {
     expect(isPublicApiRoute("/api/auth/login")).toBe(true);
+    // Signed out by definition — the reset endpoint's credential is the token.
+    expect(isPublicApiRoute("/api/auth/forgot-password")).toBe(true);
+    expect(isPublicApiRoute("/api/auth/reset-password")).toBe(true);
     expect(isPublicApiRoute("/api/mcp/mcp")).toBe(true);
     expect(isPublicApiRoute("/api/oauth/token")).toBe(true);
   });
@@ -215,6 +218,8 @@ describe("public API routes", () => {
   test("everything else needs a session", () => {
     expect(isPublicApiRoute("/api/access-request")).toBe(false);
     expect(isPublicApiRoute("/api/admin/users")).toBe(false);
+    // Issuing a reset link is an admin action, not part of the public flow.
+    expect(isPublicApiRoute("/api/admin/users/u1/reset-link")).toBe(false);
     expect(isPublicApiRoute("/api/arbitration-plans")).toBe(false);
     expect(isPublicApiRoute("/api/podcast/power-rankings")).toBe(false);
   });
