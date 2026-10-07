@@ -1,0 +1,83 @@
+name: Post Vote Reminder
+
+# Reminds the league Discord to vote in this week's power rankings, with a link
+# to /power-rankings/vote, every Wednesday at noon Pacific — the day before the
+# ranking publishes itself (Thursday 09:00 ET; see post-power-rankings.yml).
+#
+# Cron runs in UTC, so both noon-Pacific candidates are scheduled — 19:00 UTC
+# (PDT) and 20:00 UTC (PST) — and the guard step lets through only the one that
+# matches today's offset in America/Los_Angeles. It keys off which cron fired,
+# not the wall clock, so a delayed run can't double-post.
+#
+# The script only posts while listener voting is open, so it no-ops in the
+# off-season and when a host has published the week early.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Print the message instead of posting it"
+        type: boolean
+        default: false
+
+  schedule:
+    - cron: "0 19 * * 3" # noon PDT
+    - cron: "0 20 * * 3" # noon PST
+
+permissions:
+  contents: read
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - name: Only the noon-Pacific run
+        id: guard
+        env:
+          SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          if [ -z "$SCHEDULE" ]; then echo "go=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          ZONE=$(TZ=America/Los_Angeles date +%Z)
+          if { [ "$SCHEDULE" = "0 19 * * 3" ] && [ "$ZONE" = "PDT" ]; } ||
+             { [ "$SCHEDULE" = "0 20 * * 3" ] && [ "$ZONE" = "PST" ]; }; then
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Skipping: '$SCHEDULE' is not noon Pacific while on $ZONE."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          fi
+        working-directory: .
+
+      - name: Checkout
+        if: steps.guard.outputs.go == 'true'
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        if: steps.guard.outputs.go == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        if: steps.guard.outputs.go == 'true'
+        run: npm ci
+
+      - name: Post to Discord
+        if: steps.guard.outputs.go == 'true'
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          DISCORD_CHANNEL_ID: "1396549904234709044"
+          SITE_URL: https://sofa-db.vercel.app
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          ARGS=()
+          [ "$DRY_RUN" = "true" ] && ARGS+=(--dry-run)
+          npm run post-vote-reminder -- "${ARGS[@]}"

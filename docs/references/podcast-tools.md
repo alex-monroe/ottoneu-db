@@ -259,6 +259,16 @@ to `/power-rankings?week=N`.
 - **Fails loudly on a broken secret.** The calendar read swallows errors, so the
   script treats an unresolvable season as an error rather than the off-season.
 
+**Wednesday vote reminder.** `.github/workflows/post-vote-reminder.yml` posts a
+nudge to the same channel **Wednesday at noon Pacific**: a link to
+`/power-rankings/vote` and the publish time as a Discord timestamp (shown in each
+reader's timezone). GitHub cron is UTC-only, so it is scheduled at both 19:00
+and 20:00 UTC and a guard step keeps whichever is noon under today's
+PDT/PST offset — keyed off which cron fired, so a late-starting run cannot
+double-post. `web/scripts/post-vote-reminder.ts` (`just post-vote-reminder`)
+posts only when `listenerVotingOpen` is true for the current week, so it is
+silent off-season and when a host has already published the week.
+
 ## Weekly recap
 
 `/podcast/recap?week=N` — one finished week, looked at backwards, in the order
