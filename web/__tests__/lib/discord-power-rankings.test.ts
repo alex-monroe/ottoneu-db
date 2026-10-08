@@ -1,8 +1,10 @@
 import {
   buildPowerRankingsMessage,
+  buildVoteReminderMessage,
   discordMovement,
   postDiscordMessage,
   rankingsUrl,
+  voteUrl,
 } from "@/lib/discord-power-rankings";
 import type { CommunityRankings, CommunityRow } from "@/lib/community-rankings";
 
@@ -76,6 +78,28 @@ describe("buildPowerRankingsMessage", () => {
       buildPowerRankingsMessage(rankings([row(1, "Alpha", 1)]), "https://site.test"),
     );
     expect(json).not.toMatch(/userId|displayName|note|email/);
+  });
+});
+
+describe("buildVoteReminderMessage", () => {
+  it("links the ballot page and shows the deadline as a Discord timestamp", () => {
+    const embed = buildVoteReminderMessage(5, "https://site.test/", "2026-10-08T13:00:00.000Z")
+      .embeds[0];
+    expect(voteUrl("https://site.test/")).toBe("https://site.test/power-rankings/vote");
+    expect(embed.title).toBe("🗳️ Week 5 Power Rankings — get your vote in");
+    expect(embed.url).toBe("https://site.test/power-rankings/vote");
+    expect(embed.description).toBe(
+      [
+        "Voting closes <t:1791464400:F> (<t:1791464400:R>).",
+        "",
+        "[Submit your ballot →](https://site.test/power-rankings/vote)",
+      ].join("\n"),
+    );
+  });
+
+  it("leaves out the deadline when the week has no scheduled publish time", () => {
+    const embed = buildVoteReminderMessage(5, "https://site.test", null).embeds[0];
+    expect(embed.description).toBe("[Submit your ballot →](https://site.test/power-rankings/vote)");
   });
 });
 

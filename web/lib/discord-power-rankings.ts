@@ -11,6 +11,10 @@
  * does — rank, team, movement — and nothing per-voter, because it is built
  * from `CommunityRow`, which has no per-voter fields to leak.
  *
+ * It also builds the Wednesday reminder to vote
+ * (`.github/workflows/post-vote-reminder.yml`, `scripts/post-vote-reminder.ts`),
+ * which links the ballot page and the publish deadline.
+ *
  * Sending goes through the Discord REST API as a bot (`Authorization: Bot …`)
  * rather than a channel webhook, so the league's existing bot account posts it
  * and the channel is just an ID.
@@ -78,6 +82,40 @@ export function buildPowerRankingsMessage(
             "listener ballot",
           )}`,
         },
+      },
+    ],
+  };
+}
+
+/** The listener ballot page. */
+export function voteUrl(siteUrl: string): string {
+  return `${siteUrl.replace(/\/+$/, "")}/power-rankings/vote`;
+}
+
+/**
+ * The mid-week nudge to vote: a link to the ballot and, when the week has a
+ * scheduled publish time, the deadline as a Discord timestamp (rendered in
+ * each reader's own timezone).
+ */
+export function buildVoteReminderMessage(
+  week: number,
+  siteUrl: string,
+  closesAt: string | null,
+): DiscordMessage {
+  const url = voteUrl(siteUrl);
+  const unix = closesAt ? Math.floor(Date.parse(closesAt) / 1000) : null;
+  const deadline =
+    unix !== null && Number.isFinite(unix)
+      ? `Voting closes <t:${unix}:F> (<t:${unix}:R>).\n\n`
+      : "";
+  return {
+    embeds: [
+      {
+        title: `🗳️ Week ${week} Power Rankings — get your vote in`,
+        url,
+        description: `${deadline}[Submit your ballot →](${url})`,
+        color: EMBED_COLOR,
+        footer: { text: "Rankings post Thursday morning" },
       },
     ],
   };
