@@ -103,7 +103,8 @@ just build              # Production build
 just lint               # ESLint
 just typecheck          # TypeScript type check
 just test               # Run all tests (Python + web)
-just test-python        # Python tests with coverage
+just test-python        # Python tests with coverage (prints the result + total %, not the table)
+just py-coverage        # Per-file Python coverage with missing lines, from the last test-python run
 just test-web           # Jest tests with coverage
 just test-web-file <path>  # Run a single web test file (e.g. just test-web-file __tests__/lib/session.test.ts)
 just scrape-player-cards [--apply] [--player-id N]  # Transaction history via HTTP per DB player id (replaces the Playwright scrape); see docs/references/roster-csv-reconciliation.md
