@@ -546,6 +546,36 @@ class TestSupabasePagination:
             "Violations:\n" + "\n".join(violations)
         )
 
+    def test_range_pagination_has_stable_order(self):
+        """A `.range()` page loop must also `.order()` by a unique column.
+
+        WHY: without an ORDER BY, Postgres does not keep row order stable across
+        requests, so successive `.range()` pages overlap and silently drop rows.
+        `fetch_all_rows` on `players` returned 1,272 rows but only 1,084 unique
+        ones, so rookies like Jeremiyah Love never reached the weekly-projection
+        name index and showed no projection on /lineup. The web helper
+        (web/lib/supabase.ts fetchAllRows) documents the same rule.
+        """
+        violations = []
+        for pyfile in _python_files(SCRIPTS_DIR):
+            if "/tests/" in str(pyfile) or "\\tests\\" in str(pyfile):
+                continue
+            lines = pyfile.read_text().splitlines()
+            for i, line in enumerate(lines):
+                if ".range(" not in line or line.lstrip().startswith(("#", '"', "`")):
+                    continue
+                # The chain is usually built over the previous few lines.
+                window = "\n".join(lines[max(0, i - 8):i + 1])
+                if ".order(" not in window and "pagination-safe" not in window:
+                    rel = pyfile.relative_to(PROJECT_ROOT)
+                    violations.append(f"  {rel}:{i + 1}: {line.strip()}")
+        assert not violations, (
+            "`.range()` pagination without a stable `.order()` found.\n"
+            "FIX: add `.order(\"id\")` (or another unique column) to the query, or\n"
+            "read through `fetch_all_rows`, which orders by `id` by default.\n"
+            "Violations:\n" + "\n".join(violations)
+        )
+
     def test_detection_recognizes_offender_and_safe_patterns(self):
         """Guard against the scanner silently passing due to a broken regex."""
         offender = (

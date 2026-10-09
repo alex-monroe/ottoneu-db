@@ -232,6 +232,9 @@ class _FakeTable:
     def gte(self, *_a):
         return self
 
+    def order(self, *_a, **_k):
+        return self
+
     def range(self, start, end):
         self._slice = (start, end)
         return self

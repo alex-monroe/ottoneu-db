@@ -229,6 +229,17 @@ class TestBuildRecords:
         assert records[0]["player_id"] == "uuid-wr"
         assert records[0]["projected_points"] == 11.0
 
+    def test_name_aliases_bridge_nicknames_below_the_fuzzy_cutoff(self):
+        # Sleeper says "Cam Ward", our players table says "Cameron Ward". The pair
+        # scores 0.80 — just under the 0.82 fuzzy cutoff — so without the
+        # NAME_ALIASES lookup the starting QB got no weekly projection at all.
+        index = {"QB": [{"id": "uuid-ward", "name": "Cameron Ward",
+                         "norm_name": "cameron ward", "nfl_team": "TEN"}]}
+        rows = [self._row("Cam Ward", "QB", "TEN", {"passing_yards": 200})]
+        records, unmatched = build_records(rows, index, "sleeper", actuals=False)
+        assert unmatched == []
+        assert records[0]["player_id"] == "uuid-ward"
+
 
 class TestDedupeAndFiltering:
     """Regressions found verifying the first ingest against the live API."""
