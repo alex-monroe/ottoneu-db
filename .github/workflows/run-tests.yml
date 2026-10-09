@@ -39,7 +39,7 @@ jobs:
       run: python -m pytest --no-cov
 
     - name: Check documentation freshness
-      run: python scripts/check_docs_freshness.py
+      run: python scripts/check_docs_freshness.py --strict
 
   web-tests:
     runs-on: ubuntu-latest

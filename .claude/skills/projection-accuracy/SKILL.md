@@ -1,12 +1,11 @@
 ---
+name: projection-accuracy
 description: Run projection accuracy comparison across all models and generate a report table
 ---
 Generate the model accuracy comparison. **Lead with the leakage-free held-out
 ranking**; the in-sample `accuracy-report` table is a secondary diagnostic only
 (it scores learned models on data they trained on — methodology audit, Findings
 1 & 2).
-
-// turbo
 
 1. **Held-out ranking (the honest comparison).** Re-rank every model
    out-of-sample (learned models retrain in a sandbox; the cache makes re-runs

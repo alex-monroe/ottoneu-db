@@ -12,6 +12,12 @@ session when hit:
 4. `web/node_modules` older than `web/package-lock.json` (stale deps).
 5. Stale `.cache/holdout` — must be cleared after a stats backfill or
    holdout-eval results are silently wrong (warn-only heuristic).
+6. venv interpreter older than pyproject's `requires-python` (a venv built from
+   macOS's system python3 is 3.9, which then can't `pip install -e .`).
+
+Worktree-aware: a linked worktree (.claude/worktrees/*) has no venv or .env of
+its own — the Justfile borrows the main checkout's venv and pins PYTHONPATH to
+the worktree — so venv/.env/editable checks look at the main checkout.
 
 Each check prints PASS / WARN / FAIL with an actionable fix, in the
 teaching-message style of the architecture tests.
@@ -26,11 +32,29 @@ Usage:
 import glob
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import List, Optional, Tuple
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+MIN_PYTHON = (3, 12)  # keep in sync with pyproject.toml `requires-python`
+
+
+def _main_checkout_root() -> Path:
+    """The main checkout's root — PROJECT_ROOT itself unless this is a linked worktree."""
+    try:
+        common = subprocess.run(
+            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            cwd=PROJECT_ROOT, capture_output=True, text=True, timeout=5, check=True,
+        ).stdout.strip()
+        return Path(common).parent
+    except (OSError, subprocess.SubprocessError):
+        return PROJECT_ROOT
+
+
+MAIN_ROOT = _main_checkout_root()
+IN_WORKTREE = MAIN_ROOT.resolve() != PROJECT_ROOT.resolve()
 
 # ANSI colors
 RED = "\033[91m"
@@ -82,7 +106,7 @@ def _find_editable_mapping() -> Tuple[Optional[Path], Optional[str]]:
     dict) or a simple `__editable__*.pth` pointing at the project root.
     """
     site_globs = [
-        str(PROJECT_ROOT / "venv" / "lib" / "*" / "site-packages"),
+        str(MAIN_ROOT / "venv" / "lib" / "*" / "site-packages"),
     ]
     site_dirs: List[str] = []
     for g in site_globs:
@@ -107,10 +131,10 @@ def _find_editable_mapping() -> Tuple[Optional[Path], Optional[str]]:
 
 
 def check_editable_mapping() -> Result:
-    """The editable install must map `scripts` to THIS repo, not a worktree."""
+    """The editable install must map `scripts` to the main checkout, not a worktree."""
     title = "editable install mapping"
     mapped, source = _find_editable_mapping()
-    expected = PROJECT_ROOT / "scripts"
+    expected = MAIN_ROOT / "scripts"
     if mapped is None:
         return (
             FAIL,
@@ -133,6 +157,22 @@ def check_editable_mapping() -> Result:
     )
 
 
+def check_python_version() -> Result:
+    """The venv interpreter must satisfy pyproject's requires-python."""
+    title = "venv Python version"
+    have = ".".join(str(v) for v in sys.version_info[:3])
+    want = ".".join(str(v) for v in MIN_PYTHON)
+    if sys.version_info[:2] >= MIN_PYTHON:
+        return (PASS, title, f"Python {have} (>= {want})", None)
+    return (
+        FAIL,
+        title,
+        f"venv runs Python {have}, but pyproject requires >= {want} — likely "
+        f"built from the system python3, so `pip install -e .` refuses to run",
+        f"rm -rf {MAIN_ROOT / 'venv'} && just install   (from the main checkout)",
+    )
+
+
 # Keys that, if absent, will break the core data/projection pipeline.
 REQUIRED_ENV_KEYS = ("SUPABASE_URL", "SUPABASE_KEY")
 # Keys used by specific scrapers — nice to have, warn only.
@@ -142,7 +182,11 @@ OPTIONAL_ENV_KEYS = ("FANGRAPHS_USERNAME", "FANGRAPHS_PASSWORD")
 def check_env_file() -> Result:
     """`.env` exists and declares the required keys (names only, never values)."""
     title = ".env required keys"
+    # python-dotenv searches upward from scripts/, so a worktree nested under the
+    # main checkout picks up the main checkout's .env.
     env_path = PROJECT_ROOT / ".env"
+    if not env_path.exists():
+        env_path = MAIN_ROOT / ".env"
     if not env_path.exists():
         return (
             FAIL,
@@ -188,7 +232,7 @@ def check_node_modules() -> Result:
             WARN,
             title,
             "web/node_modules is missing",
-            "cd web && npm install",
+            "just worktree-setup" if IN_WORKTREE else "cd web && npm install",
         )
     if nm.stat().st_mtime < lock.stat().st_mtime:
         return (
@@ -225,6 +269,7 @@ def check_holdout_cache() -> Result:
 
 CHECKS = [
     check_venv_import,
+    check_python_version,
     check_editable_mapping,
     check_env_file,
     check_node_modules,

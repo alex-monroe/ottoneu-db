@@ -2,22 +2,15 @@
 name: create-pr
 description: Create a pull request for current changes
 ---
-Follow these steps to create a pull request:
+1. Make sure you are on a feature branch, never `main`. In a worktree you
+   already are; otherwise branch from the latest main without disturbing other
+   checkouts: `git fetch origin main && git checkout -b <branch> origin/main`.
+2. Run the local gate: `just preflight` (fix failures before pushing).
+3. Stage the specific files you changed (`git add <paths>` — not `git add .`)
+   and commit with a clear message.
+4. Push: `git push -u origin HEAD`
+5. Open the PR: `gh pr create --fill` (or with an explicit `--title`/`--body`),
+   and show the full PR URL.
 
-// turbo
-1. Check out and update the main branch
-`git checkout main && git pull origin main`
-
-2. Create a new feature branch from main
-`git checkout -b <descriptive-branch-name>`
-
-3. Make your changes and commit them
-`git add . && git commit -m "<clear-description-of-changes>"`
-
-// turbo
-4. Push the branch
-`git push -u origin <descriptive-branch-name>`
-
-// turbo
-5. Create the pull request
-`gh pr create --fill`
+Projection-system changes must lead the PR body with the held-out verdict — see
+AGENTS.md "Projection Model Update Requirements".

@@ -1,4 +1,5 @@
 ---
+name: ottoneu-roster-question
 description: Answer an advanced Ottoneu roster-construction question, grounded in format strategy and live league data
 ---
 Use this skill for any non-trivial roster-construction, keeper, trade, auction, or arbitration

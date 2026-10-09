@@ -1,4 +1,5 @@
 ---
+name: feature-importance
 description: Inspect learned model coefficients and feature importance
 ---
 Inspect a learned model's coefficients to understand *what it leans on*. This is
@@ -6,19 +7,14 @@ a **diagnostic**, not a selection tool: coefficient magnitude is in-sample and
 says nothing about out-of-sample value. To decide whether a feature earns its
 place, cross-check with held-out ablation (`/ablation`, #588), not these numbers.
 
-// turbo
-
-1. **Identify the learned model** (default: the active model `v33_tuned_base`,
-   itself a learned Ridge model whose coefficients are inspectable). Only the
+1. **Identify the learned model** (default: the active model (`just list-models --check` — read from `projection_models.is_active`; never assume a name)). Only the
    additive models — e.g. `v14_qb_starter` — have no learned coefficients to
    inspect; pick a learned model if the user names an additive one. Use the
    user-specified model if given.
 
-2. **Run the feature analysis script** (use `venv/bin/python` directly — no
-   `source venv/bin/activate`, which fails in worktrees):
+2. **Run the feature analysis script**:
    ```bash
-   venv/bin/python scripts/feature_projections/feature_analysis.py \
-     --model MODEL_NAME --seasons 2022,2023,2024
+   just feature-analysis --model MODEL_NAME --seasons 2022,2023,2024
    ```
 
 3. **If the script succeeds**, present its output (correlation matrix,

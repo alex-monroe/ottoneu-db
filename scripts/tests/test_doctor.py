@@ -60,6 +60,7 @@ def test_env_check_missing_required_key_fails(tmp_path, monkeypatch):
     env = tmp_path / ".env"
     env.write_text("SUPABASE_URL=https://example.supabase.co\n")  # SUPABASE_KEY absent
     monkeypatch.setattr(doctor, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(doctor, "MAIN_ROOT", tmp_path)
     status, _title, detail, fix = doctor.check_env_file()
     assert status == doctor.FAIL
     assert "SUPABASE_KEY" in detail
@@ -73,6 +74,7 @@ def test_env_check_all_required_present_passes(tmp_path, monkeypatch):
         "FANGRAPHS_USERNAME=u\nFANGRAPHS_PASSWORD=p\n"
     )
     monkeypatch.setattr(doctor, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(doctor, "MAIN_ROOT", tmp_path)
     status, _title, _detail, _fix = doctor.check_env_file()
     assert status == doctor.PASS
 
@@ -98,3 +100,18 @@ def test_main_exits_zero_with_only_warnings(monkeypatch):
     )
     # No SystemExit means exit 0.
     doctor.main()
+
+
+def test_python_version_check_flags_old_interpreter(monkeypatch):
+    """A venv older than requires-python is a hard FAIL with a rebuild fix."""
+    monkeypatch.setattr(doctor, "MIN_PYTHON", (99, 0))
+    status, _title, detail, fix = doctor.check_python_version()
+    assert status == doctor.FAIL
+    assert "99.0" in detail
+    assert fix and "just install" in fix
+
+
+def test_python_version_check_passes_on_current_floor(monkeypatch):
+    monkeypatch.setattr(doctor, "MIN_PYTHON", (3, 0))
+    status, *_ = doctor.check_python_version()
+    assert status == doctor.PASS

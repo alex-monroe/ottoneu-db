@@ -1,62 +1,35 @@
 {
   "_comment": [
-    "Template for .mcp.json (which is gitignored, because the real file holds",
-    "credentials). Copy to .mcp.json and fill in the two tokens.",
+    "Template for .mcp.json (gitignored, because the real file holds a credential).",
+    "Copy to .mcp.json and fill in the token.",
     "",
-    "Note the `--prefer-offline` on every npx invocation. It is load-bearing in",
-    "the devcontainer: plain `npx -y` re-fetches the packument from",
-    "registry.npmjs.org on every MCP server start, and that host is Cloudflare",
-    "anycast whose rotating IPs the egress firewall can only partially pin. A",
-    "start that resolves to an unpinned edge hangs until the MCP startup",
-    "timeout and the server silently never registers -- the classic",
-    "'GitHub MCP works sometimes' symptom. With --prefer-offline, npx serves",
-    "from the cache that .devcontainer/post-create.sh warms via `npm install -g`",
-    "(which runs before the firewall comes up), so no registry request is made.",
+    "Only Supabase is configured. The filesystem server duplicated Claude Code's",
+    "built-in file tools; the reference puppeteer and github servers were",
+    "archived upstream \u2014 use the built-in browser pane (or Playwright via",
+    "`just e2e-login`) and the `gh` CLI instead.",
     "",
-    "Alternative for a container-only config: drop npx entirely and set",
-    "`command` to the globally installed binary -- mcp-server-filesystem,",
-    "mcp-server-github, mcp-server-puppeteer, mcp-server-supabase. Most",
-    "reliable, but those bins only exist where post-create.sh has run, so it",
-    "breaks a host that shares this file over the workspace mount."
+    "--project-ref pins the server to this project's database so it cannot list",
+    "or touch other projects on the account. The database is still shared with",
+    "fantasy-pulse (fp_* tables are off-limits \u2014 see AGENTS.md); the PreToolUse",
+    "guard in .claude/hooks enforces that.",
+    "",
+    "`--prefer-offline` is load-bearing in the devcontainer: plain `npx -y`",
+    "re-fetches the packument from registry.npmjs.org (Cloudflare anycast the",
+    "egress firewall can only partially pin) on every server start, which can hang",
+    "until the MCP startup timeout. post-create.sh warms the cache with",
+    "`npm install -g` before the firewall comes up."
   ],
   "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": [
-        "--prefer-offline",
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "."
-      ]
-    },
     "supabase": {
       "command": "npx",
       "args": [
         "--prefer-offline",
         "-y",
-        "@supabase/mcp-server-supabase"
+        "@supabase/mcp-server-supabase",
+        "--project-ref=rbinbcwinchphipvcfqk"
       ],
       "env": {
         "SUPABASE_ACCESS_TOKEN": "<your Supabase personal access token, sbp_...>"
-      }
-    },
-    "puppeteer": {
-      "command": "npx",
-      "args": [
-        "--prefer-offline",
-        "-y",
-        "@modelcontextprotocol/server-puppeteer"
-      ]
-    },
-    "github": {
-      "command": "npx",
-      "args": [
-        "--prefer-offline",
-        "-y",
-        "@modelcontextprotocol/server-github"
-      ],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "<your GitHub PAT, ghp_...>"
       }
     }
   }

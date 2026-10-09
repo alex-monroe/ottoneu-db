@@ -1,9 +1,16 @@
 # Justfile — Common recipes for the Ottoneu DB project
 # Usage: just <recipe>  |  just --list
 
-python := "venv/bin/python"
-pytest  := "venv/bin/pytest"
-uv      := "venv/bin/uv"
+# Linked worktrees (.claude/worktrees/*) have no venv of their own, so fall back to
+# the main checkout's. PYTHONPATH then pins `import scripts.*` to *this* checkout:
+# without it the editable install (which points at the main checkout) would
+# silently run main's code instead of the worktree's edits.
+main_root := `dirname "$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null || echo "$PWD/.git")"`
+venv    := if path_exists(justfile_directory() / "venv/bin/python") == "true" { justfile_directory() / "venv" } else { main_root / "venv" }
+python  := venv / "bin/python"
+pytest  := venv / "bin/pytest"
+uv      := venv / "bin/uv"
+export PYTHONPATH := justfile_directory()
 
 # Show all available recipes
 default:
@@ -15,10 +22,16 @@ default:
 
 # Install all dependencies (Python + Node) from the pinned lock
 install:
-    python3 -m venv venv
+    # Pin the interpreter: macOS's system python3 is 3.9, below requires-python.
+    uv venv --seed --python 3.12 venv 2>/dev/null || python3.12 -m venv venv
     venv/bin/pip install -r requirements.txt
     venv/bin/playwright install chromium
     cd web && npm install
+
+# The venv and .env are borrowed from the main checkout automatically; web/node_modules is per-checkout.
+# Prepare a linked worktree (.claude/worktrees/*) — installs web/node_modules
+worktree-setup:
+    cd web && npm ci --prefer-offline --no-audit --no-fund
 
 # Regenerate the dependency lock (uv.lock) + the pip-installable export (requirements.txt)
 # after editing dependencies in pyproject.toml. Requires uv (in the dev extras).
@@ -151,7 +164,7 @@ check-migrations:
 
 # Check documentation freshness
 check-docs:
-    {{python}} scripts/check_docs_freshness.py
+    {{python}} scripts/check_docs_freshness.py --strict
 
 # On-demand DB schema drift check: live DB vs web/types/supabase.ts + db-schema.md (read-only)
 check-schema:
@@ -166,7 +179,7 @@ permission-report *args:
 preflight: lint typecheck
     {{pytest}} --no-cov
     cd web && npx jest --no-coverage --ci
-    {{python}} scripts/check_docs_freshness.py
+    {{python}} scripts/check_docs_freshness.py --strict
 
 # Install the opt-in pre-push hook that runs `just preflight` (skip a push with --no-verify)
 install-hooks:
@@ -245,6 +258,10 @@ diagnostics *args:
 # Segmented accuracy analysis  (e.g. just segment-analysis --segments experience,age_bucket)
 segment-analysis *args:
     {{python}} scripts/feature_projections/cli.py segment-analysis {{args}}
+
+# Learned-model feature importance: correlations, VIF, |coef|×scale ranking  (e.g. just feature-analysis --model v44_eb_pooling_perpos)
+feature-analysis *args:
+    {{python}} scripts/feature_projections/feature_analysis.py {{args}}
 
 # Generate accuracy report  (e.g. just accuracy-report --run-backtest)
 accuracy-report *args:

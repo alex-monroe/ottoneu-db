@@ -1,4 +1,5 @@
 ---
+name: retro
 description: Retrospective on the current task — identify friction points, propose doc/skill improvements, and open a PR with changes
 ---
 
@@ -43,20 +44,18 @@ Then list the concrete changes you propose to make (which files to create or edi
 
 After the user approves:
 
-1. Start from updated main:
-   `git checkout main && git pull origin main`
+1. Branch from the latest main without touching any other checkout (works in a worktree;
+   never switch a shared checkout over to main — other sessions may be using it):
+   `git fetch origin main && git checkout -b retro/<task-slug> origin/main` (derive a short slug from the task just completed)
 
-2. Create a retro branch:
-   `git checkout -b retro/<task-slug>` (derive a short slug from the task just completed)
-
-3. Make the approved changes:
-   - Edit or create doc files under `docs/`, `AGENTS.md`, `CLAUDE.md`, or `.claude/commands/`
+2. Make the approved changes:
+   - Edit or create doc files under `docs/`, `AGENTS.md`, `CLAUDE.md`, or `.claude/skills/`
    - Keep changes focused on what was approved — do not refactor unrelated docs
 
-4. Commit:
+3. Commit:
    `git add <specific files> && git commit -m "retro: <short description of what was improved>"`
 
-5. Push and open a PR:
+4. Push and open a PR:
    `git push -u origin retro/<task-slug>`
    `gh pr create --title "retro: <short description>" --body "..."`
 
@@ -70,4 +69,4 @@ After the user approves:
 - If there are no actionable friction points, say so clearly and skip Step 3.
 - Do not invent problems. Only surface real friction from this conversation.
 - Prefer editing existing docs over creating new files.
-- New skill files go in `.claude/commands/<name>.md` and must be registered in CLAUDE.md's skill list and documentation map if they are user-invocable.
+- New skills go in `.claude/skills/<name>/SKILL.md` (with `name:` + `description:` frontmatter) and must be registered in CLAUDE.md's skill list and documentation map if they are user-invocable.

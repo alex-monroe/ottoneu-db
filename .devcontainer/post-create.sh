@@ -16,11 +16,7 @@ npm install -g @anthropic-ai/claude-code
 # cold-install latency that tripped the same timeout).
 #
 # See .mcp.json.example for the matching command/args entries.
-npm install -g \
-  @modelcontextprotocol/server-filesystem \
-  @modelcontextprotocol/server-puppeteer \
-  @modelcontextprotocol/server-github \
-  @supabase/mcp-server-supabase
+npm install -g @supabase/mcp-server-supabase
 
 # venv/ and web/node_modules are backed by named volumes (see devcontainer.json)
 # so the host's macOS binaries (bind-mounted via the workspace) don't leak into

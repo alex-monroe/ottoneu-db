@@ -175,8 +175,8 @@ shared with the Python side).
   processes behind).
 - **Headless verify loop** (for confirming a change actually renders): start the
   server in the background, poll its log for `Ready in`, then hit pages with
-  `curl -s -o /dev/null -w '%{http_code}'` or drive them with the puppeteer MCP
-  tools (navigate → click → screenshot), then `just dev-stop`. Auth-gated routes
+  `curl -s -o /dev/null -w '%{http_code}'` or drive them with the built-in browser
+  pane (navigate → click → screenshot), then `just dev-stop`. Auth-gated routes
   redirect (307) for anonymous requests — that's expected, not a failure.
 - **Verifying responsive / auth-conditional UI** (e.g. the nav): check it at
   multiple viewport widths *and* both auth states — logged-out and authenticated

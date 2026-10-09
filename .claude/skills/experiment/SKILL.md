@@ -1,4 +1,5 @@
 ---
+name: experiment
 description: Run a controlled experiment on a new/modified projection model variant
 ---
 Run a controlled experiment on a projection model **on the leakage-free held-out
@@ -6,8 +7,6 @@ harness** (GH #572/#573/#594). Do **not** use the in-sample `accuracy-report`
 flow to decide anything — it scores learned models on the data they trained on
 (methodology audit, Findings 1 & 2). A verdict is "significant or not", never a
 point-estimate delta.
-
-// turbo
 
 1. **Identify the model to test.** If no model is given in the arguments, check
    `git diff` for changes to `model_config.py`. If nothing is found, ask the user.
@@ -23,7 +22,7 @@ point-estimate delta.
      needed (and never train on the eval seasons yourself).
 
 3. **Run the held-out re-rank** against the **active model** (check
-   `projection_models.is_active` — `v33_tuned_base` as of 2026-06; do not assume
+   `projection_models.is_active` via `just list-models --check`; do not assume
    a hardcoded name) and the naïve baselines (`naive_prior_season_ppg`,
    `position_mean_baseline`). Prefer the rolling-origin protocol (#594); the
    cache (#597) makes re-runs fast — and it is **shared across worktrees** (#629:

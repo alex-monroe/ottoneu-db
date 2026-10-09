@@ -5,8 +5,9 @@ Joins two data sources:
   numerator   ~/.claude/metrics/ottoneu_db/permission_prompts.jsonl
               (written by log_permission_prompt.py — one line per permission
               prompt Claude Code showed)
-  denominator ~/.claude/projects/-Users-alexmonroe-dev-ottoneu-db/*.jsonl
-              (Claude Code transcripts — every tool_use, prompted or not)
+  denominator ~/.claude/projects/-Users-alexmonroe-dev-ottoneu-db*/*.jsonl
+              (Claude Code transcripts from the main checkout and every
+              worktree — every tool_use, prompted or not)
 
 Usage:
   just permission-report                # last 56 days, markdown to stdout
@@ -26,8 +27,12 @@ import sys
 from collections import Counter, defaultdict
 
 EVENTS_FILE = os.path.expanduser("~/.claude/metrics/ottoneu_db/permission_prompts.jsonl")
+# Every checkout of this repo: the main one plus each linked worktree, whose
+# transcripts land in sibling dirs (`…-ottoneu-db--claude-worktrees-<name>`,
+# `…-ottoneu-db-worktrees-<name>`). Globbing only the main dir missed nearly
+# every session, since almost all work happens in worktrees.
 TRANSCRIPTS_GLOB = os.path.expanduser(
-    "~/.claude/projects/-Users-alexmonroe-dev-ottoneu-db/*.jsonl"
+    "~/.claude/projects/-Users-alexmonroe-dev-ottoneu-db*/*.jsonl"
 )
 REGRESSION_FACTOR = 1.5
 REGRESSION_MIN_PROMPTS = 10
