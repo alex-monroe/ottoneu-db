@@ -4,6 +4,8 @@ import { fetchPlayerEarnedValue, type SeasonEarnedValue } from "@/lib/earned-val
 import { fetchPositionalRanksBySeason } from "@/lib/positional-rank-data";
 import { describePositionalRank, formatPositionalRank } from "@/lib/positional-rank";
 import { getEffectiveStatsSeason } from "@/lib/stats-season";
+import { getSeasonContextNow } from "@/lib/season";
+import { isPreseasonProjectionStale } from "@/lib/preseason-projections";
 import { getDisplayWeeks } from "@/lib/nfl-week";
 import WeeklyProjectionCard from "@/components/WeeklyProjectionCard";
 import { getAuthenticatedUser } from "@/lib/auth";
@@ -41,9 +43,12 @@ export default async function PlayerCardPage({
 
     if (!player) notFound();
 
-    // Fetch auth + projection in parallel (auth returns null for unauthenticated)
-    const user = await getAuthenticatedUser();
-    const [projection, draftSharks] = user?.hasProjectionsAccess
+    // Fetch auth + projection in parallel (auth returns null for unauthenticated).
+    // In season the preseason projection and auction values are stale, so the
+    // card drops them — the /projections page still has them.
+    const [user, seasonCtx] = await Promise.all([getAuthenticatedUser(), getSeasonContextNow()]);
+    const showPreseason = !isPreseasonProjectionStale(seasonCtx.phase);
+    const [projection, draftSharks] = user?.hasProjectionsAccess && showPreseason
         ? await Promise.all([
               fetchPlayerProjection(player.id),
               fetchDraftSharksValue(player.id),

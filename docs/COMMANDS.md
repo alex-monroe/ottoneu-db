@@ -121,7 +121,7 @@ just permission-report [--days N] [--check]  # Permission-prompt rate + top fami
 just preflight          # Fast pre-PR gate (~9s): lint + typecheck + both test suites (no coverage) + doc checks
 just install-hooks      # Install the opt-in pre-push hook that runs `just preflight` (skip a push with --no-verify)
 just ci                 # Full CI suite (lint + typecheck + tests + doc checks)
-just roster-context [season]  # Build the roster-question context pack (live league data); season defaults to 2026
+just roster-context [--season N] [--source auto|actual|projection]  # Roster-question context pack: actual production in season, preseason projections offseason
 just league-explorer <cmd>    # Explore other public Ottoneu leagues → local SQLite (scan | discover | scrape | report | query); see docs/references/league-explorer.md
 
 # Projection CLI
