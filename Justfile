@@ -28,9 +28,11 @@ install:
     venv/bin/playwright install chromium
     cd web && npm install
 
-# The venv and .env are borrowed from the main checkout automatically; web/node_modules is per-checkout.
-# Prepare a linked worktree (.claude/worktrees/*) — installs web/node_modules
+# Python finds the main checkout's .env by searching upward, but Next.js only reads web/.env.local in
+# its own directory — so link it (a symlink keeps one copy of the secrets). web/node_modules is per-checkout.
+# Prepare a linked worktree (.claude/worktrees/*) — links web/.env.local, installs web/node_modules
 worktree-setup:
+    @if [ ! -e web/.env.local ] && [ -f "{{main_root}}/web/.env.local" ] && [ "{{main_root}}" != "{{justfile_directory()}}" ]; then ln -s "{{main_root}}/web/.env.local" web/.env.local && echo "Linked web/.env.local from the main checkout"; fi
     cd web && npm ci --prefer-offline --no-audit --no-fund
 
 # Regenerate the dependency lock (uv.lock) + the pip-installable export (requirements.txt)
