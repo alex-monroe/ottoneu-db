@@ -31,6 +31,7 @@ AGENTS.md: prose is advice, a failing check is a fact.
 
 | Control | Incident / reason | Tested by | Retire when |
 |---|---|---|---|
+| Native sandbox + PreToolUse guard hooks (fp_* SQL, commits/pushes to main, prod recipes from worktrees), SessionStart fetch, async post-edit lint | See [autonomous-operation.md — Layer 3](autonomous-operation.md#layer-3--native-sandbox-and-guard-hooks), which records the incident and retirement condition per rule (#744) | `scripts/tests/test_harness_guards.py` (must-block *and* must-allow cases) | Per rule, in that table |
 | Permission-prompt logger + `just permission-report` | Approved prompts leave no trace in transcripts | Manual: run the report | The team stops working in manual/accept-edits modes — since 2026-06-16 no prompts have been logged (desktop app + auto mode) |
 | Subagents with restricted tools (`.claude/agents/`) | Long eval/SQL output flooded the main context | Manual | Not needed once the outputs are short |
 | On-demand Claude PR review (`.github/workflows/claude-code-review.yml`) | Second opinion on risky PRs; formerly auto-reviewed Jules PRs | Manual (`/claude-review` comment) | It stops catching anything the local `/code-review` misses |

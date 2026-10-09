@@ -7,7 +7,7 @@ Scan the current session for permission gate events and evaluate coverage agains
 
 ## Step 1 — Load reference files
 
-Read `.claude/settings.local.json` — note every `Bash(...)` pattern in the allow list.
+Read the shared project settings (`.claude/settings.json`; older checkouts kept them in `.claude/settings.local.json`) — note every `Bash(...)` pattern in the allow list, and whether the sandbox is on (sandboxed commands never prompt, so a prompt there usually means a command ran outside it).
 
 Read `Justfile` — note every recipe name and what command it wraps.
 
@@ -39,7 +39,7 @@ Group manual permission gates by command family (the first word of the command, 
 For each group, recommend the least-friction fix that keeps blast radius small:
 
 - **`new-just-target`** — write the exact recipe to add to the Justfile (name + body)
-- **`new-allowlist-entry`** — write the exact string to add to `settings.local.json` allow list
+- **`new-allowlist-entry`** — write the exact string to add to the `.claude/settings.json` allow list
 - **`use-existing-just`** — note which `just` recipe should have been used and why it wasn't (doc gap vs agent habit)
 - **`one-off`** — explain why no action is needed
 
