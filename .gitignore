@@ -10,6 +10,9 @@
 .claude/worktrees/
 .claude/plans/
 .claude/projects/
+# Personal Claude Code settings ("don't ask again" approvals land here); shared
+# policy is .claude/settings.json.
+.claude/settings.local.json
 
 # Python / Backend
 venv/

@@ -15,16 +15,23 @@ from outer layers:
 
 | Layer | Mechanism | What it buys |
 |-------|-----------|--------------|
-| 1 | Allowlist + `just`-first habits (`.claude/settings.local.json`, `Justfile`) | Few prompts in normal supervised sessions |
+| 1 | Allowlist + `just`-first habits (`.claude/settings.json`, `Justfile`) | Few prompts for what runs outside the sandbox (`gh`, MCP, retries) |
 | 2 | Prompt-rate instrumentation (`.claude/hooks/`, `just permission-report`) | Visibility: measure friction, catch regressions |
-| 3 | Claude Code native sandbox (`sandbox.enabled` in settings) | OS-level (Seatbelt) containment on the host — optional middle ground |
+| 3 | Claude Code native sandbox + guard hooks (`.claude/settings.json`, `.claude/hooks/guard.py`) | **On by default.** OS-level (Seatbelt) containment on the host: sandboxed Bash runs without prompts, inside a filesystem + network boundary |
 | 4 | Devcontainer + egress firewall (`.devcontainer/`) | True isolation: run `claude --dangerously-skip-permissions` safely |
 
-What the allowlist deliberately does **not** auto-approve, at any layer below 4:
-`rm`, `sed -i`, non-localhost `curl`, `brew`, and anything matching the deny
-list (`git push --force`, `sudo`). Production-data blast radius
-(`mcp__supabase__execute_sql` / `apply_migration`) is allowlisted for workflow
-reasons — if that ever feels wrong, move those two to an `ask` list.
+Settings are split the standard way: **`.claude/settings.json`** (checked in)
+holds the shared policy — allowlist, sandbox, hooks; **`.claude/settings.local.json`**
+(gitignored) holds personal approvals ("don't ask again" lands there). A worktree
+session also loads the main checkout's `settings.local.json`.
+
+What is deliberately *not* auto-approved outside the sandbox: interpreters
+(`python3`, `node`, `venv/bin/python` — inside the sandbox they run freely),
+`cp`/`mv`/`rm`, `psql`, `gh auth`, and anything on the deny list
+(`git push --force`, `sudo`). `gh pr merge` and `mcp__supabase__apply_migration`
+are **ask** rules: they prompt even in an otherwise quiet session.
+`mcp__supabase__execute_sql` stays allowed for workflow reasons; the guard hook
+keeps it off `fp_*` tables.
 
 ## Layer 1 — Allowlist design notes
 
@@ -48,8 +55,9 @@ Rules of thumb when extending:
 
 - Project-specific or multi-step command → **new `just` recipe** (auto-approved
   via `just:*`, self-documenting, shows up in `just --list`).
-- Simple safe utility → **allowlist entry** in `.claude/settings.local.json`
-  (which is checked in — extend it via PR like any other change).
+- Simple safe utility → usually nothing: sandboxed commands are auto-approved.
+  An allowlist entry in `.claude/settings.json` only matters for commands that
+  run *outside* the sandbox (`gh`, unsandboxed retries) — extend it via PR.
 - Keep `rm`, `sed -i`, external `curl` gated; they prompt rarely and the prompt
   is the point.
 - Shell `for`/`until`/`while` loops still prompt (no clean pattern exists).
@@ -64,7 +72,7 @@ hook, which Claude Code fires whenever it needs permission.
 Components:
 
 - `.claude/hooks/log_permission_prompt.py` — Notification hook (registered in
-  `.claude/settings.local.json`). Appends one JSON line per prompt to
+  `.claude/settings.json`). Appends one JSON line per prompt to
   `~/.claude/metrics/ottoneu_db/permission_prompts.jsonl`, enriched with the
   pending tool name + input recovered from the transcript tail.
 - `.claude/hooks/permission_report.py` — aggregator. Numerator: logged prompts.
@@ -98,16 +106,70 @@ but no prompts, which deflates the rate — trends still hold as long as the mix
 of session types is roughly stable; the hook is host-local (the devcontainer
 volume keeps its own log).
 
-## Layer 3 — Native sandbox (optional)
+## Layer 3 — Native sandbox and guard hooks
 
-`.claude/settings.local.json` currently sets `sandbox.enabled: false`. Setting
-`"enabled": true` with `"autoAllowBashIfSandboxed": true` makes Claude Code run
-Bash under macOS Seatbelt and auto-approve commands the sandbox can contain
-(filesystem-read-only, no network), prompting only on escalation. It's the
-middle ground when working on the host outside the devcontainer. Tradeoff:
-some legitimate commands (DB writes, scrapers) escalate and still prompt, and
-sandbox quirks can break commands in confusing ways. Try it for a week and
-check the effect with `just permission-report`.
+### The sandbox
+
+`.claude/settings.json` enables Claude Code's native sandbox with
+`autoAllowBashIfSandboxed`: Bash runs under macOS Seatbelt and is approved
+without a prompt, because the OS enforces the boundary. The boundary:
+
+- **Writes:** the working directory (for a worktree, also the main checkout's
+  shared `.git`), the temp dir, package caches (`~/.npm`, `~/.cache`,
+  `~/Library/Caches/{pip,uv,ms-playwright}`), and the main checkout's `.cache/`
+  (the holdout-eval cache is shared across worktrees, #629). Not `~`, not
+  `.claude/` config, not git hooks.
+- **Network:** only `sandbox.network.allowedDomains` — GitHub, npm/PyPI, this
+  project's Supabase host, the scrapers' sources, Sleeper, the live site,
+  Playwright. It mirrors `.devcontainer/allowed-domains.txt`; keep the two in
+  sync. Discord is deliberately absent: posting to the league is an outward
+  action and should prompt. Supabase's Python and JS clients honour the
+  sandbox proxy.
+- **Local servers:** `allowLocalBinding` lets `just dev` listen and `curl`
+  reach `localhost`.
+
+**Runs outside the sandbox:** `gh` (`excludedCommands` — Go CLIs fail TLS
+verification under Seatbelt), MCP servers, hooks, and Claude's own file tools.
+When a command fails inside the sandbox, Claude may retry it unsandboxed; that
+retry prompts unless an allow rule matches it (`just *` and `git *` do, by
+design — they were already trusted).
+
+Known breakages and fixes:
+
+| Symptom | Fix |
+|---|---|
+| `psql` / any non-HTTP DB client can't connect | It ignores the proxy. Use `just py` / the Supabase MCP, or approve the unsandboxed retry |
+| A scraper hits a new host → network prompt / 403 from the proxy | Add the host to `allowedDomains` *and* `.devcontainer/allowed-domains.txt` |
+| `git` fails with `unable to unlink old` on `.claude/skills/...` | Protected path; approve the unsandboxed retry |
+| `pip install` into the main venv fails | The venv is outside the worktree; run it from the main checkout |
+
+Verified 2026-10 with a headless `claude -p --settings .claude/settings.json`
+run: a Supabase query through `just`-style Python succeeded, `touch ~/x` and
+`curl https://example.com` were blocked, `gh`, `git ls-remote` and `tsc` worked.
+
+### Guard hooks
+
+`.claude/hooks/guard.py` (PreToolUse) turns the repo's hardest prose rules into
+blocks. Each rule records the incident behind it; tests in
+`scripts/tests/test_harness_guards.py` cover every rule in both directions
+(must block *and* must allow), so a guard can't silently drift into blocking
+everything.
+
+| Blocks | Why | Retire when |
+|---|---|---|
+| SQL (`execute_sql` / `apply_migration`) naming an `fp_*` identifier | The Supabase project is shared with fantasy-pulse, which owns `fp_*` | The projects are split |
+| `git commit` on `main`; `git push` to `main` | Every change goes through a PR | Branch protection covers local commits (it can't) |
+| `just promote` / `just analyze` from a linked worktree | They write shared production data; run from the main checkout after merge | Those recipes refuse to run from a worktree themselves |
+
+Two more hooks support the loop:
+
+- **`session_start.py`** (SessionStart) — `git fetch origin main`, and in a fresh
+  worktree starts `just worktree-setup` in the background. It replaced a hook
+  that ran `git checkout main && git pull` in the main checkout from *every*
+  session, switching branches out from under whoever was using it.
+- **`post_edit_check.py`** (PostToolUse, `asyncRewake`) — after each edit, ESLint
+  on a web file or a compile check on a `.py` file, in the background. It only
+  interrupts Claude when the check fails.
 
 ## Layer 4 — Devcontainer for full autonomy
 
