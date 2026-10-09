@@ -90,7 +90,24 @@
     "enabled": true,
     "autoAllowBashIfSandboxed": true,
     "excludedCommands": [
-      "gh *"
+      "gh *",
+      "jq *",
+      "head *",
+      "tail *",
+      "grep *",
+      "git checkout *",
+      "git switch *",
+      "git restore *",
+      "git reset *",
+      "git stash *",
+      "git merge *",
+      "git rebase *",
+      "git cherry-pick *",
+      "git revert *",
+      "git pull *",
+      "git fetch *",
+      "git push *",
+      "git branch *"
     ],
     "network": {
       "allowLocalBinding": true,

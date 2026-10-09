@@ -137,8 +137,11 @@ without a prompt, because the OS enforces the boundary. The boundary:
   reach `localhost`.
 
 **Runs outside the sandbox:** the `excludedCommands` — `gh` (Go CLIs fail TLS
-verification under Seatbelt) plus whatever else is listed there — MCP servers,
-hooks, and Claude's own file tools.
+verification under Seatbelt), git's working-tree commands (they must write the
+protected `.claude/` files and `.git/config`), and the read-only pipe helpers
+`jq`/`head`/`tail`/`grep` (so `gh … | jq` stays a plain call) — plus MCP
+servers, hooks, and Claude's own file tools. All of these were already trusted
+via allow rules; deny rules and the guard hook still apply to them.
 
 An excluded command only leaves the sandbox when the **whole call is plain**:
 every part matches an exclusion, with no `cd`, `$(...)`, heredoc, redirection
@@ -156,7 +159,7 @@ Known breakages and fixes:
 |---|---|
 | `psql` / any non-HTTP DB client can't connect | It ignores the proxy. Use `just py` / the Supabase MCP, or approve the unsandboxed retry |
 | A scraper hits a new host → network prompt / 403 from the proxy | Add the host to `allowedDomains` *and* `.devcontainer/allowed-domains.txt` |
-| `git checkout`/`switch` fails with `unable to unlink old` / `unable to create file .claude/...`, or `git push -u` can't write `.git/config` | `.claude/skills`, `.claude/hooks`, `.claude/settings*.json` and `.git/config` are protected. Run it unsandboxed (or list working-tree git commands in `excludedCommands`). A failed sandboxed checkout can leave the index half-switched: check `git status` before continuing |
+| `git checkout`/`switch` fails with `unable to unlink old` / `unable to create file .claude/...`, or `git push -u` can't write `.git/config` | `.claude/skills`, `.claude/hooks`, `.claude/settings*.json` and `.git/config` are protected, so git's working-tree commands (`checkout`, `switch`, `pull`, `merge`, `rebase`, `reset`, `restore`, `stash`, `fetch`, `push`, `branch`, …) are in `excludedCommands`. That only helps for a plain call: `cd x && git checkout y` still runs sandboxed. A failed sandboxed checkout can leave the index half-switched; check `git status` before continuing |
 | `next build` / any Node `fetch` fails with `fetch failed` / `ENOTFOUND` | Node's built-in fetch ignores `HTTPS_PROXY` unless `NODE_USE_ENV_PROXY=1` — set in `settings.json` `env` |
 | Build in a fresh worktree fails with `fetch failed` even outside the sandbox | No `web/.env.local` there — `just worktree-setup` symlinks it from the main checkout |
 | `npm install` / `npm ci` fails with `EPERM … node_modules/iconv-lite/.idea/…` | `.idea` dirs are protected anywhere under the working dir. Approve the unsandboxed retry — a deliberate checkpoint, since installs run package scripts. Fresh worktrees are installed by the SessionStart hook, which runs outside the sandbox |
