@@ -10,7 +10,8 @@
 
 import { supabase, fetchAllRows } from "./supabase";
 import { LEAGUE_ID } from "./config";
-import { getStatsSeason, getProjectionSeason } from "./season";
+import { getStatsSeason, getProjectionSeason, getSeasonContextNow } from "./season";
+import { isPreseasonProjectionStale } from "./preseason-projections";
 import { fetchPlayers, fetchDraftSharksMap, type DraftSharksValue } from "./data";
 import { calculateEarnedValue } from "./earned-value";
 import { fetchCurrentPositionalRanks } from "./positional-rank-data";
@@ -297,6 +298,10 @@ export function buildHoverDataMap(
  * projection and Draft Sharks maps (nulls when the user lacks access), plus the
  * public current-season positional ranks. Callers pass the result straight
  * into buildHoverDataMap.
+ *
+ * Both maps are also null in season: they are preseason numbers, and a hover
+ * card is exactly where a stale projection gets read as current. The
+ * `/projections` page still shows the model. See lib/preseason-projections.ts.
  */
 export async function fetchHoverExtras(
   hasProjectionsAccess: boolean,
@@ -307,7 +312,7 @@ export async function fetchHoverExtras(
   rankMap: Record<string, PositionalRank>;
 }> {
   const ranksPromise = fetchCurrentPositionalRanks().then((m) => Object.fromEntries(m));
-  if (!hasProjectionsAccess) {
+  if (!hasProjectionsAccess || isPreseasonProjectionStale((await getSeasonContextNow()).phase)) {
     return { projMap: null, dsMap: null, rankMap: await ranksPromise };
   }
   const resolvedSeason = season ?? (await getProjectionSeason());

@@ -68,20 +68,20 @@ All tools are read-only and use the anon Supabase client (every table touched ha
 
 | Tool | Purpose |
 |------|---------|
-| `get_league_overview` | League settings, scoring, arb rules, current season phase + deadlines, active projection model. Call first — `season_context.in_season` / `.framing` settle whether games have started. |
+| `get_league_overview` | League settings, scoring, arb rules, current season phase + deadlines, active projection model. Call first — `season_context.in_season` / `.framing` settle whether games have started, and in season the framing says the preseason model is withheld. |
 | `get_league_calendar` | All season boundary dates (arb window, keeper deadline, auction, kickoff, trade deadline). |
 | `get_rosters` | All rosters (or one team), current or as-of-date via transaction replay, with salaries + cap space. |
 | `get_scoreboard` | Head-to-head matchups for one league week (or the whole season with `all_weeks`): opponents, live/final scores, winner. Defaults to the week being played. A **scheduled** game returns `null` scores, not Ottoneu's placeholder `0.00` — handed a `0` a model reports a scoreless game in progress. Check `season_started` before framing anything as live. |
 | `get_standings` | Standings + playoff picture: record, PF/PA, streak, seed, games back, and conservative `clinched`/`eliminated` flags. Derived from final regular-season matchups (see [matchups-and-standings.md](matchups-and-standings.md)), so it moves as games finish. |
 | `search_players` | Name-substring player search with position/rostered filters. |
-| `get_player` | Full player card: stats by season, projection, auction values, recent transactions. By `ottoneu_id` or name. |
+| `get_player` | Full player card: stats by season, weekly projections, recent transactions, plus (offseason only) the preseason projection and auction values. By `ottoneu_id` or name. See [The preseason model is withheld in season](#the-preseason-model-is-withheld-in-season). |
 | `get_transactions` | League transaction log, newest first (real clock order), with team/type/date filters. Rows carry `source` + `feed_quality`; see [Reading the transaction feed](#reading-the-transaction-feed). |
-| `get_projections` | Active-model projection board (ranked, includes rookies). Free agents come back with `salary: null` — see [Free agents have no salary](#free-agents-have-no-salary). |
-| `get_player_values` | VORP-based dollar values + surplus (`calculateSurplus` over end-of-season salaries). Forward-looking. |
+| `get_projections` | **Preseason** active-model projection board (ranked, includes rookies). Withheld in season unless `include_preseason: true`. Free agents come back with `salary: null` — see [Free agents have no salary](#free-agents-have-no-salary). |
+| `get_player_values` | Trailing VORP-based dollar values + surplus (`calculateSurplus` over end-of-season salaries) from actual PPG in the stat window, extrapolated to a full season. Carries a `stat_window` — mid-season it rests on a few games. Not a forecast. |
 | `get_earned_value` | Retrospective ("Player Rater") value from **actual** season points vs the salary actually paid — `realized_surplus` grades a buy after the fact. `calculateEarnedValue`; see [player-valuation.md](player-valuation.md). |
 | `get_arbitration_analysis` | Ranked arb targets with post-raise surplus; `exclude_team` parameterizes the perspective (`web/lib/mcp/arb.ts`). |
 | `get_arbitration_progress` | Live scraped arb state: team completion, top raises with projected finals, per-team spending. |
-| `get_depth_chart` | Opening-day NFL depth tiers with prior-season tier + projected PPG. |
+| `get_depth_chart` | Opening-day NFL depth tiers with prior-season tier, plus preseason projected PPG offseason only. |
 | `get_vegas_lines` | Preseason implied totals + win totals per NFL team. |
 | `get_weekly_projections` | Per-game projections for one NFL week from a third-party source (Sleeper), re-scored under league rules. Defaults to the upcoming week (rolls over Tuesdays); a played week keeps its projection beside the actual result. Filters: `week`, `season`, `position`, `team_name` (`"FA"`), `min_points`. **Not** the same as `get_projections` — the response carries a `note` saying so, plus `source`, `as_of`, and `scoring`. |
 
@@ -131,6 +131,29 @@ unowned player). Emitted as `salary` that reads as a real number to bid against 
 pointing at the real anchors: `auction_value` / `market_auction_value` (Draft
 Sharks, scaled to this league's cap) on the projection board, or
 `get_player_values` for VORP-based worth.
+
+### The preseason model is withheld in season
+
+This site's season-long projection model is built for arbitration and the
+auction, when no public projections exist. It never updates once games start
+and is known to be inaccurate — but left in every player card, agents anchored
+on it for in-season trade and keep/cut advice (Oct 2026). Caveats in tool
+descriptions did not stop that: an agent quotes whatever field it is handed.
+
+So while `phase === "in_season"` (`isPreseasonProjectionStale`,
+`web/lib/preseason-projections.ts`), the model is **absent**, not annotated:
+
+| Tool | In season |
+|---|---|
+| `get_player` | `projection: null` and `auction_values: null` (neither is fetched), plus a `projection_note` pointing at actual production, `get_weekly_projections`, and public rankings |
+| `get_projections` | `withheld: true` and the same note, no board — unless `include_preseason: true`, which returns it with a `caveat` (for grading the model, not forecasting) |
+| `get_depth_chart` | entries drop `projected_ppg` |
+| `get_league_overview` | `framing` says the model is withheld; `active_projection_model` gains `in_season_status: "withheld"` |
+
+Offseason (arbitration through kickoff) every tool returns the model as before.
+The site applies the same rule to the player card and hover cards; the
+`/projections` page itself keeps it. The roster-question context pack
+(`just roster-context`) switches to actual production in season too.
 
 ### The calendar is authoritative about the season
 

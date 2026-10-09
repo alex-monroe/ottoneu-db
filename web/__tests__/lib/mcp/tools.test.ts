@@ -482,7 +482,7 @@ describe("get_league_overview season framing", () => {
 
 describe("get_player_values", () => {
     test("returns surplus players sorted by dollar value with limit applied", async () => {
-        mockEndOfSeason.mockResolvedValue(buildPool());
+        mockPlayerSet.mockResolvedValue({ players: buildPool(), window: fullSeasonWindow(2025) });
         const body = payload(await tool("get_player_values").handler({ limit: 5 }));
         const players = body.players as { dollar_value: number; surplus: number; salary: number }[];
         expect(players).toHaveLength(5);
@@ -491,6 +491,36 @@ describe("get_player_values", () => {
         for (const p of players) {
             expect(p.surplus).toBe(p.dollar_value - p.salary);
         }
+    });
+});
+
+describe("get_player_values framing", () => {
+    test("labels itself trailing production, not a forecast", async () => {
+        mockPlayerSet.mockResolvedValue({ players: buildPool(), window: fullSeasonWindow(2025) });
+        const body = payload(await tool("get_player_values").handler({ limit: 1 }));
+        expect(String(body.methodology)).toMatch(/not a forecast/i);
+        expect((body.stat_window as Record<string, unknown>).complete).toBe(true);
+        const def = tool("get_player_values");
+        expect(def.description).not.toMatch(/forward-looking/i);
+        expect(def.description).not.toMatch(/core keep\/cut/i);
+    });
+
+    test("warns that a mid-season value rests on a handful of games", async () => {
+        mockPlayerSet.mockResolvedValue({
+            players: buildPool(),
+            window: buildStatWindow({
+                season: 2026,
+                complete: false,
+                gamesPlayed: Array(40).fill(5),
+                weeksPlayed: 5,
+            }),
+        });
+        const body = payload(await tool("get_player_values").handler({ limit: 1 }));
+        const w = body.stat_window as Record<string, unknown>;
+        expect(w.complete).toBe(false);
+        expect(w.games_of_17).toBe(5);
+        expect(String(w.caveat)).toMatch(/5 game\(s\)/);
+        expect(String(w.caveat)).toMatch(/get_weekly_projections/);
     });
 });
 
@@ -540,7 +570,6 @@ describe("get_earned_value", () => {
 
     test("is distinct from get_player_values — actuals, not projections", async () => {
         mockSeason();
-        mockEndOfSeason.mockResolvedValue(buildPool());
         const earned = payload(await tool("get_earned_value").handler({ limit: 3 }));
         const projected = payload(await tool("get_player_values").handler({ limit: 3 }));
         expect(earned.methodology).not.toBe(projected.methodology);
@@ -792,6 +821,95 @@ describe("get_player weekly context", () => {
     });
 });
 
+
+// ─── Preseason model withheld in season ──────────────────────────────────────
+
+describe("preseason projections are withheld in season", () => {
+    const IN_SEASON: SeasonContext = { ...SEASON_CTX, phase: "in_season", statsSeason: 2026 };
+
+    beforeEach(() => {
+        mockPlayerDetail.mockResolvedValue({
+            id: "p1",
+            ottoneu_id: 100,
+            name: "Some Player",
+            position: "RB",
+            nfl_team: "KC",
+            birth_date: null,
+            price: 23,
+            team_name: "Team A",
+            seasonStats: [],
+            transactions: [],
+        } as never);
+        mockPlayerProjection.mockResolvedValue({ projected_ppg: 11.8, projection_method: "v44" });
+        mockDraftSharks.mockResolvedValue({ ds_auction_value: 30, market_auction_value: 28 } as never);
+        mockBoard.mockResolvedValue([]);
+    });
+
+    test("get_player drops the projection and auction values, saying why", async () => {
+        mockSeasonContext.mockResolvedValue(IN_SEASON);
+        const body = payload(await tool("get_player").handler({ ottoneu_id: 100 }));
+        expect(body.projection).toBeNull();
+        expect(body.auction_values).toBeNull();
+        expect(String(body.projection_note)).toMatch(/PRESEASON/);
+        expect(String(body.projection_note)).toMatch(/get_weekly_projections/);
+        // Not merely hidden — never fetched, so nothing can leak.
+        expect(mockPlayerProjection).not.toHaveBeenCalled();
+        expect(mockDraftSharks).not.toHaveBeenCalled();
+    });
+
+    test("get_player keeps the projection in the offseason", async () => {
+        const body = payload(await tool("get_player").handler({ ottoneu_id: 100 }));
+        expect((body.projection as Record<string, unknown>).projected_ppg).toBe(11.8);
+        expect(body.projection_note).toBeUndefined();
+        expect(body.auction_values).not.toBeNull();
+    });
+
+    test("get_projections withholds the board unless explicitly asked", async () => {
+        mockSeasonContext.mockResolvedValue(IN_SEASON);
+        const body = payload(await tool("get_projections").handler({}));
+        expect(body.withheld).toBe(true);
+        expect(body).not.toHaveProperty("players");
+        expect(String(body.note)).toMatch(/PRESEASON/);
+        expect(mockBoard).not.toHaveBeenCalled();
+    });
+
+    test("get_projections include_preseason returns the board with a caveat", async () => {
+        mockSeasonContext.mockResolvedValue(IN_SEASON);
+        const body = payload(await tool("get_projections").handler({ include_preseason: true }));
+        expect(body.withheld).toBeUndefined();
+        expect(body.players).toEqual([]);
+        expect(String(body.caveat)).toMatch(/PRESEASON/);
+    });
+
+    test("get_projections carries no caveat in the offseason", async () => {
+        const body = payload(await tool("get_projections").handler({}));
+        expect(body.caveat).toBeUndefined();
+        expect(body.withheld).toBeUndefined();
+    });
+
+    test("get_depth_chart drops projected_ppg in season only", async () => {
+        const { fetchDepthChartsForSeason } = jest.requireMock("@/lib/depth-charts");
+        (fetchDepthChartsForSeason as jest.Mock).mockResolvedValue([
+            { name: "A", team: "KC", position: "RB", depth_team: 1, prev_depth_team: 2, projected_ppg: 14.2 },
+        ]);
+        const off = payload(await tool("get_depth_chart").handler({ season: 2026 }));
+        expect((off.entries as Record<string, unknown>[])[0].projected_ppg).toBe(14.2);
+
+        mockSeasonContext.mockResolvedValue(IN_SEASON);
+        const on = payload(await tool("get_depth_chart").handler({ season: 2026 }));
+        expect((on.entries as Record<string, unknown>[])[0]).not.toHaveProperty("projected_ppg");
+    });
+
+    test("get_league_overview tells the agent the model is withheld", async () => {
+        mockSeasonContext.mockResolvedValue(IN_SEASON);
+        mockActiveModel.mockResolvedValue({ name: "v44", version: 44, description: "d" } as never);
+        const body = payload(await tool("get_league_overview").handler({}));
+        const ctx = body.season_context as Record<string, unknown>;
+        expect(String(ctx.framing)).toMatch(/preseason projection model is withheld/);
+        const model = body.active_projection_model as Record<string, unknown>;
+        expect(model.in_season_status).toBe("withheld");
+    });
+});
 
 // ─── Scoreboard & standings ──────────────────────────────────────────────────
 

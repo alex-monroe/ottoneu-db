@@ -27,12 +27,12 @@ import {
   ARB_MAX_PER_PLAYER_LEAGUE,
 } from "../config";
 import { getSeasonContextNow } from "../season";
+import { isPreseasonProjectionStale, PRESEASON_PROJECTION_NOTE } from "../preseason-projections";
 import {
   fetchPlayerList,
   fetchPlayerDetail,
   fetchPlayerProjection,
   fetchDraftSharksValue,
-  fetchPlayersEndOfSeason,
   fetchPlayerSetEndOfSeason,
   fetchPlayersPreArb,
   fetchActiveProjectionModel,
@@ -154,7 +154,12 @@ const FA_SALARY_NOTE =
  */
 function seasonFraming(phase: string, kickoff: string | null, today: string): string {
   if (phase === "in_season") {
-    return "The league season is underway; weekly matchup and live-scoring framing applies.";
+    return (
+      "The league season is underway; weekly matchup and live-scoring framing applies. " +
+      "This site's preseason projection model is withheld until the offseason — base trade " +
+      "and keep/cut reasoning on this season's actual production, get_weekly_projections, " +
+      "and public rest-of-season rankings, not on preseason projections or auction values."
+    );
   }
   const when = kickoff ? `does not open until ${kickoff}` : "has not opened yet";
   // Post-draft is still pre-season, but the auction is behind us: pointing an
@@ -210,7 +215,14 @@ async function getLeagueOverview(): Promise<McpToolResult> {
       next_boundary: ctx.nextBoundary,
     },
     active_projection_model: model
-      ? { name: model.name, version: model.version, description: model.description }
+      ? {
+          name: model.name,
+          version: model.version,
+          description: model.description,
+          ...(isPreseasonProjectionStale(ctx.phase)
+            ? { in_season_status: "withheld", note: PRESEASON_PROJECTION_NOTE }
+            : {}),
+        }
       : null,
   });
 }
@@ -336,10 +348,14 @@ async function getPlayer(rawArgs: unknown): Promise<McpToolResult> {
   const detail = await fetchPlayerDetail(ottoneuId);
   if (!detail) return errorResult(`No player with ottoneu_id ${ottoneuId}.`);
 
-  const display = await getDisplayWeeks();
+  const [display, ctx] = await Promise.all([getDisplayWeeks(), getSeasonContextNow()]);
+  // In season the preseason model and auction values are stale and became the
+  // anchor for trade/keep-cut advice, so they are not even fetched — an absent
+  // field cannot be quoted. See lib/preseason-projections.ts.
+  const stale = isPreseasonProjectionStale(ctx.phase);
   const [projection, draftSharks, weekly] = await Promise.all([
-    fetchPlayerProjection(detail.id),
-    fetchDraftSharksValue(detail.id),
+    stale ? Promise.resolve(null) : fetchPlayerProjection(detail.id),
+    stale ? Promise.resolve(null) : fetchDraftSharksValue(detail.id),
     display.season == null
       ? Promise.resolve(new Map())
       : fetchPlayerWeeklyProjections(
@@ -381,6 +397,7 @@ async function getPlayer(rawArgs: unknown): Promise<McpToolResult> {
     projection: projection
       ? { projected_ppg: round(projection.projected_ppg, 2), method: projection.projection_method }
       : null,
+    projection_note: stale ? PRESEASON_PROJECTION_NOTE : undefined,
     weekly_projections: {
       note:
         "Third-party per-game projections, scored under this league's rules. Different units and " +
@@ -388,7 +405,7 @@ async function getPlayer(rawArgs: unknown): Promise<McpToolResult> {
       upcoming: weeklyWeek(display.upcoming),
       previous: weeklyWeek(display.previous),
     },
-    auction_values: draftSharks,
+    auction_values: stale ? null : draftSharks,
     season_stats: detail.seasonStats.map((s) => ({
       season: s.season,
       total_points: round(s.total_points),
@@ -486,6 +503,17 @@ async function getProjections(rawArgs: unknown): Promise<McpToolResult> {
   const args = z.object(getProjectionsShape).parse(rawArgs);
   const limit = clampLimit(args.limit, 25, 100);
   const ctx = await getSeasonContextNow();
+  const stale = isPreseasonProjectionStale(ctx.phase);
+  if (stale && !args.include_preseason) {
+    return jsonResult({
+      projection_season: ctx.projectionSeason,
+      withheld: true,
+      note: PRESEASON_PROJECTION_NOTE,
+      how_to_override:
+        "Pass include_preseason: true only to look back at what the preseason model said " +
+        "(e.g. grading it), never as a forecast for the rest of this season.",
+    });
+  }
   const [board, dsMap] = await Promise.all([
     fetchProjectionBoard(ctx.projectionSeason, ctx.statsSeason),
     fetchDraftSharksMap(ctx.projectionSeason),
@@ -503,6 +531,7 @@ async function getProjections(rawArgs: unknown): Promise<McpToolResult> {
   return jsonResult({
     projection_season: ctx.projectionSeason,
     stats_season: ctx.statsSeason,
+    caveat: stale ? PRESEASON_PROJECTION_NOTE : undefined,
     salary_note: FA_SALARY_NOTE,
     count: rows.length,
     players: rows.map((r) => {
@@ -535,7 +564,10 @@ async function getProjections(rawArgs: unknown): Promise<McpToolResult> {
 async function getPlayerValues(rawArgs: unknown): Promise<McpToolResult> {
   const args = z.object(getPlayerValuesShape).parse(rawArgs);
   const limit = clampLimit(args.limit, 25, 100);
-  const players = await fetchPlayersEndOfSeason();
+  // Read with its stat window: dollar_value is full-season VORP extrapolated
+  // from PPG, so mid-season it is a few games' rate stated as a season's worth,
+  // and the caller needs to know that before quoting it.
+  const { players, window } = await fetchPlayerSetEndOfSeason();
   const surplus = calculateSurplus(players);
   const dollarPerVorp = computeDollarPerVorp(players);
 
@@ -549,8 +581,18 @@ async function getPlayerValues(rawArgs: unknown): Promise<McpToolResult> {
     .slice(0, limit);
 
   return jsonResult({
-    methodology: `Dollar values split the distributable cap ($${distributableCap()} = $${NUM_TEAMS * CAP_PER_TEAM} league cap minus the $1 salary floor on every roster spot) across positive-VORP production (min ${MIN_GAMES} games). Replacement level is the marginal ownable player — leaguewide lineup demand plus bye/injury depth, with the superflex slots allocated to whichever position offers the best next player. Surplus = dollar_value − salary.`,
+    methodology: `Trailing production value, not a forecast: each player's actual PPG in the stat window, extrapolated to a full season. Dollar values split the distributable cap ($${distributableCap()} = $${NUM_TEAMS * CAP_PER_TEAM} league cap minus the $1 salary floor on every roster spot) across positive-VORP production (min ${MIN_GAMES} games). Replacement level is the marginal ownable player — leaguewide lineup demand plus bye/injury depth, with the superflex slots allocated to whichever position offers the best next player. Surplus = dollar_value − salary.`,
     dollar_per_vorp: round(dollarPerVorp, 3),
+    stat_window: {
+      season: window.season,
+      label: window.label,
+      complete: window.complete,
+      games_of_17: window.games,
+      weeks_played: window.weeksPlayed,
+      caveat: window.complete
+        ? `A finished season's production. It says what a player was worth last year, not what he will be — weigh age, role changes, and public rankings before using it for a keep/cut or trade call.`
+        : `${window.season} is still being played: these values extrapolate ${window.games} game(s) of PPG to a full season, so they are noisy and swing week to week. Use them as one input alongside get_weekly_projections and public rest-of-season rankings, not as the answer.`,
+    },
     count: rows.length,
     players: rows.map((p) => ({
       name: p.name,
@@ -722,6 +764,7 @@ async function getDepthChart(rawArgs: unknown): Promise<McpToolResult> {
     if (seasons.length === 0) return errorResult("No depth chart data available.");
     season = seasons[0];
   }
+  const stale = isPreseasonProjectionStale((await getSeasonContextNow()).phase);
   const rows = (await fetchDepthChartsForSeason(season))
     .filter(
       (r) =>
@@ -741,7 +784,7 @@ async function getDepthChart(rawArgs: unknown): Promise<McpToolResult> {
       position: r.position,
       depth_team: r.depth_team,
       prev_depth_team: r.prev_depth_team,
-      projected_ppg: round(r.projected_ppg, 2),
+      ...(stale ? {} : { projected_ppg: round(r.projected_ppg, 2) }),
     })),
   });
 }
@@ -1006,7 +1049,7 @@ export const MCP_TOOLS: McpToolDef[] = [
   },
   {
     name: "get_player",
-    description: "Full detail for one player: identity, salary, fantasy team, season-by-season fantasy stats, active projection, auction value estimates, and recent transaction history. Look up by ottoneu_id or name.",
+    description: "Full detail for one player: identity, salary, fantasy team, season-by-season fantasy stats, weekly (per-game) projections, and recent transaction history. Look up by ottoneu_id or name. Outside the season it also carries this site's preseason projection and auction value estimates; during the season those are withheld (projection is null, with a projection_note saying what to use instead).",
     schema: getPlayerShape,
     handler: getPlayer,
   },
@@ -1024,8 +1067,10 @@ export const MCP_TOOLS: McpToolDef[] = [
   {
     name: "get_projections",
     description:
-      "Projected PPG board for the upcoming season from the league's active projection model, ranked overall and by " +
-      "position, including rookies. Compare against observed PPG from last season. Free agents (team_name='FA') have " +
+      "PRESEASON projected PPG board from this site's own model, built for arbitration and auction valuation when no " +
+      "public projections exist — ranked overall and by position, including rookies. It is not updated in season and " +
+      "is withheld once games start (pass include_preseason: true only to look back at it); do not use it for in-season " +
+      "trade or keep/cut decisions. Free agents (team_name='FA') have " +
       "salary=null — they are unowned, so there is no price to anchor a bid on; use auction_value / " +
       "market_auction_value for that.",
     schema: getProjectionsShape,
@@ -1033,7 +1078,7 @@ export const MCP_TOOLS: McpToolDef[] = [
   },
   {
     name: "get_player_values",
-    description: "VORP-based dollar values and surplus (value minus salary) for players with current-season stats, using end-of-season salaries. The core keep/cut/trade valuation metric in this format.",
+    description: "Trailing VORP-based dollar values and surplus (value minus salary) from actual production in the stat window, extrapolated to a full season, using end-of-season salaries. Not a forecast: read stat_window first — mid-season it rests on a handful of games. One input to keep/cut/trade decisions alongside weekly projections and public rankings, not the answer on its own.",
     schema: getPlayerValuesShape,
     handler: getPlayerValues,
   },
@@ -1058,7 +1103,7 @@ export const MCP_TOOLS: McpToolDef[] = [
   },
   {
     name: "get_depth_chart",
-    description: "Opening-day NFL depth chart tiers (1 = starter) with prior-season tier and projected PPG, filterable by NFL team or position.",
+    description: "Opening-day NFL depth chart tiers (1 = starter) with prior-season tier, filterable by NFL team or position. Outside the season each entry also carries this site's preseason projected PPG; that is withheld once games start.",
     schema: getDepthChartShape,
     handler: getDepthChart,
   },

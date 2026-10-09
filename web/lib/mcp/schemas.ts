@@ -52,6 +52,9 @@ export const getProjectionsShape = {
   position: positionEnum.optional(),
   team_name: z.string().optional().describe("Filter to one fantasy team's players (exact name); use 'FA' for free agents"),
   limit: limitParam(25, 100),
+  include_preseason: z.boolean().optional().describe(
+    "During the season the preseason board is withheld. Pass true only to look back at what it said (e.g. to grade it) — never as a rest-of-season forecast.",
+  ),
 } satisfies z.ZodRawShape;
 
 export const getPlayerValuesShape = {

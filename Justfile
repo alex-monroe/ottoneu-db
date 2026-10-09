@@ -137,9 +137,10 @@ analyze:
 check-db:
     {{python}} scripts/check_db.py
 
-# Build the roster-question context pack (live league data)  (e.g. just roster-context 2026)
-roster-context season="2026":
-    {{python}} scripts/roster_context_pack.py --season {{season}}
+# Build the roster-question context pack (live league data). Actual production in season,
+# preseason projections offseason  (e.g. just roster-context --season 2026 --source projection)
+roster-context *args:
+    {{python}} scripts/roster_context_pack.py {{args}}
 
 # Manage OAuth clients for the MCP server (create | list | revoke)
 # Only needed for clients that can't self-register via DCR — e.g. Gemini Spark's
