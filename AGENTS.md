@@ -2,134 +2,36 @@
 
 Canonical instructions for AI coding agents working on this repository.
 `CLAUDE.md` is a thin pointer at this file — put shared guidance here, not there.
+This file holds only what every task needs; everything else is one link away in
+[docs/INDEX.md](docs/INDEX.md). Keep it that way — it is loaded into every session.
 
 ## Project Overview
 
-Comprehensive database and analytics platform for Ottoneu Fantasy Football League 309 (12-team Superflex Half PPR). Python scripts scrape player data and NFL stats into a Supabase PostgreSQL database. A Next.js frontend provides interactive analytics and visualizations for player efficiency (PPG/PPS), VORP, surplus value, projected salaries, and arbitration targets.
+Database and analytics platform for Ottoneu Fantasy Football League 309 (12-team Superflex Half PPR). Python scripts scrape player data and NFL stats into Supabase (PostgreSQL); a Next.js frontend serves player efficiency, VORP, surplus value, projected salaries, arbitration, and in-season tools (matchups, pick'em, power rankings).
 
 **Tech stack:** Python 3.12 · Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Supabase (PostgreSQL) · Playwright · pandas · Recharts
 
 **Package Manager:** Always use `npm` for frontend dependencies and scripts. Do not use `pnpm`, `yarn`, or `bun`.
 
-**Python:** Always use `venv/bin/python` (not `python` or `python3`). The virtualenv is at `venv/`, not `.venv/`.
+**Python:** Go through `just` (below). The virtualenv is the main checkout's `venv/`, not `.venv/`.
 
-## Quick Reference
+## Where to look
 
-- **Onboarding:** See [docs/ONBOARDING.md](docs/ONBOARDING.md) for the guided first week — setup, the end-to-end trace of one number from nflverse to the screen, and how to ship a first change. Start here if you lack context on how the pieces connect.
-- **Glossary:** See [docs/GLOSSARY.md](docs/GLOSSARY.md) for the three vocabularies this repo mixes — Ottoneu/fantasy economics, NFL advanced stats, and ML evaluation methodology. Look terms up rather than guessing.
-- **Subsystem map:** See [docs/SUBSYSTEMS.md](docs/SUBSYSTEMS.md) for which of the six subsystems owns a given table, script, or route. Use it to scope a change before editing.
-- **Commands:** See [docs/COMMANDS.md](docs/COMMANDS.md) for all CLI commands (frontend, backend, Justfile recipes, cron)
-- **Architecture:** See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for system design, data pipeline, and analysis pipeline
-- **Frontend:** See [docs/FRONTEND.md](docs/FRONTEND.md) for routes, components, types, and config
-- **Code layout:** See [docs/CODE_ORGANIZATION.md](docs/CODE_ORGANIZATION.md) for key file locations and config
-- **Database:** See [docs/generated/db-schema.md](docs/generated/db-schema.md) for table schemas and relationships
-- **Testing:** See [docs/TESTING.md](docs/TESTING.md) for running Python and web tests
-- **Git workflow:** See [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) for branch and PR requirements
-- **Ottoneu rules:** See [docs/references/ottoneu-rules.md](docs/references/ottoneu-rules.md) for scoring, roster, salary cap, and arbitration rules
-- **Player valuation:** See [docs/references/player-valuation.md](docs/references/player-valuation.md) for where dollar values come from — the FanGraphs auction-calculator/Player-Rater algorithm and which parts a points league needs, the **lineup-derived replacement level** (`web/lib/replacement.ts`: leaguewide starting demand with the superflex slots allocated greedily, which makes the Superflex QB premium an arithmetic consequence rather than an assumption), the closed-economy dollar conversion (`$4,800 league cap − $240 salary floor = $4,560 distributable`, so values sum to the cap — this replaced a flat `× 0.875`), and **earned value** (`web/lib/earned-value.ts`, MCP `get_earned_value`) — the retrospective half, priced from actual season points, derived at read time like the standings. It also covers the **stat window** (`web/lib/stat-window.ts`) — how much football is behind a number, and the two things that must be prorated to read any of this mid-season, with `fraction === 1` a strict no-op so the retrospective pages are untouched. Read it before touching `vorp.ts` / `surplus.ts` / `earned-value.ts`
-- **Ottoneu strategy:** See [docs/references/ottoneu-strategy.md](docs/references/ottoneu-strategy.md) for format economics (surplus value, raise treadmill, Superflex QB premium, arbitration tax) and the reasoning checklist used by the `/ottoneu-roster-question` skill. Use the `/ottoneu-roster-question` skill (which loads this + live data via `just roster-context`) to answer advanced keeper/trade/auction/arbitration questions.
-- **Environment:** See [docs/references/environment-variables.md](docs/references/environment-variables.md) for `.env` setup
-- **MCP Server:** See [docs/references/mcp-server.md](docs/references/mcp-server.md) for the remote MCP endpoint (`/api/mcp/mcp`) that exposes league data (rosters, projections, values, arbitration) to MCP clients/AI agents. Dual auth: shared key via `MCP_API_KEY`, or per-user OAuth 2.1 (the site is its own authorization server — `web/lib/oauth/`, gated on `has_projections_access`) for clients like Gemini Spark that require it. Tool registry in `web/lib/mcp/tools.ts`; client provisioning via `just oauth-client`
-- **Roster CSV Reconciliation:** See [docs/references/roster-csv-reconciliation.md](docs/references/roster-csv-reconciliation.md) for the lighter-weight roster-state sync (`just reconcile-roster`) — ingests Ottoneu's `/csv/rosters` export into `league_prices` (+ inferred transactions) when the Playwright scrape is Cloudflare-blocked. Runs alongside the scrape via `.github/workflows/pull-roster-csv.yml` (daily/on-demand). Note: the CSV endpoint works from GitHub-hosted runners as long as an **honest User-Agent** is sent (spoofing a browser UA — not the datacenter IP — is what trips Cloudflare); `OTTONEU_COOKIE` is only an optional fallback. The CSV has no FAs/transaction history
-- **Transaction integrity:** A player's league status is a state machine — FA → `add` → OWNED → `cut` → FA, with `move` between teams and `increase` changing salary only. `scripts/transaction_state_machine.py` (`just check-transactions`) replays `transactions` against it and reports what the machine refuses (a rostered player cannot be added again; nobody can cut a free agent). Each edge also carries **salary** invariants verified across the full log: a trade never changes the salary, an `increase` must increase, and a card `cut` row records the cap penalty `ceil(salary/2)` — a checksum that catches a *missing* raise, so salary findings are report-only while ownership findings on an inferred row are repaired. The **same** rulebook guards `reconcile_roster.build_transaction_rows` at write time, so the audit and the guard cannot disagree. Repair is one-directional and converges to a fixpoint: only *inferred* rows are deleted, a violating **card** row is reported and exits nonzero. See the [state machine section](docs/references/roster-csv-reconciliation.md#impossible-moves-the-roster-state-machine)
-- **Weekly Projections:** See [docs/references/weekly-projections.md](docs/references/weekly-projections.md) for the in-season **per-game** projections (`just weekly-projections`) — ingested from Sleeper's public read-only API (free for non-commercial use; honest User-Agent, no key, no scraping), re-scored under Ottoneu rules into `weekly_projections`. Deliberately distinct from the seasonal model: `projected_points` (one game, third-party, market-aware) vs `projected_ppg` (season-long, ours, market-free). **Weekly projections must never feed `scripts/feature_projections/`** — enforced by `TestNoWeeklyProjectionsInModel`. NFL week is resolved by `scripts/nfl_week.py` / `web/lib/nfl-week.ts` (twins), flipping every **Tuesday 00:00 ET**. **Projections freeze at kickoff:** Sleeper revises projections after games are played, so once a row's `game_date` is past (or it has an actual) the ingest never overwrites or clears its projection (`apply_kickoff_freeze`) — see [the kickoff freeze](docs/references/weekly-projections.md#the-kickoff-freeze)
-- **Matchups & Standings:** See [docs/references/matchups-and-standings.md](docs/references/matchups-and-standings.md) for the in-season layer (`just scrape-matchups`) — the league's head-to-head game log in `league_matchups`, scraped from the public `/schedule` page plus the `/csv/schedule` export (plain HTTP, honest User-Agent). **Standings, seeding and the playoff picture are DERIVED from those rows at read time** (`web/lib/standings.ts`), never scraped into a second table — so a half-played Sunday shows live standings, and there is no second source of truth to drift. Only `game_type='regular'` counts; the tiebreak is wins then points for, pinned by a test against the league's real 2025 final standings. Surfaced on `/scoreboard` (public) and the homepage, and over MCP as `get_scoreboard` / `get_standings`. **Lineups** are a second table, `matchup_lineups` (`just scrape-lineups`, same workflow), scraped from each game's public box score; `/scoreboard/[gameId]` shows both lineups with each player's original projection beside his points, and the **live matchup projection** (finished starters' points + remaining starters' projections) is derived at read time in `web/lib/live-matchup.ts`, never stored. Ottoneu's own Proj column is not stored — it turns into the actual after a game. **Weekly pick'em** (`/pickem`, [section](docs/references/matchups-and-standings.md#weekly-pickem)): signed-in users pick every matchup's winner; picks lock Thursday 20:00 ET (noon on Thanksgiving) on a clock, not on `league_matchups.status` (which flips on Wednesday); results and the public board are derived from the game log at read time; nobody's picks leave `buildBoard` before the lock (`web/lib/pickem.ts`, `pickem_picks`/`pickem_players`, migration 046)
-- **Mock Draft:** See [docs/references/mock-draft.md](docs/references/mock-draft.md) for the `/mock-draft` practice auction — a real-time (English) auction against AI opponents (`web/lib/mock-draft-live.ts`) plus the original turn-by-turn sealed-bid mode, both seeded from live rosters/caps and Draft Sharks market values. A setup slider adds **manager valuation noise** (0 → ±90%): each rival gets a private, draft-stable price for every player
-- **Snake Draft:** See [docs/references/snake-draft.md](docs/references/snake-draft.md) for `/snake-draft` — a **non-Ottoneu, public (no sign-in), no-database** practice snake draft for other redraft leagues (configurable teams / draft slot / lineup / rounds, same manager-valuation-noise slider). The board is The Athletic's published 12-team PPR 1-QB VORP table, checked in at `web/lib/data/athletic-vorp.ts`; a different league format shifts each position's replacement baseline (exactly zero correction at the published format)
-- **Auction Simulator:** See [docs/references/auction-simulator.md](docs/references/auction-simulator.md) for the offline Monte-Carlo keeper-auction sim (`scripts/auction_simulator.py`) — thousands of simulated drafts to price a target list. The `/mock-draft` AI opponents are a port of its heuristics
-- **League Explorer:** See [docs/references/league-explorer.md](docs/references/league-explorer.md) for the cross-league survey tool (`just league-explorer`) — scrapes other public Ottoneu leagues (settings, standings history, champions, roster/salary snapshots) into a local SQLite DB at `data/league_explorer/`, separate from Supabase
-- **Podcast tools:** See [docs/references/podcast-tools.md](docs/references/podcast-tools.md) for the `/podcast` production tooling and the **podcaster role** — a third `users` flag (`is_podcaster`, migration 040) that is deliberately independent of `is_admin` and `has_projections_access`, since a host needs neither to record a show. Route policy lives in `web/lib/access.ts` (`PODCASTER_ROUTES`) like every other gate; `/podcast` itself is ungated because it is the page that explains the gate *and* re-signs a session cookie that predates the grant (the cookie is a 7-day snapshot of the role flags — `verifySession` accepts both the pre- and post-role payload shapes, so adding the field signed nobody out). First tool: the **power-rankings consolidator** — each host submits an independent ballot, and `/podcast/power-rankings/reveal` counts the consolidated order down from twelfth to first, live, one keypress at a time. Consolidation is mean rank with ties broken towards conviction (`web/lib/power-rankings.ts`). A ballot row carries two notes with opposite audiences — the on-air one-liner and a **private working note** (`prep_note`, migration 042) that is private by construction: `fetchBallots` does not select the column, so nothing that reaches the reveal has a field to leak it. Rows also show the team's optimal-lineup projection for the week inline, with the lineup and bench on hover (`web/lib/team-snapshot.ts`). **Listeners vote too** (`/power-rankings/vote`, signed-in non-hosts): `power_ranking_ballots.voter_kind` (migration 045) keeps their ballots **out of the reveal** — `fetchBallots` defaults to host ballots and only `web/lib/community-rankings.ts` asks for everyone — and feeds the public **community ranking** at `/power-rankings`, which publishes itself Thursday 09:00 ET (hosts can publish early or hold from `/podcast`) and carries no per-voter fields. A weekly workflow (`post-power-rankings.yml`, Thursday 14:15 UTC) **posts the published week to the league Discord** via `web/scripts/post-power-rankings.ts` — a `tsx` script calling the page's own lib functions, never a private week ([section](docs/references/podcast-tools.md#the-discord-post)); a second (`post-vote-reminder.yml`, Wednesday noon Pacific) reminds listeners to vote while voting is open. Second tool: the **weekly recap** (`/podcast/recap`) — episode prep for the week that just finished, derived at read time in `web/lib/weekly-recap.ts` from the stored lineups, the kickoff-frozen projections, the game log and that week's consolidated ranking. No recap table: like the standings, it is a function of rows other subsystems already own. It keeps **three kinds of surprise** distinct — player vs his frozen projection, team vs its starters' projected total (an *upset* is the lower-projected side winning), and team vs where the hosts ranked it — and a missing projection is never treated as zero. Defaults to the last **finished** week, not the one being played
-- **Autonomous operation:** See [docs/references/autonomous-operation.md](docs/references/autonomous-operation.md) for the permission-friction strategy — allowlist design, prompt-rate metrics (`just permission-report`), and the `.devcontainer/` for safely running `claude --dangerously-skip-permissions`
-- **UX journeys:** See [docs/exec-plans/ux-journeys.md](docs/exec-plans/ux-journeys.md) — the nine key user journeys the site serves (in-season weekly loop, player lookup, arbitration, keep/cut, auction prep, post-auction review, first visit/access, operator data checks, MCP agents), the cross-cutting UX findings behind them, and the phased improvement plan. Read it before changing navigation, gating, or page structure in `web/`
-- **UX design review:** See [docs/exec-plans/ux-design-review-2026-09.md](docs/exec-plans/ux-design-review-2026-09.md) — a design pass over the shipped overhaul (#707–#716). Finds that the IA landed but the *visual* layer did not: no design tokens, 9 surface pairings, 16 hand-rolled tables beside `DataTable`, Geist loaded but overridden by Arial, position badges below WCAG contrast, and no `loading.tsx`/`error.tsx`/`not-found.tsx` anywhere. Read it before styling work in `web/`
-- **Season cycle:** See [docs/exec-plans/season-cycle.md](docs/exec-plans/season-cycle.md) — the site rolls between Ottoneu seasons from the `league_calendar` table; the current season is resolved at runtime via `scripts/season.py` and `web/lib/season.ts`, not from static config
-- **Projection Accuracy Plan:** See [docs/exec-plans/projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md) for the 4-phase accuracy improvement roadmap (Issues #271-#285)
-- **Projection Accuracy:** The gate for any projection change is the **leakage-free held-out harness** — `just holdout-eval` (#572/#594) + `just significance` (#573/#594), not the in-sample `just accuracy-report` (which is a secondary diagnostic only). See Projection Model Update Requirements below.
-- **Projection Iteration:** Use `/experiment` to run a full experiment loop (train → project → backtest → verdict). Use `/ablation` for feature ablation studies, `/feature-importance` for learned model inspection, `/compare-models` for side-by-side comparisons, `/diagnose-segment` for segment deep-dives.
-- **Market Projections:** See [docs/exec-plans/market-projections.md](docs/exec-plans/market-projections.md) for the market-based projection system (DEFERRED)
-- **Experiment Log:** See [docs/generated/experiment-log.md](docs/generated/experiment-log.md) for history of all model iteration attempts.
-- **Retrospective:** Use `/retro` skill after completing a task to surface friction points and open a PR with doc/skill improvements.
-- **Build System Spec:** See [docs/superpowers/specs/2026-04-19-build-system-design.md](docs/superpowers/specs/2026-04-19-build-system-design.md) for the transition specification to `just` build runner
-- **Build System Plan:** See [docs/superpowers/plans/2026-04-19-build-system-just.md](docs/superpowers/plans/2026-04-19-build-system-just.md) for the build system migration step-by-step plan
-
-## Documentation Map
-
-Skills (`.claude/commands/`): `ablation`, `compare-models`, `create-pr`, `diagnose-segment`, `experiment`, `feature-importance`, `ottoneu-roster-question`, `projection-accuracy`, `retro`, `review-permission-gates`, `run-analyses`, `run-scraper`, `run-tests`, `start-dev`
-
-```
-AGENTS.md                              ← you are here
-CLAUDE.md                              ← pointer at this file (Claude Code specifics only)
-README.md                              ← human entry point
-docs/
-├── ONBOARDING.md                      # Guided first week: setup → end-to-end trace → first change
-├── GLOSSARY.md                        # Fantasy economics, NFL advanced stats, ML methodology terms
-├── SUBSYSTEMS.md                      # Six subsystems: which tables/scripts/routes/docs each owns
-├── ARCHITECTURE.md                    # System design, data + analysis pipelines, tech stack
-├── CODE_ORGANIZATION.md               # Key file locations, Python/TS config
-├── COMMANDS.md                        # All CLI commands (frontend, backend, Justfile recipes, cron)
-├── FRONTEND.md                        # Routes, components, types, analysis logic
-├── GIT_WORKFLOW.md                    # Branch strategy, PR requirements
-├── TESTING.md                         # Python + web test setup and CI
-├── exec-plans/
-│   ├── [data-acquisition-spike-651.md](docs/exec-plans/data-acquisition-spike-651.md)  # Spike #651: next data-acquisition lever — coaching change built→TIE, FA/contract next
-│   ├── [feature-projections.md](docs/exec-plans/feature-projections.md)         # Feature-based player projection system
-│   ├── [market-projections.md](docs/exec-plans/market-projections.md)          # Market-based projection system (DEFERRED)
-│   ├── [projection-accuracy-improvement.md](docs/exec-plans/projection-accuracy-improvement.md)  # 4-phase accuracy improvement roadmap
-│   ├── [projection-methodology-audit.md](docs/exec-plans/projection-methodology-audit.md)  # ML-quality audit: train/test leakage + eval findings (#571–#577)
-│   ├── [projection-system-review.md](docs/exec-plans/projection-system-review-2026-06.md)  # 2026-06 expert review + implementation plan (#594–#599, waves for #587–#592)
-│   ├── [structural-projection-levers-667.md](docs/exec-plans/structural-projection-levers-667.md)  # Spike #667 CLOSED: structural levers — L4 ranking gate built; L3 EB pooling (v44) SIGNIFICANT QB win → PROMOTED 2026-07-25, now the active model; L1/L5 efficiency reframes tie/negative; L2 feasible-but-deprioritized
-│   ├── [python-312-upgrade-spike.md](docs/exec-plans/python-312-upgrade-spike.md)  # Spike: Py3.9→3.12 + pandas 2.x — GO verdict + nfl_data_py blocker (#627)
-│   ├── [qb-usage-share.md](docs/exec-plans/qb-usage-share.md)              # QB Usage Share findings and next steps
-│   ├── [season-cycle.md](docs/exec-plans/season-cycle.md)                # Cross-season data & UI scheme (date-driven season-cycle resolver)
-│   ├── [ux-design-review-2026-09.md](docs/exec-plans/ux-design-review-2026-09.md)  # 2026-09 design review of the shipped UX overhaul: no design-token layer, contrast + navigation-feedback gaps
-│   └── [ux-journeys.md](docs/exec-plans/ux-journeys.md)                 # Key user journeys, UX findings, phased improvement plan
-├── generated/
-│   ├── [db-schema.md](docs/generated/db-schema.md)                   # Database tables, keys, relationships
-│   ├── [experiment-log.md](docs/generated/experiment-log.md)              # History of all model iteration attempts
-│   ├── [player-diagnostics.md](docs/generated/player-diagnostics.md)          # Per-player backtest diagnostics
-│   ├── [projection-accuracy.md](docs/generated/projection-accuracy.md)         # Projection model accuracy report (in-sample; see audit caveat)
-│   ├── [projection-holdout-eval.md](docs/generated/projection-holdout-eval.md)     # Held-out (leakage-free) model re-ranking — `just holdout-eval` (#572); naïve baselines (#575)
-│   ├── [projection-holdout-eval-matched.md](docs/generated/projection-holdout-eval-matched.md) # Held-out re-ranking on the common player set — apples-to-apples FantasyPros — `just holdout-eval --matched` (#575)
-│   ├── [projection-holdout-eval-rolling.md](docs/generated/projection-holdout-eval-rolling.md) # Held-out re-ranking, rolling-origin protocol — `just holdout-eval --protocol rolling` (#594)
-│   ├── [projection-availability-eval.md](docs/generated/projection-availability-eval.md) # Availability-inclusive backtest — rate vs availability budget — `just availability-backtest` (#574)
-│   ├── [coverage-analysis.md](docs/generated/coverage-analysis.md)            # Qualifying-population coverage: player_stats vs nflverse — `just coverage-report` (#599)
-│   ├── [rookie-backtest.md](docs/generated/rookie-backtest.md)             # Rookie (0-history) projection backtest — draft_capital vs baselines
-│   └── [segment-analysis.md](docs/generated/segment-analysis.md)            # Segmented projection accuracy analysis
-├── references/
-│   ├── [autonomous-operation.md](docs/references/autonomous-operation.md)        # Permission-friction strategy: allowlist, prompt metrics, devcontainer
-│   ├── environment-variables.md       # .env and .env.local variable reference
-│   ├── [league-explorer.md](docs/references/league-explorer.md)             # Cross-league survey: other Ottoneu leagues → local SQLite (just league-explorer)
-│   ├── [roster-csv-reconciliation.md](docs/references/roster-csv-reconciliation.md)  # /csv/rosters → league_prices sync (just reconcile-roster) — Cloudflare-blocked-scrape fallback
-│   ├── [auction-simulator.md](docs/references/auction-simulator.md)         # Offline Monte-Carlo keeper-auction sim (scripts/auction_simulator.py)
-│   ├── [mock-draft.md](docs/references/mock-draft.md)                 # /mock-draft practice auction: live real-time mode + turn-by-turn
-│   ├── [matchups-and-standings.md](docs/references/matchups-and-standings.md) # In-season game log; standings/playoff picture derived, not scraped
-│   ├── [weekly-projections.md](docs/references/weekly-projections.md) # In-season per-game projections from Sleeper; NFL-week resolver; never feeds the model
-│   ├── [player-valuation.md](docs/references/player-valuation.md)          # Where dollar values come from: replacement level, closed-economy conversion, earned value
-│   ├── [snake-draft.md](docs/references/snake-draft.md)                # /snake-draft: public, non-Ottoneu snake draft off a checked-in VORP board
-│   ├── [mcp-server.md](docs/references/mcp-server.md)                  # Remote MCP endpoint (/api/mcp/mcp): league-data tools for AI agents, bearer-key auth
-│   ├── [podcast-tools.md](docs/references/podcast-tools.md)             # /podcast: the podcaster role + the power-rankings consolidator and reveal
-│   ├── ottoneu-rules.md               # Scoring, roster, salary cap, arbitration rules
-│   └── ottoneu-strategy.md            # Format economics + AI reasoning checklist for roster construction
-└── superpowers/
-    ├── plans/
-    │   └── [2026-04-19-build-system-just.md](docs/superpowers/plans/2026-04-19-build-system-just.md) # Transition from Make to Just plan
-    └── specs/
-        └── [2026-04-19-build-system-design.md](docs/superpowers/specs/2026-04-19-build-system-design.md) # Just build system specification
-```
+- **First time here:** [docs/ONBOARDING.md](docs/ONBOARDING.md) (setup → end-to-end trace → first change) and [docs/GLOSSARY.md](docs/GLOSSARY.md) (fantasy economics, NFL stats, ML methodology — look terms up rather than guessing).
+- **Scoping a change:** [docs/SUBSYSTEMS.md](docs/SUBSYSTEMS.md) says which subsystem owns a table, script or route; [docs/INDEX.md](docs/INDEX.md) has a summary of every subsystem reference and the full doc map. Read the entry for the area you are touching before editing it.
+- **Core references:** [ARCHITECTURE](docs/ARCHITECTURE.md) · [CODE_ORGANIZATION](docs/CODE_ORGANIZATION.md) · [COMMANDS](docs/COMMANDS.md) · [FRONTEND](docs/FRONTEND.md) · [TESTING](docs/TESTING.md) · [GIT_WORKFLOW](docs/GIT_WORKFLOW.md) · [db-schema](docs/generated/db-schema.md) · [environment variables](docs/references/environment-variables.md) · [Ottoneu rules](docs/references/ottoneu-rules.md)
+- **Projection work:** [docs/references/projection-model-changes.md](docs/references/projection-model-changes.md), and the `/experiment`, `/ablation`, `/feature-importance`, `/compare-models`, `/diagnose-segment`, `/projection-accuracy` skills.
+- **Roster/strategy questions:** the `/ottoneu-roster-question` skill (loads [ottoneu-strategy.md](docs/references/ottoneu-strategy.md) + live data).
+- **Agent harness:** [docs/references/autonomous-operation.md](docs/references/autonomous-operation.md) (permissions, sandbox, devcontainer) and [docs/references/harness-controls.md](docs/references/harness-controls.md) (every hook/guard and why it exists). After a task, `/retro` turns friction into doc/skill fixes.
 
 ## GitHub Repository
 
-When using GitHub MCP tools or `gh` CLI, the repository coordinates are:
-- **Owner:** `alex-monroe`
-- **Repo:** `ottoneu-db` (hyphen, not underscore)
-
-Note: The local directory is `ottoneu_db` (underscore) but the GitHub repo name uses a hyphen.
+Owner `alex-monroe`, repo `ottoneu-db` (hyphen — the local directory is `ottoneu_db`, underscore). Use the `gh` CLI.
 
 ## Worktree Notes
 
-- **Python venv:** The virtualenv lives at the main repo's `venv/`, not in worktrees. In a worktree, use the absolute path `<main-repo>/venv/bin/python` instead of `source venv/bin/activate` or relative `venv/bin/python`. The `source venv/bin/activate` command will fail in worktrees.
-- **Production actions** (like `promote.py`) should run from the main repo after merging, not from a worktree, since they modify shared production data.
-- **Directory creation:** Prefer `mcp__filesystem__create_directory` over `Bash(mkdir -p ...)` — the MCP tool is pre-approved and avoids a permission prompt.
+- **Python works unchanged in a worktree via `just`:** the Justfile falls back to the main checkout's `venv/` and sets `PYTHONPATH` to the worktree, so your edits (not main's code) run. `.env` is found by searching upward. `web/node_modules` is per-checkout — run `just worktree-setup` once if it is missing (`just doctor` says so).
+- **Production actions** (like `just promote` or `just analyze`) should run from the main checkout after merging, not from a worktree, since they modify shared production data.
 
 ## Python Style
 
@@ -153,75 +55,29 @@ Run `just check-arch` to validate these rules locally.
 
 ## Critical Rules
 
-- **Always use `just <recipe>`** instead of invoking Python, pytest, or npm scripts directly. This ensures the correct venv and flags are used, and keeps the agent allowlist minimal. Run `just --list` to see available recipes. Common ones: `just typecheck`, `just lint`, `just test-web`, `just test-python`, `just train MODEL`, `just project MODEL`, `just backtest MODEL`, `just promote MODEL`, `just accuracy-report`, `just diagnostics`, `just segment-analysis`, `just analyze` (runs `update_projections.py` — re-projects the active model + promotes to `player_projections` + rookie fallback), `just backfill-nfl-stats`, `just backfill-draft-capital`, `just backfill-vegas`, `just backfill-depth-charts`, `just seed-win-totals`, `just scrape-draft-sharks`, `just reconcile-roster` / `just scrape-player-cards` (Ottoneu roster + transactions over plain HTTP — no browser), `just dev` / `just dev-stop` (start/stop the Next.js dev server — use `dev-stop` instead of raw `pkill`). For ad-hoc DB inspection use `just py "<snippet>"`.
+- **Always use `just <recipe>`** instead of invoking Python, pytest, or npm scripts directly. It picks the right venv (the main checkout's, from a worktree), pins imports to the current checkout, and keeps the allowlist small. `just --list` shows every recipe; [docs/COMMANDS.md](docs/COMMANDS.md) explains them. Everyday ones: `just preflight`, `just test`, `just dev` / `just dev-stop` (never raw `pkill`), and `just py "<snippet>"` for ad-hoc DB inspection.
 - **When something is off, run `just doctor` first.** It diagnoses the known environment traps (stale editable mapping, broken venv, missing `.env` keys, stale `web/node_modules`, stale `.cache/holdout`) offline in ~1s and prints the fix for each.
 - **Editable install can run stale `scripts/` code.** If a `scripts/*.py` edit doesn't take effect via `venv/bin/python scripts/foo.py` (but works via `python -c`), the editable install is likely pinned to a stale `.claude/worktrees/` path — `just doctor` flags this; the fix is `venv/bin/pip install -e .` from the project root. See [docs/TESTING.md](docs/TESTING.md#gotcha-editable-install-can-pin-scripts-to-a-stale-worktree).
-- **New DB tables need a TS type + the config contract is enforced.** After adding a table (e.g. via `mcp__supabase__apply_migration` or Supabase dashboard), hand-add its `Row`/`Insert`/`Update` block to `web/types/supabase.ts` or `npx tsc` fails — hand-add rather than fully regenerating to avoid churning the `fp_*` tables. Separately, every key in `config.json` is rendered into the generated constant blocks of `scripts/config.py` and `web/lib/config.ts` by `just gen-config`; `scripts/tests/test_architecture.py` (`TestConfigCodegen`) fails if those blocks are stale. So to add/remove a key: edit `config.json`, then run `just gen-config`.
-- **Do not touch `fp_*` tables.** The Supabase project is shared with the `fantasy-pulse` app. Tables whose names start with `fp_` (currently `fp_notes`, `fp_user_integrations`, `fp_leagues`, `fp_teams`, but the prefix is the rule, not the list) are owned by that other codebase. Do not read from, write to, alter, drop, or migrate them from this repo. They will appear in `list_tables` output and in regenerated Supabase TS types — ignore them. See [docs/generated/db-schema.md](docs/generated/db-schema.md#shared-database--hands-off-fp_).
+- **New DB tables need a TS type; config is codegen'd.** Hand-add the table's `Row`/`Insert`/`Update` block to `web/types/supabase.ts` (don't fully regenerate — it churns `fp_*`), then `just check-schema`. Full migration steps: [docs/references/database-workflow.md](docs/references/database-workflow.md).
+- **Do not touch `fp_*` tables.** The Supabase project is shared with the `fantasy-pulse` app, which owns every table prefixed `fp_` (the prefix is the rule, not any list). Never read, write, alter, drop or migrate them from this repo; ignore them in `list_tables` and generated types. See [docs/generated/db-schema.md](docs/generated/db-schema.md#shared-database--hands-off-fp_).
 - **Update documentation:** Always try to update the agent documentation after completing a task. Update existing documents or add new documents and sections as needed to reflect architectural or contextual changes.
 - **Never commit directly to `main`.** All changes go through pull requests.
 - **Always create a PR.** Every task must end with `gh pr create --fill`.
 - **Run `just preflight` before pushing.** It mirrors CI's pass/fail (lint + typecheck + both test suites without coverage + doc checks) in ~9s, so failures surface locally instead of in a multi-minute CI round-trip. `just install-hooks` installs it as an opt-in pre-push hook (`git push --no-verify` to skip a WIP push).
-- **Start from updated main:** `git checkout main && git pull origin main` before branching.
+- **Start from the latest main without switching shared checkouts:** `git fetch origin main && git checkout -b <branch> origin/main`. Other sessions may be using the main checkout — never `git checkout main` there.
 - **Bash cwd persists between calls.** A `cd web && …` leaves the shell in `web/`, so a later repo-root-relative path (e.g. `git add web/next.config.ts`) silently fails. Prefer absolute paths, `git -C <repo-root>`, or re-`cd` explicitly rather than assuming the working directory.
 - See [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) for full details.
 
 ## Projection Model Update Requirements
 
-When any task modifies the projection system — including `scripts/feature_projections/`, `scripts/projection_methods.py`, `scripts/update_projections.py`, or `model_config.py` — you MUST validate it on the **leakage-free held-out harness**. The in-sample `accuracy-report` scores learned models on the seasons they trained on (methodology audit, Findings 1 & 2); it is a **secondary diagnostic only** and must never be the gate or the basis for a promote decision. Use `/experiment` to run this flow.
+Any change to `scripts/feature_projections/`, `scripts/projection_methods.py`, `scripts/update_projections.py` or `model_config.py` must be validated on the **leakage-free held-out harness**. Full protocol, commands and rationale: [docs/references/projection-model-changes.md](docs/references/projection-model-changes.md) — read it before starting. The non-negotiables:
 
-1. **Run the held-out re-rank** against the active model and the naïve baselines,
-   (confirm which model is active with `just list-models --check` — it is read from
-   `projection_models.is_active`, not hardcoded; as of 2026-08-31 it is `v44_eb_pooling_perpos`), on the rolling-origin protocol (#594). Learned models retrain out-of-sample inside the sandbox; additive/external models need their held-out projections generated first (`just project <name> 2023,2024,2025`). The cache (#597) makes re-runs fast.
-   ```
-   just holdout-eval --protocol rolling --eval-seasons 2023,2024,2025 --min-train-season 2021 \
-     --models <name>,<active-model>,naive_prior_season_ppg,position_mean_baseline
-   ```
-2. **Test significance vs the active model** (player-clustered paired bootstrap). This is the gate — a point-estimate MAE delta is **not** a result:
-   ```
-   just significance <name> <active-model> --protocol rolling --eval-seasons 2023,2024,2025 --min-train-season 2021
-   ```
-   **Ranking gate (#667 L4):** add `--metric spearman --position <QB|RB|WR|TE>` to bootstrap the **Spearman-ρ delta** instead of the MAE delta — the within-position *ordering* gate the downstream consumers (VORP, surplus, auction, keepers) actually care about (#598). The ranking signal is larger than the MAE signal, so this gate detects ordering wins/losses the underpowered MAE bootstrap is blind to (it confirmed FP significantly out-orders v33 at QB, ρ 0.71 vs 0.81, p=0.001). For ordering-targeted changes, gate on ρ and require MAE not significantly regress; for level changes, the reverse.
-   Availability-touching changes additionally run `just availability-backtest` and report **both** rate and availability MAE (#574).
-3. **In the PR description**, lead with the held-out ranking + significance verdict (and the per-position Ranking-quality rows, #598). Include the in-sample `accuracy-report` table only if labelled "in-sample diagnostic — not the ranking".
-4. **Promotion requires a *significant* held-out win over the active model** (CI excludes 0), never a point-estimate delta. Promote via `just promote <model>` (or `cli.py promote --model <name>`) — `update_projections.py` reads `projection_models.is_active` dynamically (no hardcoded `ACTIVE_MODEL`). Methodology copy on `/projections`, `/arbitration` (projected mode), and `/projection-accuracy` is rendered live by `<ActiveModelCard>` (`web/components/ActiveModelCard.tsx`) from `fetchActiveProjectionModel()`, so do **not** hardcode model names or feature lists in page copy.
+- **Gate on `just holdout-eval --protocol rolling` + `just significance` against the active model** (`just list-models --check`; never assume a name). The in-sample `just accuracy-report` is a diagnostic only, never the gate.
+- **Promote only on a *significant* held-out win** (CI excludes 0) — never a point-estimate delta. Lead the PR description with the held-out verdict.
+- **The final window (2025, then 2026 actuals) is confirmation-only** — one look per experiment.
+- **Feature changes update `scripts/tests/test_feature_projections.py`** (one `Test<FeatureName>Feature` class per feature).
 
-**Confirmation discipline (#594):** iterate against the rolling folds; the final window (2025, then 2026 actuals) is confirmation-only — one look per experiment. See [docs/exec-plans/projection-methodology-audit.md](docs/exec-plans/projection-methodology-audit.md) for the protocol. This ensures every projection change is empirically validated, out-of-sample, before merge.
+## Database
 
-### Feature changes require test updates
-
-When adding or rewriting a projection feature, check and update the corresponding tests in `scripts/tests/test_feature_projections.py`. Each feature class has a `Test<FeatureName>Feature` test class. Behavioral changes (e.g., a feature that previously required 2 seasons now works with 1) will cause existing tests to fail in CI if not updated.
-
-### Rookie snap trajectory (weighted_ppg feature)
-
-The `WeightedPPGFeature` applies an H2/H1 snap-per-game multiplier to first-year players (`_rookie_trajectory`). This is appropriate for skill positions (WR/RB/TE) where rising snap share signals growing role. It is **not** appropriate for:
-
-- **QB**: A starting QB already receives all offensive snaps. A high H2/H1 ratio simply means they took over mid-season, not that they'll be better next year.
-- **K**: Snap counts are irrelevant to kicker scoring.
-
-`v12_no_qb_trajectory` and every model that inherits its base feature (e.g. `WeightedPPGNoQBTrajectoryFeature`) disable the trajectory for QB and K. Do not re-enable it for those positions in new models.
-
-### Database migration workflow
-
-Migration files live in `migrations/` and follow the `NNN_snake_case.sql` convention (zero-padded, contiguous sequence) documented in [migrations/README.md](migrations/README.md). The naming and sequence are linted offline by `just check-migrations` (also run under `just check-arch` and `just test-python`). The remote `supabase_migrations.schema_migrations` table — auditable via the `list_migrations` MCP tool — is the system of record for what has actually been applied.
-
-After creating a new migration file in `migrations/` (numbered as the current highest + 1) and applying it (via `mcp__supabase__apply_migration` or the Supabase dashboard):
-
-1. **Regenerate TypeScript types** using `mcp__supabase__generate_typescript_types` (or `npx supabase gen types typescript`).
-2. **Update `web/types/supabase.ts`** with the regenerated output so the Supabase client recognizes the new table.
-3. **Update `docs/generated/db-schema.md`** — add the new table to the table list and increment the table count.
-4. **Verify with `just check-schema`** — a read-only, on-demand drift check that introspects the live DB and diffs it against `web/types/supabase.ts` and `docs/generated/db-schema.md` (ignoring `fp_*`). It catches a skipped step 2 or 3 (table or column missing from types/docs) immediately instead of as a later confusing `tsc` error, and exits nonzero on drift.
-
-Skipping step 2 will cause TypeScript errors like `Argument of type '"new_table"' is not assignable to parameter of type '...'` when querying the new table.
-
-### Supabase pagination
-
-Supabase's Python client defaults to a **1000-row limit** on `.execute()` calls. Any query that may return more than 1000 rows must use paginated `.range(offset, offset + page_size - 1)` fetching in a loop. This has caused silent bugs in `promote.py`, `analysis_utils.fetch_multi_season_stats` (a 3-season history fetch is ~2k rows — truncation silently dropped player-season rows, corrupting weighted-PPG bases and projections), and `feature_projections/backtest.py` (a single recent season of `player_stats` now exceeds 1000 rows) — all now fixed. A single recent NFL season of `player_stats` is already >1000 rows, so even single-season fetches need pagination now. Apply the same pattern in any new bulk-fetch code.
-
-**The web JS/TS client (`web/lib/`) has the same 1000-row default cap.** This silently broke the `/depth-charts` season selector — `depth_charts` has thousands of rows, so a plain `.select("season")` returned only the most recent ~1000 and dropped older seasons (fixed in `web/lib/depth-charts.ts` by looping `.range()`). Watch for it on any web query against a large table (`depth_charts`, `nfl_stats`, `player_stats`, `model_projections`) — distinct-value or full-table reads must paginate, and a query meant for one model/season should filter (`.eq("model_id", …)`/`.eq("season", …)`) rather than fetch-all-then-filter, or it will both truncate and mix in other rows.
-
-**This is now mechanically enforced (#620).** `TestSupabasePagination` in `scripts/tests/test_architecture.py` and the "Supabase Pagination" suite in `web/__tests__/lib/architecture.test.ts` statically scan for non-paginated reads against the large tables (`player_stats`, `nfl_stats`, `depth_charts`, `model_projections` — the `LARGE_TABLES` list in each test, kept in sync across the two languages) and fail `just check-arch` if one is found. Read through the paginated helpers instead of a bare `.table(...).execute()` / `.from(...).select(...)`:
-- **Python:** `fetch_all_rows(supabase, table, select, filters=[("eq", "season", s)])` from `scripts.config` (filters accept `eq`/`in_`/`lt`/`gte`/`lte`), or `_fetch_seasons_paginated` / `fetch_multi_season_stats` in `analysis_utils`.
-- **Web:** `fetchAllRows((from, to) => supabase.from(table).select(...).eq(...).order("…").range(from, to))` from `web/lib/supabase.ts`.
-
-The scanners accept a non-paginated query only when it is provably bounded: a write (`upsert`/`insert`/`update`/`delete`), `.single()`/`.maybeSingle()`, a head-only `count`, `.limit(n)` with n < 1000, or an explicit `# pagination-safe: <reason>` (Python) / `// pagination-safe: <reason>` (web) comment on or just above the query.
+- **Migrations:** `migrations/NNN_snake_case.sql`, linted by `just check-migrations`. After applying one: update `web/types/supabase.ts` and `docs/generated/db-schema.md`, then `just check-schema`. Details: [docs/references/database-workflow.md](docs/references/database-workflow.md).
+- **Supabase reads cap at 1000 rows** (Python *and* web clients). Read large tables through `fetch_all_rows` (Python, `scripts.config`) or `fetchAllRows` (web, `web/lib/supabase.ts`); `just check-arch` fails on a non-paginated read of a large table.

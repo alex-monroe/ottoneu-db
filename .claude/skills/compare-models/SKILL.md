@@ -1,12 +1,11 @@
 ---
+name: compare-models
 description: Side-by-side comparison of 2-3 projection models with per-player divergence
 ---
 Compare 2–3 projection models side by side, **leading with held-out (leakage-free)
 metrics**. The in-sample `accuracy-report` / `cli.py compare` tables score
 learned models on data they trained on (Findings 1 & 2) — use them only for
 per-player divergence inspection, never to declare a winner.
-
-// turbo
 
 1. **Parse model names from arguments** (2–3 names, e.g. `v33 v14`). Resolve
    partial names to full names from `model_config.py` (`v33` → `v33_tuned_base`).

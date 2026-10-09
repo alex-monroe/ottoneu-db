@@ -1,13 +1,14 @@
 name: Claude Code Review
 
+# On-demand review: comment `/claude-review` on a PR, or run it from the Actions
+# tab. Not automatic on every PR — the local `/code-review` before `gh pr create`
+# is the faster loop, and an always-on reviewer mostly re-reads diffs the
+# authoring session already checked. (This used to auto-review PRs opened by
+# Jules; no PR has come from Jules in months.)
+
 on:
-  # Automatically review PRs opened by Jules (Google Labs Jules GitHub app)
-  pull_request:
-    types: [opened]
-  # Trigger by commenting /claude-review on a PR
   issue_comment:
     types: [created]
-  # Also allow manual trigger from the Actions tab
   workflow_dispatch:
     inputs:
       pr_number:
@@ -17,62 +18,46 @@ on:
 
 jobs:
   claude-review:
-    # For pull_request trigger: only run when Jules opens a PR
-    # For comment trigger: only run on PR comments (not issue comments) with the /claude-review command
+    # Comment trigger: PR comments only, from someone with write access to the repo
+    # (the repo is public — without the author check anyone could spend the token).
     if: |
-      (github.event_name == 'workflow_dispatch') ||
-      (github.event_name == 'pull_request' &&
-       github.event.action == 'opened' &&
-       github.event.pull_request.user.login == 'google-labs-jules[bot]') ||
-      (github.event_name == 'issue_comment' &&
-       github.event.issue.pull_request != null &&
-       contains(github.event.comment.body, '/claude-review'))
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.issue.pull_request != null &&
+       contains(github.event.comment.body, '/claude-review') &&
+       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
       pull-requests: write
       issues: write
+      id-token: write
 
     steps:
-      - name: Get PR number
-        id: pr
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "number=${{ github.event.inputs.pr_number }}" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "number=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Run Claude Code Review
-        uses: anthropics/claude-code-action@beta
+        uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          allowed_bots: "google-labs-jules[bot]"
-          # Review mode: post comments on the PR
-          direct_prompt: |
-            Please review the changes in PR #${{ steps.pr.outputs.number }}.
-            Focus on:
-            - Correctness and potential bugs
-            - Code quality and maintainability
-            - Security concerns
-            - Performance issues
-            - Consistency with existing patterns in the codebase
-            Post your review as comments on the pull request.
-            For any fixes or suggestions you make that should be addressed 
-            before the PR merges, create a separate PR comment for each that 
-            starts with "@jules" to inform the Jules Agent that there's more 
-            work to do
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.inputs.pr_number || github.event.issue.number }}
 
-            CRITICAL:
-            For any suggestions that need to be addressed that are marked with @jules,
-            make a SEPARATE PR comment than the main summary comment so that the Jules
-            agent will know to pick up the change. The Jules agent will only pick up
-            work in PR comments that start with @jules
+            Review this pull request. Read AGENTS.md first — it lists the
+            repo's architectural rules (enforced by tests), the fp_* table
+            rule, and the projection-model validation protocol.
+
+            Report only issues that would matter if merged: correctness bugs,
+            security problems, violations of AGENTS.md rules, and projection
+            changes that lack a held-out significance verdict. Skip style nits
+            that lint/typecheck already cover. Put each specific issue in an
+            inline comment; post one short top-level summary comment. If you
+            find nothing worth fixing, say so in one line.
+          claude_args: |
+            --max-turns 30
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"

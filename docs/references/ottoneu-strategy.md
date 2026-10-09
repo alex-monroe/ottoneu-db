@@ -227,4 +227,4 @@ These are the mistakes that come from standard-dynasty training data. Explicitly
 - [ottoneu-rules.md](ottoneu-rules.md) — exact mechanics, scoring, dates, constants.
 - `web/lib/vorp.ts`, `web/lib/surplus.ts`, `web/lib/arb-logic.ts` — the live formulas.
 - `docs/generated/db-schema.md` — where salaries, projections, and arbitration data live.
-- `.claude/commands/ottoneu-roster-question.md` — the skill that operationalizes §9.
+- `.claude/skills/ottoneu-roster-question/SKILL.md` — the skill that operationalizes §9.

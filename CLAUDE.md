@@ -19,12 +19,13 @@ If you are orienting a person rather than an agent, point them at
 
 ## Claude Code specifics
 
-- **Skills** (`.claude/commands/`): `ablation`, `compare-models`, `create-pr`,
+- **Skills** (`.claude/skills/`): `ablation`, `compare-models`, `create-pr`, `db-schema`,
   `diagnose-segment`, `experiment`, `feature-importance`, `ottoneu-roster-question`,
   `projection-accuracy`, `retro`, `review-permission-gates`, `run-analyses`,
-  `run-scraper`, `run-tests`, `start-dev`.
-- **Directory creation:** prefer `mcp__filesystem__create_directory` over
-  `Bash(mkdir -p ...)` — the MCP tool is pre-approved and avoids a permission prompt.
+  `run-scraper`, `run-tests`, `scraper-logic`, `start-dev`.
+- **Subagents** (`.claude/agents/`): `db-reader` (read-only SQL lookups) and
+  `projection-evaluator` (runs the held-out gate, returns the verdict). Both keep
+  long tool output out of the main context; each has a restricted tool list.
 - **Hook scripts** (`.claude/hooks/*.py`) run under the host's *system* `python3`, which
   may be older than the project's Python 3.12. Keep them stdlib-only and conservative.
 - **Permission friction:** the allowlist design, prompt-rate metrics

@@ -1,4 +1,5 @@
 ---
+name: ablation
 description: Run feature ablation study to measure individual feature contributions
 ---
 Measure each feature's contribution **on the leakage-free held-out harness**.
@@ -6,9 +7,7 @@ The old `hypothesis_test.py` flow is **in-sample only** (it scores over the same
 seasons the model trained on) and its 0.05/0.02 MAE thresholds are exactly the
 arbitrary-band decisions Finding 2 condemned — do not use it for verdicts.
 
-// turbo
-
-1. **Identify the target model** (default: the active model `v33_tuned_base`). If the
+1. **Identify the target model** (default: the active model (`just list-models --check` — read from `projection_models.is_active`; never assume a name)). If the
    user specifies a model, use that.
 
 2. **List the model's features** from `scripts/feature_projections/model_config.py`.

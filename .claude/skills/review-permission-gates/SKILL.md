@@ -1,4 +1,5 @@
 ---
+name: review-permission-gates
 description: Review Bash commands from the current session that required manual permission approval, group them by type, and evaluate which are candidates for new just targets or allowlist entries
 ---
 

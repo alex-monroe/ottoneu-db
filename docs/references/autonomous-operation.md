@@ -69,7 +69,9 @@ Components:
   pending tool name + input recovered from the transcript tail.
 - `.claude/hooks/permission_report.py` — aggregator. Numerator: logged prompts.
   Denominator: total `tool_use` blocks mined from
-  `~/.claude/projects/-Users-alexmonroe-dev-ottoneu-db/*.jsonl`.
+  `~/.claude/projects/-Users-alexmonroe-dev-ottoneu-db*/*.jsonl` — the trailing
+  `*` matters: worktree sessions write to sibling dirs, and before it was added
+  the report saw ~36 tool calls in 56 days.
 
 **The metric: prompts per 100 tool calls**, weekly. Raw prompt counts mislead —
 a heavy week prompts more in absolute terms even if friction per unit of work
@@ -91,6 +93,12 @@ Workflow:
 - The **regression check** catches drift (a new tool/habit/Claude Code release
   reintroducing prompts). Run it after settings or Justfile changes and
   periodically (e.g., as part of `/retro`).
+
+**Status (2026-10):** the log's last entry is 2026-06-16. Work since then has
+mostly run in the desktop app and auto mode, where approvals don't reach the
+Notification hook, so the numerator is effectively zero and the metric no longer
+measures friction. Keep it for terminal sessions; don't read "0 prompts" as "no
+friction".
 
 Known limitations: events accrue only from the date the hook landed (no
 retroactive data); background/bypass-permission sessions generate tool calls

@@ -10,6 +10,8 @@ This script checks:
 3. CLAUDE.md stays a thin pointer at AGENTS.md rather than drifting into a copy
 4. No orphan docs exist that aren't referenced anywhere
 5. Key files mentioned in CODE_ORGANIZATION.md still exist at the stated paths
+6. Agent skills live in one place, are well-formed, match CLAUDE.md's list, and
+   carry no commands that are broken or banned in this repo
 
 Usage:
     python scripts/check_docs_freshness.py          # Check and report
@@ -33,7 +35,16 @@ RESET = "\033[0m"
 # Docs whose markdown links are validated against the filesystem. README.md is the
 # human entry point and AGENTS.md the agent entry point; both rotted in the past
 # precisely because nothing checked them (see docs/ONBOARDING.md).
-LINK_CHECKED_DOCS = ["README.md", "AGENTS.md", "CLAUDE.md"]
+# docs/INDEX.md holds the full doc map that AGENTS.md used to carry inline; the
+# two references below took over AGENTS.md's long-form sections.
+LINK_CHECKED_DOCS = [
+    "README.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "docs/INDEX.md",
+    "docs/references/projection-model-changes.md",
+    "docs/references/database-workflow.md",
+]
 
 # Docs scanned for `just <recipe>` mentions. Recipes get renamed and removed; a doc
 # telling a newcomer to run a recipe that no longer exists is worse than no doc.
@@ -45,6 +56,9 @@ RECIPE_CHECKED_DOCS = [
     "docs/COMMANDS.md",
     "docs/TESTING.md",
     "docs/SUBSYSTEMS.md",
+    "docs/INDEX.md",
+    "docs/references/projection-model-changes.md",
+    "docs/references/database-workflow.md",
 ]
 
 # CLAUDE.md is deliberately a pointer at AGENTS.md (the two were ~95% duplicated and
@@ -64,6 +78,11 @@ def _markdown_link_targets(content: str) -> list[str]:
     return targets
 
 
+def _resolve_link(doc: str, target: str) -> Path:
+    """A markdown link target, resolved relative to the linking doc's directory."""
+    return ((PROJECT_ROOT / doc).parent / target.split("#")[0]).resolve()
+
+
 def check_entry_point_links() -> list[str]:
     """Verify that every local path linked from an entry-point doc exists."""
     issues = []
@@ -74,7 +93,7 @@ def check_entry_point_links() -> list[str]:
             continue
 
         for target in _markdown_link_targets(doc_path.read_text()):
-            if not (PROJECT_ROOT / target.split("#")[0]).exists():
+            if not _resolve_link(doc, target).exists():
                 issues.append(
                     f"{doc} references '{target}' but the file does not exist.\n"
                     f"  FIX: Either create {target} or update the link in {doc}."
@@ -207,7 +226,10 @@ def check_orphan_docs() -> list[str]:
             continue
         content = md_path.read_text()
         for target in _markdown_link_targets(content):
-            referenced.add(target.split("#")[0])
+            try:
+                referenced.add(str(_resolve_link(md_file, target).relative_to(PROJECT_ROOT.resolve())))
+            except ValueError:
+                continue
         # Also match bare paths in code blocks
         for match in re.finditer(r"(?:^|\s)(docs/\S+\.md)", content):
             referenced.add(match.group(1))
@@ -216,12 +238,82 @@ def check_orphan_docs() -> list[str]:
         rel_path = str(md_file.relative_to(PROJECT_ROOT))
         if rel_path not in referenced:
             issues.append(
-                f"'{rel_path}' exists but is not referenced from README.md, AGENTS.md,\n"
-                f"  CLAUDE.md, docs/SUBSYSTEMS.md or docs/ONBOARDING.md.\n"
+                f"'{rel_path}' exists but is not referenced from an entry point\n"
+                f"  (README.md, AGENTS.md, CLAUDE.md, docs/INDEX.md, docs/SUBSYSTEMS.md,\n"
+                f"  docs/ONBOARDING.md).\n"
                 f"  FIX: Either add a link to this file from one of those, or delete it\n"
                 f"  if it's no longer needed."
             )
 
+    return issues
+
+
+SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
+
+# Lines that once sat in skills and silently misled agents: `// turbo` is a
+# Windsurf/Antigravity directive Claude Code ignores; `source venv/bin/activate`
+# fails in worktrees and bypasses the `just`-first rule; `git checkout main`
+# yanks the branch out from under any other session sharing that checkout.
+BANNED_SKILL_PATTERNS = {
+    "// turbo": "a Windsurf/Antigravity directive — Claude Code ignores it",
+    "source venv/bin/activate": "fails in worktrees; use the matching `just` recipe",
+    "git checkout main": "disturbs shared checkouts; use `git fetch origin main` + branch from origin/main",
+}
+
+
+def _frontmatter(text: str) -> dict[str, str]:
+    if not text.startswith("---\n"):
+        return {}
+    block = text[4:].split("\n---", 1)[0]
+    fields = {}
+    for line in block.splitlines():
+        if ":" in line:
+            key, value = line.split(":", 1)
+            fields[key.strip()] = value.strip()
+    return fields
+
+
+def check_skills() -> list[str]:
+    """Skills are in .claude/skills only, well-formed, listed in CLAUDE.md, and clean."""
+    issues = []
+    legacy = PROJECT_ROOT / ".claude" / "commands"
+    if legacy.exists() and any(legacy.glob("*.md")):
+        issues.append(
+            ".claude/commands/ has skill files again.\n"
+            "  FIX: Skills live in .claude/skills/<name>/SKILL.md only — the two dirs\n"
+            "  previously held divergent copies of the same skill."
+        )
+    if not SKILLS_DIR.exists():
+        return issues
+
+    names = set()
+    for skill in sorted(SKILLS_DIR.glob("*/SKILL.md")):
+        rel = skill.relative_to(PROJECT_ROOT)
+        text = skill.read_text()
+        meta = _frontmatter(text)
+        dir_name = skill.parent.name
+        names.add(dir_name)
+        if meta.get("name") != dir_name or not meta.get("description"):
+            issues.append(
+                f"{rel} frontmatter needs `name: {dir_name}` and a `description:`.\n"
+                f"  FIX: The description is what makes the skill discoverable."
+            )
+        for pattern, why in BANNED_SKILL_PATTERNS.items():
+            if pattern in text:
+                issues.append(f"{rel} contains `{pattern}` — {why}.")
+
+    claude_md = PROJECT_ROOT / "CLAUDE.md"
+    if claude_md.exists():
+        content = claude_md.read_text()
+        match = re.search(r"\*\*Skills\*\*[^:]*:(.*?)(?:\n- |\n\n)", content, re.DOTALL)
+        listed = set(re.findall(r"`([a-z0-9-]+)`", match.group(1))) if match else set()
+        if listed != names:
+            issues.append(
+                "CLAUDE.md's **Skills** list does not match .claude/skills/.\n"
+                f"  Missing from CLAUDE.md: {sorted(names - listed) or 'none'}; "
+                f"listed but absent: {sorted(listed - names) or 'none'}.\n"
+                "  FIX: Update the list in CLAUDE.md."
+            )
     return issues
 
 
@@ -237,6 +329,7 @@ def main():
         ("CLAUDE.md is a pointer, not a copy", check_claude_md_is_pointer),
         ("CODE_ORGANIZATION.md paths", check_code_organization_paths),
         ("Orphan documentation files", check_orphan_docs),
+        ("Agent skills (.claude/skills)", check_skills),
     ]
 
     for name, check_fn in checks:
