@@ -23,9 +23,16 @@ If you are orienting a person rather than an agent, point them at
   `diagnose-segment`, `experiment`, `feature-importance`, `ottoneu-roster-question`,
   `projection-accuracy`, `retro`, `review-permission-gates`, `run-analyses`,
   `run-scraper`, `run-tests`, `scraper-logic`, `start-dev`.
-- **Subagents** (`.claude/agents/`): `db-reader` (read-only SQL lookups) and
-  `projection-evaluator` (runs the held-out gate, returns the verdict). Both keep
-  long tool output out of the main context; each has a restricted tool list.
+- **Subagents** (`.claude/agents/`), each with a restricted tool list and a pinned
+  model: `db-reader` (haiku — read-only SQL lookups), `ci-triage` (haiku — why a
+  GitHub Actions run failed), `command-runner` (haiku — runs forked skills such as
+  `run-tests`), `projection-evaluator` (sonnet — runs the held-out gate).
+- **Model routing:** the main session runs Opus; delegate work that needs little
+  context but produces a lot of output (logs, CI runs, SQL, evals, broad
+  searches) to a subagent, so only its summary reaches the main context. Don't
+  switch the main model mid-session or set `model:` on an inline skill — either
+  throws away the prompt cache. A skill changes model by forking
+  (`context: fork` + `agent:`), as `run-tests` does.
 - **Hook scripts** (`.claude/hooks/*.py`) run under the host's *system* `python3`, which
   may be older than the project's Python 3.12. Keep them stdlib-only and conservative.
 - **Permission friction:** the allowlist design, prompt-rate metrics

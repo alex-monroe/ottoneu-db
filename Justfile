@@ -33,7 +33,10 @@ install:
 # Prepare a linked worktree (.claude/worktrees/*) — links web/.env.local, installs web/node_modules
 worktree-setup:
     @if [ ! -e web/.env.local ] && [ -f "{{main_root}}/web/.env.local" ] && [ "{{main_root}}" != "{{justfile_directory()}}" ]; then ln -s "{{main_root}}/web/.env.local" web/.env.local && echo "Linked web/.env.local from the main checkout"; fi
-    cd web && npm ci --prefer-offline --no-audit --no-fund
+    @# Only install when missing: `npm ci` deletes node_modules first, and inside the sandbox the reinstall
+    @# fails on protected .idea dirs (iconv-lite ships one), leaving a broken half-tree. Refresh stale deps with
+    @# an approved, unsandboxed `cd web && npm ci`.
+    @if [ -d web/node_modules/.bin ]; then echo "web/node_modules present — leaving it alone (refresh: cd web && npm ci)"; else cd web && npm ci --prefer-offline --no-audit --no-fund; fi
 
 # Regenerate the dependency lock (uv.lock) + the pip-installable export (requirements.txt)
 # after editing dependencies in pyproject.toml. Requires uv (in the dev extras).
@@ -80,9 +83,15 @@ typecheck:
 # Run all tests (Python + web)
 test: test-python test-web
 
+# Prints the result line + total coverage; `just py-coverage` shows the per-file table
 # Run Python tests with coverage
 test-python:
-    {{pytest}}
+    {{pytest}} -o addopts= --cov=scripts --cov-report= -q --no-header -p no:warnings
+    @echo "coverage: $({{python}} -m coverage report --format=total)%  (per-file: just py-coverage)"
+
+# Per-file Python coverage with missing lines, from the last `just test-python` run
+py-coverage:
+    {{python}} -m coverage report -m --skip-covered
 
 # Run Jest tests with coverage
 test-web:
@@ -179,7 +188,7 @@ permission-report *args:
 # Fast pre-PR gate (<30s): lint + typecheck + both test suites (no coverage) + doc checks.
 # Mirrors CI's pass/fail so failures are caught locally, not in a multi-minute runner round-trip.
 preflight: lint typecheck
-    {{pytest}} --no-cov
+    {{pytest}} --no-cov -q --no-header -p no:warnings
     cd web && npx jest --no-coverage --ci
     {{python}} scripts/check_docs_freshness.py --strict
 

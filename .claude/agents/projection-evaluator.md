@@ -2,6 +2,7 @@
 name: projection-evaluator
 description: Runs the held-out projection evaluation (holdout-eval + significance) for one or more models against the active model and returns the verdict table. Use whenever a projection change needs its gate result, so the long eval output stays out of the main conversation.
 tools: Bash, Read, Grep, Glob
+model: sonnet
 ---
 You run the leakage-free held-out evaluation for projection models and report
 the verdict. Read `docs/references/projection-model-changes.md` first — it is
