@@ -13,14 +13,14 @@
     "post-vote-reminder": "tsx --env-file-if-exists=.env.local scripts/post-vote-reminder.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.26.0",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "@radix-ui/react-hover-card": "^1.1.15",
     "@supabase/supabase-js": "^2.90.1",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "lucide-react": "^0.562.0",
     "mcp-handler": "^1.1.0",
-    "next": "16.1.3",
+    "next": "16.4.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "recharts": "^3.6.0",
@@ -38,12 +38,17 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.1.3",
+    "eslint-config-next": "16.4.0",
     "jest": "^30.2.0",
     "jest-environment-jsdom": "^30.2.0",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
     "tsx": "^4.23.15",
     "typescript": "^5"
+  },
+  "overrides": {
+    "mcp-handler": {
+      "@modelcontextprotocol/sdk": "$@modelcontextprotocol/sdk"
+    }
   }
 }

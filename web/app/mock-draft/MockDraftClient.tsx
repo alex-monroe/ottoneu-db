@@ -101,10 +101,13 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
   }, [phase, mode, paused, speed, complete]);
 
   // when a new player comes on the block, seed the bid box with the book value
-  useEffect(() => {
+  // (adjusted during render rather than in an effect — react-hooks/set-state-in-effect)
+  const nomineeId = nominee?.id ?? null;
+  const [seededFor, setSeededFor] = useState<string | null>(null);
+  if (nomineeId !== seededFor) {
+    setSeededFor(nomineeId);
     if (me && nominee) setBidInput(String(suggestedBid(me, nominee)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nominee?.id]);
+  }
 
   function start() {
     const teams: DraftTeam[] = seeds.map((seed) => ({
