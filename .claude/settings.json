@@ -1,7 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
-    "NEXT_TELEMETRY_DISABLED": "1"
+    "NEXT_TELEMETRY_DISABLED": "1",
+    "NODE_USE_ENV_PROXY": "1"
   },
   "permissions": {
     "allow": [

@@ -136,8 +136,16 @@ without a prompt, because the OS enforces the boundary. The boundary:
 - **Local servers:** `allowLocalBinding` lets `just dev` listen and `curl`
   reach `localhost`.
 
-**Runs outside the sandbox:** `gh` (`excludedCommands` — Go CLIs fail TLS
-verification under Seatbelt), MCP servers, hooks, and Claude's own file tools.
+**Runs outside the sandbox:** the `excludedCommands` — `gh` (Go CLIs fail TLS
+verification under Seatbelt) plus whatever else is listed there — MCP servers,
+hooks, and Claude's own file tools.
+
+An excluded command only leaves the sandbox when the **whole call is plain**:
+every part matches an exclusion, with no `cd`, `$(...)`, heredoc, redirection
+(other than `2>&1`), subshell or control flow. `gh pr create --body "$(cat …)"`
+therefore stays sandboxed and fails TLS. The guard hook blocks such `gh` calls up
+front and says how to rewrite them: body via the Write tool + `--body-file`,
+`--jq` instead of piping, no `cd`.
 When a command fails inside the sandbox, Claude may retry it unsandboxed; that
 retry prompts unless an allow rule matches it (`just *` and `git *` do, by
 design — they were already trusted).
@@ -148,7 +156,11 @@ Known breakages and fixes:
 |---|---|
 | `psql` / any non-HTTP DB client can't connect | It ignores the proxy. Use `just py` / the Supabase MCP, or approve the unsandboxed retry |
 | A scraper hits a new host → network prompt / 403 from the proxy | Add the host to `allowedDomains` *and* `.devcontainer/allowed-domains.txt` |
-| `git` fails with `unable to unlink old` on `.claude/skills/...` | Protected path; approve the unsandboxed retry |
+| `git checkout`/`switch` fails with `unable to unlink old` / `unable to create file .claude/...`, or `git push -u` can't write `.git/config` | `.claude/skills`, `.claude/hooks`, `.claude/settings*.json` and `.git/config` are protected. Run it unsandboxed (or list working-tree git commands in `excludedCommands`). A failed sandboxed checkout can leave the index half-switched: check `git status` before continuing |
+| `next build` / any Node `fetch` fails with `fetch failed` / `ENOTFOUND` | Node's built-in fetch ignores `HTTPS_PROXY` unless `NODE_USE_ENV_PROXY=1` — set in `settings.json` `env` |
+| Build in a fresh worktree fails with `fetch failed` even outside the sandbox | No `web/.env.local` there — `just worktree-setup` symlinks it from the main checkout |
+| `npm install` / `npm ci` fails with `EPERM … node_modules/iconv-lite/.idea/…` | `.idea` dirs are protected anywhere under the working dir. Approve the unsandboxed retry — a deliberate checkpoint, since installs run package scripts. Fresh worktrees are installed by the SessionStart hook, which runs outside the sandbox |
+| Node prints `failed to copy trust settings of system certificate` | Noise from `NODE_USE_SYSTEM_CA` reading the keychain inside the sandbox; requests still succeed |
 | `pip install` into the main venv fails | The venv is outside the worktree; run it from the main checkout |
 
 Verified 2026-10 with a headless `claude -p --settings .claude/settings.json`
@@ -168,6 +180,11 @@ everything.
 | SQL (`execute_sql` / `apply_migration`) naming an `fp_*` identifier | The Supabase project is shared with fantasy-pulse, which owns `fp_*` | The projects are split |
 | `git commit` on `main`; `git push` to `main` | Every change goes through a PR | Branch protection covers local commits (it can't) |
 | `just promote` / `just analyze` from a linked worktree | They write shared production data; run from the main checkout after merge | Those recipes refuse to run from a worktree themselves |
+| A `gh` call that would stay sandboxed (not a plain call — see above) | gh fails TLS inside the sandbox; the first fix session hit it on every `gh pr create` with a heredoc body | gh works under Seatbelt, or the sandbox stops keeping substitutions/heredocs in |
+
+Rules 2–4 match only at a command position, never inside quoted strings or
+heredoc bodies — an earlier version blocked a script that merely *mentioned*
+`just promote` in a heredoc.
 
 Two more hooks support the loop:
 

@@ -148,3 +148,70 @@ def test_script_exits_2_with_reason_on_block():
 def test_script_fails_open(stdin):
     proc = subprocess.run([sys.executable, str(GUARD_PATH)], input=stdin, capture_output=True, text=True)
     assert proc.returncode == 0
+
+
+# ── rules match commands, not text that mentions them ─────────────────────
+
+@pytest.mark.parametrize("command", [
+    "python3 - <<'EOF'\nprint('run just promote v1 then just analyze')\nEOF",
+    "cat > notes.md <<EOF\ngit push origin main\nEOF",
+    'echo "never git push origin main"',
+    "git commit -m 'docs: explain why just promote must run from main'",
+])
+def test_mentions_inside_heredocs_and_quotes_do_not_block(command):
+    assert _check(_bash(command), branch="feature/x", worktree=True) is None
+
+
+# ── gh must leave the sandbox ─────────────────────────────────────────────
+
+EXCLUDED = ["gh *", "jq *", "git push *", "git fetch *"]
+
+
+def _gh(command, exclusions=EXCLUDED, **tool_input):
+    payload = _bash(command)
+    payload["tool_input"].update(tool_input)
+    return guard.check(payload, branch_of=lambda _d: "feature/x",
+                       is_worktree=lambda _d: False, exclusions=exclusions)
+
+
+@pytest.mark.parametrize("command, why", [
+    ('gh pr create --title t --body "$(cat <<EOF\nbody\nEOF\n)"', "substitution"),
+    ("gh pr create --title t --body-file - <<'EOF'\nbody\nEOF", "heredoc"),
+    ("gh pr view 1 --json body > body.json", "redirects"),
+    ("cd web && gh pr view 1", "cd"),
+    ("gh run view 5 --log | tail -50", "`tail`"),
+    ("npm test && gh pr create --fill", "`npm`"),
+    ("(gh pr view 1)", "subshell"),
+])
+def test_blocks_gh_calls_that_stay_sandboxed(command, why):
+    reason = _gh(command)
+    assert reason and "--body-file" in reason and why in reason
+
+
+@pytest.mark.parametrize("command", [
+    "gh pr create --title 'Fix > and (parens)' --body-file /tmp/body.md",
+    "gh pr view 1 --json state --jq .state",
+    "gh pr view 1 --json state | jq -r .state",
+    "git push -u origin HEAD && gh pr create --fill",
+    "gh run view 5 --log 2>&1",
+    "git status",
+    "echo 'gh pr view is how you check' ",
+])
+def test_allows_plain_gh_calls_and_non_gh_commands(command):
+    assert _gh(command) is None
+
+
+def test_explicit_unsandboxed_gh_is_allowed():
+    assert _gh("cd web && gh pr view 1", dangerouslyDisableSandbox=True) is None
+
+
+def test_pipe_allowed_only_when_target_is_excluded():
+    assert _gh("gh pr view 1 --json state | jq .", exclusions=["gh *"])
+
+
+def test_exclusions_are_read_from_project_settings(tmp_path):
+    (tmp_path / ".claude").mkdir()
+    (tmp_path / ".claude" / "settings.json").write_text(
+        json.dumps({"sandbox": {"excludedCommands": ["gh *", "tail *"]}}))
+    assert guard.excluded_patterns(str(tmp_path)) == ["gh *", "tail *"]
+    assert guard.excluded_patterns(str(tmp_path / "missing")) == ["gh *"]

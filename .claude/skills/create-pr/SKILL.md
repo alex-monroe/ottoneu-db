@@ -9,8 +9,11 @@ description: Create a pull request for current changes
 3. Stage the specific files you changed (`git add <paths>` — not `git add .`)
    and commit with a clear message.
 4. Push: `git push -u origin HEAD`
-5. Open the PR: `gh pr create --fill` (or with an explicit `--title`/`--body`),
-   and show the full PR URL.
+5. Open the PR as a *plain* `gh` call, so it runs outside the sandbox (gh fails
+   TLS inside it): write the description to a file with the Write tool, then
+   `gh pr create --title "<title>" --body-file <path>` (or `gh pr create --fill`).
+   No `$(cat <<EOF …)`, heredoc, `cd` or pipe in the same call — the guard hook
+   blocks those. Show the full PR URL.
 
 Projection-system changes must lead the PR body with the held-out verdict — see
 AGENTS.md "Projection Model Update Requirements".
