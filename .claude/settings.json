@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "NEXT_TELEMETRY_DISABLED": "1"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(just *)",
+      "Bash(git *)",
+      "Bash(gh pr *)",
+      "Bash(gh issue *)",
+      "Bash(gh run *)",
+      "Bash(gh workflow *)",
+      "Bash(gh repo view *)",
+      "Bash(gh label *)",
+      "Bash(gh api *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(jq *)",
+      "Bash(find *)",
+      "Bash(which *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(stat *)",
+      "Bash(lsof *)",
+      "Bash(awk *)",
+      "Bash(sort *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sed -n *)",
+      "Bash(pgrep *)",
+      "Bash(ps *)",
+      "Bash(date *)",
+      "Bash(basename *)",
+      "Bash(dirname *)",
+      "Bash(tr *)",
+      "Bash(cut *)",
+      "Bash(echo *)",
+      "Bash(printf *)",
+      "Bash(cd *)",
+      "Bash(pwd)",
+      "Bash(true)",
+      "Bash(mkdir *)",
+      "Bash(touch *)",
+      "Bash(sleep *)",
+      "Bash(time *)",
+      "Bash(timeout *)",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(npm ci *)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npx jest *)",
+      "Bash(npx eslint *)",
+      "Bash(npx next *)",
+      "Bash(cd web && npm *)",
+      "Bash(cd web && npx *)",
+      "WebSearch",
+      "WebFetch(domain:ottoneu.fangraphs.com)",
+      "WebFetch(domain:community.ottoneu.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:www.rotowire.com)",
+      "WebFetch(domain:www.fantasypros.com)",
+      "WebFetch(domain:code.claude.com)",
+      "mcp__supabase__list_projects",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__list_migrations",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__get_advisors",
+      "mcp__supabase__search_docs",
+      "mcp__supabase__generate_typescript_types",
+      "Read(~/.claude/**)"
+    ],
+    "ask": [
+      "Bash(gh pr merge *)",
+      "mcp__supabase__apply_migration"
+    ],
+    "deny": [
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(sudo *)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true,
+    "excludedCommands": [
+      "gh *"
+    ],
+    "network": {
+      "allowLocalBinding": true,
+      "allowedDomains": [
+        "github.com",
+        "api.github.com",
+        "codeload.github.com",
+        "*.githubusercontent.com",
+        "registry.npmjs.org",
+        "pypi.org",
+        "files.pythonhosted.org",
+        "rbinbcwinchphipvcfqk.supabase.co",
+        "api.supabase.com",
+        "ottoneu.fangraphs.com",
+        "www.draftsharks.com",
+        "www.fantasypros.com",
+        "api.sleeper.com",
+        "sofa-db.vercel.app",
+        "overthecap.com",
+        "www.overthecap.com",
+        "www.spotrac.com",
+        "en.wikipedia.org",
+        "www.pro-football-reference.com",
+        "cdn.playwright.dev",
+        "playwright.azureedge.net"
+      ]
+    },
+    "filesystem": {
+      "allowWrite": [
+        "~/.npm",
+        "~/.cache",
+        "~/Library/Caches/pip",
+        "~/Library/Caches/uv",
+        "~/Library/Caches/ms-playwright",
+        "~/dev/ottoneu_db/.cache"
+      ]
+    }
+  },
+  "enabledMcpjsonServers": [
+    "supabase"
+  ],
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/session_start.py\"",
+            "timeout": 30,
+            "statusMessage": "Fetching origin/main..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|mcp__supabase__execute_sql|mcp__supabase__apply_migration",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/post_edit_check.py\"",
+            "asyncRewake": true
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/log_permission_prompt.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
