@@ -45,6 +45,7 @@ export async function fetchPositionalRanksBySeason(
         .in("season", seasons)
         .order("player_id")
         .order("season")
+        .order("id")
         .range(from, to),
     ),
   ]);

@@ -38,6 +38,7 @@ export async function fetchMockDraftData(): Promise<MockDraftData> {
         .select("player_id, market_auction_value")
         .eq("season", season)
         .order("player_id")
+        .order("id")
         .range(from, to),
     ),
   ]);

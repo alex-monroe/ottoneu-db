@@ -13,6 +13,7 @@ WHITESPACE_REGEX = re.compile(r'\s+')
 NAME_ALIASES: dict[str, str] = {
     "Cam Ward": "Cameron Ward",
     "Cameron Skattebo": "Cam Skattebo",
+    "Marquise Brown": "Hollywood Brown",  # Sleeper's spelling; flagged by the ingest coverage check
 }
 
 

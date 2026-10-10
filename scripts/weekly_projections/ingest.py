@@ -17,10 +17,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from datetime import date, datetime, timezone
 from typing import Optional
 
-from scripts.config import fetch_all_rows, get_supabase_client
+from scripts.config import LEAGUE_ID, fetch_all_rows, get_supabase_client
 from scripts.feature_projections.external_sources.player_matcher import (
     build_player_index,
     match_player,
@@ -35,8 +36,8 @@ TABLE = "weekly_projections"
 SOURCES = {"sleeper": sleeper}
 
 
-def _players_index(supabase):
-    """Position-keyed index of our players, for name matching.
+def _fetch_players(supabase) -> list[dict]:
+    """Our current players (`ottoneu_id > 0`), for name matching.
 
     Filtered to `ottoneu_id > 0` — the same filter the web data layer uses
     (fetchPlayerList, fetchRosterData). The players table also holds ~2.5k
@@ -47,15 +48,102 @@ def _players_index(supabase):
     skip the player as ambiguous — silently dropping hundreds of real,
     currently-rostered players from the board.
     """
-    import pandas as pd
-
-    players = fetch_all_rows(
+    return fetch_all_rows(
         supabase,
         "players",
-        "id, name, position, nfl_team",
+        "id, name, position, nfl_team, is_college",
         filters=[("gte", "ottoneu_id", 1)],
     )
+
+
+def _players_index(players: list[dict]):
+    """Position-keyed index of `players`, for `match_player`."""
+    import pandas as pd
+
     return build_player_index(pd.DataFrame(players))
+
+
+# Sleeper spells two teams differently from our players.nfl_team.
+_SLEEPER_TEAM_TO_OURS = {"JAX": "JAC", "LAR": "LA"}
+
+
+def playing_teams(rows: list[WeeklyRow]) -> set[str]:
+    """NFL teams (in our spelling) with a game this week, per the source slate.
+
+    A team missing from this set is on a bye, so its players having no row is
+    expected rather than a coverage gap.
+    """
+    return {_SLEEPER_TEAM_TO_OURS.get(r.team, r.team) for r in rows if r.team and r.opponent}
+
+
+def find_coverage_gaps(
+    rostered: list[dict], seen: set[str], teams_playing: set[str]
+) -> list[dict]:
+    """Rostered players whose team plays this week but who matched no source row.
+
+    Not "has no projection": a player the source lists with an empty stat line
+    (out, injured, inactive) was still *matched*, and is in `seen`. A gap means
+    we could not find the player in the source at all — an index or naming bug
+    (unordered pagination dropping Jeremiyah Love; "Cam Ward" vs "Cameron
+    Ward"), which otherwise shows up only as a silently blank lineup slot.
+
+    College players are skipped: the source has no row for them, and some
+    college codes collide with NFL ones (Miami's "MIA").
+    """
+    return [
+        p for p in rostered
+        if p["id"] not in seen
+        and not p.get("is_college")
+        and p.get("nfl_team") in teams_playing
+    ]
+
+
+def _rostered_players(supabase, players: list[dict]) -> list[dict]:
+    """The league's currently rostered players, from the roster snapshot."""
+    owned = fetch_all_rows(
+        supabase,
+        "league_prices",
+        "player_id, team_name",
+        filters=[("eq", "league_id", LEAGUE_ID), ("neq", "team_name", "FA")],
+    )
+    owned_ids = {r["player_id"] for r in owned if r.get("team_name")}
+    return [p for p in players if p["id"] in owned_ids]
+
+
+def report_coverage_gaps(gaps: list[dict], season: int, week: int) -> None:
+    """Print gaps loudly, and surface them in GitHub Actions when running there.
+
+    A warning annotation plus a job-summary table, rather than failing the job:
+    the rows that *did* match are still worth writing, and a brand-new Ottoneu
+    signing that the source has not added yet is a legitimate, transient gap.
+    """
+    if not gaps:
+        print("  Coverage: every rostered player on a team with a game was matched.")
+        return
+
+    lines = [f"{p['name']} ({p['position']}, {p['nfl_team']})" for p in gaps]
+    print(
+        f"\n  COVERAGE GAP: {len(gaps)} rostered player(s) on a team with a game "
+        "matched no source row — they will show no weekly projection:"
+    )
+    for line in lines:
+        print(f"    - {line}")
+    print(
+        "  Likely a naming mismatch (add to scripts/name_utils.NAME_ALIASES) or a "
+        "player missing from the matching index."
+    )
+
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        print(
+            f"::warning title=Weekly projection coverage gap::{len(gaps)} rostered "
+            f"player(s) unmatched for {season} week {week}: " + "; ".join(lines)
+        )
+        summary = os.environ.get("GITHUB_STEP_SUMMARY")
+        if summary:
+            with open(summary, "a") as fh:
+                fh.write(f"\n### Coverage gap: {season} week {week}\n\n")
+                fh.write("Rostered players on a team with a game that matched no source row:\n\n")
+                fh.writelines(f"- {line}\n" for line in lines)
 
 
 def build_records(
@@ -63,12 +151,22 @@ def build_records(
     player_index: dict,
     source: str,
     actuals: bool,
+    seen: Optional[set[str]] = None,
 ) -> tuple[list[dict], list[str]]:
     """Match, score, and shape rows for upsert.
 
+    Args:
+        seen: If given, every matched player_id is added to it — including
+            players the source carries with an empty stat line (inactive,
+            injured). `find_coverage_gaps` uses it to tell "matched but not
+            projected" apart from "never matched at all".
+
     Returns:
-        (records, unmatched_names). Unmatched names are reported so aliases can
-        be added to scripts/name_utils.NAME_ALIASES.
+        (records, unmatched_names). Only rows the source is actually projecting
+        count as unmatched: the payload is Sleeper's whole player database,
+        ~2,000 of them long retired, and reporting those buried the handful of
+        real misses (Jeremiyah Love, Cam Ward) for weeks. Fix a real miss with an
+        alias in scripts/name_utils.NAME_ALIASES.
     """
     cache: dict[tuple[str, str, str], Optional[str]] = {}
     records: list[dict] = []
@@ -78,12 +176,17 @@ def build_records(
     now = datetime.now(timezone.utc).isoformat()
 
     for row in rows:
-        player_id = match_player(row.name, row.position, row.team, player_index, cache)
-        if not player_id:
-            unmatched.append(f"{row.name} ({row.position}, {row.team})")
-            continue
-
         stats = normalised_stats(row.stats)
+        player_id = match_player(
+            row.name, row.position, row.team, player_index, cache, verbose=bool(stats)
+        )
+        if not player_id:
+            if stats:
+                unmatched.append(f"{row.name} ({row.position}, {row.team})")
+            continue
+        if seen is not None:
+            seen.add(player_id)
+
         # Skip players the source carries but is not actually projecting. On a
         # real slate these split cleanly: every row with a scoring stat also has
         # an opponent, and every row without one has neither. Storing them would
@@ -377,14 +480,24 @@ def ingest(
         return 0
 
     print("Matching players...")
-    records, unmatched = build_records(rows, _players_index(supabase), source, actuals)
-    print(f"  {len(records)} matched, {len(unmatched)} unmatched")
+    players = _fetch_players(supabase)
+    seen: set[str] = set()
+    records, unmatched = build_records(rows, _players_index(players), source, actuals, seen)
+    print(f"  {len(records)} matched, {len(unmatched)} projected rows unmatched")
     if unmatched:
         print("  Unmatched (add aliases to scripts/name_utils.NAME_ALIASES if wanted):")
         for name in unmatched[:20]:
             print(f"    - {name}")
         if len(unmatched) > 20:
             print(f"    ... and {len(unmatched) - 20} more")
+
+    # The actuals pass is partial by nature (most players have not played early
+    # in the week), so only a projections slate says anything about coverage.
+    if not actuals and records:
+        gaps = find_coverage_gaps(
+            _rostered_players(supabase, players), seen, playing_teams(rows)
+        )
+        report_coverage_gaps(gaps, season, week)
 
     # Every matched player, frozen or not: a frozen player is still projected by
     # the source, so the reconciliation must not see him as dropped.

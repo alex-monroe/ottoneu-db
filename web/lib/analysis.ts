@@ -99,7 +99,7 @@ async function buildModelProjectionMap(
       .select("player_id, projected_ppg, feature_values")
       .eq("model_id", modelId)
       .eq("season", season)
-      .order("player_id").range(from, to),
+      .order("player_id").order("id").range(from, to),
   );
 
   const map = new Map<string, { ppg: number; featureValues: Record<string, number | null> | null }>();
@@ -132,7 +132,7 @@ export async function fetchModelBacktestData(
         .from("player_stats")
         .select("player_id, ppg, games_played")
         .eq("season", targetSeason)
-        .order("player_id").range(from, to),
+        .order("player_id").order("id").range(from, to),
     ),
     fetchAllRows((from, to) =>
       supabase
@@ -376,7 +376,7 @@ export async function fetchBacktestData(
           .from("player_stats")
           .select("player_id, ppg, games_played")
           .eq("season", targetSeason)
-          .order("player_id").range(from, to),
+          .order("player_id").order("id").range(from, to),
       ),
       fetchAllRows((from, to) =>
         supabase
@@ -550,7 +550,7 @@ export async function fetchProjectionBoard(
         .from("player_stats")
         .select("player_id, ppg, games_played")
         .eq("season", statsSeason)
-        .order("player_id").range(from, to),
+        .order("player_id").order("id").range(from, to),
     ),
     fetchAllRows((from, to) =>
       supabase

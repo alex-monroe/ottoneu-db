@@ -33,6 +33,14 @@ export const supabase = createClient<Database>(supabaseUrl || "http://localhost:
  * rows from the final result (e.g. 1,252 players collapsed to 1,070 unique,
  * stranding individual players like a rookie projection). Always order by the
  * primary key (`id` works even when not in the `select` list).
+ * `web/__tests__/lib/architecture.test.ts` enforces `.order("id")` on every
+ * paged read.
+ *
+ * Runtime backstop: when the rows carry an `id`, a repeated id means the pages
+ * overlapped — an unstable order, or rows written mid-read — and that some
+ * other row was probably skipped. The duplicate is dropped (a primary key can't
+ * legitimately appear twice) and the overlap is logged, so it surfaces in the
+ * server logs instead of as a silently missing player.
  */
 export async function fetchAllRows<T>(
   buildPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
@@ -46,7 +54,34 @@ export async function fetchAllRows<T>(
     out.push(...data);
     if (data.length < pageSize) break;
   }
-  return out;
+  return dropOverlappingRows(out);
+}
+
+/** Exported for tests. See fetchAllRows. */
+export function dropOverlappingRows<T>(rows: T[]): T[] {
+  const ids = new Set<unknown>();
+  const kept: T[] = [];
+  let duplicates = 0;
+  for (const row of rows) {
+    const id = (row as { id?: unknown } | null)?.id;
+    if (id == null) {
+      kept.push(row);
+      continue;
+    }
+    if (ids.has(id)) {
+      duplicates++;
+      continue;
+    }
+    ids.add(id);
+    kept.push(row);
+  }
+  if (duplicates > 0) {
+    console.error(
+      `fetchAllRows: ${duplicates} duplicate id(s) across pages — the query's order is ` +
+        `not stable (add .order("id")) or rows changed mid-read; other rows may be missing.`,
+    );
+  }
+  return kept;
 }
 
 /**

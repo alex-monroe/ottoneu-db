@@ -65,8 +65,8 @@ Some tests have hardcoded expected values tied to configuration constants. When 
 
 Harness engineering tests that enforce architectural rules mechanically. Each test failure includes a teaching message with the fix.
 
-- **Python:** `scripts/tests/test_architecture.py` — config sync, dependency direction, import rules, doc existence, Supabase pagination (no raw `.execute()` on large tables)
-- **TypeScript:** `web/__tests__/lib/architecture.test.ts` — layer boundaries, type locations, config sync, Supabase pagination (no raw `.select()` on large tables)
+- **Python:** `scripts/tests/test_architecture.py` — config sync, dependency direction, import rules, doc existence, Supabase pagination (no raw `.execute()` on large tables; every `.range()` orders by `id`)
+- **TypeScript:** `web/__tests__/lib/architecture.test.ts` — layer boundaries, type locations, config sync, Supabase pagination (no raw `.select()` on large tables; every `.range()` orders by `id`)
 
 The Supabase pagination rule (#620) statically flags any non-paginated read against `player_stats` / `nfl_stats` / `depth_charts` / `model_projections` (the `LARGE_TABLES` list in each test). Route large reads through `fetch_all_rows` (Python) / `fetchAllRows` (web), or annotate a provably-bounded query with a `pagination-safe` comment. See the "Supabase pagination" section of CLAUDE.md.
 

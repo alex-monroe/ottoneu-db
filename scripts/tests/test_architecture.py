@@ -546,35 +546,79 @@ class TestSupabasePagination:
             "Violations:\n" + "\n".join(violations)
         )
 
-    def test_range_pagination_has_stable_order(self):
-        """A `.range()` page loop must also `.order()` by a unique column.
+    _ORDER_BY_ID_RE = re.compile(r"""\.order\(\s*["']id["']""")
+
+    @classmethod
+    def _unstable_range_lines(cls, source: str):
+        """Yield (lineno, line) for each `.range(` not ordered by `id`.
+
+        Accepted: `.order("id")` anywhere in the chain (alone, or as the final
+        tiebreak after other sort keys), or a `stable-order: <reason>` comment
+        for a query ordered by some other unique key (e.g. a composite PK).
+        """
+        lines = source.splitlines()
+        for i, line in enumerate(lines):
+            if ".range(" not in line or line.lstrip().startswith(("#", '"', "`")):
+                continue
+            # Scope to THIS query: from its `.table(` line (plus any comment
+            # lines directly above, for a stable-order note) down to the `.range(`. A fixed
+            # window would let a neighbouring query's `.order("id")` vouch for it.
+            start = i
+            while start > max(0, i - 25) and ".table(" not in lines[start]:
+                start -= 1
+            if ".table(" not in lines[start]:
+                start = max(0, i - 8)
+            # Extend upward over comment lines only, so a neighbour's code stays out.
+            while start > 0 and start > i - 30 and lines[start - 1].lstrip().startswith("#"):
+                start -= 1
+            window = "\n".join(lines[start:i + 1])
+            if cls._ORDER_BY_ID_RE.search(window) or "stable-order:" in window:
+                continue
+            yield i + 1, line
+
+    def test_range_pagination_orders_by_id(self):
+        """A `.range()` page loop must `.order("id")` — a stable, UNIQUE order.
 
         WHY: without an ORDER BY, Postgres does not keep row order stable across
         requests, so successive `.range()` pages overlap and silently drop rows.
         `fetch_all_rows` on `players` returned 1,272 rows but only 1,084 unique
         ones, so rookies like Jeremiyah Love never reached the weekly-projection
-        name index and showed no projection on /lineup. The web helper
-        (web/lib/supabase.ts fetchAllRows) documents the same rule.
+        name index and showed no projection on /lineup. Ordering by a NON-unique
+        column (`player_id` across seasons, `week`) has the same flaw among the
+        ties, so `id` is required as the sort or the final tiebreak. The web
+        suite enforces the same rule on `fetchAllRows`.
         """
         violations = []
         for pyfile in _python_files(SCRIPTS_DIR):
             if "/tests/" in str(pyfile) or "\\tests\\" in str(pyfile):
                 continue
-            lines = pyfile.read_text().splitlines()
-            for i, line in enumerate(lines):
-                if ".range(" not in line or line.lstrip().startswith(("#", '"', "`")):
-                    continue
-                # The chain is usually built over the previous few lines.
-                window = "\n".join(lines[max(0, i - 8):i + 1])
-                if ".order(" not in window and "pagination-safe" not in window:
-                    rel = pyfile.relative_to(PROJECT_ROOT)
-                    violations.append(f"  {rel}:{i + 1}: {line.strip()}")
+            for lineno, line in self._unstable_range_lines(pyfile.read_text()):
+                rel = pyfile.relative_to(PROJECT_ROOT)
+                violations.append(f"  {rel}:{lineno}: {line.strip()}")
         assert not violations, (
-            "`.range()` pagination without a stable `.order()` found.\n"
-            "FIX: add `.order(\"id\")` (or another unique column) to the query, or\n"
-            "read through `fetch_all_rows`, which orders by `id` by default.\n"
+            "`.range()` pagination without `.order(\"id\")` found.\n"
+            "FIX: add `.order(\"id\")` (as the only sort, or the last tiebreak) to the\n"
+            "query, or read through `fetch_all_rows`, which orders by `id` by default.\n"
+            "If the query is ordered by another unique key (e.g. a composite primary\n"
+            "key), add a `# stable-order: <reason>` comment.\n"
             "Violations:\n" + "\n".join(violations)
         )
+
+    def test_order_detection_recognizes_offender_and_safe_patterns(self):
+        """Guard against the order scanner silently passing."""
+        unordered = 'batch = q.eq("season", s).range(a, b).execute()'
+        non_unique = 'batch = q.order("player_id").range(a, b).execute()'
+        tiebreak = 'batch = q.order("week").order("id").range(a, b).execute()'
+        annotated = '# stable-order: (ballot_id, team_name) is the PK\nq.order("ballot_id").order("team_name").range(a, b)'
+        assert list(self._unstable_range_lines(unordered))
+        assert list(self._unstable_range_lines(non_unique))
+        assert not list(self._unstable_range_lines(tiebreak))
+        assert not list(self._unstable_range_lines(annotated))
+        neighbour = (
+            'a = sb.table("players").select("*").order("id").range(0, 9).execute()\n'
+            'b = sb.table("player_stats").select("*").order("player_id").range(0, 9).execute()'
+        )
+        assert [n for n, _ in self._unstable_range_lines(neighbour)] == [2]
 
     def test_detection_recognizes_offender_and_safe_patterns(self):
         """Guard against the scanner silently passing due to a broken regex."""

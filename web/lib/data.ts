@@ -119,7 +119,7 @@ export const fetchPlayersAtDate = cache(async function fetchPlayersAtDate(
     ),
     // Paginate player_stats — a single season exceeds the 1000-row cap.
     fetchAllRows((from, to) =>
-      supabase.from("player_stats").select("*").eq("season", statsSeason).order("player_id").range(from, to),
+      supabase.from("player_stats").select("*").eq("season", statsSeason).order("player_id").order("id").range(from, to),
     ),
     buildSalaryMapAtDate(salaryDate),
   ]);
@@ -226,7 +226,7 @@ export const fetchPlayers = cache(async function fetchPlayers(
     ),
     // Paginate player_stats — a single season exceeds the 1000-row cap.
     fetchAllRows((from, to) =>
-      supabase.from("player_stats").select("*").eq("season", statsSeason).order("player_id").range(from, to),
+      supabase.from("player_stats").select("*").eq("season", statsSeason).order("player_id").order("id").range(from, to),
     ),
     fetchAllRows((from, to) =>
       supabase.from("league_prices").select("*").eq("league_id", LEAGUE_ID).order("id").range(from, to),
@@ -309,7 +309,7 @@ export async function fetchPlayerList(): Promise<PlayerListItem[]> {
         .from("player_stats")
         .select("player_id, total_points, games_played, ppg")
         .eq("season", statsSeason)
-        .order("player_id").range(from, to),
+        .order("player_id").order("id").range(from, to),
     ),
     fetchAllRows((from, to) =>
       supabase

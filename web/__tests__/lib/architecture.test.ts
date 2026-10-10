@@ -422,7 +422,7 @@ describe("Supabase Pagination", () => {
    *
    * FIX: Page through with `fetchAllRows` from web/lib/supabase.ts:
    *   const stats = await fetchAllRows((from, to) =>
-   *     supabase.from("player_stats").select("*").eq("season", s).order("player_id").range(from, to));
+   *     supabase.from("player_stats").select("*").eq("season", s).order("id").range(from, to));
    *
    * A read is accepted without pagination only when provably bounded: a write,
    * `.single()` / `.maybeSingle()`, a head-only `count`, `.limit(n)` with
@@ -490,5 +490,90 @@ describe("Supabase Pagination", () => {
       expect(s.length).toBe(1);
       expect(isPaginatedOrBounded(s[0].statement, s[0].preceding)).toBe(true);
     }
+  });
+});
+
+/**
+ * Each `.range(` line not ordered by `id`. Accepted: `.order("id")` in the
+ * chain (alone, or as the final tiebreak after other sort keys), or a
+ * `stable-order: <reason>` comment for a query ordered by another unique key
+ * such as a composite primary key.
+ */
+function unstableRangeLines(source: string): { lineno: number; line: string }[] {
+  const lines = source.split("\n");
+  const orderById = /\.order\(\s*["']id["']/;
+  const out: { lineno: number; line: string }[] = [];
+  lines.forEach((line, i) => {
+    const trimmed = line.trim();
+    if (!line.includes(".range(") || trimmed.startsWith("//") || trimmed.startsWith("*")) return;
+    // Scope to THIS query: from its `.from(` line (plus any comment lines
+    // directly above, for a stable-order note) down to the `.range(`. A fixed-size window
+    // picks up a neighbouring query's `.order("id")` and passes a bad one.
+    let start = i;
+    while (start > Math.max(0, i - 25) && !lines[start].includes(".from(")) start--;
+    if (!lines[start].includes(".from(")) start = Math.max(0, i - 15);
+    // Extend upward over comment lines and a bare receiver line (`db`,
+    // `supabase`) only, so a neighbour's code stays out.
+    const isPreamble = (l: string) => l.trim().startsWith("//") || /^\s*\w+\s*$/.test(l);
+    while (start > 0 && start > i - 30 && isPreamble(lines[start - 1])) start--;
+    const window = lines.slice(start, i + 1).join("\n");
+    if (orderById.test(window) || window.includes("stable-order:")) return;
+    out.push({ lineno: i + 1, line: trimmed });
+  });
+  return out;
+}
+
+describe("Supabase stable pagination order", () => {
+  /**
+   * WHY: Postgres does not keep row order stable across requests without an
+   * ORDER BY, so successive `.range()` pages overlap and silently drop rows.
+   * Paging `players` returned 1,252 rows but only 1,070 unique (#568), and the
+   * same bug in the Python helper later blanked Jeremiyah Love's weekly
+   * projection on /lineup (#749). Ordering by a NON-unique column (`player_id`
+   * across seasons, `week`) leaves the ties unstable, so `id` is required as
+   * the sort or the final tiebreak. The "Supabase Pagination" suite above only
+   * checks that a read is paged at all; this checks the paging is correct.
+   *
+   * FIX: add `.order("id")` as the last sort before `.range(from, to)`.
+   */
+  test("every .range() read in web/lib and web/app orders by id", () => {
+    const files = [
+      ...getFilesRecursive(path.join(WEB_ROOT, "lib"), ".ts"),
+      ...getFilesRecursive(path.join(WEB_ROOT, "app"), ".ts"),
+      ...getFilesRecursive(path.join(WEB_ROOT, "app"), ".tsx"),
+    ];
+    const violations: string[] = [];
+    for (const file of files) {
+      for (const { lineno, line } of unstableRangeLines(fs.readFileSync(file, "utf-8"))) {
+        violations.push(`  ${relativeTo(file, REPO_ROOT)}:${lineno}: ${line}`);
+      }
+    }
+    if (violations.length > 0) {
+      throw new Error(
+        "`.range()` pagination without `.order(\"id\")` found.\n" +
+          "FIX: add `.order(\"id\")` (alone, or as the last tiebreak) before `.range(from, to)`.\n" +
+          "If the query is ordered by another unique key (e.g. a composite primary key),\n" +
+          "add a `// stable-order: <reason>` comment.\n" +
+          "Violations:\n" +
+          violations.join("\n"),
+      );
+    }
+  });
+
+  test("order detection recognizes offender and safe patterns", () => {
+    expect(unstableRangeLines('q.eq("season", s).range(from, to)')).toHaveLength(1);
+    expect(unstableRangeLines('q.order("player_id").range(from, to)')).toHaveLength(1);
+    expect(unstableRangeLines('q.order("week").order("id").range(from, to)')).toHaveLength(0);
+    // A neighbouring query's .order("id") must not vouch for this one.
+    expect(
+      unstableRangeLines(
+        'db.from("players").select("*").order("id").range(from, to),\ndb.from("player_stats").select("*").order("player_id").range(from, to)',
+      ),
+    ).toHaveLength(1);
+    expect(
+      unstableRangeLines(
+        '// stable-order: (ballot_id, team_name) is the PK\nq.order("ballot_id").order("team_name").range(from, to)',
+      ),
+    ).toHaveLength(0);
   });
 });
