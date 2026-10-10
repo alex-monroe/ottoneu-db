@@ -83,7 +83,8 @@ def get_supabase_client() -> Client:
 
 
 def fetch_all_rows(supabase, table: str, select: str = "*",
-                   filters=None, page_size: int = 1000) -> list[dict]:
+                   filters=None, page_size: int = 1000,
+                   order_by: str = "id") -> list[dict]:
     """Fetch all rows from a Supabase table, paginating past the PostgREST limit.
 
     PostgREST defaults to returning at most 1000 rows. This helper pages
@@ -107,6 +108,14 @@ def fetch_all_rows(supabase, table: str, select: str = "*",
                                filters=[("eq", "model_id", mid), ("eq", "season", s)])
 
         page_size: Rows per page (default 1000).
+        order_by: Unique column to order by (default ``"id"``, the primary
+            key of every table this is used on; it need not be in ``select``).
+            REQUIRED for correctness, not cosmetic: without an ORDER BY,
+            Postgres does not keep row order stable across requests, so the
+            ``.range()`` pages overlap and silently drop rows. On ``players``
+            that turned 1,272 rows into 1,084 unique ones, stranding rookies
+            like Jeremiyah Love from the weekly-projection name index. The web
+            helper (web/lib/supabase.ts fetchAllRows) carries the same rule.
 
     Returns:
         List of row dicts.
@@ -119,6 +128,7 @@ def fetch_all_rows(supabase, table: str, select: str = "*",
             query = getattr(query, op)(column, value)
         batch = (
             query
+            .order(order_by)
             .range(offset, offset + page_size - 1)
             .execute()
             .data or []

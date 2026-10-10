@@ -111,6 +111,7 @@ export async function fetchWeeklyBoard(
       .eq("season", season)
       .eq("week", week)
       .order("projected_points", { ascending: false, nullsFirst: false })
+      .order("id") // unique tiebreak: equal points would otherwise shuffle across pages
       .range(from, to),
   );
 
@@ -154,6 +155,7 @@ export async function fetchAvailableWeeks(season: number): Promise<number[]> {
       .select("week")
       .eq("season", season)
       .order("week", { ascending: false })
+      .order("id")
       .range(from, to),
   );
   return Array.from(new Set(rows.map((r) => Number(r.week)))).sort((a, b) => b - a);
@@ -176,6 +178,7 @@ export async function fetchWeeklyByPlayer(
       .select(COLUMNS)
       .eq("season", season)
       .eq("week", week)
+      .order("id")
       .range(from, to),
   );
   const out = new Map<string, WeeklyProjection>();

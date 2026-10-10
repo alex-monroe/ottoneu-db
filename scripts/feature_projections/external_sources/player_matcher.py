@@ -7,6 +7,8 @@ from typing import Optional
 
 import pandas as pd
 
+from scripts.name_utils import NAME_ALIASES
+
 
 # Fuzzy match threshold: SequenceMatcher ratio must exceed this to accept.
 _FUZZY_THRESHOLD = 0.82
@@ -78,7 +80,10 @@ def match_player(
 
     pos = position.upper()
     candidates = player_index.get(pos, [])
-    norm = _normalize_name(name)
+    # Known spelling differences first ("Cam Ward" vs our "Cameron Ward"): the
+    # pair scores 0.80, just under the fuzzy cutoff, so without the alias the
+    # player is silently unmatched.
+    norm = _normalize_name(NAME_ALIASES.get(name, name))
     fp_team = team.upper()
 
     # 1. Exact match
