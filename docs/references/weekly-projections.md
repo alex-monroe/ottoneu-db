@@ -362,9 +362,12 @@ visible there as a gap.
   All twelve Ottoneu scoring categories have a mapping, but the kicker bands are
   the least certain part of it — the probe command settles it.
 - **The `players` table has no external IDs** (only `ottoneu_id` and `name`), so
-  matching goes through the shared normalised-name + position + fuzzy matcher in
-  `scripts/feature_projections/external_sources/player_matcher.py`. Unmatched
-  names are printed on every run; add aliases to `scripts/name_utils.NAME_ALIASES`.
+  matching goes through the shared normalised-name + position + fuzzy matcher,
+  `match_player` in `scripts/name_utils.py` — the same normalizer and
+  `NAME_ALIASES` table every other name-matching pipeline uses. Unmatched rows
+  the source is actually projecting are printed on every run, and rostered
+  players who matched nothing are flagged as a coverage gap; fix either with an
+  alias in `NAME_ALIASES`.
 
 ## Local development
 

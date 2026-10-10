@@ -32,11 +32,8 @@ from scripts.config import get_supabase_client, fetch_all_rows  # noqa: E402
 from scripts.feature_projections.external_sources.fantasypros_fetcher import (  # noqa: E402
     fetch_all_positions,
 )
-from scripts.feature_projections.external_sources.player_matcher import (  # noqa: E402
-    build_player_index,
-    match_dataframe,
-)
 from scripts.feature_projections.external_sources.scoring import stats_to_ppg  # noqa: E402
+from scripts.name_utils import build_player_index, match_player  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Model definitions for each external source
@@ -54,6 +51,27 @@ _SOURCE_MODELS = {
 
 _BATCH_SIZE = 500
 _GAMES_PER_SEASON = 17
+
+
+def match_dataframe(fp_df: pd.DataFrame, player_index: dict[str, list[dict]]) -> pd.DataFrame:
+    """Add a player_id column to a FantasyPros projections DataFrame.
+
+    Args:
+        fp_df: DataFrame with columns: player_name, position, team.
+        player_index: Pre-built index from scripts.name_utils.build_player_index.
+
+    Returns:
+        A copy with player_id added (None where no match was found).
+    """
+    cache: dict = {}
+    fp_df = fp_df.copy()
+    fp_df["player_id"] = fp_df.apply(
+        lambda row: match_player(
+            row["player_name"], row["position"], row.get("team", ""), player_index, cache
+        ),
+        axis=1,
+    )
+    return fp_df
 
 
 def _ensure_model_in_db(supabase, model_def: dict) -> str:
