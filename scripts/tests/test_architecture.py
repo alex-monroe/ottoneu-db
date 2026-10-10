@@ -453,6 +453,52 @@ class TestFrontendLayerBoundaries:
 LARGE_TABLES = ["player_stats", "nfl_stats", "depth_charts", "model_projections"]
 
 
+class TestSingleNameMatcher:
+    """Player-name normalization and fuzzy matching live only in scripts/name_utils.py.
+
+    WHY: a second normalizer (feature_projections/external_sources/player_matcher.py)
+    never read NAME_ALIASES, so the "Cam Ward" alias added for the stats
+    pipelines in #400 did nothing for the weekly Sleeper ingest, and Cam Ward had
+    no weekly projection until #749. Each extra copy of "how we spell a player"
+    is a place a fix silently doesn't reach.
+
+    FIX: use `normalize_player_name` (exact lookups) or `build_player_index` +
+    `match_player` (fuzzy, team-aware) from scripts.name_utils. Add new
+    spelling rules or aliases there.
+    """
+
+    _NORMALIZER_DEF_RE = re.compile(r"^\s*def\s+\w*normali[sz]e\w*name\w*\s*\(", re.IGNORECASE | re.MULTILINE)
+    _FUZZY_RE = re.compile(r"\bdifflib\b|\brapidfuzz\b|\bfuzzywuzzy\b|\bthefuzz\b")
+
+    @classmethod
+    def _offences(cls, source: str) -> list[str]:
+        found = []
+        if cls._NORMALIZER_DEF_RE.search(source):
+            found.append("defines its own name normalizer")
+        if cls._FUZZY_RE.search(source):
+            found.append("does its own fuzzy matching")
+        return found
+
+    def test_name_matching_lives_only_in_name_utils(self):
+        violations = []
+        for pyfile in _python_files(SCRIPTS_DIR):
+            if "/tests/" in str(pyfile) or "\\tests\\" in str(pyfile) or pyfile.name == "name_utils.py":
+                continue
+            for offence in self._offences(pyfile.read_text()):
+                violations.append(f"  {pyfile.relative_to(PROJECT_ROOT)}: {offence}")
+        assert not violations, (
+            "Player-name matching outside scripts/name_utils.py.\n"
+            "FIX: use normalize_player_name / build_player_index + match_player from\n"
+            "scripts.name_utils, and put new spelling rules or aliases there.\n"
+            "Violations:\n" + "\n".join(violations)
+        )
+
+    def test_detection_recognizes_offenders(self):
+        assert self._offences("def _normalize_name(name):\n    return name.lower()")
+        assert self._offences("import difflib\n")
+        assert not self._offences("from scripts.name_utils import normalize_player_name\n")
+
+
 class TestSupabasePagination:
     """Reads against large tables must paginate past the 1000-row cap.
 

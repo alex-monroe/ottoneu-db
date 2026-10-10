@@ -228,8 +228,8 @@ external_sources/
 ├── __init__.py
 ├── fantasypros_fetcher.py  — scrape FP projections by position + year (requests + pd.read_html)
 ├── scoring.py              — convert stat totals to Ottoneu Half-PPR PPG
-├── player_matcher.py       — fuzzy name+team matching to players table
-└── ingest_external.py      — register model + upsert to model_projections (standalone script)
+└── ingest_external.py      — register model + upsert to model_projections (standalone script;
+                              name matching via scripts/name_utils.match_player)
 ```
 
 **Running FantasyPros ingestion:**

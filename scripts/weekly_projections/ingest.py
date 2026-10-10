@@ -22,10 +22,7 @@ from datetime import date, datetime, timezone
 from typing import Optional
 
 from scripts.config import LEAGUE_ID, fetch_all_rows, get_supabase_client
-from scripts.feature_projections.external_sources.player_matcher import (
-    build_player_index,
-    match_player,
-)
+from scripts.name_utils import build_player_index, match_player
 from scripts.nfl_week import current_nfl_week, today_in_league_tz
 from scripts.weekly_projections.scoring import normalised_stats, score_stat_line
 from scripts.weekly_projections.sources import sleeper
@@ -58,9 +55,7 @@ def _fetch_players(supabase) -> list[dict]:
 
 def _players_index(players: list[dict]):
     """Position-keyed index of `players`, for `match_player`."""
-    import pandas as pd
-
-    return build_player_index(pd.DataFrame(players))
+    return build_player_index(players)
 
 
 # Sleeper spells two teams differently from our players.nfl_team.

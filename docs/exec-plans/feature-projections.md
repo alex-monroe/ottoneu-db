@@ -25,7 +25,6 @@ scripts/feature_projections/
   external_sources/
     fantasypros_fetcher.py  # Scrape FP consensus projections
     scoring.py              # Stat-line → Ottoneu PPG
-    player_matcher.py       # Fuzzy name matching to players table
     ingest_external.py      # Register + upsert external model
   combiner.py            # Weighted addition of feature outputs → final PPG
   model_config.py        # Model definitions (v1-v6 + external)
