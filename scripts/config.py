@@ -8,6 +8,7 @@ Configuration values are loaded from the shared config.json in the repo root.
 
 import os
 import json
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from supabase import create_client, Client
@@ -128,7 +129,7 @@ def fetch_all_rows(supabase, table: str, select: str = "*",
             query = getattr(query, op)(column, value)
         batch = (
             query
-            .order(order_by)
+            .order(order_by)  # stable-order: defaults to the "id" primary key
             .range(offset, offset + page_size - 1)
             .execute()
             .data or []
@@ -137,4 +138,34 @@ def fetch_all_rows(supabase, table: str, select: str = "*",
         if len(batch) < page_size:
             break
         offset += page_size
-    return all_data
+    return _drop_overlapping_rows(all_data, table)
+
+
+def _drop_overlapping_rows(rows: list[dict], table: str) -> list[dict]:
+    """Runtime backstop for ``fetch_all_rows``: drop rows whose ``id`` repeats.
+
+    A repeated primary key means the pages overlapped — an unstable order, or
+    rows written mid-read — and that another row was probably skipped. Only
+    checkable when ``id`` is selected. Warns on stderr so it shows in job logs
+    rather than as a silently missing player.
+    """
+    seen: set = set()
+    kept: list[dict] = []
+    duplicates = 0
+    for row in rows:
+        row_id = row.get("id") if isinstance(row, dict) else None
+        if row_id is None:
+            kept.append(row)
+            continue
+        if row_id in seen:
+            duplicates += 1
+            continue
+        seen.add(row_id)
+        kept.append(row)
+    if duplicates:
+        print(
+            f"WARNING: fetch_all_rows({table!r}): {duplicates} duplicate id(s) across "
+            "pages — unstable order or rows changed mid-read; other rows may be missing.",
+            file=sys.stderr,
+        )
+    return kept

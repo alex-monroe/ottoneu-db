@@ -306,6 +306,7 @@ export async function fetchBallots(
 
   const [entryRows, { data: userRows }] = await Promise.all([
     fetchAllRows((from, to) =>
+      // stable-order: (ballot_id, team_name) is the table's composite primary key
       db
         .from("power_ranking_entries")
         .select("ballot_id, team_name, rank, note")

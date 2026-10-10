@@ -55,6 +55,7 @@ def match_player(
     team: str,
     player_index: dict[str, list[dict]],
     cache: dict[tuple[str, str, str], Optional[str]],
+    verbose: bool = True,
 ) -> Optional[str]:
     """Map a FantasyPros player entry to a player_id in the players table.
 
@@ -70,10 +71,15 @@ def match_player(
         team: Team abbreviation from FantasyPros (may be empty).
         player_index: Pre-built index from build_player_index().
         cache: Mutable dict for caching results across calls.
+        verbose: Print a line per miss / fuzzy match. Callers matching a whole
+            source database (most of it long-retired players) pass False for
+            rows they don't care about, so real misses aren't buried.
 
     Returns:
         Player UUID string, or None if no match found.
     """
+    log = print if verbose else (lambda *_a, **_k: None)
+
     cache_key = (name, position, team)
     if cache_key in cache:
         return cache[cache_key]
@@ -99,7 +105,7 @@ def match_player(
                 cache[cache_key] = team_match[0]["id"]
                 return team_match[0]["id"]
         # Ambiguous — skip
-        print(f"  WARNING: Ambiguous exact match for '{name}' ({pos}) — skipping")
+        log(f"  WARNING: Ambiguous exact match for '{name}' ({pos}) — skipping")
         cache[cache_key] = None
         return None
 
@@ -107,7 +113,7 @@ def match_player(
     candidate_norms = [c["norm_name"] for c in candidates]
     matches = difflib.get_close_matches(norm, candidate_norms, n=5, cutoff=_FUZZY_THRESHOLD)
     if not matches:
-        print(f"  WARNING: No match for '{name}' ({pos}, {team})")
+        log(f"  WARNING: No match for '{name}' ({pos}, {team})")
         cache[cache_key] = None
         return None
 
@@ -121,7 +127,7 @@ def match_player(
 
     if len(fuzzy_candidates) == 1:
         matched = fuzzy_candidates[0]
-        print(
+        log(
             f"  Fuzzy match: '{name}' → '{matched['name']}' ({pos}, {matched['nfl_team']})"
         )
         cache[cache_key] = matched["id"]
@@ -132,7 +138,7 @@ def match_player(
         fuzzy_candidates,
         key=lambda c: difflib.SequenceMatcher(None, norm, c["norm_name"]).ratio(),
     )
-    print(
+    log(
         f"  Fuzzy match (best): '{name}' → '{best['name']}' ({pos}, {best['nfl_team']})"
     )
     cache[cache_key] = best["id"]

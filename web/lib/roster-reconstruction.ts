@@ -140,7 +140,7 @@ export async function fetchRosterData(season?: number): Promise<RosterData> {
         .from("player_stats")
         .select("player_id, ppg, pps, games_played, snaps")
         .eq("season", statsSeason)
-        .order("player_id").range(from, to),
+        .order("player_id").order("id").range(from, to),
     ),
     fetchAllRows((from, to) =>
       supabase

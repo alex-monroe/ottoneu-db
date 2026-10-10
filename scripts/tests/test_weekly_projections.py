@@ -9,7 +9,10 @@ import pytest
 from scripts.weekly_projections.ingest import (
     apply_kickoff_freeze,
     build_records,
+    find_coverage_gaps,
     partition_dropped_rows,
+    playing_teams,
+    report_coverage_gaps,
 )
 from scripts.weekly_projections.scoring import normalised_stats, score_stat_line
 from scripts.weekly_projections.sources import sleeper
@@ -502,3 +505,68 @@ class TestKickoffFreeze:
             entry["date"] = value
             (row,) = sleeper.parse([entry], 2026, 1)
             assert row.game_date is None
+
+
+class TestCoverageGaps:
+    """A rostered player we could not find in the source must be reported, not
+    silently left blank — the failure mode behind Jeremiyah Love and Cam Ward."""
+
+    INDEX = {
+        "RB": [{"id": "uuid-love", "name": "Jeremiyah Love", "norm_name": "jeremiyah love", "nfl_team": "ARI"}],
+        "WR": [{"id": "uuid-tyson", "name": "Jordyn Tyson", "norm_name": "jordyn tyson", "nfl_team": "NO"}],
+    }
+
+    @staticmethod
+    def _row(name, pos, team, stats, opponent="SEA"):
+        return WeeklyRow(name=name, position=pos, team=team, week=5, season=2026,
+                         stats=stats, opponent=opponent)
+
+    def test_unprojected_unmatched_rows_are_not_reported(self):
+        # Sleeper's payload is its whole player database; a long-retired player
+        # with no stat line is noise, and ~2,000 of them buried the real misses.
+        rows = [self._row("Kenyan Drake", "RB", "", {}, opponent=None)]
+        records, unmatched = build_records(rows, self.INDEX, "sleeper", actuals=False)
+        assert records == [] and unmatched == []
+
+    def test_seen_includes_matched_players_with_empty_stats(self):
+        # An inactive player is matched-but-not-projected — not a coverage gap.
+        seen: set[str] = set()
+        rows = [self._row("Jordyn Tyson", "WR", "NO", {})]
+        records, _ = build_records(rows, self.INDEX, "sleeper", actuals=False, seen=seen)
+        assert records == []
+        assert seen == {"uuid-tyson"}
+
+    def test_playing_teams_uses_our_spelling_and_skips_byes(self):
+        rows = [
+            self._row("A", "WR", "JAX", {"receptions": 1}),
+            self._row("B", "WR", "LAR", {"receptions": 1}),
+            self._row("C", "WR", "KC", {}, opponent=None),  # bye
+        ]
+        assert playing_teams(rows) == {"JAC", "LA"}
+
+    def test_gap_flags_only_unmatched_rostered_players_with_a_game(self):
+        rostered = [
+            {"id": "love", "name": "Jeremiyah Love", "position": "RB", "nfl_team": "ARI"},
+            {"id": "tyson", "name": "Jordyn Tyson", "position": "WR", "nfl_team": "NO"},
+            {"id": "kelce", "name": "Travis Kelce", "position": "TE", "nfl_team": "KC"},
+            {"id": "mensah", "name": "Darian Mensah", "position": "QB", "nfl_team": "MIA",
+             "is_college": True},
+        ]
+        gaps = find_coverage_gaps(rostered, seen={"tyson"}, teams_playing={"ARI", "NO", "MIA"})
+        # Tyson was matched (seen), Kelce's team is on bye, Mensah is a college
+        # player whose "MIA" is Miami (FL), not the Dolphins.
+        assert [g["id"] for g in gaps] == ["love"]
+
+    def test_report_emits_github_warning_and_summary(self, monkeypatch, tmp_path, capsys):
+        summary = tmp_path / "summary.md"
+        monkeypatch.setenv("GITHUB_ACTIONS", "true")
+        monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+        gap = {"name": "Jeremiyah Love", "position": "RB", "nfl_team": "ARI"}
+        report_coverage_gaps([gap], 2026, 5)
+        assert "::warning title=Weekly projection coverage gap::" in capsys.readouterr().out
+        assert "Jeremiyah Love (RB, ARI)" in summary.read_text()
+
+    def test_report_is_quiet_outside_github_actions(self, monkeypatch, capsys):
+        monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+        report_coverage_gaps([{"name": "X", "position": "RB", "nfl_team": "ARI"}], 2026, 5)
+        assert "::warning" not in capsys.readouterr().out

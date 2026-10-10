@@ -59,6 +59,7 @@ export async function fetchEarnedValueBySeason(
                 .select("player_id, season, total_points")
                 .in("season", seasons)
                 .order("player_id")
+                .order("id")
                 .range(from, to),
         ),
     ]);

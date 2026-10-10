@@ -33,6 +33,7 @@ export async function fetchAvailableDepthChartSeasons(): Promise<number[]> {
       .from("depth_charts")
       .select("season")
       .order("season", { ascending: false })
+      .order("id")
       .range(offset, offset + pageSize - 1);
     if (error) {
       console.error("fetchAvailableDepthChartSeasons error", error);
@@ -74,7 +75,7 @@ export async function fetchDepthChartsForSeason(
           .from("depth_charts")
           .select("player_id, team, position, depth_team, players(name, ottoneu_id)")
           .eq("season", season)
-          .order("player_id").range(from, to),
+          .order("player_id").order("id").range(from, to),
       ),
       fetchPriorDepthByPlayer(season - 1),
       fetchProjectedPpgByPlayer(season),
@@ -114,7 +115,7 @@ async function fetchPriorDepthByPlayer(
         .from("depth_charts")
         .select("player_id, depth_team")
         .eq("season", season)
-        .order("player_id").range(from, to),
+        .order("player_id").order("id").range(from, to),
     );
   } catch (error) {
     console.error(`fetchPriorDepthByPlayer(${season}) error`, error);

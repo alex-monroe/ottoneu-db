@@ -80,4 +80,4 @@ Any change to `scripts/feature_projections/`, `scripts/projection_methods.py`, `
 ## Database
 
 - **Migrations:** `migrations/NNN_snake_case.sql`, linted by `just check-migrations`. After applying one: update `web/types/supabase.ts` and `docs/generated/db-schema.md`, then `just check-schema`. Details: [docs/references/database-workflow.md](docs/references/database-workflow.md).
-- **Supabase reads cap at 1000 rows** (Python *and* web clients). Read large tables through `fetch_all_rows` (Python, `scripts.config`) or `fetchAllRows` (web, `web/lib/supabase.ts`); `just check-arch` fails on a non-paginated read of a large table.
+- **Supabase reads cap at 1000 rows** (Python *and* web clients). Read large tables through `fetch_all_rows` (Python, `scripts.config`) or `fetchAllRows` (web, `web/lib/supabase.ts`); `just check-arch` fails on a non-paginated read of a large table. **Paging must also `.order("id")`** (alone or as the last tiebreak) — without a unique ORDER BY the pages overlap and silently drop rows; `just check-arch` enforces this too.

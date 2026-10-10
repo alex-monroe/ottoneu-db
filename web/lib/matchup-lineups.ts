@@ -82,6 +82,7 @@ export async function fetchLiveWeek(
         .order("game_id")
         .order("side")
         .order("ottoneu_id")
+        .order("id")
         .range(from, to),
     ),
     fetchWeeklyByPlayer(season, week),
