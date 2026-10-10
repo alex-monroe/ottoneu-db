@@ -129,6 +129,12 @@ dedupe-transactions *args:
 check-transactions *args:
     {{python}} -m scripts.transaction_state_machine {{args}}
 
+# Fail if scheduled data has gone stale: inferred transactions the card scrape should
+# have replaced, plus (in CI, with GITHUB_TOKEN) workflows that have not succeeded lately.
+# Read-only. Runs daily in check-data-freshness.yml; see docs/references/scheduled-job-monitoring.md.
+check-freshness *args:
+    {{python}} -m scripts.check_data_freshness {{args}}
+
 # Update player projections (VORP/surplus/arbitration now computed in the web UI)
 analyze:
     {{python}} scripts/update_projections.py

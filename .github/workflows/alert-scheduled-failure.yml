@@ -1,0 +1,78 @@
+name: Alert on Scheduled Failure
+
+# Opens a GitHub issue when a SCHEDULED run of any workflow listed below fails, and
+# closes it when that workflow next succeeds. Nobody watches the Actions tab: the
+# player-card scrape failed eight days running in October 2026 before it was
+# noticed. One issue per workflow; repeat failures add at most one comment a day.
+#
+# The list must name every workflow that has a `schedule:` trigger —
+# scripts/tests/test_scheduled_alerts.py fails if one is missing. (workflow_run
+# matches on the workflow's `name:`, so renaming a workflow means updating it here.)
+# See docs/references/scheduled-job-monitoring.md.
+
+on:
+  workflow_run:
+    workflows:
+      - "Check Data Freshness"
+      - "Offseason Data Refresh"
+      - "Post Power Rankings"
+      - "Post Vote Reminder"
+      - "Pull Matchups"
+      - "Pull Player Stats"
+      - "Pull Roster CSV"
+      - "Pull Weekly Projections"
+      - "Scrape Arbitration Progress"
+      - "Scrape Draft Sharks Auction Values"
+      - "Scrape League Calendar"
+      - "Scrape Player Cards"
+    types: [completed]
+
+permissions:
+  issues: write
+
+jobs:
+  alert:
+    # Manual runs are watched by whoever started them; cancelled/skipped runs are
+    # neither a failure nor proof of recovery.
+    if: >-
+      github.event.workflow_run.event == 'schedule' &&
+      contains(fromJSON('["failure", "timed_out", "startup_failure", "success"]'),
+               github.event.workflow_run.conclusion)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      WORKFLOW: ${{ github.event.workflow_run.name }}
+      CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+      RUN_URL: ${{ github.event.workflow_run.html_url }}
+      LABEL: scheduled-failure
+    steps:
+      - name: Open, update or close the issue
+        run: |
+          TITLE="Scheduled workflow failing: $WORKFLOW"
+          export TITLE
+          gh label create "$LABEL" --color B60205 \
+            --description "A scheduled workflow is failing" 2>/dev/null || true
+          ISSUE=$(gh issue list --state open --label "$LABEL" --limit 100 \
+            --json number,title,updatedAt \
+            --jq 'map(select(.title == env.TITLE))[0] // empty | "\(.number) \(.updatedAt)"')
+          NUMBER=${ISSUE%% *}
+          UPDATED=${ISSUE##* }
+
+          if [ "$CONCLUSION" = "success" ]; then
+            if [ -n "$NUMBER" ]; then
+              gh issue close "$NUMBER" --comment "Recovered: $RUN_URL succeeded."
+            fi
+            exit 0
+          fi
+
+          if [ -z "$NUMBER" ]; then
+            gh issue create --title "$TITLE" --label "$LABEL" --body "The scheduled run of **$WORKFLOW** ended with \`$CONCLUSION\`.
+
+          Run: $RUN_URL
+
+          Triage with \`gh run view <run id> --log-failed\` (or the \`ci-triage\` agent). This issue collects later failures as comments (at most one a day) and closes itself when the workflow next succeeds."
+          elif [ "$(date -u -d "$UPDATED" +%s)" -lt "$(date -u -d '24 hours ago' +%s)" ]; then
+            gh issue comment "$NUMBER" --body "Still failing (\`$CONCLUSION\`): $RUN_URL"
+          fi
