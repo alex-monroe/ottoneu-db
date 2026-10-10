@@ -66,7 +66,9 @@ new player rows the card scrape then needs — which is why the pre-filter alone
 not enough to stop the auction duplicates.
 
 **2. The purge (the guarantee).** `scripts/transaction_dedupe.py` runs at the end
-of every `scrape_player_cards.py --apply`, once the authoritative rows are in, and
+of every *complete* `scrape_player_cards.py --apply` (see
+[Rate limiting](#rate-limiting-the-card-scrape-http-429) for when it is skipped),
+once the authoritative rows are in, and
 deletes each inferred row that a real card row supersedes. A card row supersedes
 an inference when it describes the same move and is dated **on or before** it,
 within 14 days:
@@ -196,7 +198,7 @@ The same rulebook runs at both ends, which is the point:
   for the next guess is how a desync becomes permanent. The `league_prices`
   correction still lands — we drop the false *story*, not the ownership fix.
 - **After the fact.** `purge_inferred_violations` runs at the end of every
-  `scrape_player_cards.py --apply`, right after the dedupe purge.
+  complete `scrape_player_cards.py --apply`, right after the dedupe purge.
 
 ```bash
 just check-transactions            # dry run — replay and report
@@ -217,6 +219,62 @@ rosters, not watching them change. `MAX_INFERRED_SHARE` (0.25) withholds the who
 inferred batch past that threshold. Ownership is still reconciled — that is the
 fix — and the run says so, pointing at `just scrape-player-cards --apply` to
 supply the real history.
+
+## Rate limiting: the card scrape (HTTP 429)
+
+From 2026-10-02 the daily card scrape failed every run with
+`5 consecutive Cloudflare challenges … (HTTP 429)`. Nothing in the repo had
+changed: Ottoneu's Cloudflare had started **rate-limiting** the `player_card`
+endpoint. The single-request `/csv/rosters` pull is unaffected.
+
+What a 429 looks like (measured 2026-10-10, honest UA, one client):
+
+| Question | Answer |
+|---|---|
+| Is it a genuine rate limit? | Yes — request 1 gets a 200; the 31st request at ~1.2 req/s (the old `--sleep 0.4`) got the 429. It is a Cloudflare *rate-limiting rule whose action is a challenge*: `cf-mitigated: challenge` and a "Just a moment…" body, but status **429**, not the 403 a refused client gets. |
+| `Retry-After`? | **Not sent.** The wait is ours to choose. |
+| How long does the block last? | About **5 minutes** from the first 429 (still blocked at 4.5 min, clear at 5.3). |
+| What pace is safe? | A 3s sleep (~17 req/min) sustained 80 consecutive requests. |
+| Anything else? | Cloudflare often truncates the 429 body, so reading it raises `ChunkedEncodingError` — the status has to be checked before the body. |
+
+Two bugs in the old loop turned a throttle into a week-long outage:
+
+- **A 429 was filed as a challenge.** The body markers matched, so it raised
+  `CloudflareBlockedError` — the "your client is refused, give up" path — and the
+  error message sent the reader to check the User-Agent, which was fine.
+- **It only slept after a success.** Once the 429s began, the remaining cards
+  were requested as fast as the network allowed, which is how a run burned through
+  its five-strike abort in under a second instead of waiting the block out.
+
+How `scrape_player_cards.py` behaves now:
+
+- **`RateLimitedError` (429) vs `CloudflareBlockedError` (403 / challenge body).**
+  Status wins over body markers. Exit codes differ so a red run says which wall
+  it hit: `3` rate-limited, `2` challenged, `1` incomplete (some card failed).
+- **Paced.** `--sleep` defaults to 3s and applies before *every* request,
+  whatever the previous one returned.
+- **Backs off and retries the same card.** On a 429 it waits `Retry-After` if one
+  is ever sent, else 5 → 10 → 15 → 15 minutes, then aborts. No card is skipped
+  because of a throttle.
+- **Does less.** `--recent-days N` only fetches players who can have new history:
+  those with an **inferred** transaction in the window (reconciliation notices
+  every add/cut/trade and files one — the inferences *are* the work queue, and the
+  purge drains it) or a `league_prices` row created in it. Typically a few dozen
+  cards instead of ~1,270. `league_prices.updated_at` is **not** a usable signal:
+  nothing bumps it, so it equals `created_at` on every row.
+- **Weekly full sweep.** The daily signal cannot see a same-team salary change
+  (arbitration `increase` rows — reconciliation updates the price without filing a
+  transaction) or a move whose inference was withheld, so the workflow runs the
+  whole player list on Mondays (~75 minutes at the safe pace).
+- **Purges only after a complete run.** If the scrape aborted or any card failed,
+  both purges are skipped. The state-machine pass deletes an inference that
+  contradicts the card history, and an unfetched card is history we do not have —
+  a real add looks impossible while the cut before it is still unscraped. Rows
+  already upserted are kept; the next clean run purges.
+
+The limit was measured from one IP on one day; GitHub's runners may see a
+different budget, and Cloudflare rules change. If 429s return, raise `--sleep`
+before anything else.
 
 ## Usage
 

@@ -27,7 +27,7 @@ through (from datacenter IPs incl. GitHub-hosted runners), so both tools send a
 descriptive User-Agent and parse with `requests` + `BeautifulSoup`:
 
 - **`scripts/reconcile_roster.py`** — ingests the `/csv/rosters` export → `league_prices` (team ownership + salary), optionally inferring `transactions`. See [references/roster-csv-reconciliation.md](references/roster-csv-reconciliation.md).
-- **`scripts/scrape_player_cards.py`** — iterates every DB player with a real Ottoneu id and fetches its `player_card/{nfl|college}/{id}` page, parsing the Transaction History table into `transactions` (real dates + types). We already know every id from the DB (and new ones arrive via roster-CSV reconciliation), so there's no need to crawl the search page to *discover* players.
+- **`scripts/scrape_player_cards.py`** — iterates DB players with a real Ottoneu id (every one on the weekly sweep; only recent movers daily, via `--recent-days`, because the endpoint is rate-limited — see [Rate limiting](references/roster-csv-reconciliation.md#rate-limiting-the-card-scrape-http-429)) and fetches each `player_card/{nfl|college}/{id}` page, parsing the Transaction History table into `transactions` (real dates + types). We already know every id from the DB (and new ones arrive via roster-CSV reconciliation), so there's no need to crawl the search page to *discover* players.
 
 The **nflverse** stats pulls still run on the worker-based job queue (browser-free):
 `scripts/enqueue.py` inserts jobs into `scraper_jobs`; `scripts/worker.py` polls and

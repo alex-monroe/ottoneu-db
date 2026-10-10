@@ -25,7 +25,8 @@ source venv/bin/activate
 
 # Ottoneu data (plain HTTP — no browser; the Playwright roster/player-card scrape was removed)
 python scripts/reconcile_roster.py --apply --infer-transactions  # Roster/salary state from the /csv/rosters export
-python scripts/scrape_player_cards.py --apply        # Transaction history from every DB player's card
+python scripts/scrape_player_cards.py --apply        # Transaction history from every DB player's card (~1h: paced for the rate limit)
+python scripts/scrape_player_cards.py --apply --recent-days 14   # Only players who moved recently (what CI runs daily)
 python scripts/scrape_player_cards.py --player-id 11818           # Single player (dry-run)
 
 # nflverse job queue (browser-free)
@@ -107,7 +108,7 @@ just test-python        # Python tests with coverage (prints the result + total 
 just py-coverage        # Per-file Python coverage with missing lines, from the last test-python run
 just test-web           # Jest tests with coverage
 just test-web-file <path>  # Run a single web test file (e.g. just test-web-file __tests__/lib/session.test.ts)
-just scrape-player-cards [--apply] [--player-id N]  # Transaction history via HTTP per DB player id (replaces the Playwright scrape); see docs/references/roster-csv-reconciliation.md
+just scrape-player-cards [--apply] [--player-id N] [--recent-days N]  # Transaction history via HTTP per DB player id (replaces the Playwright scrape); paced + backs off on HTTP 429; see docs/references/roster-csv-reconciliation.md
 just reconcile-roster [--file f.csv] [--apply] [--infer-transactions]  # Sync league_prices from the /csv/rosters export (Cloudflare-blocked-scrape fallback); see docs/references/roster-csv-reconciliation.md
 just dedupe-transactions [--apply] [--verbose]  # Delete inferred transactions a real player-card row supersedes; see docs/references/roster-csv-reconciliation.md
 just check-transactions [--apply] [--verbose]   # Replay the roster state machine over transactions (a rostered player cannot be added again); --apply deletes the inferred rows that break it
@@ -185,7 +186,7 @@ equivalent self-hosted setup would look like.
 
 | Workflow | Trigger | What it runs |
 |----------|---------|--------------|
-| `scrape-player-cards.yml` | Daily 06:40 UTC + `workflow_dispatch` | `scripts/scrape_player_cards.py --apply` — fetches every DB player's Ottoneu player card over plain HTTP (no browser) and upserts transaction history. Replaces the old Playwright `scrape-players.yml`. Honest UA → works on GitHub-hosted runners. Roster/salary comes from `pull-roster-csv.yml`; stats from the nflverse pulls. |
+| `scrape-player-cards.yml` | Daily 06:40 UTC (recent movers) + Mondays 09:10 UTC (full sweep) + `workflow_dispatch` (`full` input) | `scripts/scrape_player_cards.py --apply [--recent-days 14]` — fetches Ottoneu player cards over plain HTTP (no browser) and upserts transaction history. The endpoint is rate-limited (HTTP 429), so the daily run only fetches players with a recent inferred transaction or new `league_prices` row; exit 3 = rate-limited, 2 = challenged, 1 = incomplete. Replaces the old Playwright `scrape-players.yml`. Honest UA → works on GitHub-hosted runners. Roster/salary comes from `pull-roster-csv.yml`; stats from the nflverse pulls. |
 | `pull-roster-csv.yml` | Daily 06:17 UTC + `workflow_dispatch` | `curl` the `/csv/rosters` export → `scripts/reconcile_roster.py --apply --infer-transactions` — lighter-weight roster-state sync (ownership + salary + inferred transactions; no FAs/history). Works from GitHub-hosted runners with an honest User-Agent (a browser-spoof UA, not the datacenter IP, is what trips Cloudflare); `OTTONEU_COOKIE` is an optional fallback. See docs/references/roster-csv-reconciliation.md |
 | `scrape-arbitration-progress.yml` | Every 6h (gated to Jan–Mar + Apr 1) + `workflow_dispatch` | `scripts/scrape_arbitration_progress.py` — pulls per-team allocation status via FanGraphs login (`FANGRAPHS_USERNAME` / `FANGRAPHS_PASSWORD`) |
 | `scrape-draft-sharks.yml` | Mondays 08:00 UTC + `workflow_dispatch` | `scripts/scrape_draft_sharks.py` — Draft Sharks Half-PPR Superflex auction values (no in-season gate; ×2 for the $400 cap) |
@@ -211,7 +212,7 @@ All scheduled scraping workflows that hit Supabase use the **service key**
 # Daily Ottoneu data over plain HTTP (no browser): roster/salary from the CSV
 # export, then transaction history from each player card.
 17 6 * * * cd /path/to/ottoneu_db && source venv/bin/activate && python scripts/reconcile_roster.py --apply --infer-transactions
-40 6 * * * cd /path/to/ottoneu_db && source venv/bin/activate && python scripts/scrape_player_cards.py --apply
+40 6 * * * cd /path/to/ottoneu_db && source venv/bin/activate && python scripts/scrape_player_cards.py --apply --recent-days 14
 # nflverse stats batch (browser-free queue):
 0 7 * * * cd /path/to/ottoneu_db && source venv/bin/activate && python scripts/enqueue.py batch && python scripts/worker.py
 
