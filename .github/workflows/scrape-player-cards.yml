@@ -1,7 +1,7 @@
 name: Scrape Player Cards
 
-# Fetches every DB player's Ottoneu player card over plain HTTP (no browser) and
-# upserts its transaction history. Replaces the Playwright search-page crawl:
+# Fetches Ottoneu player cards over plain HTTP (no browser) and upserts their
+# transaction history. Replaces the Playwright search-page crawl:
 # instead of clicking around to discover players, we already know every Ottoneu
 # player id from the database, so we hit each player_card URL directly.
 #
@@ -16,11 +16,30 @@ name: Scrape Player Cards
 # makes the pair converge. Don't drop that purge or reorder these two without reading
 # docs/references/roster-csv-reconciliation.md.
 
+# RATE LIMIT: since 2026-10-02 Ottoneu's Cloudflare answers a burst of card requests
+# with HTTP 429. So the daily run only fetches the cards that can have changed
+# (--recent-days: players with a recent inferred transaction or a new league_prices
+# row), and a weekly full sweep catches what that signal cannot see (arbitration
+# `increase` rows). The script paces itself and backs off on a 429; see "Rate
+# limiting" in docs/references/roster-csv-reconciliation.md before changing either.
+
 on:
   workflow_dispatch:
+    inputs:
+      full:
+        description: "Scrape every player (slow) instead of only recent movers"
+        type: boolean
+        default: false
   schedule:
-    # Daily at 06:40 UTC (after the roster CSV pull at 06:17).
+    # Daily at 06:40 UTC — recent movers only.
     - cron: "40 6 * * *"
+    # Weekly full sweep, Mondays 09:10 UTC. Keep in sync with FULL_SWEEP_CRON below.
+    - cron: "10 9 * * 1"
+
+# One scrape at a time: two would write the same rows and split nothing useful.
+concurrency:
+  group: scrape-player-cards
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -28,6 +47,10 @@ permissions:
 jobs:
   scrape-player-cards:
     runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      FULL_SWEEP_CRON: "10 9 * * 1"
+      PYTHONUNBUFFERED: "1"  # progress and backoff lines in order, as they happen
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -50,4 +73,12 @@ jobs:
           echo "SUPABASE_KEY=${{ secrets.SUPABASE_SECRET_KEY }}" >> .env
 
       - name: Scrape player-card transactions
-        run: python scripts/scrape_player_cards.py --apply
+        env:
+          SCHEDULE: ${{ github.event.schedule }}
+          FULL: ${{ inputs.full }}
+        run: |
+          if [ "$SCHEDULE" = "$FULL_SWEEP_CRON" ] || [ "$FULL" = "true" ]; then
+            python scripts/scrape_player_cards.py --apply
+          else
+            python scripts/scrape_player_cards.py --apply --recent-days 14
+          fi
