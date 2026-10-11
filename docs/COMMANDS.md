@@ -111,6 +111,7 @@ just test-web-file <path>  # Run a single web test file (e.g. just test-web-file
 just scrape-player-cards [--apply] [--player-id N] [--recent-days N]  # Transaction history via HTTP per DB player id (replaces the Playwright scrape); paced + backs off on HTTP 429; see docs/references/roster-csv-reconciliation.md
 just reconcile-roster [--file f.csv] [--apply] [--infer-transactions]  # Sync league_prices from the /csv/rosters export (Cloudflare-blocked-scrape fallback); see docs/references/roster-csv-reconciliation.md
 just dedupe-transactions [--apply] [--verbose]  # Delete inferred transactions a real player-card row supersedes; see docs/references/roster-csv-reconciliation.md
+just check-freshness                            # Exit 1 if scheduled data is stale (unsuperseded inferred transactions; in CI also workflows with no recent success); see docs/references/scheduled-job-monitoring.md
 just check-transactions [--apply] [--verbose]   # Replay the roster state machine over transactions (a rostered player cannot be added again); --apply deletes the inferred rows that break it
 just analyze            # Update player projections (active model + promote + rookie fallback)
 just check-db           # Verify database contents
@@ -186,6 +187,8 @@ equivalent self-hosted setup would look like.
 
 | Workflow | Trigger | What it runs |
 |----------|---------|--------------|
+| `alert-scheduled-failure.yml` | `workflow_run` of every scheduled workflow | Opens a `scheduled-failure` GitHub issue when a scheduled run fails; closes it on the next success. New scheduled workflows must be added to its list (test-enforced). See [scheduled-job-monitoring.md](references/scheduled-job-monitoring.md). |
+| `check-data-freshness.yml` | Daily 15:23 UTC + `workflow_dispatch` | `python -m scripts.check_data_freshness` — fails if inferred transactions are going unsuperseded or an always-on workflow has no recent success. |
 | `scrape-player-cards.yml` | Daily 06:40 UTC (recent movers) + Mondays 09:10 UTC (full sweep) + `workflow_dispatch` (`full` input) | `scripts/scrape_player_cards.py --apply [--recent-days 14]` — fetches Ottoneu player cards over plain HTTP (no browser) and upserts transaction history. The endpoint is rate-limited (HTTP 429), so the daily run only fetches players with a recent inferred transaction or new `league_prices` row; exit 3 = rate-limited, 2 = challenged, 1 = incomplete. Replaces the old Playwright `scrape-players.yml`. Honest UA → works on GitHub-hosted runners. Roster/salary comes from `pull-roster-csv.yml`; stats from the nflverse pulls. |
 | `pull-roster-csv.yml` | Daily 06:17 UTC + `workflow_dispatch` | `curl` the `/csv/rosters` export → `scripts/reconcile_roster.py --apply --infer-transactions` — lighter-weight roster-state sync (ownership + salary + inferred transactions; no FAs/history). Works from GitHub-hosted runners with an honest User-Agent (a browser-spoof UA, not the datacenter IP, is what trips Cloudflare); `OTTONEU_COOKIE` is an optional fallback. See docs/references/roster-csv-reconciliation.md |
 | `scrape-arbitration-progress.yml` | Every 6h (gated to Jan–Mar + Apr 1) + `workflow_dispatch` | `scripts/scrape_arbitration_progress.py` — pulls per-team allocation status via FanGraphs login (`FANGRAPHS_USERNAME` / `FANGRAPHS_PASSWORD`) |

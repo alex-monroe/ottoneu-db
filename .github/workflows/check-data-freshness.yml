@@ -1,0 +1,49 @@
+name: Check Data Freshness
+
+# Looks at the RESULT of the scheduled data jobs rather than at the jobs: stale
+# inferred transactions the card scrape should have replaced, and always-on
+# workflows that have not succeeded recently. Catches what a failure alert cannot —
+# a disabled workflow, a schedule GitHub skipped, a run that exited 0 having done
+# nothing. A failure here is turned into a GitHub issue by
+# alert-scheduled-failure.yml. See docs/references/scheduled-job-monitoring.md.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Daily at 15:23 UTC — after the morning data jobs, including GitHub's
+    # habitual multi-hour schedule delay.
+    - cron: "23 15 * * *"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  check-data-freshness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install requests supabase python-dotenv
+          pip install -e . --no-deps
+
+      - name: Create .env
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_SECRET_KEY }}" >> .env
+
+      - name: Check freshness
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python -m scripts.check_data_freshness
