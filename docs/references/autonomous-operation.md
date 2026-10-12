@@ -313,21 +313,26 @@ repo, and `config/mcp_config.json`. What it changes and why:
 
 - **Blanket `mcp(supabase/*)` / `mcp(github-mcp-server/*)` grants are removed.**
   They auto-approved `apply_migration`, edge-function deploys and direct pushes
-  to `main` through the GitHub server, none of which the guard's `git` rules
-  see. The read-only Supabase tools are allowed by name; `apply_migration` asks;
-  everything else falls back to Antigravity's default (ask). Use `gh` for GitHub.
+  to `main` through the GitHub server. The guard adapter (`.agents/hooks/guard.py`)
+  actively blocks `push_files` and `create_or_update_file` targeting `main`, and
+  forces `merge_pull_request` to `force_ask`. The read-only Supabase tools are
+  allowed by name; `apply_migration` asks; everything else falls back to
+  Antigravity's default (ask). Use `gh` for GitHub.
 - **The Supabase server is pinned with `--project-ref`** and its token moved
   from `args` to `env`. Unpinned, the token reaches every project on the
   account; on the command line, `ps` and `agy mcp list` print it.
 - **Network:** Antigravity's sandbox has no network unless a domain is allowed
   under `read_url`, so the script copies `sandbox.network.allowedDomains`.
-- **Out of the sandbox without a prompt:** `just`, `git push/fetch/pull` and the
+- **Out of the sandbox without a prompt:** `just`, `git push/fetch/pull/ls-remote` and the
   allowlisted `gh` subcommands. The sandbox hides `.env`, so any recipe that
   talks to Supabase needs to leave it — the same trust `Bash(just *)` already
   carries here. `gh pr merge` asks; `sudo` and force-pushes are denied.
 - **Worktrees:** the app creates them under `~/.gemini/antigravity/worktrees/`,
-  outside the main checkout, so the main checkout's `.git` is writable (not
-  `.git/hooks`) and the checkout readable (for `venv/`).
+  outside the main checkout, so the main checkout's `.git` and `.cache` are
+  writable (not `.git/hooks`) and the checkout readable (for `venv/`). Because
+  Antigravity's Seatbelt sandbox cannot execute binaries outside the worktree,
+  agents running in a worktree run `just` recipes with `BypassSandbox: true`
+  (pre-approved, zero prompts).
 
 **Set by hand in the app** (Settings → General): permission preset **Default**,
 notifications on, *keep computer awake* and *run in background* on for

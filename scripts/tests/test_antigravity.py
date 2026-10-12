@@ -101,6 +101,61 @@ def test_ignores_other_mcp_tools_even_when_their_text_mentions_sql():
     assert _decide(_mcp("list_tables", {"schemas": ["public"]})) is None
 
 
+def test_denies_github_mcp_push_or_write_to_main():
+    push_payload = {
+        "toolCall": {
+            "name": "call_mcp_tool",
+            "args": {
+                "ServerName": "github-mcp-server",
+                "ToolName": "push_files",
+                "Arguments": {"branch": "main", "files": [{"path": "a.py", "content": "1"}]},
+            },
+        }
+    }
+    assert _decide(push_payload)["decision"] == "deny"
+
+    write_payload = {
+        "toolCall": {
+            "name": "call_mcp_tool",
+            "args": {
+                "ServerName": "github-mcp-server",
+                "ToolName": "create_or_update_file",
+                "Arguments": json.dumps({"branch": "refs/heads/main", "path": "b.py", "content": "2"}),
+            },
+        }
+    }
+    assert _decide(write_payload)["decision"] == "deny"
+
+
+def test_allows_github_mcp_push_to_feature_branch():
+    payload = {
+        "toolCall": {
+            "name": "call_mcp_tool",
+            "args": {
+                "ServerName": "github-mcp-server",
+                "ToolName": "push_files",
+                "Arguments": {"branch": "feature/safe-change", "files": []},
+            },
+        }
+    }
+    assert _decide(payload) is None
+
+
+def test_github_mcp_merge_pull_request_forces_ask():
+    payload = {
+        "toolCall": {
+            "name": "call_mcp_tool",
+            "args": {
+                "ServerName": "github-mcp-server",
+                "ToolName": "merge_pull_request",
+                "Arguments": {"pull_number": 42},
+            },
+        }
+    }
+    assert _decide(payload)["decision"] == "force_ask"
+
+
+
 def test_script_prints_a_deny_decision():
     proc = subprocess.run([sys.executable, str(ADAPTER_PATH)], input=json.dumps(_run("git push origin main")),
                           capture_output=True, text=True)
@@ -159,8 +214,8 @@ def test_network_and_filesystem_rules(rules):
 
 
 def test_only_network_commands_are_let_out_of_the_sandbox(rules):
-    assert {"unsandboxed(just)", "unsandboxed(git push)", "unsandboxed(gh pr)", "command(gh pr)"} <= set(rules["allow"])
-    assert not any("ls" in r for r in rules["allow"]), "sandboxed commands need no rule"
+    assert {"unsandboxed(just)", "unsandboxed(git push)", "unsandboxed(git ls-remote)", "unsandboxed(gh pr)", "command(gh pr)"} <= set(rules["allow"])
+    assert not any(r in ("command(ls)", "unsandboxed(ls)") for r in rules["allow"]), "sandboxed commands need no rule"
 
 
 def test_ask_and_deny_carry_over(rules):

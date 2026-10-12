@@ -31,6 +31,7 @@ Owner `alex-monroe`, repo `ottoneu-db` (hyphen — the local directory is `otton
 ## Worktree Notes
 
 - **Python works unchanged in a worktree via `just`:** the Justfile falls back to the main checkout's `venv/` and sets `PYTHONPATH` to the worktree, so your edits (not main's code) run. `.env` is found by searching upward. `web/node_modules` is per-checkout — run `just worktree-setup` once if it is missing (`just doctor` says so).
+- **Antigravity worktrees run `just` unsandboxed (`BypassSandbox: true`):** Antigravity creates worktrees under `~/.gemini/antigravity/worktrees/`, outside the main checkout. The terminal sandbox restricts execution to the worktree directory, so `just` recipes borrowing the main checkout's `venv/bin/python` fail under Seatbelt (`exit 126`). `just` and `git push/fetch/pull/ls-remote` are already pre-approved in Antigravity settings and run unsandboxed without user prompts.
 - **Production actions** (like `just promote` or `just analyze`) should run from the main checkout after merging, not from a worktree, since they modify shared production data.
 
 ## Python Style
