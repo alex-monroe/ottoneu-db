@@ -1,0 +1,16 @@
+{
+  "repo-guard": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command|mcp.*|.*(execute_sql|apply_migration).*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 hooks/guard.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

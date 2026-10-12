@@ -285,6 +285,82 @@ Host caveats: `venv/` and `web/node_modules/` are backed by named volumes
 host's macOS `venv/`. Production promotion actions should still run from the
 host main repo per CLAUDE.md worktree notes.
 
+## Google Antigravity
+
+Antigravity (the desktop app and the `agy` CLI) runs against the same policy as
+Claude Code. Nothing is duplicated: the repo-side files point at the Claude
+ones, and the machine-local rules are generated from `.claude/settings.json`.
+
+| Claude Code | Antigravity | Where |
+|---|---|---|
+| `AGENTS.md` (via `CLAUDE.md`) | `AGENTS.md`, loaded natively | repo |
+| `.claude/skills/` | The same directory, registered by `.agents/skills.json`; each skill is also a `/name` command | repo |
+| `guard.py` PreToolUse hook | `.agents/hooks.json` → `.agents/hooks/guard.py`, an adapter that calls the Claude guard's `check()` | repo |
+| Sandbox + `autoAllowBashIfSandboxed` | Terminal sandbox + `proceed-in-sandbox` (app: the **Default** permission preset) | machine |
+| `permissions` allow / ask / deny, `allowedDomains`, `allowWrite` | `command(…)`, `unsandboxed(…)`, `mcp(…)`, `read_url(…)`, `write_file(…)` rules | machine |
+| `.mcp.json` (Supabase, pinned to this project) | `~/.gemini/config/mcp_config.json` | machine |
+
+**Setup, once per machine** — and again after changing `.claude/settings.json`:
+
+```
+just antigravity-setup            # dry run: prints every rule it would add or remove
+just antigravity-setup --apply    # writes; quit the Antigravity app first
+```
+
+It edits three files under `~/.gemini/` (keeping a `.bak` of each): the CLI's
+`antigravity-cli/settings.json`, the app's `config/projects/<id>.json` for this
+repo, and `config/mcp_config.json`. What it changes and why:
+
+- **Blanket `mcp(supabase/*)` / `mcp(github-mcp-server/*)` grants are removed.**
+  They auto-approved `apply_migration`, edge-function deploys and direct pushes
+  to `main` through the GitHub server, none of which the guard's `git` rules
+  see. The read-only Supabase tools are allowed by name; `apply_migration` asks;
+  everything else falls back to Antigravity's default (ask). Use `gh` for GitHub.
+- **The Supabase server is pinned with `--project-ref`** and its token moved
+  from `args` to `env`. Unpinned, the token reaches every project on the
+  account; on the command line, `ps` and `agy mcp list` print it.
+- **Network:** Antigravity's sandbox has no network unless a domain is allowed
+  under `read_url`, so the script copies `sandbox.network.allowedDomains`.
+- **Out of the sandbox without a prompt:** `just`, `git push/fetch/pull` and the
+  allowlisted `gh` subcommands. The sandbox hides `.env`, so any recipe that
+  talks to Supabase needs to leave it — the same trust `Bash(just *)` already
+  carries here. `gh pr merge` asks; `sudo` and force-pushes are denied.
+- **Worktrees:** the app creates them under `~/.gemini/antigravity/worktrees/`,
+  outside the main checkout, so the main checkout's `.git` is writable (not
+  `.git/hooks`) and the checkout readable (for `venv/`).
+
+**Set by hand in the app** (Settings → General): permission preset **Default**,
+notifications on, *keep computer awake* and *run in background* on for
+unattended runs. Remote Control (`agy --remote-control`, or the app's toggle)
+lets you answer the remaining prompts from a phone.
+
+Differences from Claude Code that remain:
+
+- No SessionStart or async post-edit hook. Antigravity hooks are synchronous
+  and have no session-start event; `just preflight` covers what the post-edit
+  lint did, and a fresh worktree needs `just worktree-setup` by hand.
+- The Claude subagents (`.claude/agents/`) are not ported. Antigravity's main
+  agent defines its own subagents at run time; `/run-tests` runs inline.
+- `/review-permission-gates` and `just permission-report` read Claude Code
+  transcripts and say nothing about Antigravity sessions.
+- The devcontainer (Layer 4) installs Claude Code only. `agy
+  --dangerously-skip-permissions` on the host has no boundary at all — don't.
+
+Verify after setup, from the repo root (the push is a dry run either way):
+
+```
+agy --sandbox -p 'Run exactly: git push --dry-run origin main — once, no retries, and quote the result. Then list your skills whose names start with "run-".'
+```
+
+The guard should refuse the push with "Blocked: pushing to `main`", and the
+list should include `run-tests` and `run-scraper`. **This had not been run when
+the setup landed** (the session that wrote it could not launch `agy`), so three
+things rest on Antigravity's docs rather than on observation: that a hook
+printing nothing leaves the decision to the permission rules, the argument
+layout of MCP tool calls (the adapter scans every string instead of relying on
+it), and that the app honours `ask`/`deny` lists in its project file. If the
+self-test disagrees, fix the adapter and delete this paragraph.
+
 ## Is the metric worth it? (decision record)
 
 Yes, with eyes open. The instrumentation is ~150 lines of stdlib Python, zero

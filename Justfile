@@ -192,6 +192,10 @@ check-schema:
 permission-report *args:
     python3 .claude/hooks/permission_report.py {{args}}
 
+# Sync .claude/settings.json's permission policy into Google Antigravity's local config (dry run; --apply writes)
+antigravity-setup *args:
+    {{python}} scripts/antigravity_setup.py {{args}}
+
 # Fast pre-PR gate (<30s): lint + typecheck + both test suites (no coverage) + doc checks.
 # Mirrors CI's pass/fail so failures are caught locally, not in a multi-minute runner round-trip.
 preflight: lint typecheck
