@@ -277,7 +277,7 @@ with a microphone already running, so it is a wide page of dense lists rather
 than an article.
 
 **Nothing on it is stored.** Every number is derived at read time in
-`web/lib/weekly-recap.ts` from rows three other subsystems already own:
+`web/lib/weekly-recap.ts` from rows other subsystems already own:
 
 | Source | What it contributes |
 |--------|---------------------|
@@ -285,6 +285,7 @@ than an article.
 | `weekly_projections` | each player's forecast, frozen at his own kickoff |
 | `league_matchups` | the six results |
 | `power_ranking_*` | the hosts' consolidated order for that same week |
+| `transactions` | the trades, adds and cuts made during the week |
 
 That is the same choice the standings make, for the same reason: a stored recap
 can only be as fresh as the job that wrote it, and it can disagree with the box
@@ -341,6 +342,31 @@ two nulls would collide).
 
 An **empty starting slot** shows up here naturally: a team that started nobody
 at kicker gets a "sat on the bench" entry with nothing displaced.
+
+### Trades, adds and cuts
+
+The last section lists the week's roster moves, shaped in
+`web/lib/recap-moves.ts` from the `transactions` event log:
+
+- **The window is the fantasy week's own** — `league_matchups.starts_on` to
+  `ends_on`, Wednesday to Tuesday, both ends included. With no dates on the
+  schedule there is no window, `WeeklyRecap.moves` is null and the section is
+  left off.
+- **A trade is one event.** The log holds one `move (from <team>)` row per
+  player; rows that share a clock time (the date, when the card printed none)
+  and the same two teams are regrouped into one trade with two sides.
+- **Adds and cuts are listed biggest salary first.** Ottoneu has no free
+  pickups, so an add's salary is what the winning bid or claim cost.
+- **Only `add`, `cut` and `move` rows count.** Arbitration `increase`s are not a
+  move a team made that week.
+- **An inferred row is flagged, not hidden.** It goes through the same
+  `dedupeInferred` as the MCP feed (`web/lib/mcp/transactions.ts`), read with a
+  14-day margin before the window so a restated move is dropped; one that stands
+  alone is kept and shown as "by Oct 2", because its date is the reconciliation
+  run rather than the move.
+
+Dollars sent along with a trade are not in the log, so a trade shows players
+only.
 
 ### Which week it opens on
 

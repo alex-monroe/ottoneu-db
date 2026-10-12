@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Flame, Snowflake, ListOrdered, Sofa, Trophy } from "lucide-react";
+import { ArrowLeftRight, Flame, Snowflake, ListOrdered, Sofa, Trophy } from "lucide-react";
 import { requirePodcaster } from "@/lib/auth";
 import {
   fetchWeeklyRecap,
@@ -9,6 +9,7 @@ import {
   type TeamWeek,
   type WeeklyRecap,
 } from "@/lib/weekly-recap";
+import type { RecapMove, RecapTrade, WeekMoves } from "@/lib/recap-moves";
 import PageShell, { PageHeader } from "@/components/PageShell";
 import { EmptyState } from "@/components/states";
 import { Th } from "@/components/TableParts";
@@ -23,8 +24,8 @@ import WeekPicker from "./WeekPicker";
  *
  * It is one week, looked at backwards, in the order the show tends to talk
  * about it: what happened in the six games, who went off, who did not, where the
- * ranking we recorded on Tuesday turned out to be wrong, and what was sitting on
- * everybody's bench. Every number is derived at read time in
+ * ranking we recorded on Tuesday turned out to be wrong, what was sitting on
+ * everybody's bench, and who traded, added and cut whom along the way. Every number is derived at read time in
  * `web/lib/weekly-recap.ts`; nothing here is stored.
  *
  * Deliberately a *wide* page of dense lists rather than a narrow article. It is
@@ -440,6 +441,189 @@ function BenchCard({ miss }: { miss: BenchMiss }) {
   );
 }
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/**
+ * "Oct 10" from a `YYYY-MM-DD` (or the site-clock `YYYY-MM-DDTHH:MM`). Read off
+ * the string rather than through `Date`, which would shift an unzoned date by
+ * the server's offset.
+ */
+function shortDate(value: string): string {
+  const [, month, day] = value.slice(0, 10).split("-").map(Number);
+  return `${MONTHS[month - 1]} ${day}`;
+}
+
+function salary(value: number | null): string {
+  return value == null ? "—" : `$${value}`;
+}
+
+/** When a move happened — and, for an inferred row, that the day is a guess. */
+function MoveDate({ date, approximate }: { date: string; approximate: boolean }) {
+  return (
+    <span
+      className="whitespace-nowrap tabular-nums"
+      title={
+        approximate
+          ? "Found by comparing roster snapshots, so this is the day it was noticed, not necessarily the day it happened."
+          : undefined
+      }
+    >
+      {approximate ? "by " : ""}
+      {shortDate(date)}
+    </span>
+  );
+}
+
+function MovePlayer({ move }: { move: RecapMove }) {
+  return (
+    <span className="flex min-w-0 items-center gap-2">
+      <span className="hidden shrink-0 sm:inline-flex">
+        <PositionBadge position={move.position ?? "—"} size="sm" />
+      </span>
+      <span className="min-w-0 truncate">
+        <PlayerName name={move.name} ottoneuId={move.ottoneuId ?? undefined} />
+        {move.nflTeam && (
+          <span className="ml-1.5 text-[11px] text-ink-subtle">{move.nflTeam}</span>
+        )}
+      </span>
+    </span>
+  );
+}
+
+/** One trade, as the two hauls side by side. */
+function TradeCard({ trade }: { trade: RecapTrade }) {
+  return (
+    <div className="rounded-lg border border-line bg-raised p-4">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-subtle">
+        <MoveDate date={trade.date} approximate={trade.approximate} />
+      </p>
+      <div className="mt-2 grid gap-4 sm:grid-cols-2">
+        {trade.sides.map((side) => (
+          <div key={side.teamName} className="min-w-0">
+            <p className="truncate text-sm font-semibold">
+              <TeamName name={side.teamName} />{" "}
+              <span className="font-normal text-ink-subtle">get</span>
+            </p>
+            {side.received.length > 0 ? (
+              <ul className="mt-1.5 space-y-1.5 text-sm text-ink">
+                {side.received.map((move) => (
+                  <li
+                    key={`${move.ottoneuId}-${move.name}`}
+                    className="flex items-center justify-between gap-2"
+                  >
+                    <MovePlayer move={move} />
+                    <span className="shrink-0 tabular-nums text-ink-muted">
+                      {salary(move.salary)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-1.5 text-sm text-ink-subtle">No players</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Adds and cuts share a shape: who, which team, at what salary, when. */
+function MoveTable({ moves, empty }: { moves: RecapMove[]; empty: string }) {
+  if (moves.length === 0) {
+    return <EmptyState title={empty} />;
+  }
+  return (
+    <div className="overflow-x-auto rounded-lg border border-line">
+      <table className="w-full border-collapse">
+        <thead className="bg-sunken">
+          <tr>
+            <Th>Player</Th>
+            <Th>Team</Th>
+            <Th right>Salary</Th>
+            <Th right>When</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {moves.map((move) => (
+            <tr
+              key={`${move.teamName}-${move.ottoneuId}-${move.at ?? move.date}`}
+              className="border-t border-line"
+            >
+              <td className="px-3 py-2 text-sm text-ink">
+                <MovePlayer move={move} />
+              </td>
+              <td className="px-3 py-2 text-sm">
+                <span className="block max-w-[10rem] truncate">
+                  <TeamName name={move.teamName} />
+                </span>
+              </td>
+              <td className="px-3 py-2 text-right text-sm font-semibold tabular-nums text-ink">
+                {salary(move.salary)}
+              </td>
+              <td className="px-3 py-2 text-right text-sm text-ink-subtle">
+                <MoveDate date={move.date} approximate={move.approximate} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function MovesSection({ moves }: { moves: WeekMoves }) {
+  const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
+  const quiet = moves.trades.length + moves.adds.length + moves.cuts.length === 0;
+
+  return (
+    <Section
+      icon={<ArrowLeftRight size={18} className="text-ink-subtle" aria-hidden="true" />}
+      title="Trades, adds and cuts"
+      hint={
+        <>
+          Every roster move dated {shortDate(moves.from)} to {shortDate(moves.to)} — the
+          fantasy week&apos;s own window. {count(moves.trades.length, "trade")},{" "}
+          {count(moves.adds.length, "add")}, {count(moves.cuts.length, "cut")}. An add&apos;s
+          salary is what the winning bid or claim cost; adds and cuts are listed biggest
+          salary first.
+        </>
+      }
+    >
+      {quiet ? (
+        <EmptyState title="No moves this week">
+          Nobody traded, added or cut a player in this window — or the transaction
+          scrape (<code>just scrape-player-cards</code>) has not picked them up yet.
+        </EmptyState>
+      ) : (
+        <div className="space-y-4">
+          {moves.trades.length > 0 && (
+            <div className="grid gap-3 lg:grid-cols-2">
+              {moves.trades.map((trade) => (
+                <TradeCard key={trade.key} trade={trade} />
+              ))}
+            </div>
+          )}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div>
+              <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-ink-subtle">
+                Adds
+              </h3>
+              <MoveTable moves={moves.adds} empty="Nobody was added" />
+            </div>
+            <div>
+              <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-ink-subtle">
+                Cuts
+              </h3>
+              <MoveTable moves={moves.cuts} empty="Nobody was cut" />
+            </div>
+          </div>
+        </div>
+      )}
+    </Section>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
@@ -646,13 +830,16 @@ export default async function WeeklyRecapPage({ searchParams }: Props) {
         </Section>
       )}
 
+      {recap.moves && <MovesSection moves={recap.moves} />}
+
       <section className="space-y-2 border-t border-line pt-4 text-xs text-ink-subtle">
         <p>
           Scores and lineups are Ottoneu&apos;s own box scores. Projections are
           Sleeper&apos;s per-game forecasts re-scored under league rules and{" "}
           <em>frozen at kickoff</em>, so a player is measured against the number he
           carried into his game. A player with no forecast is left out of the surprise
-          lists rather than credited with beating zero.
+          lists rather than credited with beating zero. Trades, adds and cuts are
+          Ottoneu&apos;s own transaction log, read from each player&apos;s card.
           {recap.asOf &&
             ` Lineups last read from Ottoneu ${new Date(recap.asOf).toLocaleString("en-US", { timeZone: "America/New_York", dateStyle: "medium", timeStyle: "short" })} ET.`}
         </p>

@@ -48,6 +48,21 @@ function player(overrides: Partial<WeeklyRecap["topPerformers"][number]> = {}) {
   };
 }
 
+function move(overrides: Partial<NonNullable<WeeklyRecap["moves"]>["adds"][number]> = {}) {
+  return {
+    ottoneuId: 100,
+    name: "Tyreek Hill",
+    position: "WR",
+    nflTeam: "MIA",
+    teamName: "Tinseltown Little Gold Men",
+    salary: 7,
+    date: "2026-10-02",
+    at: "2026-10-02T18:12",
+    approximate: false,
+    ...overrides,
+  };
+}
+
 function recap(overrides: Partial<WeeklyRecap> = {}): WeeklyRecap {
   return {
     season: 2026,
@@ -99,6 +114,30 @@ function recap(overrides: Partial<WeeklyRecap> = {}): WeeklyRecap {
     ranked: true,
     voters: [{ userId: "a", displayName: "Wadsworth" }],
     unprojected: 1,
+    moves: {
+      from: "2026-09-30",
+      to: "2026-10-06",
+      trades: [
+        {
+          key: "t1",
+          date: "2026-10-01",
+          at: "2026-10-01T22:19",
+          approximate: false,
+          sides: [
+            {
+              teamName: "The Golden Gouda",
+              received: [move({ ottoneuId: 101, name: "Michael Wilson", teamName: "The Golden Gouda", salary: 21 })],
+            },
+            {
+              teamName: "Tinseltown Little Gold Men",
+              received: [move({ ottoneuId: 102, name: "Kirk Cousins", position: "QB", salary: 14 })],
+            },
+          ],
+        },
+      ],
+      adds: [move()],
+      cuts: [move({ ottoneuId: 103, name: "Jaxson Dart", position: "QB", salary: 18 })],
+    },
     asOf: "2026-09-15T15:18:48.061305+00:00",
     ...overrides,
   };
@@ -152,6 +191,7 @@ describe("the recap a host actually opens", () => {
       "Biggest surprises against the projection",
       "Biggest surprises against the Week 1 ranking",
       "Left on the bench",
+      "Trades, adds and cuts",
     ]) {
       expect(screen.getByRole("heading", { name: new RegExp(heading, "i") })).toBeInTheDocument();
     }
@@ -176,6 +216,17 @@ describe("the recap a host actually opens", () => {
       await WeeklyRecapPage({ searchParams: Promise.resolve({}) }),
     );
     expect(container.querySelectorAll("a a")).toHaveLength(0);
+  });
+
+  it("lists the week's trade, add and cut, and says which days it covers", async () => {
+    mockFetch.mockResolvedValue(recap());
+    await renderPage();
+    expect(screen.getByText("Michael Wilson")).toBeInTheDocument();
+    expect(screen.getByText("Kirk Cousins")).toBeInTheDocument();
+    expect(screen.getByText("Tyreek Hill")).toBeInTheDocument();
+    expect(screen.getByText("Jaxson Dart")).toBeInTheDocument();
+    expect(screen.getByText(/Sep 30 to Oct 6/)).toBeInTheDocument();
+    expect(screen.getByText(/1 trade, 1 add, 1 cut/)).toBeInTheDocument();
   });
 
   it("puts each host's own placement beside the ranking miss", async () => {
@@ -208,6 +259,38 @@ describe("what it says when it does not have the data", () => {
     expect(screen.queryByRole("heading", { name: /Top performers/i })).not.toBeInTheDocument();
     // The six results still stand on their own.
     expect(screen.getByRole("heading", { name: /The games/i })).toBeInTheDocument();
+  });
+
+  it("says a week was quiet rather than showing three empty lists", async () => {
+    mockFetch.mockResolvedValue(
+      recap({ moves: { from: "2026-09-30", to: "2026-10-06", trades: [], adds: [], cuts: [] } }),
+    );
+    await renderPage();
+    expect(screen.getByText("No moves this week")).toBeInTheDocument();
+  });
+
+  // No dates on the schedule means no window to read the moves over.
+  it("leaves the moves section off when the week has no dates", async () => {
+    mockFetch.mockResolvedValue(recap({ moves: null }));
+    await renderPage();
+    expect(screen.queryByRole("heading", { name: /Trades, adds and cuts/i })).not.toBeInTheDocument();
+  });
+
+  // An inferred row is dated the reconciliation run, not the move.
+  it("marks a date it is only guessing at", async () => {
+    mockFetch.mockResolvedValue(
+      recap({
+        moves: {
+          from: "2026-09-30",
+          to: "2026-10-06",
+          trades: [],
+          adds: [move({ approximate: true })],
+          cuts: [],
+        },
+      }),
+    );
+    await renderPage();
+    expect(screen.getByText("by Oct 2")).toBeInTheDocument();
   });
 
   it("flags a week that is still being played", async () => {

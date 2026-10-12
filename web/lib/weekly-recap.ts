@@ -9,6 +9,7 @@
  *   `weekly_projections`   each player's forecast, frozen at his kickoff
  *   `league_matchups`      the head-to-head game log
  *   `power_ranking_*`      the hosts' consolidated ranking for that same week
+ *   `transactions`         the trades, adds and cuts made during the week
  *
  * There is no recap table and there should not be one. A stored recap can only
  * be as fresh as the job that wrote it, and it can disagree with the box score
@@ -58,6 +59,7 @@ import { cache } from "react";
 import { getLeagueStatus } from "./matchups";
 import { fetchLiveWeek } from "./matchup-lineups";
 import { fetchWeekRankings, type VoterRank } from "./power-rankings";
+import { fetchWeekMoves, weekWindow, type WeekMoves } from "./recap-moves";
 import {
   SLOT_IDS,
   lineupTotal,
@@ -183,6 +185,11 @@ export interface WeeklyRecap {
   voters: { userId: string; displayName: string }[];
   /** Starters with no forecast at all — excluded from the surprise lists. */
   unprojected: number;
+  /**
+   * The week's trades, adds and cuts. Null when the schedule carries no dates
+   * for the week, so there is no window to read them over. See ./recap-moves.
+   */
+  moves: WeekMoves | null;
   /** When the lineups were last read from Ottoneu. */
   asOf: string | null;
 }
@@ -551,7 +558,7 @@ export function teamWeeks(
  * state rather than a set of zeroes.
  *
  * React-cached so `generateMetadata` and the page body share one read; it is
- * four queries and a lineup optimisation per team.
+ * five queries and a lineup optimisation per team.
  */
 export const fetchWeeklyRecap = cache(
   async (requestedWeek?: number): Promise<WeeklyRecap | null> => {
@@ -564,9 +571,12 @@ export const fetchWeeklyRecap = cache(
     const weekGames = league.matchups.filter((m) => m.week === week);
     const teamNames = league.standings.map((row) => row.team_name);
 
-    const [lineups, rankings] = await Promise.all([
+    const window = weekWindow(weekGames);
+
+    const [lineups, rankings, moves] = await Promise.all([
       fetchLiveWeek(league.season, week),
       fetchWeekRankings(league.season, week, teamNames),
+      window ? fetchWeekMoves(window.from, window.to) : null,
     ]);
 
     const players = recapPlayers([...lineups.values()]);
@@ -588,6 +598,7 @@ export const fetchWeeklyRecap = cache(
       ranked: rankings.voters.length > 0,
       voters: rankings.voters,
       unprojected: unprojectedStarters(players),
+      moves,
       asOf: [...lineups.values()]
         .map((g) => g.scrapedAt)
         .filter((s): s is string => s != null)
