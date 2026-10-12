@@ -41,7 +41,7 @@ LISTS = ("allow", "ask", "deny")
 # withholds. `unsandboxed(...)` lets them out without a prompt on the CLI; the
 # matching `command(...)` rule does the same in the app. Each is already trusted
 # unsandboxed in .claude/settings.json (allow rule + excludedCommands).
-UNSANDBOXED = ("just", "git push", "git fetch", "git pull")
+UNSANDBOXED = ("just", "git push", "git fetch", "git pull", "git ls-remote")
 # Prefix rules match word by word from the start, so `git push origin x --force`
 # needs a pattern to be caught wherever the flag sits.
 FORCE_PUSH = r"regex:git push\b.*\s(--force|-f)(\s.*)?"
@@ -85,7 +85,11 @@ def build_rules(claude: dict, main_root: Path, home: Path) -> dict[str, list[str
     # checkout needs from it — the shared .git to commit, the venv to run.
     for path in sandbox.get("filesystem", {}).get("allowWrite", []):
         rules["allow"].append(f"write_file({path.replace('~', str(home), 1)})")
-    rules["allow"] += [f"write_file({main_root / '.git'})", f"read_file({main_root})"]
+    rules["allow"] += [
+        f"write_file({main_root / '.git'})",
+        f"write_file({main_root / '.cache'})",
+        f"read_file({main_root})",
+    ]
     rules["deny"].append(f"write_file({main_root / '.git' / 'hooks'})")
 
     for prefix in UNSANDBOXED:

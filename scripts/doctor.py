@@ -267,6 +267,64 @@ def check_holdout_cache() -> Result:
     )
 
 
+def check_antigravity_setup() -> Result:
+    """Validate that the Antigravity harness (.agents/) is configured and in sync."""
+    title = "Google Antigravity harness (.agents/)"
+    agents_dir = PROJECT_ROOT / ".agents"
+    if not agents_dir.exists():
+        agents_dir = MAIN_ROOT / ".agents"
+    if not agents_dir.exists():
+        return (PASS, title, "no .agents/ directory found", None)
+
+    hooks_json = agents_dir / "hooks.json"
+    skills_json = agents_dir / "skills.json"
+    if not hooks_json.exists():
+        return (FAIL, title, f"missing {hooks_json}", "Restore .agents/hooks.json from git")
+    if not skills_json.exists():
+        return (FAIL, title, f"missing {skills_json}", "Restore .agents/skills.json from git")
+
+    import json
+    try:
+        hooks = json.loads(hooks_json.read_text())
+        skills = json.loads(skills_json.read_text())
+    except Exception as exc:
+        return (FAIL, title, f"invalid JSON in .agents configs: {exc}", "Fix syntax in .agents/hooks.json and skills.json")
+
+    # Check hook target exists
+    try:
+        (group,) = hooks.get("repo-guard", {}).get("PreToolUse", [])
+        hook_cmd = group["hooks"][0]["command"]
+        hook_script = agents_dir / hook_cmd.split()[-1]
+        if not hook_script.exists():
+            return (FAIL, title, f"guard hook script {hook_script} missing", f"Ensure {hook_script} exists")
+    except Exception as exc:
+        return (FAIL, title, f"malformed .agents/hooks.json: {exc}", "Fix .agents/hooks.json structure")
+
+    # Check skill entries
+    entries = skills.get("entries", [])
+    if not any(e.get("path") == ".claude/skills" for e in entries):
+        return (WARN, title, ".agents/skills.json missing .claude/skills entry", "Add { 'path': '.claude/skills' } to .agents/skills.json")
+
+    # If ~/.gemini exists, check if machine settings are in sync
+    gemini_cli = Path.home() / ".gemini" / "antigravity-cli" / "settings.json"
+    if gemini_cli.exists():
+        try:
+            from scripts.antigravity_setup import build_rules, merge_rules
+            claude_settings = PROJECT_ROOT / ".claude" / "settings.json"
+            if not claude_settings.exists():
+                claude_settings = MAIN_ROOT / ".claude" / "settings.json"
+            if claude_settings.exists():
+                wanted = build_rules(json.loads(claude_settings.read_text()), MAIN_ROOT, Path.home())
+                existing = json.loads(gemini_cli.read_text()).get("permissions") or {}
+                merged = merge_rules(existing, wanted)
+                if merged != existing:
+                    return (WARN, title, "local agy settings drifted from .claude/settings.json", "just antigravity-setup --apply")
+        except Exception:
+            pass
+
+    return (PASS, title, "repo configs (.agents/) and machine permissions in sync", None)
+
+
 CHECKS = [
     check_venv_import,
     check_python_version,
@@ -274,6 +332,7 @@ CHECKS = [
     check_env_file,
     check_node_modules,
     check_holdout_cache,
+    check_antigravity_setup,
 ]
 
 

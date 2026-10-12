@@ -115,3 +115,21 @@ def test_python_version_check_passes_on_current_floor(monkeypatch):
     monkeypatch.setattr(doctor, "MIN_PYTHON", (3, 0))
     status, *_ = doctor.check_python_version()
     assert status == doctor.PASS
+
+
+def test_antigravity_setup_check_passes_on_repo(monkeypatch):
+    status, title, _detail, _fix = doctor.check_antigravity_setup()
+    assert status in (doctor.PASS, doctor.WARN)
+    assert "Antigravity" in title
+
+
+def test_antigravity_setup_check_flags_missing_hooks(tmp_path, monkeypatch):
+    agents_dir = tmp_path / ".agents"
+    agents_dir.mkdir()
+    monkeypatch.setattr(doctor, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(doctor, "MAIN_ROOT", tmp_path)
+    status, _title, detail, fix = doctor.check_antigravity_setup()
+    assert status == doctor.FAIL
+    assert "hooks.json" in detail
+    assert fix
+

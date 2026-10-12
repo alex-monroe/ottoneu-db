@@ -88,6 +88,35 @@ def decide(
     strings = list(_strings(args))
     text = " ".join(strings)
     ident = " ".join([name] + [s for s in strings if len(s) <= 64])
+
+    # GitHub MCP: prevent pushing/writing directly to main, ask on PR merges.
+    tool_name = str(args.get("ToolName") or "")
+    server_name = str(args.get("ServerName") or "")
+    is_github = server_name == "github-mcp-server" or "github" in name.lower()
+    if is_github or "push_files" in ident or "create_or_update_file" in ident or "merge_pull_request" in ident:
+        if tool_name in ("push_files", "create_or_update_file") or "push_files" in ident or "create_or_update_file" in ident:
+            mcp_args = args.get("Arguments")
+            if isinstance(mcp_args, str):
+                try:
+                    mcp_args = json.loads(mcp_args)
+                except ValueError:
+                    mcp_args = {}
+            if isinstance(mcp_args, dict):
+                branch = str(mcp_args.get("branch") or "")
+                if branch in ("main", "refs/heads/main"):
+                    return {
+                        "decision": "deny",
+                        "reason": (
+                            "Blocked: pushing/writing to `main` via GitHub MCP. "
+                            "Push your feature branch and open a PR."
+                        ),
+                    }
+        if tool_name == "merge_pull_request" or "merge_pull_request" in ident:
+            return {
+                "decision": "force_ask",
+                "reason": "Merging pull requests modifies main; confirm each merge.",
+            }
+
     is_migration = "apply_migration" in ident
     if not (is_migration or "execute_sql" in ident):
         return None
