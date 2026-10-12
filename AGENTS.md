@@ -22,7 +22,7 @@ Database and analytics platform for Ottoneu Fantasy Football League 309 (12-team
 - **Core references:** [ARCHITECTURE](docs/ARCHITECTURE.md) · [CODE_ORGANIZATION](docs/CODE_ORGANIZATION.md) · [COMMANDS](docs/COMMANDS.md) · [FRONTEND](docs/FRONTEND.md) · [TESTING](docs/TESTING.md) · [GIT_WORKFLOW](docs/GIT_WORKFLOW.md) · [db-schema](docs/generated/db-schema.md) · [environment variables](docs/references/environment-variables.md) · [Ottoneu rules](docs/references/ottoneu-rules.md)
 - **Projection work:** [docs/references/projection-model-changes.md](docs/references/projection-model-changes.md), and the `/experiment`, `/ablation`, `/feature-importance`, `/compare-models`, `/diagnose-segment`, `/projection-accuracy` skills.
 - **Roster/strategy questions:** the `/ottoneu-roster-question` skill (loads [ottoneu-strategy.md](docs/references/ottoneu-strategy.md) + live data).
-- **Agent harness:** [docs/references/autonomous-operation.md](docs/references/autonomous-operation.md) (permissions, sandbox, devcontainer) and [docs/references/harness-controls.md](docs/references/harness-controls.md) (every hook/guard and why it exists). After a task, `/retro` turns friction into doc/skill fixes.
+- **Agent harness:** [docs/references/autonomous-operation.md](docs/references/autonomous-operation.md) (permissions, sandbox, devcontainer) and [docs/references/harness-controls.md](docs/references/harness-controls.md) (every hook/guard and why it exists). Google Antigravity shares the same skills, guard and permission policy through `.agents/` and `just antigravity-setup`. After a task, `/retro` turns friction into doc/skill fixes.
 
 ## GitHub Repository
 
