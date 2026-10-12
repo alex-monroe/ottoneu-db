@@ -80,8 +80,9 @@ def decide(
         )
         return {"decision": "deny", "reason": reason} if reason else None
 
-    # An MCP call. The argument layout is not documented, so look at every
-    # string in it rather than at a named field. The tool is identified from
+    # An MCP call: agy 1.3.2 sends `call_mcp_tool` with ServerName / ToolName /
+    # Arguments. That layout is not documented, so look at every string in it
+    # rather than at a named field. The tool is identified from
     # the short strings only (names, not bodies), so an issue comment that
     # merely mentions `execute_sql` is not mistaken for a SQL call.
     strings = list(_strings(args))

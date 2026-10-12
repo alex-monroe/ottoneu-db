@@ -30,7 +30,7 @@ def _run(command, cwd=None):
     return {"toolCall": {"name": "run_command", "args": args}, "workspacePaths": ["/repo"]}
 
 
-def _mcp(tool, arguments, name="mcp_tool"):
+def _mcp(tool, arguments, name="call_mcp_tool"):
     return {"toolCall": {"name": name, "args": {"ServerName": "supabase", "ToolName": tool,
                                                  "Arguments": arguments}}}
 
@@ -94,7 +94,7 @@ def test_migrations_always_prompt_and_fp_migrations_are_denied():
 
 def test_ignores_other_mcp_tools_even_when_their_text_mentions_sql():
     body = "We should stop calling execute_sql against fp_notes from this repo, as the guard says."
-    payload = {"toolCall": {"name": "mcp_tool", "args": {"ServerName": "github-mcp-server",
+    payload = {"toolCall": {"name": "call_mcp_tool", "args": {"ServerName": "github-mcp-server",
                                                          "ToolName": "add_issue_comment",
                                                          "Arguments": {"body": body}}}}
     assert _decide(payload) is None
@@ -117,7 +117,8 @@ def test_hooks_json_runs_the_adapter_for_commands_and_mcp_calls():
     import re
     hooks = json.loads((REPO_ROOT / ".agents" / "hooks.json").read_text())
     (group,) = hooks["repo-guard"]["PreToolUse"]
-    for tool in ("run_command", "mcp_tool", "mcp_supabase_execute_sql", "apply_migration"):
+    # `call_mcp_tool` is what agy 1.3.2 sends; the first version matched only `mcp.*` and missed it.
+    for tool in ("run_command", "call_mcp_tool", "mcp_tool", "mcp_supabase_execute_sql", "apply_migration"):
         assert re.fullmatch(group["matcher"], tool), tool
     assert not re.fullmatch(group["matcher"], "view_file")
     # The command runs from .agents/, the directory holding hooks.json.

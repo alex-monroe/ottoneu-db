@@ -353,13 +353,17 @@ agy --sandbox -p 'Run exactly: git push --dry-run origin main — once, no retri
 ```
 
 The guard should refuse the push with "Blocked: pushing to `main`", and the
-list should include `run-tests` and `run-scraper`. **This had not been run when
-the setup landed** (the session that wrote it could not launch `agy`), so three
-things rest on Antigravity's docs rather than on observation: that a hook
-printing nothing leaves the decision to the permission rules, the argument
-layout of MCP tool calls (the adapter scans every string instead of relying on
-it), and that the app honours `ask`/`deny` lists in its project file. If the
-self-test disagrees, fix the adapter and delete this paragraph.
+list should include `run-tests` and `run-scraper`.
+
+Verified 2026-10-11 against `agy` 1.3.2: the push to `main` and an
+`execute_sql` naming an `fp_*` table were denied by the hook; `git status` ran
+in the sandbox and `list_tables` ran without a prompt (so a hook that prints
+nothing does leave the decision to the permission rules); the skills loaded.
+MCP calls reach the hook as `call_mcp_tool` with `ServerName` / `ToolName` /
+`Arguments` — the first matcher (`mcp.*`) missed that name and let an `fp_*`
+query through, which only the live test caught. Re-run it after an Antigravity
+upgrade. Not yet observed: that the app honours the `ask`/`deny` lists in its
+project file (the test above used the CLI).
 
 ## Is the metric worth it? (decision record)
 

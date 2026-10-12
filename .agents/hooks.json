@@ -2,7 +2,7 @@
   "repo-guard": {
     "PreToolUse": [
       {
-        "matcher": "run_command|mcp.*|.*(execute_sql|apply_migration).*",
+        "matcher": "run_command|.*mcp.*|.*(execute_sql|apply_migration).*",
         "hooks": [
           {
             "type": "command",
