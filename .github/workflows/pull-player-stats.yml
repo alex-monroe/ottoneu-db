@@ -18,12 +18,20 @@ name: Pull Player Stats
 
 on:
   schedule:
-    # Tuesdays 14:00 UTC (~9-10am ET), September-February only. The NFL week
-    # flips Tuesday 00:00 ET (scripts/nfl_week.py), and nflverse republishes
-    # stats_player_reg_{year}.parquet after Monday night, so Tuesday morning is
-    # the first moment a full week is available. Outside those months the season
-    # is over and the last run already captured the final numbers.
-    - cron: "0 14 * 9-12,1-2 2"
+    # Tuesdays 03:00 America/Los_Angeles, September-February only. The NFL week
+    # flips Tuesday 00:00 ET (scripts/nfl_week.py) once Monday night is final, so
+    # early Tuesday is the first moment a full week exists. Outside those months
+    # the season is over and the last run already captured the final numbers.
+    #
+    # Cron runs in UTC, so both 3am-Pacific candidates are scheduled — 10:00 UTC
+    # (PDT) and 11:00 UTC (PST) — and the guard step lets through only the one
+    # that matches today's offset (same pattern as post-vote-reminder.yml).
+    #
+    # Caveat: nflverse's own Tuesday rebuild of stats_player_reg_{year}.parquet
+    # has been landing around 13:00 UTC (~6am PT). If a 3am run is missing the
+    # Monday-night game, re-run this workflow by hand later that morning.
+    - cron: "0 10 * 9-12,1-2 2" # 3am PDT
+    - cron: "0 11 * 9-12,1-2 2" # 3am PST
 
   workflow_dispatch:
     inputs:
@@ -41,16 +49,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Only the 3am-Pacific run
+        id: guard
+        env:
+          SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          if [ -z "$SCHEDULE" ]; then echo "go=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          ZONE=$(TZ=America/Los_Angeles date +%Z)
+          if { [ "$SCHEDULE" = "0 10 * 9-12,1-2 2" ] && [ "$ZONE" = "PDT" ]; } ||
+             { [ "$SCHEDULE" = "0 11 * 9-12,1-2 2" ] && [ "$ZONE" = "PST" ]; }; then
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Skipping: '$SCHEDULE' is not 3am Pacific while on $ZONE."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout
+        if: steps.guard.outputs.go == 'true'
         uses: actions/checkout@v4
 
       - name: Setup Python
+        if: steps.guard.outputs.go == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
 
       - name: Install dependencies
+        if: steps.guard.outputs.go == 'true'
         run: |
           pip install --upgrade pip
           # Runs scripts/worker.py, which imports the full app stack. Install the
@@ -59,11 +85,13 @@ jobs:
           pip install -e .
 
       - name: Create .env
+        if: steps.guard.outputs.go == 'true'
         run: |
           echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
           echo "SUPABASE_KEY=${{ secrets.SUPABASE_SECRET_KEY }}" >> .env
 
       - name: Resolve target season
+        if: steps.guard.outputs.go == 'true'
         id: season
         # Resolved from `league_calendar` at run time, never hardcoded — the same
         # resolver the site uses, so the job and the pages cannot disagree about
@@ -76,6 +104,7 @@ jobs:
           fi
 
       - name: Enqueue and run the player stats pull
+        if: steps.guard.outputs.go == 'true'
         run: |
           echo "Pulling player_stats for: ${{ steps.season.outputs.seasons }}"
           python scripts/enqueue.py player-stats --seasons ${{ steps.season.outputs.seasons }}
