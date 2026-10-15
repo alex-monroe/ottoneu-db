@@ -58,7 +58,21 @@ export interface TradesPageData {
   projectionSeason: number;
 }
 
+/**
+ * The trade-history tables, or nothing if they cannot be read. A deploy that
+ * lands before migration 049 is applied must still render the player-card log
+ * (the page says loans are not loaded yet) rather than fail the build.
+ */
 async function fetchTradeRows(): Promise<{ trades: TradeRow[]; assets: TradeAssetRow[] }> {
+  try {
+    return await readTradeRows();
+  } catch (error) {
+    console.error("fetchTradeRows error — showing player-card trades only", error);
+    return { trades: [], assets: [] };
+  }
+}
+
+async function readTradeRows(): Promise<{ trades: TradeRow[]; assets: TradeAssetRow[] }> {
   const [trades, assets] = await Promise.all([
     fetchAllRows((from, to) =>
       supabase
