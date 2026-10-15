@@ -51,6 +51,7 @@ WORKFLOW_MAX_AGE_DAYS = {
     "pull-roster-csv.yml": 2,
     "scrape-player-cards.yml": 2,
     "pull-matchups.yml": 2,
+    "scrape-trade-history.yml": 2,
     "pull-weekly-projections.yml": 2,
     "scrape-arbitration-progress.yml": 2,
     "scrape-league-calendar.yml": 9,

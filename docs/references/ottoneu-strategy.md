@@ -172,7 +172,9 @@ analyzing real allocations.
 Trades can include **cap-space loans that expire at end of regular season**. This enables a
 contender to "rent" cap from a rebuilder mid-season. A model evaluating a deal should treat loaned
 cap as a short-term-only asset and price surplus accordingly. Trade deadline is the day before
-Thanksgiving; trades need 48h approval (7 of 12 votes to veto).
+Thanksgiving; trades need 48h approval (7 of 12 votes to veto). `/trades` shows how often this
+league actually lends cap, who lends it, and whether past sell-offs paid off
+([trades.md](trades.md)).
 
 ---
 

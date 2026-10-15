@@ -47,6 +47,8 @@ export const PROJECTIONS_ROUTES = [
   "/mock-draft",
   // Ranks the wire by dollar value — the same gated number as /value.
   "/free-agents",
+  // Values every trade in projected dollars.
+  "/trades",
 ] as const;
 
 /** UI routes that require `is_admin`. */

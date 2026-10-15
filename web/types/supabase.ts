@@ -1413,6 +1413,132 @@ export type Database = {
         }
         Relationships: []
       }
+      trade_assets: {
+        Row: {
+          amount: number
+          asset_key: string
+          asset_type: string
+          from_team_id: number | null
+          from_team_name: string
+          is_college: boolean | null
+          league_id: number
+          nfl_team: string | null
+          ottoneu_id: number | null
+          player_id: string | null
+          player_name: string | null
+          position: string | null
+          scraped_at: string
+          to_team_id: number | null
+          to_team_name: string
+          trade_id: number
+        }
+        Insert: {
+          amount: number
+          asset_key: string
+          asset_type: string
+          from_team_id?: number | null
+          from_team_name: string
+          is_college?: boolean | null
+          league_id: number
+          nfl_team?: string | null
+          ottoneu_id?: number | null
+          player_id?: string | null
+          player_name?: string | null
+          position?: string | null
+          scraped_at?: string
+          to_team_id?: number | null
+          to_team_name: string
+          trade_id: number
+        }
+        Update: {
+          amount?: number
+          asset_key?: string
+          asset_type?: string
+          from_team_id?: number | null
+          from_team_name?: string
+          is_college?: boolean | null
+          league_id?: number
+          nfl_team?: string | null
+          ottoneu_id?: number | null
+          player_id?: string | null
+          player_name?: string | null
+          position?: string | null
+          scraped_at?: string
+          to_team_id?: number | null
+          to_team_name?: string
+          trade_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_assets_league_id_trade_id_fkey"
+            columns: ["league_id", "trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades"
+            referencedColumns: ["league_id", "trade_id"]
+          },
+          {
+            foreignKeyName: "trade_assets_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trades: {
+        Row: {
+          accepted_at: string
+          approve_votes: number | null
+          first_seen_at: string
+          league_id: number
+          offered_by_team_id: number | null
+          offered_by_team_name: string
+          offered_to_team_id: number | null
+          offered_to_team_name: string
+          processed_at: string | null
+          scraped_at: string
+          season: number
+          status: string
+          status_label: string | null
+          trade_id: number
+          veto_votes: number | null
+        }
+        Insert: {
+          accepted_at: string
+          approve_votes?: number | null
+          first_seen_at?: string
+          league_id: number
+          offered_by_team_id?: number | null
+          offered_by_team_name: string
+          offered_to_team_id?: number | null
+          offered_to_team_name: string
+          processed_at?: string | null
+          scraped_at?: string
+          season: number
+          status: string
+          status_label?: string | null
+          trade_id: number
+          veto_votes?: number | null
+        }
+        Update: {
+          accepted_at?: string
+          approve_votes?: number | null
+          first_seen_at?: string
+          league_id?: number
+          offered_by_team_id?: number | null
+          offered_by_team_name?: string
+          offered_to_team_id?: number | null
+          offered_to_team_name?: string
+          processed_at?: string | null
+          scraped_at?: string
+          season?: number
+          status?: string
+          status_label?: string | null
+          trade_id?: number
+          veto_votes?: number | null
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           from_team: string | null

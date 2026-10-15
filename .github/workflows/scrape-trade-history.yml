@@ -1,0 +1,62 @@
+name: Scrape Trade History
+
+# Keeps `trades` + `trade_assets` — every accepted trade, its cap loans, and the
+# ones still inside the 48-hour approval window — in step with Ottoneu's public
+# /trade_history page. One list request, plus one /view_trade page for each trade
+# that is new or still pending, a second apart. Plain HTTP: no browser, no login.
+#
+# Every four hours rather than daily because a pending trade only exists for 48
+# hours, and the /trades page is how the league sizes one up before it processes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Parse and print without writing"
+        type: boolean
+        default: false
+
+  schedule:
+    - cron: "17 */4 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scrape-trade-history
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install requests beautifulsoup4 supabase python-dotenv
+          # Install this repo as a package so `import scripts.*` resolves
+          pip install -e . --no-deps
+
+      - name: Create .env
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_SECRET_KEY }}" >> .env
+
+      - name: Scrape trade history
+        env:
+          # Optional: only needed if Ottoneu ever puts the page behind login.
+          OTTONEU_COOKIE: ${{ secrets.OTTONEU_COOKIE }}
+        run: |
+          ARGS=""
+          [ "${{ inputs.dry_run }}" = "true" ] && ARGS="$ARGS --dry-run"
+          python scripts/scrape_trade_history.py $ARGS

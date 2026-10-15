@@ -347,6 +347,12 @@ scrape-calendar *args:
 scrape-matchups *args:
     {{python}} scripts/scrape_matchups.py {{args}}
 
+# Scrape the trade history page (trades, cap loans, pending trades) into trades +
+# trade_assets. Safe to re-run: it upserts on Ottoneu's trade id.
+# e.g. just scrape-trades --dry-run ; just scrape-trades --no-details
+scrape-trades *args:
+    {{python}} scripts/scrape_trade_history.py {{args}}
+
 # Scrape each game's box score (both lineups, slots, live points) into matchup_lineups.
 # e.g. just scrape-lineups --dry-run ; just scrape-lineups --week 3
 scrape-lineups *args:
