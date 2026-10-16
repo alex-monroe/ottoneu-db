@@ -50,6 +50,7 @@ Several formerly-standalone pages were consolidated into **tabbed routes** using
 | `/api/mcp/mcp` | **Remote MCP server** (Streamable HTTP, POST) — read-only league-data tools for MCP clients / AI agents. Accepts an OAuth 2.1 access token or the shared `MCP_API_KEY`, checked inside the route handler; `/api/mcp` is exempted from cookie auth in `web/middleware.ts` (`PUBLIC_API_ROUTES`). See [docs/references/mcp-server.md](references/mcp-server.md) |
 | `/oauth/authorize` | **OAuth consent screen** for MCP clients. Validates the authorization request, redirects to `/login?redirect=…` when signed out, and requires live `has_projections_access`. Approval posts to `/api/oauth/authorize`. |
 | `/api/oauth/{register,authorize,token}` | OAuth 2.1 authorization server — dynamic client registration, consent submission, and token exchange (PKCE S256, rotating refresh tokens) |
+| `/api/revalidate` | **On-demand revalidation** (POST) called by the data workflows (`.github/actions/revalidate-site`) after each Supabase write, so pages show fresh rows without waiting out their `revalidate` timers. Bearer `REVALIDATE_SECRET`, checked in the route; exempt from cookie auth (`PUBLIC_API_ROUTES`). Optional body `{"paths": [...]}`; default revalidates the whole site. |
 | `/.well-known/oauth-authorization-server`, `/.well-known/oauth-protected-resource` | OAuth discovery metadata (RFC 8414 / RFC 9728) that MCP clients read to find the authorization server |
 
 ## Design system

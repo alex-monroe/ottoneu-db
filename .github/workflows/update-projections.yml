@@ -35,3 +35,10 @@ jobs:
         SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         SUPABASE_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
       run: python scripts/update_projections.py
+
+    # Push the fresh rows to the site now rather than on each page's
+    # revalidate timer. Skips quietly until REVALIDATE_SECRET is set.
+    - name: Revalidate site
+      uses: ./.github/actions/revalidate-site
+      with:
+        secret: ${{ secrets.REVALIDATE_SECRET }}

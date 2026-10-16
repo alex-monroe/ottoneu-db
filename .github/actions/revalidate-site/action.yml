@@ -1,0 +1,45 @@
+name: Revalidate site
+description: >
+  Tell the deployed site to drop its cached pages after a workflow writes to
+  Supabase, so the next request renders the fresh data instead of waiting out
+  each page's time-based `revalidate` window. Never fails the calling job: the
+  data write already succeeded, and the timers still refresh pages eventually.
+
+inputs:
+  secret:
+    description: REVALIDATE_SECRET (must match the Vercel env var). Empty skips the step.
+    required: true
+  paths:
+    description: Optional JSON array of paths to scope revalidation, e.g. '["/scoreboard"]'. Omitted = whole site.
+    required: false
+    default: ""
+  site-url:
+    description: Deployed site origin.
+    required: false
+    default: https://sofa-db.vercel.app
+
+runs:
+  using: composite
+  steps:
+    - name: POST /api/revalidate
+      shell: bash
+      env:
+        SECRET: ${{ inputs.secret }}
+        PATHS: ${{ inputs.paths }}
+        SITE_URL: ${{ inputs.site-url }}
+      run: |
+        if [ -z "$SECRET" ]; then
+          echo "::notice::REVALIDATE_SECRET not set; skipping site revalidation."
+          exit 0
+        fi
+        BODY='{}'
+        [ -n "$PATHS" ] && BODY="{\"paths\": $PATHS}"
+        if curl --silent --show-error --fail --retry 2 --max-time 30 \
+            -X POST "$SITE_URL/api/revalidate" \
+            -H "Authorization: Bearer $SECRET" \
+            -H "Content-Type: application/json" \
+            -d "$BODY"; then
+          echo
+        else
+          echo "::warning::Site revalidation failed; pages will refresh on their revalidate timers."
+        fi

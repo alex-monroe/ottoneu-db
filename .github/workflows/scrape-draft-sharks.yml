@@ -43,3 +43,10 @@ jobs:
 
       - name: Scrape Draft Sharks auction values
         run: python scripts/scrape_draft_sharks.py
+
+      # Push the fresh rows to the site now rather than on each page's
+      # revalidate timer. Skips quietly until REVALIDATE_SECRET is set.
+      - name: Revalidate site
+        uses: ./.github/actions/revalidate-site
+        with:
+          secret: ${{ secrets.REVALIDATE_SECRET }}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import NavigationWrapper from "@/components/NavigationWrapper";
 import PhaseBanner from "@/components/PhaseBanner";
@@ -82,9 +83,13 @@ export default async function RootLayout({
             <SiteFooter />
           </TeamIconsProvider>
         </PositionalRanksProvider>
-        {/* Vercel Web Analytics: page views per route, cookieless. A no-op
-            outside a Vercel deployment, so local dev sends nothing. */}
+        {/* Vercel Web Analytics (page views per route, cookieless) and Speed
+            Insights (real-user Core Web Vitals per route). Both are no-ops
+            outside a Vercel deployment, so local dev sends nothing. The Hobby
+            Speed Insights quota (10k events / 30 days) is shared across the
+            team; lower `sampleRate` if it runs out. */}
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

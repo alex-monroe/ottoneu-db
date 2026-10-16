@@ -51,3 +51,11 @@ jobs:
             ARGS="$ARGS --dry-run"
           fi
           python scripts/backfill_nfl_stats.py $ARGS
+
+      # Push the fresh rows to the site now rather than on each page's
+      # revalidate timer. Skips quietly until REVALIDATE_SECRET is set.
+      - name: Revalidate site
+        if: inputs.dry_run != true
+        uses: ./.github/actions/revalidate-site
+        with:
+          secret: ${{ secrets.REVALIDATE_SECRET }}

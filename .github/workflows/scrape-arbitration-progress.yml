@@ -85,3 +85,10 @@ jobs:
           path: debug/
           retention-days: 7
           if-no-files-found: ignore
+
+      # Push the fresh rows to the site now rather than on each page's
+      # revalidate timer. Skips quietly until REVALIDATE_SECRET is set.
+      - name: Revalidate site
+        uses: ./.github/actions/revalidate-site
+        with:
+          secret: ${{ secrets.REVALIDATE_SECRET }}

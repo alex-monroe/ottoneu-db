@@ -80,3 +80,10 @@ jobs:
           echo "Pulling player_stats for: ${{ steps.season.outputs.seasons }}"
           python scripts/enqueue.py player-stats --seasons ${{ steps.season.outputs.seasons }}
           python scripts/worker.py
+
+      # Push the fresh rows to the site now rather than on each page's
+      # revalidate timer. Skips quietly until REVALIDATE_SECRET is set.
+      - name: Revalidate site
+        uses: ./.github/actions/revalidate-site
+        with:
+          secret: ${{ secrets.REVALIDATE_SECRET }}

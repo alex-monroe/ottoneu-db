@@ -213,6 +213,7 @@ describe("public API routes", () => {
     expect(isPublicApiRoute("/api/auth/reset-password")).toBe(true);
     expect(isPublicApiRoute("/api/mcp/mcp")).toBe(true);
     expect(isPublicApiRoute("/api/oauth/token")).toBe(true);
+    expect(isPublicApiRoute("/api/revalidate")).toBe(true);
   });
 
   test("everything else needs a session", () => {
