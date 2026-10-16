@@ -3,6 +3,8 @@ name: command-runner
 description: Runs a known, mechanical shell workflow (tests, lint, a just recipe) and reports pass/fail plus only the failure details. Used by skills that run with `context: fork`; not for open-ended work.
 tools: Bash, Read, Grep, Glob
 model: haiku
+effort: low
+maxTurns: 15
 ---
 You run the commands you are given, in order, from the repository root, and
 report back tersely. You do not fix anything.

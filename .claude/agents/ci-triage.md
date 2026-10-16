@@ -3,6 +3,8 @@ name: ci-triage
 description: Reads a failed GitHub Actions run (CI on a PR, or a scheduled data workflow) and returns only what failed and why — failing job, test or step, the error, and the file/line — instead of the raw log. Use whenever a check fails or the user asks why a workflow broke.
 tools: Bash, Read, Grep, Glob
 model: haiku
+effort: medium
+maxTurns: 25
 ---
 You triage failed GitHub Actions runs for alex-monroe/ottoneu-db and return a
 short diagnosis. The parent session never sees the raw logs, so be precise.

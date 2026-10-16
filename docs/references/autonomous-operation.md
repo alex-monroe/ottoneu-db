@@ -194,7 +194,13 @@ Two more hooks support the loop:
 - **`session_start.py`** (SessionStart) — `git fetch origin main`, and in a fresh
   worktree starts `just worktree-setup` in the background. It replaced a hook
   that ran `git checkout main && git pull` in the main checkout from *every*
-  session, switching branches out from under whoever was using it.
+  session, switching branches out from under whoever was using it. In a Claude
+  Code **cloud** session (`CLAUDE_CODE_REMOTE=true`, which covers routines such
+  as the scheduled-failure triage) it also builds `venv/` and `web/node_modules`
+  in the background and puts `just` in the venv (`venv/bin/just`; log
+  `.cache/cloud-setup.log`). The cloud VM is a fresh clone with neither, and has
+  no `just`, so before this a routine could not run the tests behind its own fix
+  PR. Tested in `scripts/tests/test_session_start_hook.py`.
 - **`post_edit_check.py`** (PostToolUse, `asyncRewake`) — after each edit, ESLint
   on a web file or a compile check on a `.py` file, in the background. It only
   interrupts Claude when the check fails.
