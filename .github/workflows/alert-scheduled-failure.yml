@@ -48,6 +48,13 @@ jobs:
       CONCLUSION: ${{ github.event.workflow_run.conclusion }}
       RUN_URL: ${{ github.event.workflow_run.html_url }}
       LABEL: scheduled-failure
+      # A new issue also fires the "Scheduled-failure triage" Claude Code routine,
+      # which comments a diagnosis and opens a fix PR when the cause is a code bug.
+      # The routine id is not secret; the token is (claude.ai/code/routines → the
+      # routine → API trigger). Without the secret this step is skipped and the
+      # routine's daily sweep picks the issue up instead.
+      TRIAGE_ROUTINE_ID: trig_015auF3aqhdVQkN7Hm84pDTs
+      TRIAGE_ROUTINE_TOKEN: ${{ secrets.CLAUDE_TRIAGE_ROUTINE_TOKEN }}
     steps:
       - name: Open, update or close the issue
         run: |
@@ -69,11 +76,23 @@ jobs:
           fi
 
           if [ -z "$NUMBER" ]; then
-            gh issue create --title "$TITLE" --label "$LABEL" --body "The scheduled run of **$WORKFLOW** ended with \`$CONCLUSION\`.
+            ISSUE_URL=$(gh issue create --title "$TITLE" --label "$LABEL" --body "The scheduled run of **$WORKFLOW** ended with \`$CONCLUSION\`.
 
           Run: $RUN_URL
 
-          Triage with \`gh run view <run id> --log-failed\` (or the \`ci-triage\` agent). This issue collects later failures as comments (at most one a day) and closes itself when the workflow next succeeds."
+          Triage with \`gh run view <run id> --log-failed\` (or the \`ci-triage\` agent). This issue collects later failures as comments (at most one a day) and closes itself when the workflow next succeeds.")
+            if [ -n "$TRIAGE_ROUTINE_TOKEN" ]; then
+              # Best effort: a failed fire must not fail the alert itself.
+              jq -n --arg text "New scheduled-failure issue: $ISSUE_URL" '{text: $text}' |
+                curl -sS --fail-with-body --max-time 30 -X POST \
+                  "https://api.anthropic.com/v1/claude_code/routines/$TRIAGE_ROUTINE_ID/fire" \
+                  -H "Authorization: Bearer $TRIAGE_ROUTINE_TOKEN" \
+                  -H "anthropic-beta: experimental-cc-routine-2026-04-01" \
+                  -H "anthropic-version: 2023-06-01" \
+                  -H "Content-Type: application/json" \
+                  --data @- >/dev/null ||
+                echo "::warning::Could not fire the triage routine; its daily sweep will pick up $ISSUE_URL"
+            fi
           elif [ "$(date -u -d "$UPDATED" +%s)" -lt "$(date -u -d '24 hours ago' +%s)" ]; then
             gh issue comment "$NUMBER" --body "Still failing (\`$CONCLUSION\`): $RUN_URL"
           fi

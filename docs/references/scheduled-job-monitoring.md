@@ -62,6 +62,38 @@ daily jobs, 9 for weekly). Only workflows whose cron fires all year are listed;
 idle for months. Locally the check is skipped unless `GITHUB_TOKEN` and
 `GITHUB_REPOSITORY` are set.
 
+## 3. A Claude Code routine triages each new issue
+
+An issue tells someone a job broke but not why. The **"Scheduled-failure
+triage"** routine (a cloud Claude Code agent, `trig_015auF3aqhdVQkN7Hm84pDTs`,
+managed at [claude.ai/code/routines](https://claude.ai/code/routines)) reads the
+failed run's log and the code it points at, then:
+
+- comments on the issue with the failing step, the error, the file and line, and
+  one of three classifications: **code** bug, **transient/external** (429s,
+  outages), or **environment** (expired secret or cookie, residential-IP
+  requirement). The comment carries a hidden `<!-- claude-triage -->` marker, and
+  the issue gets the `claude-triaged` label so later runs skip it;
+- opens a fix PR (`claude/fix-scheduled-*` branch, body `Refs #<issue>`) only
+  for a code bug, or for a transient failure that has repeated three or more runs
+  in a row and has a clear retry fix. It never merges, closes the issue, re-runs
+  workflows, or writes production data, and it has no Supabase secrets or claude.ai
+  connectors attached.
+
+**How it starts.** Routine GitHub triggers cover pull requests and releases, not
+issues. So when `alert-scheduled-failure.yml` opens a *new* issue it POSTs to the
+routine's `/fire` endpoint with the issue URL. That step needs the
+`CLAUDE_TRIAGE_ROUTINE_TOKEN` repository secret (generate it on the routine's
+page under **API trigger**). Without the secret the step is skipped, and a failed
+fire only logs a warning. The routine also runs a **daily sweep at 16:00 UTC**,
+after the 15:23 freshness check, which catches anything a fire missed. "Still
+failing" comments do not fire it. The sweep re-triages an issue only when the
+newer failure looks different.
+
+Runs count against the owner's Claude subscription usage. Check what a run did
+by opening it from the routine's page: a green run status only means the session
+exited cleanly.
+
 ## Not covered
 
 - **Degraded success.** A scrape that fetches every card and parses zero
