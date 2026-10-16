@@ -78,6 +78,7 @@ export const NAV_GROUPS: NavGroup[] = [
       // business, not the nav's.
       { href: "/value", label: "Player Value", access: "projections" },
       { href: "/arbitration", label: "Arbitration", access: "projections" },
+      { href: "/trades", label: "Trades", access: "projections" },
     ],
   },
   {

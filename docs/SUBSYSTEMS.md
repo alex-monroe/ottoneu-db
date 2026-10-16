@@ -1,6 +1,6 @@
 # Subsystem Map
 
-Thirty database tables, ~175 Python files, and 21 web routes divide cleanly into six
+Thirty-two database tables, ~175 Python files, and 22 web routes divide cleanly into six
 subsystems. Use this page to scope a change: find the subsystem, and you have its
 tables, its code, its routes, and its reference doc.
 
@@ -24,12 +24,12 @@ happened. Pulled over plain HTTP with an honest User-Agent; no browser.
 
 | | |
 |---|---|
-| **Tables** | `players` · `league_prices` · `transactions` · `league_calendar` · `league_matchups` · `matchup_lineups` · `arbitration_progress` · `arbitration_progress_teams` · `arbitration_allocation_details` |
-| **Ingestion** | `scripts/reconcile_roster.py` (roster CSV → salaries) · `scripts/scrape_player_cards.py` (transaction history) · `scripts/scrape_league_calendar.py` (season boundary dates) · `scripts/scrape_matchups.py` (schedule + results) · `scripts/scrape_arbitration_progress.py` |
+| **Tables** | `players` · `league_prices` · `transactions` · `trades` · `trade_assets` · `league_calendar` · `league_matchups` · `matchup_lineups` · `arbitration_progress` · `arbitration_progress_teams` · `arbitration_allocation_details` |
+| **Ingestion** | `scripts/reconcile_roster.py` (roster CSV → salaries) · `scripts/scrape_player_cards.py` (transaction history) · `scripts/scrape_trade_history.py` (trades, cap loans, pending trades) · `scripts/scrape_league_calendar.py` (season boundary dates) · `scripts/scrape_matchups.py` (schedule + results) · `scripts/scrape_arbitration_progress.py` |
 | **Support** | `scripts/prospect_adopt.py` (college→NFL identity merge) · `scripts/transaction_dedupe.py` · `scripts/season.py` + `web/lib/season.ts` (season-cycle resolver) · `scripts/ottoneu_http.py` (honest-UA fetch) · `web/lib/standings.ts` (standings/seeding, derived) |
-| **Commands** | `just reconcile-roster` · `just scrape-player-cards` · `just scrape-calendar` · `just scrape-matchups` · `just scrape-lineups` · `just dedupe-transactions` · `just check-transactions` |
+| **Commands** | `just reconcile-roster` · `just scrape-player-cards` · `just scrape-trades` · `just scrape-calendar` · `just scrape-matchups` · `just scrape-lineups` · `just dedupe-transactions` · `just check-transactions` |
 | **Routes** | `/rosters` · `/scoreboard` · `/arb-progress` |
-| **Docs** | [references/roster-csv-reconciliation.md](references/roster-csv-reconciliation.md) · [references/matchups-and-standings.md](references/matchups-and-standings.md) · [exec-plans/season-cycle.md](exec-plans/season-cycle.md) · [references/ottoneu-rules.md](references/ottoneu-rules.md) |
+| **Docs** | [references/roster-csv-reconciliation.md](references/roster-csv-reconciliation.md) · [references/trades.md](references/trades.md) · [references/matchups-and-standings.md](references/matchups-and-standings.md) · [exec-plans/season-cycle.md](exec-plans/season-cycle.md) · [references/ottoneu-rules.md](references/ottoneu-rules.md) |
 
 **Watch out:** one human can hold several Ottoneu IDs across the college→NFL transition.
 `prospect_adopt.py` reconciles this; don't create a second `players` row for a drafted
@@ -94,11 +94,11 @@ TypeScript, not Python — this is the most common thing newcomers get wrong.
 | | |
 |---|---|
 | **Tables** | `surplus_adjustments` · `arbitration_plans` · `arbitration_plan_allocations` · `draft_sharks_values` · `weekly_projections` |
-| **Core logic** | `web/lib/vorp.ts` · `surplus.ts` · `earned-value.ts` · `stat-window.ts` (how much football is behind a number — read it before touching any dollar math) · `analysis.ts` · `arbitration.ts` · `arb-logic.ts` · `lineup.ts` · `team-snapshot.ts` (one team's optimal week: lineup, projected total, bench) · `scoring.ts` |
+| **Core logic** | `web/lib/vorp.ts` · `surplus.ts` · `earned-value.ts` · `stat-window.ts` (how much football is behind a number — read it before touching any dollar math) · `analysis.ts` · `arbitration.ts` · `arb-logic.ts` · `lineup.ts` · `team-snapshot.ts` (one team's optimal week: lineup, projected total, bench) · `trades.ts` (trade log, loans, sell-offs, trade trees) · `scoring.ts` |
 | **Data access** | `web/lib/supabase.ts` (use `fetchAllRows` — the client caps at 1000 rows) · `players.ts` · `data.ts` |
 | **Python side** | `scripts/scrape_draft_sharks.py` (market values) · `scripts/weekly_projections/` (in-season per-game, from Sleeper) |
 | **Commands** | `just scrape-draft-sharks` · `just weekly-projections` · `just dev` |
-| **Routes** | `/` · `/players` · `/rankings` · `/value` (VORP · Surplus · Adjustments) · `/arbitration` · `/projected-salary` · `/lineup` · `/weekly` · `/arb-planner-public` |
+| **Routes** | `/` · `/players` · `/rankings` · `/value` (VORP · Surplus · Adjustments) · `/trades` · `/arbitration` · `/projected-salary` · `/lineup` · `/weekly` · `/arb-planner-public` |
 | **Docs** | [FRONTEND.md](FRONTEND.md) · [references/ottoneu-strategy.md](references/ottoneu-strategy.md) · [references/weekly-projections.md](references/weekly-projections.md) |
 
 **Watch out:** `weekly_projections` (per-game, third-party, market-aware) and

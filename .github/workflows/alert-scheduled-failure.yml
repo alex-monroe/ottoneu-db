@@ -25,6 +25,7 @@ on:
       - "Scrape Draft Sharks Auction Values"
       - "Scrape League Calendar"
       - "Scrape Player Cards"
+      - "Scrape Trade History"
     types: [completed]
 
 permissions:

@@ -24,6 +24,8 @@ The Supabase project (`OttoneuDB`, ref `rbinbcwinchphipvcfqk`) is **shared with 
 | `nfl_stats` | Pure NFL stats from nflverse-data, 2010-present (FK -> `players`) | `(player_id, season)` |
 | `league_prices` | Current salaries (FK -> `players`) | `(player_id, league_id)` |
 | `transactions` | Event log of all roster moves (adds, cuts, trades, auctions) | -- |
+| `trades` | One row per Ottoneu trade from the public `/trade_history` page, scraped by `scripts/scrape_trade_history.py`. Columns: `trade_id` (Ottoneu's), `season`, `accepted_at` / `processed_at` (site clock, `timestamp without time zone`; `processed_at` is the *scheduled* time while pending), `status` (`pending`/`processed`/`removed` — removed = vetoed or withdrawn, the page does not say which), `status_label` (verbatim), `offered_by_team_id/_name`, `offered_to_team_id/_name`, `approve_votes`, `veto_votes`. Coverage starts September 2025; older trades exist only as `transactions` `move` rows. Migration 049. RLS with an anon SELECT policy. See [trades.md](../references/trades.md) | `(league_id, trade_id)` |
+| `trade_assets` | What each side of a trade gave up (FK -> `trades`, `players`): `asset_type` (`player`/`loan`), `asset_key` (`nfl:<id>` / `college:<id>` / `loan`), `from_team_*` (the giver), `to_team_*`, `ottoneu_id`, `is_college`, `player_id` (nullable), `player_name`, `position`, `nfl_team`, `amount` (salary, or loan size). Loans expire at the end of the regular season. Migration 049. RLS with an anon SELECT policy. | `(league_id, trade_id, asset_key)` |
 | `surplus_adjustments` | Manual value overrides per player per league per user (FK -> `players`, `users`) | `(player_id, league_id, user_id)` |
 | `player_projections` | Active projection outputs promoted from `model_projections` (FK -> `players`). Columns: `projected_ppg`, `projection_method`, `projected_games` (migration 030; promoted from `model_projections.projected_games`, NULL = no estimate / full availability). | `(player_id, season)` |
 | `arbitration_plans` | Named arbitration budget allocation plans per user (FK -> `users`) | `(league_id, name, user_id)` |
@@ -109,7 +111,7 @@ Advanced receiving (added in migration 022, populated for 2018+ via nflverse `st
 
 All public tables have RLS enabled. Server-side code uses the Supabase **service key** (Python via `scripts.config.get_supabase_client()`, Next.js writes via `web/lib/supabase.supabaseAdmin`) which bypasses RLS. The anon key is restricted to read-only access on a curated set of public reference data.
 
-**Tables with an anon SELECT policy** (web reads via the anon client): `players`, `player_stats`, `nfl_stats`, `league_prices`, `transactions`, `surplus_adjustments`, `player_projections`, `projection_models`, `model_projections`, `backtest_results`, `arbitration_progress`, `arbitration_progress_teams`, `arbitration_allocation_details`, `team_vegas_lines`, `draft_sharks_values`, `league_calendar`, `depth_charts`, `weekly_projections`, `league_matchups`, `matchup_lineups`.
+**Tables with an anon SELECT policy** (web reads via the anon client): `players`, `player_stats`, `nfl_stats`, `league_prices`, `transactions`, `surplus_adjustments`, `player_projections`, `projection_models`, `model_projections`, `backtest_results`, `arbitration_progress`, `arbitration_progress_teams`, `arbitration_allocation_details`, `team_vegas_lines`, `draft_sharks_values`, `league_calendar`, `depth_charts`, `weekly_projections`, `league_matchups`, `matchup_lineups`, `trades`, `trade_assets`.
 
 **Tables with no anon policy** (server-only, anon fully blocked): `users`, `arbitration_plans`, `arbitration_plan_allocations`, `scraper_jobs`, `draft_capital`, `team_coaching`, `red_zone_usage`, `ngs_passing`, `player_contracts`, `oauth_clients`, `oauth_authorization_codes`, `oauth_refresh_tokens`, `password_reset_tokens`, `power_ranking_ballots`, `power_ranking_entries`, `power_ranking_publications`, `pickem_picks`, `pickem_players`, `team_icons`.
 
@@ -120,6 +122,8 @@ When adding a new table, decide upfront: does the web frontend read from it via 
 - `player_stats.player_id` -> `players.id`
 - `nfl_stats.player_id` -> `players.id`
 - `league_prices.player_id` -> `players.id`
+- `trade_assets.(league_id, trade_id)` -> `trades.(league_id, trade_id)`
+- `trade_assets.player_id` -> `players.id`
 - `surplus_adjustments.user_id` -> `users.id`
 - `arbitration_plans.user_id` -> `users.id`
 - `oauth_authorization_codes.client_id` -> `oauth_clients.client_id`
