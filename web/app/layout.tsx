@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import NavigationWrapper from "@/components/NavigationWrapper";
 import PhaseBanner from "@/components/PhaseBanner";
@@ -81,6 +82,9 @@ export default async function RootLayout({
             <SiteFooter />
           </TeamIconsProvider>
         </PositionalRanksProvider>
+        {/* Vercel Web Analytics: page views per route, cookieless. A no-op
+            outside a Vercel deployment, so local dev sends nothing. */}
+        <Analytics />
       </body>
     </html>
   );
