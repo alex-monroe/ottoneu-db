@@ -5,6 +5,12 @@ import PositionBadge from "@/components/PositionBadge";
 import PlayerName from "@/components/PlayerName";
 import PositionFilter from "@/components/PositionFilter";
 import { POSITIONS, type Position } from "@/lib/types";
+import type { LineupMetric, LineupPlayer } from "@/lib/lineup";
+import {
+  BENCH_FLOOR,
+  classifyFreeAgents,
+  type UpgradeVerdict,
+} from "@/lib/free-agent-upgrades";
 
 export interface FreeAgentRow {
   player_id: string;
@@ -43,6 +49,64 @@ function num(v: number | null): number {
   return v ?? -Infinity;
 }
 
+/**
+ * The lineup metric an upgrade is judged on. Dollar value is not a points
+ * figure, so sorting by it judges upgrades on the season-long model.
+ */
+const METRIC_FOR_SORT: Record<SortKey, LineupMetric> = {
+  dollar_value: "projected",
+  projected_ppg: "projected",
+  weekly_points: "weekly",
+  ppg: "last_season",
+};
+
+const METRIC_LABELS: Record<LineupMetric, string> = {
+  projected: "Proj PPG",
+  weekly: "week points",
+  last_season: "last season's PPG",
+};
+
+function toLineupPlayer(p: FreeAgentRow): LineupPlayer {
+  return {
+    player_id: p.player_id,
+    name: p.name,
+    position: p.position,
+    nfl_team: p.nfl_team,
+    ottoneu_id: p.ottoneu_id,
+    ppg: p.ppg,
+    projected_ppg: p.projected_ppg ?? 0,
+    weekly_points: p.weekly_points,
+    weekly_opponent: p.weekly_opponent,
+  };
+}
+
+function verdictTitle(v: UpgradeVerdict, metric: LineupMetric): string {
+  const by = METRIC_LABELS[metric];
+  if (v.kind === "bench") {
+    return v.over
+      ? `Better than ${v.over.name}, your best backup at this position, by ${v.gain.toFixed(1)} ${by} — and close to starter quality`
+      : `Close to starter quality by ${by}, and you hold no backup at this position`;
+  }
+  const over = v.over ? ` in place of ${v.over.name}` : "";
+  return v.kind === "bye_fill"
+    ? `Starts${over}, who has no game this week (+${v.gain.toFixed(1)} lineup points)`
+    : `Makes your best lineup${over} (+${v.gain.toFixed(1)} ${by})`;
+}
+
+const BADGE: Record<UpgradeVerdict["kind"], { label: string; cls: string; row: string }> = {
+  starter: {
+    label: "starter",
+    cls: "text-positive",
+    row: "bg-emerald-50/60 dark:bg-emerald-950/20",
+  },
+  bye_fill: {
+    label: "bye fill",
+    cls: "text-amber-700 dark:text-amber-400",
+    row: "bg-amber-50/60 dark:bg-amber-950/20",
+  },
+  bench: { label: "top bench", cls: "text-accent", row: "" },
+};
+
 export default function FreeAgentsClient({
   freeAgents,
   myPlayers,
@@ -54,30 +118,50 @@ export default function FreeAgentsClient({
     week != null ? "weekly_points" : "dollar_value",
   );
   const [compare, setCompare] = useState(true);
+  const [upgradesOnly, setUpgradesOnly] = useState(false);
+  const metric = METRIC_FOR_SORT[sortKey];
+
+  /**
+   * Judged against the viewer's optimal starting lineup, not the weakest body
+   * at the position — dynasty benches are full of stashes and handcuffs that
+   * every waiver-wire RB "beats" this week. See lib/free-agent-upgrades.ts.
+   * Computed over the whole wire so a deep sleeper is found even when he is
+   * outside the top 100 by the sort.
+   */
+  const verdicts = useMemo(() => {
+    if (!compare || !viewerTeam) return new Map<string, UpgradeVerdict>();
+    return classifyFreeAgents(
+      myPlayers.map(toLineupPlayer),
+      freeAgents.map(toLineupPlayer),
+      metric,
+    );
+  }, [myPlayers, freeAgents, compare, viewerTeam, metric]);
+
+  const showingUpgradesOnly = upgradesOnly && compare && viewerTeam != null;
 
   const rows = useMemo(() => {
-    const filtered = positions.length
-      ? freeAgents.filter((p) => positions.includes(p.position as Position))
-      : freeAgents;
+    const filtered = freeAgents.filter(
+      (p) =>
+        (!positions.length || positions.includes(p.position as Position)) &&
+        (!showingUpgradesOnly || verdicts.has(p.player_id)),
+    );
     return [...filtered]
       .sort((a, b) => num(b[sortKey]) - num(a[sortKey]))
       .slice(0, 100);
-  }, [freeAgents, positions, sortKey]);
+  }, [freeAgents, positions, sortKey, showingUpgradesOnly, verdicts]);
 
-  /**
-   * The weakest player the viewer starts at each position, by the active sort.
-   * This is what makes the page answer the actual question — "is anyone on the
-   * wire better than what I'm starting" — rather than just listing names.
-   */
-  const myBar = useMemo(() => {
-    const bar = new Map<string, FreeAgentRow>();
-    if (!compare || !viewerTeam) return bar;
-    for (const p of myPlayers) {
-      const held = bar.get(p.position);
-      if (!held || num(p[sortKey]) < num(held[sortKey])) bar.set(p.position, p);
-    }
-    return bar;
-  }, [myPlayers, compare, viewerTeam, sortKey]);
+  /** The headline: who on the wire would start for the viewer right now. */
+  const starters = useMemo(
+    () =>
+      freeAgents
+        .flatMap((p) => {
+          const v = verdicts.get(p.player_id);
+          return v && v.kind !== "bench" ? [{ p, v }] : [];
+        })
+        .sort((a, b) => b.v.gain - a.v.gain),
+    [freeAgents, verdicts],
+  );
+  const benchCount = verdicts.size - starters.length;
 
   const fmt = (v: number | null, digits = 1) =>
     v == null ? "—" : v.toFixed(digits);
@@ -128,11 +212,68 @@ export default function FreeAgentsClient({
             Mark upgrades on {viewerTeam}
           </label>
         )}
+
+        {viewerTeam && compare && (
+          <label className="flex items-center gap-2 text-sm text-ink-muted">
+            <input
+              type="checkbox"
+              checked={upgradesOnly}
+              onChange={(e) => setUpgradesOnly(e.target.checked)}
+              className="h-4 w-4 rounded border-line-strong"
+            />
+            Upgrades only
+          </label>
+        )}
       </div>
+
+      {viewerTeam && compare && (
+        <div className="rounded-lg border border-line p-4 text-sm">
+          {starters.length === 0 ? (
+            <p className="text-ink-muted">
+              Nobody on the wire would make {viewerTeam}&apos;s starting lineup by{" "}
+              {METRIC_LABELS[metric]}.
+              {benchCount > 0 &&
+                ` ${benchCount} would be your best backup at their position.`}
+            </p>
+          ) : (
+            <>
+              <p className="font-medium text-ink">
+                {starters.length === 1
+                  ? "1 free agent would"
+                  : `${starters.length} free agents would`}{" "}
+                start for {viewerTeam} by {METRIC_LABELS[metric]}
+                {benchCount > 0 && (
+                  <span className="font-normal text-ink-muted">
+                    {" "}
+                    · {benchCount} more would be your best backup
+                  </span>
+                )}
+              </p>
+              <ul className="mt-2 space-y-1">
+                {starters.slice(0, 5).map(({ p, v }) => (
+                  <li key={p.player_id} className="flex flex-wrap items-center gap-x-2">
+                    <PositionBadge position={p.position} size="sm" />
+                    <PlayerName name={p.name} ottoneuId={p.ottoneu_id} />
+                    <span className="tabular-nums text-positive">
+                      +{v.gain.toFixed(1)}
+                    </span>
+                    <span className="text-ink-subtle">
+                      {v.over ? `over ${v.over.name}` : "fills an empty slot"}
+                      {v.kind === "bye_fill" ? " (on bye)" : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
 
       {rows.length === 0 ? (
         <p className="text-sm text-ink-subtle">
-          No free agents match that filter.
+          {showingUpgradesOnly
+            ? "No free agents at those positions would start or be your top backup."
+            : "No free agents match that filter."}
         </p>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line">
@@ -150,26 +291,21 @@ export default function FreeAgentsClient({
             </thead>
             <tbody>
               {rows.map((p) => {
-                const bar = myBar.get(p.position);
-                // An "upgrade" beats the weakest player the viewer holds at
-                // that position, on whatever metric is being sorted by.
-                const upgrade =
-                  bar != null && num(p[sortKey]) > num(bar[sortKey]);
+                const v = verdicts.get(p.player_id);
+                const badge = v ? BADGE[v.kind] : null;
                 return (
                   <tr
                     key={p.player_id}
-                    className={`border-t border-line ${
-                      upgrade ? "bg-emerald-50/60 dark:bg-emerald-950/20" : ""
-                    }`}
+                    className={`border-t border-line ${badge?.row ?? ""}`}
                   >
                     <td className="px-3 py-2 text-sm">
                       <PlayerName name={p.name} ottoneuId={p.ottoneu_id} />
-                      {upgrade && bar && (
+                      {v && badge && (
                         <span
-                          className="ml-2 text-[11px] font-semibold uppercase text-positive"
-                          title={`Ahead of ${bar.name}, your weakest ${p.position} by ${SORT_LABELS[sortKey]}`}
+                          className={`ml-2 text-[11px] font-semibold uppercase ${badge.cls}`}
+                          title={verdictTitle(v, metric)}
                         >
-                          upgrade
+                          {badge.label}
                         </span>
                       )}
                     </td>
@@ -215,6 +351,17 @@ export default function FreeAgentsClient({
         third party&apos;s single-game forecast; Proj PPG is this site&apos;s
         season-long model. A dash means no forecast this week — a bye, an inactive
         player, or one the source does not carry.
+        {viewerTeam && compare && (
+          <>
+            {" "}
+            <strong>Starter</strong> means he would make your best Superflex
+            lineup by {METRIC_LABELS[metric]}; <strong>bye fill</strong> means only
+            because a starter is off this week; <strong>top bench</strong> means he
+            beats every backup you hold at his position and projects at least{" "}
+            {Math.round(BENCH_FLOOR * 100)}% of your weakest starter there. Stashes
+            and handcuffs on your bench are not the bar.
+          </>
+        )}
       </p>
     </div>
   );
