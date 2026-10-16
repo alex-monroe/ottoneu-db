@@ -97,6 +97,8 @@ export const PUBLIC_API_ROUTES = [
   "/api/auth/reset-password",
   "/api/mcp",
   "/api/oauth",
+  // Called by the data workflows with `REVALIDATE_SECRET`, checked in the route.
+  "/api/revalidate",
 ] as const;
 
 /** True when `pathname` is `route` or a descendant segment of it. */

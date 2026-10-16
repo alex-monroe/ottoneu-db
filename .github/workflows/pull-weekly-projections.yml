@@ -175,3 +175,10 @@ jobs:
             echo "- Ingest window open: \`${{ steps.gate.outputs.ingest }}\`"
             echo "- Actuals pulled: \`${{ steps.gate.outputs.actuals }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # Push the fresh rows to the site now rather than on each page's
+      # revalidate timer. Skips quietly until REVALIDATE_SECRET is set.
+      - name: Revalidate site
+        uses: ./.github/actions/revalidate-site
+        with:
+          secret: ${{ secrets.REVALIDATE_SECRET }}
