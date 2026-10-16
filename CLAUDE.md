@@ -22,7 +22,9 @@ If you are orienting a person rather than an agent, point them at
 - **Skills** (`.claude/skills/`): `ablation`, `compare-models`, `create-pr`, `db-schema`,
   `diagnose-segment`, `experiment`, `feature-importance`, `ottoneu-roster-question`,
   `projection-accuracy`, `retro`, `review-permission-gates`, `run-analyses`,
-  `run-scraper`, `run-tests`, `scraper-logic`, `start-dev`.
+  `run-scraper`, `run-tests`, `scraper-logic`, `start-dev`, `verify`. Claude Code
+  runs verify (`just preflight`, forked into the command-runner subagent) on its own
+  before a commit, except for docs-only and tests-only commits.
 - **Subagents** (`.claude/agents/`), each with a restricted tool list and a pinned
   model: `db-reader` (haiku — read-only SQL lookups), `ci-triage` (haiku — why a
   GitHub Actions run failed), `command-runner` (haiku — runs forked skills such as
