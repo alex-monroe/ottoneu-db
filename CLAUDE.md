@@ -28,7 +28,10 @@ If you are orienting a person rather than an agent, point them at
 - **Subagents** (`.claude/agents/`), each with a restricted tool list and a pinned
   model: `db-reader` (haiku — read-only SQL lookups), `ci-triage` (haiku — why a
   GitHub Actions run failed), `command-runner` (haiku — runs forked skills such as
-  `run-tests`), `projection-evaluator` (sonnet — runs the held-out gate).
+  `run-tests`), `projection-evaluator` (sonnet — runs the held-out gate). Each
+  also pins `effort` (low for the mechanical ones) and a `maxTurns` cap, and
+  projection-evaluator compacts at 200K tokens (`autoCompactWindow`) because its
+  eval output is long.
 - **Model routing:** the main session runs Opus; delegate work that needs little
   context but produces a lot of output (logs, CI runs, SQL, evals, broad
   searches) to a subagent, so only its summary reaches the main context. Don't
