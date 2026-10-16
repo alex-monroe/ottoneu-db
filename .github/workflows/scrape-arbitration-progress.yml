@@ -88,7 +88,10 @@ jobs:
 
       # Push the fresh rows to the site now rather than on each page's
       # revalidate timer. Skips quietly until REVALIDATE_SECRET is set.
+      # Gated like the steps above: out of season Checkout is skipped, so the
+      # local ./.github/actions/revalidate-site would not exist on the runner.
       - name: Revalidate site
+        if: steps.season_gate.outputs.in_season == 'true'
         uses: ./.github/actions/revalidate-site
         with:
           secret: ${{ secrets.REVALIDATE_SECRET }}
