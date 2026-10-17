@@ -3,8 +3,12 @@ import { notFound } from "next/navigation";
 import { ExternalLink, LayoutGrid, Swords, Gavel, BarChart3 } from "lucide-react";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { getViewerTeam } from "@/lib/viewer-team";
-import { fetchTeamPage, resolveTeamName, fetchTeamNames, type TeamGame } from "@/lib/teams";
+import { fetchTeamPage, resolveTeamName, fetchTeamNames, sameTeamName, type TeamGame } from "@/lib/teams";
 import { formatRecord } from "@/lib/standings";
+import { getPlayoffOdds } from "@/lib/playoff-odds-data";
+import { formatOdds } from "@/lib/playoff-odds";
+import DeadlineSignalBadge from "@/components/DeadlineSignalBadge";
+import { shortDate } from "@/components/PlayoffOddsNote";
 import { LEAGUE_ID, CAP_PER_TEAM } from "@/lib/config";
 import PositionBadge from "@/components/PositionBadge";
 import PlayerName from "@/components/PlayerName";
@@ -94,7 +98,11 @@ export default async function TeamPage({ params }: Props) {
     getViewerTeam(),
   ]);
   const hasValue = !!user?.hasProjectionsAccess;
-  const team = await fetchTeamPage(teamName, hasValue);
+  const [team, odds] = await Promise.all([fetchTeamPage(teamName, hasValue), getPlayoffOdds()]);
+  const myOdds =
+    odds?.season === team.season
+      ? (odds.teams.find((t) => sameTeamName(t.team_name, teamName)) ?? null)
+      : null;
   const isMine = viewerTeam === teamName;
   // A manager sets their own team's icon; admins can set anyone's.
   const canEditIcon = isMine || !!user?.isAdmin;
@@ -196,6 +204,40 @@ export default async function TeamPage({ params }: Props) {
             </>
           )}
         </div>
+
+        {/* Playoff odds — public, like the standings; absent outside the regular season */}
+        {odds && myOdds && (
+          <Section
+            title="Playoff odds"
+            action={
+              <Link href="/scoreboard" className="text-xs font-medium normal-case tracking-normal text-accent hover:underline">
+                Whole league →
+              </Link>
+            }
+          >
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <SummaryCard label="Make playoffs" value={formatOdds(myOdds.playoff_odds)} />
+              <SummaryCard label="#1 seed" value={formatOdds(myOdds.top_seed_odds)} />
+              <SummaryCard label="Expected wins" value={myOdds.expected_wins.toFixed(1)} />
+              <SummaryCard
+                label={`With +${odds.boost_ppg} PPG`}
+                value={formatOdds(myOdds.boosted_playoff_odds)}
+              />
+            </div>
+            <p className="mt-3 text-sm text-ink-subtle">
+              {odds.signal_active && odds.trade_deadline && (
+                <>
+                  <DeadlineSignalBadge signal={myOdds.signal} />{" "}
+                  before the {shortDate(odds.trade_deadline)} trade deadline: a{" "}
+                  {odds.boost_ppg}-point-per-game upgrade moves these odds by{" "}
+                  {Math.round(myOdds.odds_gain * 100)} points.{" "}
+                </>
+              )}
+              From {odds.simulations.toLocaleString()} simulations of the rest of the regular
+              season ({odds.slots} of {odds.teams.length} teams make it; ties broken by points for).
+            </p>
+          </Section>
+        )}
 
         {!hasValue && <NoAccessState what="value and arbitration exposure for this team" />}
 

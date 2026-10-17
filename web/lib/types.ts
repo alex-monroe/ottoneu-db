@@ -432,3 +432,49 @@ export const POSITION_COLORS_DARK: Record<Position, string> = {
   TE: '#FCD34D', // amber-300
   K: '#C4B5FD',  // violet-300
 };
+
+// === Playoff Odds (web/lib/playoff-odds.ts) ===
+
+/** What a team's simulated weekly mean was built from, best source first. */
+export type ScoreMeanSource = "projection" | "season_ppg" | "league_average";
+
+/** The trade-deadline read on a team: improve now, cash out, or stand pat. */
+export type DeadlineSignal = "buyer" | "seller" | "hold";
+
+/** One team's Monte Carlo result. Probabilities are 0..1. */
+export interface TeamPlayoffOdds {
+  team_id: number;
+  team_name: string;
+  playoff_odds: number;
+  top_seed_odds: number;
+  /** Final regular-season wins, averaged over the simulations (includes wins banked). */
+  expected_wins: number;
+  /** The weekly mean the simulation drew this team's remaining scores around. */
+  weekly_mean: number;
+  weekly_sd: number;
+  mean_source: ScoreMeanSource;
+  /** Playoff odds if this team's lineup gained `boost_ppg` points per game. */
+  boosted_playoff_odds: number;
+  /** boosted_playoff_odds - playoff_odds. */
+  odds_gain: number;
+  signal: DeadlineSignal;
+}
+
+export interface PlayoffOdds {
+  season: number;
+  simulations: number;
+  seed: number;
+  slots: number;
+  /** The per-game upgrade the buy/sell signal is measured against. */
+  boost_ppg: number;
+  /** Regular-season games still to be decided, league-wide. */
+  games_remaining: number;
+  /** The league's trade deadline (league_calendar), or null when unknown. */
+  trade_deadline: string | null;
+  /** True while the deadline is known and not yet passed — the only time the signal is shown. */
+  signal_active: boolean;
+  /** The NFL week the projection means were taken from, or null when none were used. */
+  projection_week: number | null;
+  /** Standings order. */
+  teams: TeamPlayoffOdds[];
+}

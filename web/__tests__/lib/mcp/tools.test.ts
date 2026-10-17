@@ -60,6 +60,10 @@ jest.mock("@/lib/weekly-projections", () => ({
 jest.mock("@/lib/matchups", () => ({
     fetchLeagueStatus: jest.fn(),
 }));
+jest.mock("@/lib/playoff-odds-data", () => ({
+    // Null = outside the regular season; get_standings tests that want odds override it.
+    getPlayoffOdds: jest.fn().mockResolvedValue(null),
+}));
 jest.mock("@/lib/nfl-week", () => ({
     // Default to "no NFL week resolved" — the offseason case — so tests written
     // before the weekly feature exercise get_player unchanged. Tests that care
@@ -85,6 +89,7 @@ import {
 } from "@/lib/data";
 import { fetchProjectionBoard } from "@/lib/analysis";
 import { fetchLeagueStatus } from "@/lib/matchups";
+import { getPlayoffOdds } from "@/lib/playoff-odds-data";
 import { fetchRosterData } from "@/lib/roster-reconstruction";
 import {
     fetchWeeklyBoard,
@@ -118,6 +123,7 @@ const mockRosterData = fetchRosterData as jest.MockedFunction<typeof fetchRoster
 const mockActiveModel = fetchActiveProjectionModel as jest.MockedFunction<typeof fetchActiveProjectionModel>;
 const mockDraftSharksMap = fetchDraftSharksMap as jest.MockedFunction<typeof fetchDraftSharksMap>;
 const mockLeagueStatus = fetchLeagueStatus as jest.MockedFunction<typeof fetchLeagueStatus>;
+const mockPlayoffOdds = getPlayoffOdds as jest.MockedFunction<typeof getPlayoffOdds>;
 
 function tool(name: string) {
     const def = MCP_TOOLS.find((t) => t.name === name);
@@ -1036,6 +1042,40 @@ describe("get_scoreboard / get_standings", () => {
         expect(rows[0].record).toBe("1-1");
         expect(rows[0].playoff_seed).toBe(1);
         expect(String(body.methodology)).toContain("points for");
+    });
+
+    it("carries playoff odds and the deadline signal during the regular season", async () => {
+        mockLeagueStatus.mockResolvedValue(
+            status([
+                matchup({ game_id: 1, home_score: 120, away_score: 99, status: "final" }),
+                matchup({ game_id: 2, week: 2 }),
+            ]),
+        );
+        const team = (team_id: number, team_name: string, p: number) => ({
+            team_id, team_name, playoff_odds: p, top_seed_odds: p / 2, expected_wins: 1.5,
+            weekly_mean: 110, weekly_sd: 15, mean_source: "projection" as const,
+            boosted_playoff_odds: p + 0.1, odds_gain: 0.1, signal: "buyer" as const,
+        });
+        mockPlayoffOdds.mockResolvedValueOnce({
+            season: 2026, simulations: 5000, seed: 1, slots: 2, boost_ppg: 5,
+            games_remaining: 1, trade_deadline: "2026-12-01", signal_active: true,
+            projection_week: 2,
+            teams: [team(1, "The Witchcraft", 0.8), team(2, "Irish Invasion", 0.2)],
+        });
+        const body = payload(await tool("get_standings").handler({}));
+        const rows = body.standings as Record<string, unknown>[];
+
+        expect((body.playoff_odds as Record<string, unknown>).trade_deadline).toBe("2026-12-01");
+        expect(rows[0].playoff_odds).toBe(0.8);
+        expect(rows[0].deadline_signal).toBe("buyer");
+        expect(rows[1].playoff_odds_with_boost).toBe(0.3);
+    });
+
+    it("omits odds outside the regular season", async () => {
+        mockLeagueStatus.mockResolvedValue(status([matchup()]));
+        const body = payload(await tool("get_standings").handler({}));
+        expect(body.playoff_odds).toBeNull();
+        expect((body.standings as Record<string, unknown>[])[0]).not.toHaveProperty("playoff_odds");
     });
 
     it("seeds nobody before the season has started", async () => {
