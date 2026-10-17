@@ -136,3 +136,16 @@ repeated on every trade such a team looks at.
 
 Blind spots: kickers and college players earn no value in this method, so they
 read $0; a pace in the first weeks rests on few games.
+
+### Replaying a recorded trade
+
+`/trades/builder?trade=<ottoneu trade id>` (the `trades.trade_id`, the same id
+as Ottoneu's `/view_trade/<id>`) replays a trade from the log. `replayTrade`
+puts every player it moved back on the team that sent him — a processed trade
+is rewound, a pending one is already in place — and pre-selects both sides and
+the loan. A player since traded on or cut is found wherever he is now. Values
+still use production **through today**, so a replay is the trade judged with
+hindsight, and the page says so. Every trade card on `/trades` links its
+replay ("In trade builder"), and the Discord trade posts link the same URL.
+Once someone edits the selections the URL carries them alongside `trade=`, and
+they win over the recorded sides.

@@ -224,9 +224,94 @@ export function evaluateTrade(ctx: BuilderContext, trade: ProposedTrade): TradeE
   };
 }
 
+/** One asset of a recorded trade: a player moving, or a cap loan. */
+export interface RecordedAsset {
+  kind: "player" | "loan";
+  /** `players.id`; null when the player is not in our table. */
+  playerId: string | null;
+  name: string;
+  fromTeam: string;
+  toTeam: string;
+  /** Salary for a player, the loan size for a loan. */
+  amount: number;
+}
+
+export interface ReplayResult {
+  /** Rosters as they stood before the trade. */
+  teams: BuilderTeam[];
+  /** The trade itself, ready for `evaluateTrade`. */
+  trade: ProposedTrade;
+  /** Players the replay could not place (not in our table, or a team we do not know). */
+  missing: string[];
+}
+
+/**
+ * Replay a recorded trade: put every player it moved back on the team that
+ * sent him, and pre-select both sides and the loan.
+ *
+ * Works for a processed trade (the players have moved; this moves them back)
+ * and a pending one (they have not; the move back is a no-op). A player who
+ * has since been traded on or cut is found wherever he is, or created from
+ * `lookup`, so the replay still shows him leaving the team that sent him.
+ * Teams are matched with `sameTeam` because Ottoneu's trade pages and the
+ * roster CSV do not always agree on a team name's whitespace.
+ */
+export function replayTrade(
+  teams: readonly BuilderTeam[],
+  assets: readonly RecordedAsset[],
+  lookup: ReadonlyMap<string, BuilderPlayer>,
+  sameTeam: (a: string, b: string) => boolean,
+): ReplayResult | null {
+  const named = (raw: string) => teams.find((t) => sameTeam(t.teamName, raw))?.teamName ?? null;
+  const sides = [...new Set(assets.map((a) => named(a.fromTeam)).filter((t): t is string => t != null))];
+  for (const a of assets) {
+    const t = named(a.toTeam);
+    if (t && !sides.includes(t)) sides.push(t);
+  }
+  if (sides.length !== 2) return null;
+  const [teamA, teamB] = sides;
+
+  const rosters = new Map(teams.map((t) => [t.teamName, [...t.players]]));
+  const trade: ProposedTrade = { teamA, teamB, aSends: [], bSends: [], loanAtoB: 0, loanBtoA: 0 };
+  const missing: string[] = [];
+
+  for (const a of assets) {
+    const from = named(a.fromTeam);
+    if (a.kind === "loan") {
+      if (from === teamA) trade.loanAtoB += a.amount;
+      else if (from === teamB) trade.loanBtoA += a.amount;
+      continue;
+    }
+    const player = a.playerId ? lookup.get(a.playerId) : undefined;
+    if (!from || !player) {
+      missing.push(a.name);
+      continue;
+    }
+    // Take him off whichever roster holds him now, and put him back.
+    for (const roster of rosters.values()) {
+      const i = roster.findIndex((p) => p.playerId === player.playerId);
+      if (i >= 0) roster.splice(i, 1);
+    }
+    rosters.get(from)!.push(player);
+    (from === teamA ? trade.aSends : trade.bSends).push(player.playerId);
+  }
+
+  return {
+    teams: teams.map((t) => ({
+      teamName: t.teamName,
+      players: rosters.get(t.teamName)!.sort((x, y) => y.ppg - x.ppg || x.name.localeCompare(y.name)),
+    })),
+    trade,
+    missing,
+  };
+}
+
 /** `?a=&b=&as=&bs=&la=&lb=` — a trade as a shareable query string. */
-export function tradeToQuery(trade: ProposedTrade): string {
+export function tradeToQuery(trade: ProposedTrade, replayTradeId: number | null = null): string {
   const q = new URLSearchParams();
+  // A replay's rosters are rebuilt from the trade, so the id has to ride along
+  // or the selections would point at players who have since moved.
+  if (replayTradeId != null) q.set("trade", String(replayTradeId));
   if (trade.teamA) q.set("a", trade.teamA);
   if (trade.teamB) q.set("b", trade.teamB);
   if (trade.aSends.length) q.set("as", trade.aSends.join(","));
