@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { LEAGUE_ID } from "@/lib/config";
 import {
   tradeTime,
@@ -232,12 +233,22 @@ export default function TradeCard({
             {remaining >= 1 ? "before the season" : `${Math.round(remaining * 100)}% of season left`}
           </span>
         )}
+        {trade.ottoneuTradeId && trade.status !== "removed" && (
+          // Replays the trade on this season's production: the builder rewinds
+          // both rosters to just before it (web/lib/trade-builder.ts#replayTrade).
+          <Link
+            href={`/trades/builder?trade=${trade.ottoneuTradeId}`}
+            className="ml-auto normal-case tracking-normal text-accent hover:underline"
+          >
+            In trade builder
+          </Link>
+        )}
         {trade.ottoneuTradeId && (
           <a
             href={`https://ottoneu.fangraphs.com/football/${LEAGUE_ID}/view_trade/${trade.ottoneuTradeId}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="ml-auto normal-case tracking-normal text-accent hover:underline"
+            className={`${trade.status === "removed" ? "ml-auto " : ""}normal-case tracking-normal text-accent hover:underline`}
           >
             On Ottoneu ↗
           </a>

@@ -19,6 +19,8 @@ import {
 interface Props {
   context: BuilderContext;
   initial: ProposedTrade;
+  /** Set when the rosters are a replay of a recorded trade. */
+  replayTradeId: number | null;
   viewerTeam: string | null;
   windowLabel: string;
 }
@@ -156,7 +158,7 @@ function verdictLine(s: SideResult): string {
   return parts.length ? `${s.team}: ${parts.join(", ")}.` : `${s.team}: no change to its lineup or value.`;
 }
 
-export default function TradeBuilderClient({ context, initial, viewerTeam, windowLabel }: Props) {
+export default function TradeBuilderClient({ context, initial, replayTradeId, viewerTeam, windowLabel }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const [trade, setTrade] = useState<ProposedTrade>(initial);
@@ -169,16 +171,16 @@ export default function TradeBuilderClient({ context, initial, viewerTeam, windo
 
   // Keep the URL in step so the address bar is always a shareable link.
   useEffect(() => {
-    const q = tradeToQuery(trade);
+    const q = tradeToQuery(trade, replayTradeId);
     router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false });
-  }, [trade, pathname, router]);
+  }, [trade, replayTradeId, pathname, router]);
 
   useEffect(() => {
     if (evaluation && !tracked.current) {
       tracked.current = true;
-      track("trade_builder_evaluate", { own_team: trade.teamA === viewerTeam });
+      track("trade_builder_evaluate", { own_team: trade.teamA === viewerTeam, replay: replayTradeId != null });
     }
-  }, [evaluation, trade.teamA, viewerTeam]);
+  }, [evaluation, trade.teamA, viewerTeam, replayTradeId]);
 
   const setTeam = (which: "A" | "B", team: string) =>
     setTrade((t) => {

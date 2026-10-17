@@ -11,11 +11,13 @@ import {
   keeperValue,
   lineupPpg,
   nextSalary,
+  replayTrade,
   seasonPace,
   tradeFromQuery,
   tradeToQuery,
   type BuilderContext,
   type BuilderPlayer,
+  type RecordedAsset,
 } from "@/lib/trade-builder";
 
 function p(
@@ -202,5 +204,89 @@ describe("query string", () => {
       loanAtoB: 0,
       loanBtoA: 0,
     });
+  });
+});
+
+describe("replayTrade", () => {
+  const same = (x: string, y: string) => x.trim() === y.trim();
+  const lookupOf = (c: BuilderContext) =>
+    new Map(c.teams.flatMap((t) => t.players).map((pl) => [pl.playerId, pl]));
+  const move = (playerId: string | null, fromTeam: string, toTeam: string, name = playerId ?? "?"): RecordedAsset => ({
+    kind: "player",
+    playerId,
+    name,
+    fromTeam,
+    toTeam,
+    amount: 0,
+  });
+
+  /** Alpha's QB1 for Beta's RB1, already processed: each sits on his new team. */
+  function afterTrade(): BuilderContext {
+    const c = ctx();
+    const alpha = c.teams[0].players, beta = c.teams[1].players;
+    const qb = alpha.splice(alpha.findIndex((x) => x.playerId === "aqb1"), 1)[0];
+    const rb = beta.splice(beta.findIndex((x) => x.playerId === "brb1"), 1)[0];
+    alpha.push(rb);
+    beta.push(qb);
+    return c;
+  }
+
+  it("rewinds a processed trade and pre-selects both sides", () => {
+    const c = afterTrade();
+    const r = replayTrade(c.teams, [move("aqb1", "Alpha", "Beta"), move("brb1", "Beta", "Alpha")], lookupOf(c), same)!;
+    expect(r.trade).toEqual(trade({ aSends: ["aqb1"], bSends: ["brb1"] }));
+    const ids = (team: string) => r.teams.find((t) => t.teamName === team)!.players.map((x) => x.playerId);
+    expect(ids("Alpha")).toContain("aqb1");
+    expect(ids("Alpha")).not.toContain("brb1");
+    expect(ids("Beta")).toContain("brb1");
+    // Evaluated on the rewound rosters, it is the original trade.
+    const e = evaluateTrade({ ...c, teams: r.teams }, r.trade)!;
+    expect(e.a.receives.map((x) => x.playerId)).toEqual(["brb1"]);
+  });
+
+  it("leaves a pending trade's rosters as they are", () => {
+    const c = ctx();
+    const r = replayTrade(c.teams, [move("aqb1", "Alpha", "Beta")], lookupOf(c), same)!;
+    expect(r.teams.find((t) => t.teamName === "Alpha")!.players).toHaveLength(10);
+    expect(r.trade.aSends).toEqual(["aqb1"]);
+  });
+
+  it("finds a player who has since been cut, and matches team names loosely", () => {
+    const c = ctx();
+    const cut = c.teams[1].players.splice(0, 1)[0]; // Beta's QB1, now a free agent
+    const lookup = new Map([...lookupOf(c), [cut.playerId, cut]]);
+    const r = replayTrade(c.teams, [move(cut.playerId, "Beta ", "Alpha")], lookup, same)!;
+    expect(r.trade.teamA).toBe("Beta");
+    expect(r.trade.aSends).toEqual([cut.playerId]);
+    expect(r.teams.find((t) => t.teamName === "Beta")!.players.map((x) => x.playerId)).toContain(cut.playerId);
+  });
+
+  it("carries loans and reports players it cannot place", () => {
+    const c = ctx();
+    const r = replayTrade(
+      c.teams,
+      [
+        move("aqb1", "Alpha", "Beta"),
+        move(null, "Beta", "Alpha", "Mystery Rookie"),
+        { kind: "loan", playerId: null, name: "Loan", fromTeam: "Beta", toTeam: "Alpha", amount: 12 },
+      ],
+      lookupOf(c),
+      same,
+    )!;
+    expect(r.trade.loanBtoA).toBe(12);
+    expect(r.missing).toEqual(["Mystery Rookie"]);
+  });
+
+  it("is null when the trade's teams are not two known teams", () => {
+    const c = ctx();
+    expect(replayTrade(c.teams, [move("aqb1", "Alpha", "Gamma")], lookupOf(c), same)).toBeNull();
+  });
+});
+
+describe("replay query string", () => {
+  it("keeps the trade id alongside edited selections", () => {
+    const q = new URLSearchParams(tradeToQuery(trade({ aSends: ["1"] }), 39466));
+    expect(q.get("trade")).toBe("39466");
+    expect(q.get("as")).toBe("1");
   });
 });
