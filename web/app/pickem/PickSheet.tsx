@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { track } from "@vercel/analytics";
 import { Check } from "lucide-react";
 import TeamName from "@/components/TeamName";
 import type { Matchup } from "@/lib/standings";
@@ -107,6 +108,9 @@ export default function PickSheet({
         rollBack();
         setError(data.error || "Couldn't save that pick.");
         if (res.status === 409) router.refresh();
+      } else {
+        // Measures pick'em engagement (and the Discord feed's pull on it).
+        track("pickem_pick", { week, cleared: next === null });
       }
     } catch {
       rollBack();

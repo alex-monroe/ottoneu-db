@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { track } from "@vercel/analytics";
 import {
   ChevronUp,
   ChevronDown,
@@ -209,6 +210,8 @@ export default function BallotEditor({
     const next = !submitted;
     const ok = await save(next, order, notes, prepNotes);
     if (!ok) return;
+    // Casting (locking in) a ballot, not every autosave.
+    if (next) track("power_ranking_ballot", { week, voter: "host" });
     dirty.current = false;
     setSubmitted(next);
     router.refresh();

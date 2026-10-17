@@ -252,7 +252,13 @@ to `/power-rankings?week=N`.
   exit 0; once a host publishes it, run the workflow by hand (`week` input
   optional). A week published early still posts on Thursday morning.
 - **No "already posted" marker.** The schedule fires once per week, so nothing
-  is stored; a manual re-run of a week already posted posts it again.
+  is stored; a manual re-run of a week already posted posts it again. (The
+  newer feed posts, such as trades and pick'em, do log what they send in
+  `discord_posts`. See [discord-feed.md](discord-feed.md).)
+- **Links are UTM-tagged** (`utm_source=discord`, `utm_campaign=power_rankings`
+  or `vote_reminder`) through the shared `web/lib/discord.ts`, and locking in a
+  ballot fires the `power_ranking_ballot` analytics event. See
+  [discord-feed.md](discord-feed.md#measurement).
 - **Posts as the league's Discord bot** (the auction bot's account) through the
   REST API: `DISCORD_TOKEN` is a GitHub Actions secret, the channel ID is in the
   workflow. The bot needs Send Messages + Embed Links in that channel.

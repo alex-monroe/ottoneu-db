@@ -108,3 +108,8 @@ just scrape-trades --file saved_trade_history.html --dry-run
 
 A view_trade page is fetched only for a trade that is new, still pending, or
 missing its processed time, so a routine run is one or two requests.
+
+After the scrape, a second job in the same workflow posts each new pending and
+processed trade to the league Discord, once per state, with a value read from
+this season's earned value rather than the projection model. See
+[discord-feed.md](discord-feed.md#trades).

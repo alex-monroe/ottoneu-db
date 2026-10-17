@@ -16,12 +16,11 @@
  */
 
 import { parseArgs } from "node:util";
+import { siteUrlFromEnv } from "../lib/discord";
 import { getDisplayWeeks } from "../lib/nfl-week";
 import { fetchPowerRankingContext } from "../lib/power-rankings";
 import { fetchPublicationStatus, listenerVotingOpen } from "../lib/community-rankings";
 import { buildVoteReminderMessage, postDiscordMessage } from "../lib/discord-power-rankings";
-
-const DEFAULT_SITE_URL = "https://sofa-db.vercel.app";
 
 async function main(): Promise<number> {
   const { values } = parseArgs({
@@ -50,7 +49,7 @@ async function main(): Promise<number> {
 
   const message = buildVoteReminderMessage(
     ctx.week,
-    process.env.SITE_URL || DEFAULT_SITE_URL,
+    siteUrlFromEnv(),
     status.scheduledAt,
   );
 
