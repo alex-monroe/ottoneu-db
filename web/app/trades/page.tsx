@@ -195,6 +195,7 @@ export default async function TradesPage({ searchParams }: Props) {
           </>
         }
         links={[
+          { href: "/trades/builder", label: "Build a trade" },
           { href: "#pending", label: "Pending" },
           { href: "#sell-offs", label: "Sell-offs" },
           { href: "#loans", label: "Loans" },
