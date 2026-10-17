@@ -43,6 +43,7 @@ export const MIN_GAMES = config.MIN_GAMES;
 export const NFL_REGULAR_SEASON_WEEKS = config.NFL_REGULAR_SEASON_WEEKS;
 export const ROSTER_SPOTS = config.ROSTER_SPOTS;
 export const MIN_PLAYER_SALARY = config.MIN_PLAYER_SALARY;
+export const WAIVER_CLAIM_HOURS = config.WAIVER_CLAIM_HOURS;
 export const FULL_SEASON_GAMES = config.FULL_SEASON_GAMES;
 export const STARTING_LINEUP: Record<string, number> = config.STARTING_LINEUP;
 export const FLEX_SLOTS = config.FLEX_SLOTS;

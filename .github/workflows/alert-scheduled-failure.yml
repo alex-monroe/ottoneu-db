@@ -23,6 +23,7 @@ on:
       - "Pull Weekly Projections"
       - "Scrape Arbitration Progress"
       - "Scrape Draft Sharks Auction Values"
+      - "Scrape FA Market"
       - "Scrape League Calendar"
       - "Scrape Player Cards"
       - "Scrape Trade History"

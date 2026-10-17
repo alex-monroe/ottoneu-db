@@ -358,6 +358,12 @@ scrape-trades *args:
 scrape-lineups *args:
     {{python}} scripts/scrape_lineups.py {{args}}
 
+# Snapshot the open FA market (active auctions + claimable waivers) into fa_market.
+# Logs in with FANGRAPHS_USERNAME/PASSWORD for waivers; auctions-only without them.
+# e.g. just scrape-fa-market --dry-run
+scrape-fa-market *args:
+    {{python}} scripts/scrape_fa_market.py {{args}}
+
 # Post the week's community power ranking to Discord (reads web/.env.local; needs
 # DISCORD_TOKEN + DISCORD_CHANNEL_ID unless --dry-run). Only ever posts a public week.
 # e.g. just post-power-rankings --dry-run ; just post-power-rankings --week 4

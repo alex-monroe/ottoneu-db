@@ -1,0 +1,121 @@
+name: Scrape FA Market
+
+# Keeps `fa_market` — the open free-agent auctions and the players on waivers
+# inside their 24-hour claim window — in step with Ottoneu, for the board on
+# /free-agents. Both windows last a day, so every three hours catches every
+# auction and every cut with hours to spare. One login plus two page loads per
+# run: nowhere near the 429s the per-player card scrape hit (#752).
+#
+# /auctions is public; /waivers needs a logged-in session (FANGRAPHS_USERNAME /
+# FANGRAPHS_PASSWORD, the same secrets the arbitration scrape uses). Without the
+# secrets the scrape still reads auctions over plain HTTP.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Parse and print without writing"
+        type: boolean
+        default: false
+
+  # Every three hours; the gate job limits real runs to the in-season phase of
+  # the league_calendar resolver.
+  schedule:
+    - cron: "41 */3 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scrape-fa-market
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      due: ${{ steps.phase.outputs.due }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install supabase python-dotenv
+          pip install -e . --no-deps
+
+      - name: Check league phase
+        id: phase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: python -m scripts.fa_market_gate ${{ github.event_name == 'workflow_dispatch' && '--force' || '' }}
+
+  scrape:
+    needs: gate
+    if: needs.gate.outputs.due == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install playwright requests beautifulsoup4 supabase python-dotenv
+          # Install this repo as a package so `import scripts.*` resolves
+          pip install -e . --no-deps
+
+      - name: Install Playwright browsers
+        run: playwright install --with-deps chromium
+
+      - name: Create .env
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          FANGRAPHS_USERNAME: ${{ secrets.FANGRAPHS_USERNAME }}
+          FANGRAPHS_PASSWORD: ${{ secrets.FANGRAPHS_PASSWORD }}
+        run: |
+          python -c "
+          import os
+          keys = ['SUPABASE_URL', 'SUPABASE_KEY', 'FANGRAPHS_USERNAME', 'FANGRAPHS_PASSWORD']
+          with open('.env', 'w') as f:
+              for k in keys:
+                  if os.environ.get(k):
+                      f.write(f'{k}={os.environ[k]}\n')
+          "
+
+      - name: Scrape FA market
+        run: |
+          ARGS=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="--dry-run"; fi
+          python scripts/scrape_fa_market.py $ARGS
+
+      - name: Upload debug artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-screenshots
+          path: debug/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Revalidate site
+        if: ${{ inputs.dry_run != true }}
+        uses: ./.github/actions/revalidate-site
+        with:
+          secret: ${{ secrets.REVALIDATE_SECRET }}
+          paths: '["/free-agents"]'

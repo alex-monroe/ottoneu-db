@@ -13,6 +13,13 @@ import {
   reconstructRostersAtDate,
 } from "@/lib/roster-reconstruction";
 import { sameTeamName } from "@/lib/teams";
+import { computeEarnedValue } from "@/lib/earned-value";
+import { classifyFreeAgents } from "@/lib/free-agent-upgrades";
+import type { LineupPlayer } from "@/lib/lineup";
+import { buildBoardRows } from "@/lib/fa-market";
+import { fetchOpenMarket } from "@/lib/fa-market-data";
+import { ROSTER_SPOTS } from "@/lib/config";
+import FaMarketBoard from "./FaMarketBoard";
 import FreeAgentsClient, { type FreeAgentRow } from "./FreeAgentsClient";
 import PageShell from "@/components/PageShell";
 import DataFreshness from "@/components/DataFreshness";
@@ -28,13 +35,14 @@ export const metadata = {
 export default async function FreeAgentsPage() {
   await requireProjectionsAccess("/free-agents");
 
-  const [allPlayers, viewerTeam, display, projectionSeason, rosterData] =
+  const [allPlayers, viewerTeam, display, projectionSeason, rosterData, market] =
     await Promise.all([
       fetchPlayersEndOfSeason(),
       getViewerTeam(),
       getDisplayWeeks(),
       getProjectionSeason(),
       fetchRosterData(),
+      fetchOpenMarket(),
     ]);
 
   const [projMap, weekly] = await Promise.all([
@@ -90,9 +98,10 @@ export default async function FreeAgentsPage() {
     today,
     rosterData.leaguePrices,
   );
-  const myRoster = viewerTeam
-    ? (rosters.find((r) => sameTeamName(r.team_name, viewerTeam))?.players ?? [])
-    : [];
+  const myTeamRoster = viewerTeam
+    ? rosters.find((r) => sameTeamName(r.team_name, viewerTeam))
+    : undefined;
+  const myRoster = myTeamRoster?.players ?? [];
   const myPlayers: FreeAgentRow[] = myRoster.map((p) => {
     const s = surplus.find((sp) => sp.player_id === p.player_id);
     const w = weekly.get(p.player_id);
@@ -112,6 +121,43 @@ export default async function FreeAgentsPage() {
       weekly_opponent: w?.opponent ?? null,
     };
   });
+
+  // ── Open auctions and claimable waivers (lib/fa-market.ts) ──
+  // Value is this season's production on the full-season scale: earned value
+  // with no stat window. `allPlayers` is the current stats season.
+  const earnedById = new Map(
+    computeEarnedValue(allPlayers).map((p) => [p.player_id, p.earned_value]),
+  );
+  const statsById = new Map(
+    allPlayers.map((p) => [p.player_id, { ppg: p.ppg, games_played: p.games_played }]),
+  );
+  // Fit on season PPG: the "last_season" metric reads `ppg`, which here is the
+  // current stats season. One week's forecast is the wrong test for a pickup
+  // you will carry at an annual salary.
+  const seasonLineupPlayer = (
+    id: string, name: string, position: string, nfl_team: string,
+  ): LineupPlayer => ({
+    player_id: id,
+    name,
+    position,
+    nfl_team,
+    ppg: statsById.get(id)?.ppg ?? 0,
+    projected_ppg: 0,
+  });
+  const marketVerdicts = classifyFreeAgents(
+    myRoster.map((p) => seasonLineupPlayer(p.player_id, p.name, p.position, p.nfl_team)),
+    market.listings
+      .filter((l) => l.player_id && l.position)
+      .map((l) => seasonLineupPlayer(l.player_id!, l.player_name, l.position!, l.nfl_team ?? "")),
+    "last_season",
+  );
+  const marketRows = buildBoardRows(
+    market.listings,
+    earnedById,
+    statsById,
+    marketVerdicts,
+    myRoster.length > 0,
+  );
 
   return (
     <PageShell>
@@ -134,6 +180,14 @@ export default async function FreeAgentsPage() {
           </p>
         </header>
       <DataFreshness source="rosters" />
+
+        <FaMarketBoard
+          rows={marketRows}
+          scrapedAt={market.scrapedAt}
+          viewerTeam={viewerTeam}
+          capRoom={myTeamRoster ? myTeamRoster.cap_space : null}
+          openSpots={myTeamRoster ? ROSTER_SPOTS - myTeamRoster.players.length : null}
+        />
 
         <FreeAgentsClient
           freeAgents={freeAgents}

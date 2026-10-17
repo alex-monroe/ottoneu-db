@@ -45,7 +45,7 @@ means something broke. `scrape-arbitration-progress.yml` is the model: a small
 The `scrape` job has `if: needs.gate.outputs.due == 'true'`, so out of season it
 is *skipped* and the run concludes `success`. If the calendar read fails, the
 gate falls back to the resolver's month-based phases rather than failing.
-Manual dispatch passes `--force`. Keep every step that uses a local action
+Manual dispatch passes `--force`. `scrape-fa-market.yml` has the same shape, gated on the `in_season` phase by `scripts/fa_market_gate.py`. Keep every step that uses a local action
 (`uses: ./...`) in a job whose `actions/checkout` step is unconditional —
 #765 was a `Revalidate site` step running after a skipped Checkout;
 `test_local_actions_run_after_an_ungated_checkout` enforces it.
