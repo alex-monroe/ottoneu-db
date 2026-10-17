@@ -14,7 +14,7 @@ league's trade market:
 | **Ingestion** | `scripts/scrape_trade_history.py` — `just scrape-trades` |
 | **Workflow** | `.github/workflows/scrape-trade-history.yml` (every 4 hours) |
 | **Logic** | `web/lib/trades.ts` (pure) · `web/lib/trades-data.ts` (reads) |
-| **Route** | `/trades` — gated on projections access, like `/value` |
+| **Route** | `/trades` — gated on projections access, like `/value` · `/trades/builder` ([below](#trade-builder)) |
 
 ## Data: two sources merged into one log
 
@@ -108,3 +108,31 @@ just scrape-trades --file saved_trade_history.html --dry-run
 
 A view_trade page is fetched only for a trade that is new, still pending, or
 missing its processed time, so a routine run is one or two requests.
+
+## Trade builder
+
+`/trades/builder` judges a trade **before** it is proposed. Pick the players
+(and an optional cap loan) each side sends; every number updates as you go, and
+the URL (`?a=&b=&as=&bs=&la=&lb=`) carries the trade so a link reproduces it.
+
+Unlike the rest of this page it is priced on **this season's production**, not
+the preseason projection: in season the model is withheld (#748), and a
+deadline trade is about the weeks left. Logic in `web/lib/trade-builder.ts`
+(pure, tested in `web/__tests__/lib/trade-builder.test.ts`); reads in
+`web/lib/trade-builder-data.ts`.
+
+| Read | Meaning |
+|---|---|
+| **Starting lineup** | The optimal Superflex lineup (`optimizeLineup`, as on `/lineup`) on season-to-date PPG, before and after. Moving a bench player moves nothing. |
+| **Rest of season** | Each player's earned value (`earned-value.ts`) scaled from the games played to a full-season pace, × the share of regular-season weeks still to play (`remainingSeasonFraction`). Received minus sent. |
+| **Keeper value** | Full-season pace minus next season's salary (+`SEASON_END_RAISE_PLAYED` if he played a game, else +`SEASON_END_RAISE_OTHER`), floored at zero — the same convention as above. |
+| **Cap room** | `CAP_PER_TEAM` − current salary (from `league_prices`), then ± salary moved and the loan. Existing cap loans and cut penalties are not stored, so this is salary-only; the page links Ottoneu's finances page for the real figure. |
+| **Roster spots** | Count after the trade against `ROSTER_SPOTS`. IR players are in the count (Ottoneu excludes them). |
+
+Because loans, penalties and IR are unknown, several teams already read as over
+the cap or the roster limit. A warning fires only when the trade itself makes
+that worse (more salary while over, or more bodies while over), so it is not
+repeated on every trade such a team looks at.
+
+Blind spots: kickers and college players earn no value in this method, so they
+read $0; a pace in the first weeks rests on few games.
