@@ -258,7 +258,13 @@ export function buildTradeMessage(
   } else {
     lines.push("No games played yet this season, so no value read.");
   }
-  lines.push("", `[Every trade on SOFA DB →](${url})`);
+  // The trade builder replays a recorded trade from its id alone: both rosters
+  // as they stood before it, both sides and the loan pre-selected.
+  const builder = discordLink(siteUrl, `/trades/builder?trade=${trade.ottoneuTradeId}`, campaign);
+  lines.push(
+    "",
+    `[See it in the trade builder →](${builder}) · [Every trade →](${url})`,
+  );
 
   return {
     embeds: [

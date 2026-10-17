@@ -169,12 +169,16 @@ describe("buildTradeMessage", () => {
     expect(e.description).toContain("Alpha: **−$48** — $12 of pace in for $5 salary, $60 out for $45");
     expect(e.description).toContain("Bravo: **+$48**");
     expect(e.footer.text).toContain("no projections");
+    expect(e.description).toContain(
+      `[See it in the trade builder →](${SITE}/trades/builder?trade=1&utm_source=discord&utm_campaign=trade_processed)`,
+    );
   });
 
   it("marks a pending trade and when it processes", () => {
     const e = buildTradeMessage(trade({ assets, status: "pending", processedAt: "2026-10-18T22:40" }), b, SITE).embeds[0];
     expect(e.title).toBe("⏳ Pending trade: Alpha ⇄ Bravo");
     expect(e.url).toContain("utm_campaign=trade_pending");
+    expect(e.description).toContain("/trades/builder?trade=1&utm_source=discord&utm_campaign=trade_pending");
     expect(e.description.startsWith("Awaiting league approval — processes on Oct 18, 10:40 PM (Ottoneu time)")).toBe(true);
   });
 

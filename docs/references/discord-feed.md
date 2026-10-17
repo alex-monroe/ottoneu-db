@@ -85,7 +85,9 @@ key the log on. Trades rebuilt from player cards have none.
 
 **The post:** each side's received players, with position, salary, PPG and games,
 and any cap loan (loans expire after the regular season). Then a **value read**
-per side.
+per side, and a link to the trade replayed in the trade builder
+(`/trades/builder?trade=<ottoneu trade id>`, which rebuilds both rosters as they
+were before the trade; see [trades.md](trades.md#replaying-a-recorded-trade)).
 
 **The value read uses production, not projections.** The preseason projection
 model is withheld once games start (#748), so a trade is read on what the players
