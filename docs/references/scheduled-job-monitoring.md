@@ -10,7 +10,7 @@ before it was noticed. Two mechanisms now push a problem in front of a person.
 - **Freshness:** [scripts/check_data_freshness.py](../../scripts/check_data_freshness.py) ·
   `just check-freshness` ·
   [.github/workflows/check-data-freshness.yml](../../.github/workflows/check-data-freshness.yml)
-- **Tests:** `scripts/tests/test_scheduled_alerts.py`
+- **Tests:** `scripts/tests/test_scheduled_alerts.py` · `scripts/tests/test_arb_scrape_gate.py`
 
 ## 1. A failed scheduled run opens an issue
 
@@ -35,6 +35,20 @@ operations noise.
 silently — which is the bug this exists to prevent — so
 `test_every_scheduled_workflow_is_alerted_on` fails `just test-python` until the
 list is complete, and also when it names a workflow that no longer exists.
+
+**Seasonal workflows must not fail out of season.** A job whose cron fires all
+year but only has work in one phase should skip cleanly, so a red run always
+means something broke. `scrape-arbitration-progress.yml` is the model: a small
+`gate` job runs `python -m scripts.arb_scrape_gate`, which asks the
+`league_calendar` resolver (`scripts/season.py`) whether arbitration is open
+(`arb_start` through `arb_end`, plus one catch-up day) and writes `due=true|false`.
+The `scrape` job has `if: needs.gate.outputs.due == 'true'`, so out of season it
+is *skipped* and the run concludes `success`. If the calendar read fails, the
+gate falls back to the resolver's month-based phases rather than failing.
+Manual dispatch passes `--force`. Keep every step that uses a local action
+(`uses: ./...`) in a job whose `actions/checkout` step is unconditional —
+#765 was a `Revalidate site` step running after a skipped Checkout;
+`test_local_actions_run_after_an_ungated_checkout` enforces it.
 
 Limits worth knowing: `workflow_run` only fires for the copy of the alert workflow
 on `main`, and it cannot see a run that never started.
