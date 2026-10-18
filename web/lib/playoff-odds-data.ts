@@ -23,6 +23,7 @@ import { fetchLiveWeek } from "./matchup-lineups";
 import { scoreboardProjection } from "./live-matchup";
 import { lineupTotal, optimizeLineup, type LineupPlayer } from "./lineup";
 import { sameTeamName } from "./teams";
+import { hasByeWeeks, isOnBye } from "./nfl-byes";
 import {
   buildScoreModels,
   computePlayoffOdds,
@@ -52,12 +53,18 @@ function optimalTotal(
 /**
  * Each team's projected weekly score, keyed by team_id.
  *
- * Two numbers per team. The projection week's own optimal lineup (byes and
- * all) is used for that week's game. Every later week uses a **bye-neutral
- * rate**: the same lineup, but a player with no row this week (a bye) is
- * scored at his previous week's projection — otherwise a team with three
- * starters on bye this week would be simulated as that weak for the rest of
- * the season.
+ * A projection for every week the team still has a game, so each simulated
+ * matchup is drawn around what both sides can actually field that week:
+ *
+ * - **The projection week** uses its own optimal lineup — byes, injuries and
+ *   all, straight from that week's projections.
+ * - **Every later week** re-optimizes the same roster with each player valued
+ *   at his projection-week number (his previous week's when he has no row this
+ *   week, so a bye or a one-week absence now is not carried forward), and
+ *   anyone whose NFL team is **on bye that week** benched. A team with three
+ *   starters sharing a week-10 bye is weak in week 10, and only in week 10.
+ * - **The rate** — the same lineup with nobody on bye — is the mean for any
+ *   week without its own entry (a season whose bye weeks are not checked in).
  */
 async function fetchTeamProjections(
   status: LeagueStatus,
@@ -90,16 +97,37 @@ async function fetchTeamProjections(
     rosterData.leaguePrices,
   );
 
+  // The weeks still to be simulated from scratch, after the projection week.
+  const laterWeeks = hasByeWeeks(status.season)
+    ? [
+        ...new Set(
+          status.matchups
+            .filter((m) => m.game_type === "regular" && m.status !== "final" && m.week > week)
+            .map((m) => m.week),
+        ),
+      ]
+    : [];
+
   const projections = new Map<number, TeamProjection>();
   for (const row of status.standings) {
     const roster = rosters.find((r) => sameTeamName(r.team_name, row.team_name));
     if (!roster) continue;
-    const thisWeek = optimalTotal(roster.players, (id) => current.get(id)?.projected_points ?? null);
-    const rate = optimalTotal(
-      roster.players,
-      (id) => current.get(id)?.projected_points ?? previous.get(id)?.projected_points ?? null,
-    );
-    projections.set(row.team_id, { rate, byWeek: new Map([[week, thisWeek]]) });
+    const ratePoints = (id: string) =>
+      current.get(id)?.projected_points ?? previous.get(id)?.projected_points ?? null;
+    const teamOf = new Map(roster.players.map((p) => [p.player_id, p.nfl_team]));
+
+    const byWeek = new Map<number, number>([
+      [week, optimalTotal(roster.players, (id) => current.get(id)?.projected_points ?? null)],
+    ]);
+    for (const w of laterWeeks) {
+      byWeek.set(
+        w,
+        optimalTotal(roster.players, (id) =>
+          isOnBye(status.season, teamOf.get(id), w) ? null : ratePoints(id),
+        ),
+      );
+    }
+    projections.set(row.team_id, { rate: optimalTotal(roster.players, ratePoints), byWeek });
   }
   return { projections, week };
 }

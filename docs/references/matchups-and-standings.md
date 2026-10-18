@@ -124,14 +124,29 @@ odds, #1-seed odds and expected final wins.
 | Spread | the SD of its own weekly scores, shrunk toward the league's pooled within-team SD (4 pseudo-games of prior) — five weeks of one team's scores is too noisy to trust alone; before anyone has two scores, 20% of the mean |
 | A game in progress | drawn around its **live projection** (`live-matchup.ts`) with half the spread |
 
-The projection is taken two ways (`playoff-odds-data.ts`). The projection
-week's own optimal lineup — byes and all — is used for **that week's** game.
-Every later week uses a **bye-neutral rate**: a player with no row this week is
-scored at his previous week's projection, so a team with three starters on bye
-is not simulated as that weak for the rest of the season. The preseason model
+The projection is taken **per week** (`playoff-odds-data.ts`), so every
+simulated game is a 1v1 matchup between what both sides can field *that
+week*. The projection week's own optimal lineup — byes, injuries and all — is
+used for **that week's** game. Every later week re-optimizes the same roster
+with each player at his projection-week number (his previous week's when he has
+no row this week, so a bye or one-week absence now is not carried forward) and
+anyone whose NFL team is **on bye that week** benched. Bye weeks come from a
+checked-in per-season table, `web/lib/data/nfl-bye-weeks.ts` (nflverse
+`games.csv`; a team's bye is the regular-season week it has no game), looked up
+through `web/lib/nfl-byes.ts`, which maps Ottoneu spellings such as `JAC` onto
+nflverse codes. **Add next season's row when the schedule is released in May**
+— until then that season falls back to a single bye-neutral rate for every
+later week. The preseason model
 is not used (it is withheld in season, #748). The weekly projections behind
 the means are gated, but only team-level odds leave the loader, so the odds are
 **public** like the standings.
+
+**Head-to-head odds.** `projectGames` reports each undecided game's projected
+score for both sides and the home side's win probability — exact under the
+simulation's model (the difference of two independent normals), so it is the
+per-game input the playoff odds are built from, without simulation noise. The
+team page's schedule shows it as "Proj." scores and a Win % column; MCP
+`get_standings` carries it as `remaining_games` on each row.
 
 **Buy / sell / hold.** For each team the season is re-run with its mean raised
 by **5 points per game** (a typical deadline upgrade) using the *same* random

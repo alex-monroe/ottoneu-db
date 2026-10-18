@@ -14,8 +14,9 @@ export default function PlayoffOddsNote({ odds }: { odds: PlayoffOdds }) {
   return (
     <p className="mt-2 text-xs text-ink-subtle">
       Playoff and #1-seed odds come from {odds.simulations.toLocaleString()} simulations of
-      the {odds.games_remaining} regular-season games left. Each team&apos;s weekly score is
-      drawn around its optimal-lineup projection
+      the {odds.games_remaining} regular-season games left. Each team&apos;s score in each game is
+      drawn around its optimal-lineup projection for that week, with players on bye that week
+      benched
       {odds.projection_week != null ? ` (Week ${odds.projection_week} projections)` : ""}, or
       its points per game where there is none, with the spread of its own weekly scores.
       {odds.signal_active && odds.trade_deadline && (

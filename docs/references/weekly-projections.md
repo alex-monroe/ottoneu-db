@@ -357,7 +357,9 @@ visible there as a gap.
 - **Bye weeks are indistinguishable from inactives.** A player with no row for a
   week renders as "—" with a "no projection (bye or inactive)" note. Telling the
   two apart needs an NFL schedule table; nflverse schedules download from hosts
-  already on the devcontainer allowlist, so this is a clean follow-up.
+  already on the devcontainer allowlist, so this is a clean follow-up. (The
+  playoff odds already know byes, from the checked-in
+  `web/lib/data/nfl-bye-weeks.ts`; this page does not use it yet.)
 - **Kicker coverage** depends on Sleeper's kicker stat keys matching `_STAT_MAP`.
   All twelve Ottoneu scoring categories have a mapping, but the kicker bands are
   the least certain part of it — the probe command settles it.

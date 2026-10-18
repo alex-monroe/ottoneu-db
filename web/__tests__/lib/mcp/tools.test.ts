@@ -1061,6 +1061,11 @@ describe("get_scoreboard / get_standings", () => {
             games_remaining: 1, trade_deadline: "2026-12-01", signal_active: true,
             projection_week: 2,
             teams: [team(1, "The Witchcraft", 0.8), team(2, "Irish Invasion", 0.2)],
+            games: [{
+                game_id: 2, week: 2, home_team_id: 1, home_team_name: "The Witchcraft",
+                away_team_id: 2, away_team_name: "Irish Invasion", home_mean: 118.04,
+                away_mean: 101.5, home_win_prob: 0.7612, live: false,
+            }],
         });
         const body = payload(await tool("get_standings").handler({}));
         const rows = body.standings as Record<string, unknown>[];
@@ -1069,6 +1074,13 @@ describe("get_scoreboard / get_standings", () => {
         expect(rows[0].playoff_odds).toBe(0.8);
         expect(rows[0].deadline_signal).toBe("buyer");
         expect(rows[1].playoff_odds_with_boost).toBe(0.3);
+        // Each side sees the game from its own seat.
+        expect(rows[0].remaining_games).toEqual([
+            { week: 2, opponent: "Irish Invasion", projected_for: 118, projected_against: 101.5, win_prob: 0.761 },
+        ]);
+        expect(rows[1].remaining_games).toEqual([
+            { week: 2, opponent: "The Witchcraft", projected_for: 101.5, projected_against: 118, win_prob: 0.239 },
+        ]);
     });
 
     it("omits odds outside the regular season", async () => {

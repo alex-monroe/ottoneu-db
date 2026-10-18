@@ -460,6 +460,23 @@ export interface TeamPlayoffOdds {
   signal: DeadlineSignal;
 }
 
+/** One regular-season game still to be decided, as the simulation sees it. */
+export interface ProjectedGame {
+  game_id: number;
+  week: number;
+  home_team_id: number;
+  home_team_name: string;
+  away_team_id: number;
+  away_team_name: string;
+  /** Each side's projected score for that week (bye-week lineups included), or its live projection. */
+  home_mean: number;
+  away_mean: number;
+  /** 0..1, exact under the simulation's normal model. */
+  home_win_prob: number;
+  /** True for a game already under way, drawn around its live projection. */
+  live: boolean;
+}
+
 export interface PlayoffOdds {
   season: number;
   simulations: number;
@@ -477,4 +494,6 @@ export interface PlayoffOdds {
   projection_week: number | null;
   /** Standings order. */
   teams: TeamPlayoffOdds[];
+  /** Every game still to be decided, in schedule order, with its 1v1 odds. */
+  games: ProjectedGame[];
 }
