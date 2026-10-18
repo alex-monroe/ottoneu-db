@@ -1,0 +1,86 @@
+name: Post Pickem
+
+# Two pick'em posts to the league Discord, from one script:
+#
+# - Results (daily, 15:00 UTC): once the week's league games are all final,
+#   the week's winner, the top of its board and the season leader. Runs every
+#   day so it catches the week whenever the matchup pull marks it final; the
+#   discord_posts log keeps each week to one post, and a week whose window
+#   closed more than three days ago is not announced.
+# - Reminder (Thursday 15:00 UTC = 11:00 EDT / 10:00 EST): picks lock that
+#   evening at 20:00 ET (noon on Thanksgiving), so this lands before both.
+#
+# Both no-op outside the season. Thursday's cron runs both modes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Which post"
+        type: choice
+        options: [results, reminder]
+        default: results
+      week:
+        description: "Results only: week to post (blank = latest final week)"
+        required: false
+      dry_run:
+        description: "Print the message instead of posting it"
+        type: boolean
+        default: false
+
+  schedule:
+    - cron: "0 15 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: post-pickem
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Post to Discord
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          DISCORD_CHANNEL_ID: "1396549904234709044"
+          SITE_URL: https://sofa-db.vercel.app
+          MODE: ${{ inputs.mode }}
+          WEEK: ${{ inputs.week }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          DRY=()
+          [ "$DRY_RUN" = "true" ] && DRY+=(--dry-run)
+          if [ -n "$MODE" ]; then
+            ARGS=("--$MODE")
+            [ "$MODE" = "results" ] && [ -n "$WEEK" ] && ARGS+=(--week "$WEEK")
+            npm run post-pickem -- "${ARGS[@]}" "${DRY[@]}"
+            exit 0
+          fi
+          # Scheduled: results every day, plus the reminder on Thursdays (ET).
+          npm run post-pickem -- --results
+          if [ "$(TZ=America/New_York date +%u)" = "4" ]; then
+            npm run post-pickem -- --reminder
+          fi

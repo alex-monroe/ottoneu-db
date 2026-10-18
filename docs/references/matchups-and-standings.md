@@ -260,6 +260,11 @@ live game is still pending. A tied game is a push: no point, not a miss.
 Players are ranked on points alone and share a rank when level (1, 2, 2, 4) —
 tie-breaking on fewer misses would reward skipping games.
 
+**Discord.** Once a week's games are all final, `post-pickem.yml` posts its
+winner and the season leader to the league Discord, and it sends a reminder on
+Thursday before the lock. The reminder gives a player count only. Saving a pick
+fires the `pickem_pick` analytics event. See [discord-feed.md](discord-feed.md#pickem).
+
 **Board names, not emails.** The board is public, so each player picks the name
 they appear under (prefilled with their bound team). Names are unique per league
 case-insensitively (a unique index), and a league franchise's name is reserved

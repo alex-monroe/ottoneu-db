@@ -329,6 +329,30 @@ export type Database = {
           },
         ]
       }
+      discord_posts: {
+        Row: {
+          discord_message_id: string | null
+          league_id: number
+          post_key: string
+          post_type: string
+          posted_at: string
+        }
+        Insert: {
+          discord_message_id?: string | null
+          league_id: number
+          post_key: string
+          post_type: string
+          posted_at?: string
+        }
+        Update: {
+          discord_message_id?: string | null
+          league_id?: number
+          post_key?: string
+          post_type?: string
+          posted_at?: string
+        }
+        Relationships: []
+      }
       draft_capital: {
         Row: {
           created_at: string

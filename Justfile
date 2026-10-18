@@ -375,6 +375,21 @@ post-power-rankings *args:
 post-vote-reminder *args:
     cd web && npm run post-vote-reminder -- {{args}}
 
+# League Discord feed (docs/references/discord-feed.md). Each posts at most once
+# per item (discord_posts log); --dry-run prints and records nothing.
+# Post new pending/processed trades. e.g. just post-trades --dry-run --max-age-days 7
+post-trades *args:
+    cd web && npm run post-trades -- {{args}}
+
+# Post one day's adds and cuts (default yesterday). e.g. just post-moves-digest --dry-run --date 2026-10-15
+post-moves-digest *args:
+    cd web && npm run post-moves-digest -- {{args}}
+
+# Pick'em results (latest final week) or the pre-lock reminder.
+# e.g. just post-pickem --results --dry-run ; just post-pickem --reminder --dry-run
+post-pickem *args:
+    cd web && npm run post-pickem -- {{args}}
+
 # ──────────────────────────────────────────────
 # Ad-hoc DB queries
 # ──────────────────────────────────────────────

@@ -50,6 +50,13 @@ Manual dispatch passes `--force`. `scrape-fa-market.yml` has the same shape, gat
 #765 was a `Revalidate site` step running after a skipped Checkout;
 `test_local_actions_run_after_an_ungated_checkout` enforces it.
 
+The Discord feed jobs (`post-moves-digest.yml`, `post-pickem.yml`, and the
+`post-discord` job in `scrape-trade-history.yml`) follow the same rule: out of
+season or on a quiet day they log why and exit 0. Each one logs what it posts in
+`discord_posts`, so a retried or overlapping run never posts twice
+([discord-feed.md](discord-feed.md)). A Discord rejection (for example the bot
+losing channel access) fails the run, which opens the issue.
+
 Limits worth knowing: `workflow_run` only fires for the copy of the alert workflow
 on `main`, and it cannot see a run that never started.
 

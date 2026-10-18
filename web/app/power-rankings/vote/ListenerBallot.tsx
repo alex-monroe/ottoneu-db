@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { track } from "@vercel/analytics";
 import { ChevronUp, ChevronDown, GripVertical, Lock, Unlock } from "lucide-react";
 import type { TeamRecord } from "@/lib/power-rankings";
 import type { TeamWeekSnapshot } from "@/lib/team-snapshot";
@@ -111,6 +112,8 @@ export default function ListenerBallot({
     const next = !submitted;
     const ok = await save(next, order);
     if (!ok) return;
+    // Casting (locking in) a ballot, not every autosave.
+    if (next) track("power_ranking_ballot", { week, voter: "listener" });
     dirty.current = false;
     setSubmitted(next);
     router.refresh();

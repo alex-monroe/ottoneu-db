@@ -18,6 +18,7 @@
  */
 
 import { parseArgs } from "node:util";
+import { siteUrlFromEnv } from "../lib/discord";
 import { getDisplayWeeks } from "../lib/nfl-week";
 import { fetchPowerRankingContext } from "../lib/power-rankings";
 import {
@@ -28,8 +29,6 @@ import {
   buildPowerRankingsMessage,
   postDiscordMessage,
 } from "../lib/discord-power-rankings";
-
-const DEFAULT_SITE_URL = "https://sofa-db.vercel.app";
 
 async function main(): Promise<number> {
   const { values } = parseArgs({
@@ -74,7 +73,7 @@ async function main(): Promise<number> {
   const rankings = await fetchCommunityRankings(ctx.season, ctx.week, ctx.teams);
   const message = buildPowerRankingsMessage(
     rankings,
-    process.env.SITE_URL || DEFAULT_SITE_URL,
+    siteUrlFromEnv(),
   );
   if (!message) {
     console.error(`Week ${ctx.week} is public but has no submitted ballots — nothing to post.`);

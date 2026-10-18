@@ -15,17 +15,24 @@
  * (`.github/workflows/post-vote-reminder.yml`, `scripts/post-vote-reminder.ts`),
  * which links the ballot page and the publish deadline.
  *
- * Sending goes through the Discord REST API as a bot (`Authorization: Bot …`)
- * rather than a channel webhook, so the league's existing bot account posts it
- * and the channel is just an ID.
+ * Sending goes through the shared bot plumbing in `./discord`, and every link
+ * is UTM-tagged there (`utm_campaign=power_rankings` / `vote_reminder`).
  */
 
 import type { CommunityRankings } from "./community-rankings";
+import {
+  discordLink,
+  discordTimestamp,
+  EMBED_COLOR,
+  postDiscordMessage,
+  type DiscordEmbed,
+  type DiscordMessage,
+} from "./discord";
 
-const DISCORD_API = "https://discord.com/api/v10";
-
-/** Embed accent — the site's blue. */
-const EMBED_COLOR = 0x2563eb;
+// The send and the message shape moved to ./discord when the league feed
+// (./discord-feed) started posting too; re-exported so existing callers hold.
+export { postDiscordMessage };
+export type { DiscordEmbed, DiscordMessage };
 
 /** "▲2", "▼1", "—", or "" when there is no published prior week to compare to. */
 export function discordMovement(movement: number | null): string {
@@ -39,18 +46,6 @@ export function rankingsUrl(siteUrl: string, week: number): string {
   return `${siteUrl.replace(/\/+$/, "")}/power-rankings?week=${week}`;
 }
 
-export interface DiscordEmbed {
-  title: string;
-  url: string;
-  description: string;
-  color: number;
-  footer: { text: string };
-}
-
-export interface DiscordMessage {
-  embeds: DiscordEmbed[];
-}
-
 /**
  * Build the post: every team in order with its movement, then a link.
  *
@@ -62,7 +57,7 @@ export function buildPowerRankingsMessage(
 ): DiscordMessage | null {
   if (rankings.rows.length === 0) return null;
 
-  const url = rankingsUrl(siteUrl, rankings.week);
+  const url = discordLink(siteUrl, `/power-rankings?week=${rankings.week}`, "power_rankings");
   const lines = rankings.rows.map((row) => {
     const move = discordMovement(row.movement);
     return `**${row.rank}.** ${row.teamName}${move ? `  ${move}` : ""}`;
@@ -102,12 +97,11 @@ export function buildVoteReminderMessage(
   siteUrl: string,
   closesAt: string | null,
 ): DiscordMessage {
-  const url = voteUrl(siteUrl);
-  const unix = closesAt ? Math.floor(Date.parse(closesAt) / 1000) : null;
-  const deadline =
-    unix !== null && Number.isFinite(unix)
-      ? `Voting closes <t:${unix}:F> (<t:${unix}:R>).\n\n`
-      : "";
+  const url = discordLink(siteUrl, "/power-rankings/vote", "vote_reminder");
+  const full = closesAt ? discordTimestamp(closesAt, "F") : null;
+  const deadline = full
+    ? `Voting closes ${full} (${discordTimestamp(closesAt as string, "R")}).\n\n`
+    : "";
   return {
     embeds: [
       {
@@ -119,25 +113,4 @@ export function buildVoteReminderMessage(
       },
     ],
   };
-}
-
-/** Post a message to a channel as the bot. Throws on any non-2xx response. */
-export async function postDiscordMessage(
-  channelId: string,
-  botToken: string,
-  message: DiscordMessage,
-  fetchImpl: typeof fetch = fetch,
-): Promise<void> {
-  const res = await fetchImpl(`${DISCORD_API}/channels/${channelId}/messages`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bot ${botToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(message),
-  });
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(`Discord rejected the post (${res.status}): ${detail}`);
-  }
 }
