@@ -7,6 +7,15 @@ name: Post Moves Digest
 # scrape (scrape-player-cards.yml, 06:40 UTC) has written yesterday's moves.
 # Only scraped `transactions` rows count; a day with no moves posts nothing,
 # and the discord_posts log keeps each day to one post.
+#
+# PAUSED (October 2026): the daily schedule is off because the league found
+# the extra daily post too noisy beside the trade posts. Manual runs still
+# work. To turn it back on, restore:
+#
+#   schedule:
+#     - cron: "30 13 * * *"
+#
+# and add "Post Moves Digest" back to alert-scheduled-failure.yml's list.
 
 on:
   workflow_dispatch:
@@ -18,9 +27,6 @@ on:
         description: "Print the message instead of posting it"
         type: boolean
         default: false
-
-  schedule:
-    - cron: "30 13 * * *"
 
 permissions:
   contents: read
