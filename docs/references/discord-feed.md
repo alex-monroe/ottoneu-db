@@ -13,7 +13,7 @@ one channel, not a webhook per feature.
 |---|---|---|---|
 | Pending trade (heads-up) | `web/scripts/post-trades.ts` | after each 4-hourly trade-history scrape | `trade_pending` / trade id |
 | Processed trade | same | same | `trade_processed` / trade id |
-| Daily moves digest | `web/scripts/post-moves-digest.ts` | daily 13:30 UTC | `moves_digest` / `YYYY-MM-DD` |
+| Daily moves digest | `web/scripts/post-moves-digest.ts` | **paused** — manual dispatch only | `moves_digest` / `YYYY-MM-DD` |
 | Pick'em results | `web/scripts/post-pickem.ts --results` | daily 15:00 UTC; posts once a week is final | `pickem_results` / `<season>-w<week>` |
 | Pick'em reminder | `web/scripts/post-pickem.ts --reminder` | Thursday 15:00 UTC, before the lock | `pickem_reminder` / `<season>-w<week>` |
 | Power rankings, vote reminder | `post-power-rankings.ts`, `post-vote-reminder.ts` | Thu / Wed | not logged (see podcast-tools.md) |
@@ -114,8 +114,12 @@ production so far, and its footer says that.
 
 ## Daily moves digest
 
-`post-moves-digest.yml` runs daily at 13:30 UTC, well after the 06:40 UTC
-player-card scrape has written the previous day. By default it covers
+**Paused (October 2026).** The daily schedule is off: beside the trade posts,
+a daily post read as spam. The workflow still runs by hand (`workflow_dispatch`),
+and the header comment in `post-moves-digest.yml` has the cron line to restore.
+
+When scheduled, `post-moves-digest.yml` runs daily at 13:30 UTC, well after the
+06:40 UTC player-card scrape has written the previous day. By default it covers
 **yesterday** in America/New_York (`--date` overrides). It reads through
 `fetchWeekMoves` (`web/lib/recap-moves.ts`, the same reader the weekly recap
 uses) and keeps only **scraped** adds and cuts: an inferred row's date is the
