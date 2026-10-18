@@ -69,5 +69,7 @@ Cap room and open roster spots come from the viewer's reconstructed roster
 - The fit weights are judgement calls, not fitted. They live in one constant.
 - Earned value early in the season is a small sample; the full-season scaling magnifies
   it. The PPG column shows games played so the reader can discount it.
-- If the site clock turns out not to be Eastern, waiver deadlines shift by the offset;
-  auction deadlines are unaffected.
+- The site clock was confirmed Eastern on 2026-10-17: an auction whose countdown put
+  its close at 01:01 UTC was listed as completed "Oct 17, 2026 9:01 PM" (EDT). If Ottoneu
+  ever starts printing times in the viewer's profile zone instead, waiver deadlines shift
+  by the offset; auction deadlines are unaffected.
