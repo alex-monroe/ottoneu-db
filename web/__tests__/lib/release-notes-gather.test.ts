@@ -32,6 +32,13 @@ describe("weekWindow", () => {
   it("takes an explicit end date", () => {
     expect(weekWindow(new Date(), "2026-11-02").since).toBe("2026-10-26");
   });
+
+  it("reaches back to the latest notes file's day to catch PRs merged after it", () => {
+    expect(weekWindow(new Date(), "2026-10-26", "2026-10-18").since).toBe("2026-10-18");
+    // A same-week or long-stale file leaves the normal seven days.
+    expect(weekWindow(new Date(), "2026-10-26", "2026-10-25").since).toBe("2026-10-19");
+    expect(weekWindow(new Date(), "2026-10-26", "2026-09-27").since).toBe("2026-10-19");
+  });
 });
 
 describe("weekLabel", () => {

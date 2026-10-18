@@ -17,7 +17,10 @@ and merging the PR publishes it through the normal Vercel deploy from `main`.
    - a PR labelled **`no-release-notes`** is left out,
    - a PR that only touches notes files (the job's own PRs) is left out,
    - a PR any existing notes file already cites as `(#N)` is left out, so an
-     overlapping or re-run window never repeats an entry,
+     overlapping or re-run window never repeats an entry. That is why the
+     window starts on the latest notes file's own day when that file is from
+     the past two weeks: PRs merged later that day are picked up next run,
+     and the ones it covered are dropped,
    - the rest are tagged `user` or `internal`. Internal means every changed
      file is docs, CI, tests, migrations or agent/developer tooling
      (`INTERNAL_PREFIXES` / `INTERNAL_FILES`). This is only a hint to the writer.

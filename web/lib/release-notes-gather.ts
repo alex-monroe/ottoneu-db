@@ -86,10 +86,18 @@ function addUtcDays(date: string, days: number): string {
 /**
  * The seven days ending yesterday (UTC). Run on a Monday, that is the previous
  * Monday through Sunday, and the file is named for the Sunday.
+ *
+ * When the latest notes file is from the past two weeks, the window starts on
+ * that file's day instead: PRs merged later that same day were not in it, and
+ * the cited-PR filter drops the ones that were.
  */
-export function weekWindow(now: Date, until?: string): WeekWindow {
+export function weekWindow(now: Date, until?: string, latestNotes?: string): WeekWindow {
   const end = until ?? isoDate(now);
-  return { since: addUtcDays(end, -7), until: end, lastDay: addUtcDays(end, -1) };
+  let since = addUtcDays(end, -7);
+  if (latestNotes && latestNotes < since && latestNotes >= addUtcDays(end, -14)) {
+    since = latestNotes;
+  }
+  return { since, until: end, lastDay: addUtcDays(end, -1) };
 }
 
 export function notesPath(window: WeekWindow): string {

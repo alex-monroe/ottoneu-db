@@ -104,12 +104,14 @@ async function fetchMergedPrs(repo: string, since: string, until: string): Promi
   return prs;
 }
 
-function readExistingNotes(): string[] {
+/** Each existing notes file's date (its name) and text, oldest first. */
+function readExistingNotes(): { date: string; text: string }[] {
   const dir = path.join(REPO_ROOT, NOTES_REPO_DIR);
   if (!existsSync(dir)) return [];
   return readdirSync(dir)
-    .filter((f) => f.endsWith(".md"))
-    .map((f) => readFileSync(path.join(dir, f), "utf8"));
+    .filter((f) => /^\d{4}-\d{2}-\d{2}\.md$/.test(f))
+    .sort()
+    .map((f) => ({ date: f.slice(0, 10), text: readFileSync(path.join(dir, f), "utf8") }));
 }
 
 function setOutput(name: string, value: string): void {
@@ -126,11 +128,12 @@ async function main(): Promise<number> {
     },
   });
   const repo = process.env.GITHUB_REPOSITORY || "alex-monroe/ottoneu-db";
-  const window = weekWindow(new Date(), values.until);
+  const existing = readExistingNotes();
+  const window = weekWindow(new Date(), values.until, existing.at(-1)?.date);
   const relPath = notesPath(window);
 
   const merged = await fetchMergedPrs(repo, window.since, window.until);
-  const prs = selectPrs(merged, citedPrNumbers(readExistingNotes()));
+  const prs = selectPrs(merged, citedPrNumbers(existing.map((n) => n.text)));
   const internal = prs.filter((p) => p.kind === "internal").length;
   console.log(
     `${window.since}..${window.lastDay}: ${merged.length} merged, ${prs.length} to cover ` +
