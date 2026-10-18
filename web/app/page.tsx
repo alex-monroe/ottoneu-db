@@ -26,6 +26,7 @@ import { getAuthenticatedUser } from "@/lib/auth";
 import { getViewerTeam } from "@/lib/viewer-team";
 import { toTeamGame } from "@/lib/teams";
 import { getLeagueStatus } from "@/lib/matchups";
+import { getPlayoffOdds } from "@/lib/playoff-odds-data";
 import { fetchLiveWeek } from "@/lib/matchup-lineups";
 import { scoreboardProjection, type LiveGame } from "@/lib/live-matchup";
 import { NAV_GROUPS, HUB_EXCLUDED_GROUPS, canSee, type NavItem, type Viewer } from "@/lib/nav";
@@ -122,11 +123,12 @@ function HubCard({
 }
 
 export default async function Home() {
-  const [ctx, user, league, viewerTeam] = await Promise.all([
+  const [ctx, user, league, viewerTeam, odds] = await Promise.all([
     getSeasonContextNow(),
     getAuthenticatedUser(),
     getLeagueStatus(),
     getViewerTeam(),
+    getPlayoffOdds(),
   ]);
   // Each game's live projection, once lineups have been scraped for the week.
   const live: Map<number, LiveGame> =
@@ -266,7 +268,12 @@ export default async function Home() {
                 </div>
               </div>
               <div>
-                <StandingsTable playoffs={league.playoffs} compact viewerTeam={viewerTeam} />
+                <StandingsTable
+                  playoffs={league.playoffs}
+                  compact
+                  viewerTeam={viewerTeam}
+                  odds={odds?.season === league.season ? odds : null}
+                />
               </div>
             </div>
           </section>

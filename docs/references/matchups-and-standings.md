@@ -8,9 +8,9 @@ that knows the league has games.
 |---|---|
 | **Tables** | `league_matchups` (migration 037) · `matchup_lineups` (migration 044) |
 | **Scrapers** | `scripts/scrape_matchups.py` — `just scrape-matchups` · `scripts/scrape_lineups.py` — `just scrape-lineups` |
-| **Derivation** | `web/lib/standings.ts` + `web/lib/live-matchup.ts` (pure) · `web/lib/matchups.ts` + `web/lib/matchup-lineups.ts` (fetchers) |
+| **Derivation** | `web/lib/standings.ts` + `web/lib/live-matchup.ts` + `web/lib/playoff-odds.ts` (pure) · `web/lib/matchups.ts` + `web/lib/matchup-lineups.ts` + `web/lib/playoff-odds-data.ts` (fetchers) |
 | **Routes** | `/scoreboard` and `/scoreboard/[gameId]` (public) · the homepage league-status section |
-| **MCP tools** | `get_scoreboard` · `get_standings` |
+| **MCP tools** | `get_scoreboard` · `get_standings` (incl. playoff odds) |
 | **Workflow** | `.github/workflows/pull-matchups.yml` |
 
 ## The one design decision: standings are derived, not scraped
@@ -106,6 +106,52 @@ purpose — and the UI says so.
 
 Ottoneu's own `/playoffs` page projects the field once the season starts; it is
 not scraped, because the same answer falls out of the game log we already hold.
+
+## Playoff odds and the deadline signal
+
+`clinched`/`eliminated` say what is settled; **playoff odds** say what is
+likely. `web/lib/playoff-odds.ts` (pure) Monte Carlo simulates every
+regular-season game not yet final — 5,000 seasons, seeded, so the same inputs
+always give the same odds — and ranks each simulated season exactly as
+`computeStandings` does (wins, then points for). Per team it reports playoff
+odds, #1-seed odds and expected final wins.
+
+**Each team's weekly score is a normal draw.**
+
+| | From |
+|---|---|
+| Mean | the team's **optimal-lineup projection** (`optimizeLineup` over today's reconstructed roster, scored with `weekly_projections`); else its season PPG; else the league average |
+| Spread | the SD of its own weekly scores, shrunk toward the league's pooled within-team SD (4 pseudo-games of prior) — five weeks of one team's scores is too noisy to trust alone; before anyone has two scores, 20% of the mean |
+| A game in progress | drawn around its **live projection** (`live-matchup.ts`) with half the spread |
+
+The projection is taken two ways (`playoff-odds-data.ts`). The projection
+week's own optimal lineup — byes and all — is used for **that week's** game.
+Every later week uses a **bye-neutral rate**: a player with no row this week is
+scored at his previous week's projection, so a team with three starters on bye
+is not simulated as that weak for the rest of the season. The preseason model
+is not used (it is withheld in season, #748). The weekly projections behind
+the means are gated, but only team-level odds leave the loader, so the odds are
+**public** like the standings.
+
+**Buy / sell / hold.** For each team the season is re-run with its mean raised
+by **5 points per game** (a typical deadline upgrade) using the *same* random
+draws — common random numbers — so the change in its odds is the upgrade's
+effect, not simulation noise. Labels: **seller** if its odds stay under 15%
+even with the upgrade; **buyer** if the upgrade moves them 8+ points (and it is
+not already above 95%); **hold** otherwise. The signal is shown only while the
+trade deadline (`league_calendar.trade_deadline`, via `season.ts`) is known and
+has not passed.
+
+**When it shows.** `getPlayoffOdds()` returns null unless the season phase is
+`in_season`, the schedule's season is the league season, and at least one
+regular-season game is not final — so it vanishes in the playoffs and the
+offseason. It renders as extra columns on `StandingsTable` (playoff % on the
+homepage; also #1 seed, expected wins and the deadline signal on
+`/scoreboard`), a section on each team page, and fields on MCP `get_standings`.
+
+**Known limits.** Rosters are today's: a trade changes the odds on the next
+render, but injuries only through the projections. Head-to-head tiebreakers
+are not modelled (the league's tiebreak is points for, which is).
 
 ## Backfill limitation
 
