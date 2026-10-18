@@ -13,7 +13,8 @@
     "post-vote-reminder": "tsx --env-file-if-exists=.env.local scripts/post-vote-reminder.ts",
     "post-trades": "tsx --env-file-if-exists=.env.local scripts/post-trades.ts",
     "post-moves-digest": "tsx --env-file-if-exists=.env.local scripts/post-moves-digest.ts",
-    "post-pickem": "tsx --env-file-if-exists=.env.local scripts/post-pickem.ts"
+    "post-pickem": "tsx --env-file-if-exists=.env.local scripts/post-pickem.ts",
+    "gather-release-notes": "tsx --env-file-if-exists=.env.local scripts/gather-release-notes.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",
