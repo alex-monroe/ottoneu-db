@@ -61,6 +61,7 @@ async function main(): Promise<number> {
   const book = await fetchProductionBook();
   const siteUrl = siteUrlFromEnv();
   for (const { id, trade } of due) {
+    // Plain summaries for now (no value read) — see TradeMessageOptions.valueRead.
     const outcome = await sendFeedPost(id, buildTradeMessage(trade, book, siteUrl), { dryRun });
     console.log(`${id.type} ${id.key} (${trade.teams.join(" ⇄ ")}): ${outcome}`);
   }
