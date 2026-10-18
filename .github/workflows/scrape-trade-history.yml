@@ -68,3 +68,42 @@ jobs:
         uses: ./.github/actions/revalidate-site
         with:
           secret: ${{ secrets.REVALIDATE_SECRET }}
+
+  # Post what the scrape just stored to the league Discord: a heads-up for each
+  # new pending trade (the 48-hour veto window), then each newly processed one.
+  # The discord_posts log keeps every trade to one post per state, so a re-run
+  # posts nothing new. A dry-run dispatch prints the posts instead.
+  post-discord:
+    needs: scrape
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Post new trades to Discord
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          DISCORD_CHANNEL_ID: "1396549904234709044"
+          SITE_URL: https://sofa-db.vercel.app
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          ARGS=()
+          [ "$DRY_RUN" = "true" ] && ARGS+=(--dry-run)
+          npm run post-trades -- "${ARGS[@]}"

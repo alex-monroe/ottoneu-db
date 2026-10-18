@@ -51,14 +51,14 @@ describe("buildPowerRankingsMessage", () => {
     );
     const embed = msg!.embeds[0];
     expect(embed.title).toBe("📊 Week 4 Power Rankings");
-    expect(embed.url).toBe("https://site.test/power-rankings?week=4");
+    expect(embed.url).toBe("https://site.test/power-rankings?week=4&utm_source=discord&utm_campaign=power_rankings");
     expect(embed.description).toBe(
       [
         "**1.** Alpha  ▲2",
         "**2.** Bravo  ▼1",
         "**3.** Charlie  —",
         "",
-        "[Full rankings →](https://site.test/power-rankings?week=4)",
+        "[Full rankings →](https://site.test/power-rankings?week=4&utm_source=discord&utm_campaign=power_rankings)",
       ].join("\n"),
     );
     expect(embed.footer.text).toBe("2 host ballots · 1 listener ballot");
@@ -87,19 +87,19 @@ describe("buildVoteReminderMessage", () => {
       .embeds[0];
     expect(voteUrl("https://site.test/")).toBe("https://site.test/power-rankings/vote");
     expect(embed.title).toBe("🗳️ Week 5 Power Rankings — get your vote in");
-    expect(embed.url).toBe("https://site.test/power-rankings/vote");
+    expect(embed.url).toBe("https://site.test/power-rankings/vote?utm_source=discord&utm_campaign=vote_reminder");
     expect(embed.description).toBe(
       [
         "Voting closes <t:1791464400:F> (<t:1791464400:R>).",
         "",
-        "[Submit your ballot →](https://site.test/power-rankings/vote)",
+        "[Submit your ballot →](https://site.test/power-rankings/vote?utm_source=discord&utm_campaign=vote_reminder)",
       ].join("\n"),
     );
   });
 
   it("leaves out the deadline when the week has no scheduled publish time", () => {
     const embed = buildVoteReminderMessage(5, "https://site.test", null).embeds[0];
-    expect(embed.description).toBe("[Submit your ballot →](https://site.test/power-rankings/vote)");
+    expect(embed.description).toBe("[Submit your ballot →](https://site.test/power-rankings/vote?utm_source=discord&utm_campaign=vote_reminder)");
   });
 });
 

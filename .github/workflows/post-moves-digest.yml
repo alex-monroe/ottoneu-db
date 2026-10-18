@@ -1,0 +1,67 @@
+name: Post Moves Digest
+
+# Posts the previous day's adds and cuts — grouped by team, with salaries — to
+# the league Discord, once a day.
+#
+# 13:30 UTC is 09:30 EDT / 08:30 EST: well after the overnight player-card
+# scrape (scrape-player-cards.yml, 06:40 UTC) has written yesterday's moves.
+# Only scraped `transactions` rows count; a day with no moves posts nothing,
+# and the discord_posts log keeps each day to one post.
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Day to post, YYYY-MM-DD (blank = yesterday, America/New_York)"
+        required: false
+      dry_run:
+        description: "Print the message instead of posting it"
+        type: boolean
+        default: false
+
+  schedule:
+    - cron: "30 13 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: post-moves-digest
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Post to Discord
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          DISCORD_CHANNEL_ID: "1396549904234709044"
+          SITE_URL: https://sofa-db.vercel.app
+          DAY: ${{ inputs.date }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          ARGS=()
+          [ -n "$DAY" ] && ARGS+=(--date "$DAY")
+          [ "$DRY_RUN" = "true" ] && ARGS+=(--dry-run)
+          npm run post-moves-digest -- "${ARGS[@]}"
