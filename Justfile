@@ -390,6 +390,11 @@ post-moves-digest *args:
 post-pickem *args:
     cd web && npm run post-pickem -- {{args}}
 
+# Weekly release notes (docs/references/release-notes.md): list last week's merged
+# PRs. e.g. just release-notes --dry-run ; just release-notes --until 2026-10-19 --dry-run
+release-notes *args:
+    cd web && npm run gather-release-notes -- {{args}}
+
 # ──────────────────────────────────────────────
 # Ad-hoc DB queries
 # ──────────────────────────────────────────────

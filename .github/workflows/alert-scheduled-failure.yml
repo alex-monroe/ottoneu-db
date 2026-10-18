@@ -29,6 +29,7 @@ on:
       - "Scrape League Calendar"
       - "Scrape Player Cards"
       - "Scrape Trade History"
+      - "Weekly Release Notes"
     types: [completed]
 
 permissions:
