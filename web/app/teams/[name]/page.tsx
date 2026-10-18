@@ -60,7 +60,22 @@ function Section({ title, children, action }: {
   );
 }
 
-function GameRow({ game }: { game: TeamGame }) {
+/** This team's side of an undecided game, from the playoff-odds model. */
+interface GameProjection {
+  mean: number;
+  opponentMean: number;
+  winProb: number;
+}
+
+function GameRow({
+  game,
+  projection,
+  showOdds,
+}: {
+  game: TeamGame;
+  projection?: GameProjection;
+  showOdds: boolean;
+}) {
   const played = game.score != null && game.opponentScore != null;
   const tone =
     game.won === true
@@ -81,9 +96,16 @@ function GameRow({ game }: { game: TeamGame }) {
         <Link href={`/scoreboard/${game.game_id}`} className="hover:text-accent hover:underline">
           {played
             ? `${game.score!.toFixed(2)} – ${game.opponentScore!.toFixed(2)}`
-            : (game.statusLabel ?? "Scheduled")}
+            : projection
+              ? `Proj. ${projection.mean.toFixed(1)} – ${projection.opponentMean.toFixed(1)}`
+              : (game.statusLabel ?? "Scheduled")}
         </Link>
       </td>
+      {showOdds && (
+        <td className="px-3 py-2 text-right text-sm tabular-nums text-ink-subtle">
+          {projection && game.won == null ? formatOdds(projection.winProb) : ""}
+        </td>
+      )}
     </tr>
   );
 }
@@ -109,6 +131,19 @@ export default async function TeamPage({ params }: Props) {
 
   const played = team.schedule.filter((g) => g.score != null);
   const upcoming = team.schedule.filter((g) => g.score == null);
+
+  // Each undecided game's 1v1 odds, from this team's side.
+  const projections = new Map<number, GameProjection>();
+  if (myOdds && odds) {
+    for (const g of odds.games) {
+      if (g.home_team_id === myOdds.team_id) {
+        projections.set(g.game_id, { mean: g.home_mean, opponentMean: g.away_mean, winProb: g.home_win_prob });
+      } else if (g.away_team_id === myOdds.team_id) {
+        projections.set(g.game_id, { mean: g.away_mean, opponentMean: g.home_mean, winProb: 1 - g.home_win_prob });
+      }
+    }
+  }
+  const showOdds = projections.size > 0;
 
   return (
     <PageShell>
@@ -339,15 +374,28 @@ export default async function TeamPage({ params }: Props) {
                     <Th>Opponent</Th>
                     <Th right>Result</Th>
                     <Th right>Score</Th>
+                    {showOdds && <Th right>Win %</Th>}
                   </tr>
                 </thead>
                 <tbody>
                   {[...played, ...upcoming].map((g) => (
-                    <GameRow key={g.game_id} game={g} />
+                    <GameRow
+                      key={g.game_id}
+                      game={g}
+                      projection={projections.get(g.game_id)}
+                      showOdds={showOdds}
+                    />
                   ))}
                 </tbody>
               </table>
             </div>
+            {showOdds && (
+              <p className="mt-2 text-xs text-ink-subtle">
+                Projections for games still to come are each week&apos;s optimal lineup with
+                players on bye that week benched; win % is the head-to-head chance the playoff
+                odds are simulated from.
+              </p>
+            )}
           </Section>
         )}
 

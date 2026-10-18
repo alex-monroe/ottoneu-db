@@ -11,6 +11,7 @@ import {
   computePlayoffOdds,
   deadlineSignal,
   formatOdds,
+  projectGames,
   simulateSeason,
   type TeamProjection,
 } from "@/lib/playoff-odds";
@@ -251,6 +252,52 @@ describe("computePlayoffOdds", () => {
     const result = computePlayoffOdds(season(), buildScoreModels(season()), opts);
     expect(result.teams[0].team_name).toBe("A");
     expect(result.teams).toHaveLength(4);
+  });
+});
+
+describe("projectGames", () => {
+  it("lists every undecided game in week order with its 1v1 odds", () => {
+    const games = projectGames(season(), buildScoreModels(season()));
+    expect(games).toHaveLength(8);
+    expect(games.map((g) => g.week)).toEqual([3, 3, 4, 4, 5, 5, 6, 6]);
+    const aVsD = games[0];
+    expect([aVsD.home_team_name, aVsD.away_team_name]).toEqual(["A", "D"]);
+    expect(aVsD.home_win_prob).toBeGreaterThan(0.8); // A 122.5 PPG vs D 92.5
+    expect(aVsD.live).toBe(false);
+  });
+
+  it("gives an even matchup even odds", () => {
+    const matchups = [game(1, "A", 100, "B", 100), game(2, "A", null, "B", null)];
+    const [g] = projectGames(matchups, buildScoreModels(matchups));
+    expect(g.home_win_prob).toBeCloseTo(0.5, 6);
+  });
+
+  it("drops a team's odds in the week its starters are on bye", () => {
+    const proj = new Map<number, TeamProjection>([
+      [1, { rate: 120, byWeek: new Map([[4, 85]]) }],
+      [2, { rate: 110 }],
+    ]);
+    const games = projectGames(season(), buildScoreModels(season(), proj));
+    const wk3 = games.find((g) => g.week === 3 && g.home_team_id === 1)!; // A v D
+    const wk4 = games.find((g) => g.week === 4 && g.home_team_id === 1)!; // A v B
+    expect(wk3.home_mean).toBe(120);
+    expect(wk4.home_mean).toBe(85);
+    expect(wk4.away_mean).toBe(110);
+    expect(wk4.home_win_prob).toBeLessThan(0.3);
+  });
+
+  it("agrees with the simulation's own head-to-head win rate", () => {
+    // One open game: A's simulated wins are exactly its chance of winning it.
+    const matchups = [game(1, "A", 120, "B", 100), game(1, "C", 105, "D", 95), game(2, "A", null, "B", null)];
+    const models = buildScoreModels(matchups);
+    const [g] = projectGames(matchups, models);
+    const sim = simulateSeason(matchups, models, { simulations: 20000, seed: 3, slots: 2 });
+    expect(sim.find((r) => r.team_id === 1)!.expected_wins - 1).toBeCloseTo(g.home_win_prob, 1);
+  });
+
+  it("comes back on the playoff odds", () => {
+    const result = computePlayoffOdds(season(), buildScoreModels(season()), opts);
+    expect(result.games).toHaveLength(result.games_remaining);
   });
 });
 

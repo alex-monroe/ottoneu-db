@@ -9,10 +9,11 @@
  *
  * Every team's score in a game it has yet to play is a normal draw:
  *
- * - **Mean** — its optimal-lineup projection when one is supplied (by week when
- *   the caller has that week's projection, else a bye-neutral rest-of-season
- *   rate), falling back to its season-to-date points per game, and to the
- *   league's average PPG for a team with neither.
+ * - **Mean** — its optimal-lineup projection for **that game's week** when one
+ *   is supplied (the caller benches players on bye that week, so each 1v1
+ *   matchup is drawn around what both sides can actually field), else a
+ *   bye-neutral rest-of-season rate, falling back to its season-to-date points
+ *   per game, and to the league's average PPG for a team with neither.
  * - **Spread** — the standard deviation of its own weekly scores so far,
  *   shrunk toward the league's pooled within-team spread. Five weeks of one
  *   team's scores is a noisy estimate of its spread; the shrinkage keeps a team
@@ -39,7 +40,13 @@
 
 import { PLAYOFF_TEAMS } from "./config";
 import { computeStandings, type Matchup } from "./standings";
-import type { DeadlineSignal, PlayoffOdds, ScoreMeanSource, TeamPlayoffOdds } from "./types";
+import type {
+  DeadlineSignal,
+  PlayoffOdds,
+  ProjectedGame,
+  ScoreMeanSource,
+  TeamPlayoffOdds,
+} from "./types";
 
 /** Seasons simulated per scenario. ~0.7 points of error on a 50% probability. */
 export const DEFAULT_SIMULATIONS = 5000;
@@ -227,6 +234,82 @@ interface Boost {
   ppg: number;
 }
 
+interface GameParams {
+  homeMean: number;
+  awayMean: number;
+  homeSd: number;
+  awaySd: number;
+  live: boolean;
+}
+
+/**
+ * The two score distributions one open game is drawn from: each side's
+ * projection for that game's week (its bye-week lineup included), or the live
+ * projection for a game already under way.
+ */
+function gameParams(
+  m: Matchup,
+  models: Map<number, TeamScoreModel>,
+  live: Map<number, LiveMeans>,
+  boost?: Boost,
+): GameParams {
+  const hm = models.get(m.home_team_id);
+  const am = models.get(m.away_team_id);
+  const lv = m.status === "in_progress" ? live.get(m.game_id) : undefined;
+  const weekly = (model: TeamScoreModel | undefined) =>
+    model ? (model.byWeek.get(m.week) ?? model.mean) : 0;
+  const bump = (teamId: number) => (!lv && boost?.team_id === teamId ? boost.ppg : 0);
+  return {
+    homeMean: (lv ? lv.home : weekly(hm)) + bump(m.home_team_id),
+    awayMean: (lv ? lv.away : weekly(am)) + bump(m.away_team_id),
+    homeSd: (hm?.sd ?? 0) * (lv ? LIVE_SD_SHARE : 1),
+    awaySd: (am?.sd ?? 0) * (lv ? LIVE_SD_SHARE : 1),
+    live: lv != null,
+  };
+}
+
+/** Standard normal CDF (Abramowitz & Stegun 7.1.26 via erf; error < 1.5e-7). */
+function normalCdf(x: number): number {
+  const z = Math.abs(x) / Math.SQRT2;
+  const t = 1 / (1 + 0.3275911 * z);
+  const poly =
+    t * (0.254829592 + t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429))));
+  const erf = 1 - poly * Math.exp(-z * z);
+  return x >= 0 ? (1 + erf) / 2 : (1 - erf) / 2;
+}
+
+/**
+ * Every regular-season game still to be decided, with each side's projected
+ * score and the home side's chance of winning it. Exact for the simulation's
+ * model — the difference of two independent normals is normal — so these are
+ * the 1v1 odds the season simulation is built from, without its noise.
+ */
+export function projectGames(
+  matchups: Matchup[],
+  models: Map<number, TeamScoreModel>,
+  liveMeans: Map<number, LiveMeans> = new Map(),
+): ProjectedGame[] {
+  const open = matchups.filter(isOpen).sort((a, b) => a.week - b.week);
+  return open.map((m) => {
+    const p = gameParams(m, models, liveMeans);
+    const sd = Math.sqrt(p.homeSd ** 2 + p.awaySd ** 2);
+    const diff = p.homeMean - p.awayMean;
+    const homeWin = sd > 0 ? normalCdf(diff / sd) : diff > 0 ? 1 : diff < 0 ? 0 : 0.5;
+    return {
+      game_id: m.game_id,
+      week: m.week,
+      home_team_id: m.home_team_id,
+      home_team_name: m.home_team_name,
+      away_team_id: m.away_team_id,
+      away_team_name: m.away_team_name,
+      home_mean: p.homeMean,
+      away_mean: p.awayMean,
+      home_win_prob: homeWin,
+      live: p.live,
+    };
+  });
+}
+
 /**
  * Simulate the rest of the regular season. Returns one row per team, in the
  * current standings order.
@@ -260,18 +343,13 @@ export function simulateSeason(
   const homeSd = new Float64Array(g);
   const awaySd = new Float64Array(g);
   open.forEach((m, k) => {
-    const hm = models.get(m.home_team_id);
-    const am = models.get(m.away_team_id);
     homeIdx[k] = index.get(m.home_team_id)!;
     awayIdx[k] = index.get(m.away_team_id)!;
-    const lv = m.status === "in_progress" ? live.get(m.game_id) : undefined;
-    const weekly = (model: TeamScoreModel | undefined) =>
-      model ? (model.byWeek.get(m.week) ?? model.mean) : 0;
-    const bump = (teamId: number) => (!lv && boost?.team_id === teamId ? boost.ppg : 0);
-    homeMean[k] = (lv ? lv.home : weekly(hm)) + bump(m.home_team_id);
-    awayMean[k] = (lv ? lv.away : weekly(am)) + bump(m.away_team_id);
-    homeSd[k] = (hm?.sd ?? 0) * (lv ? LIVE_SD_SHARE : 1);
-    awaySd[k] = (am?.sd ?? 0) * (lv ? LIVE_SD_SHARE : 1);
+    const p = gameParams(m, models, live, boost);
+    homeMean[k] = p.homeMean;
+    awayMean[k] = p.awayMean;
+    homeSd[k] = p.homeSd;
+    awaySd[k] = p.awaySd;
   });
 
   const z = normalStream(options.seed ?? DEFAULT_SEED);
@@ -377,6 +455,7 @@ export function computePlayoffOdds(
     signal_active: deadline != null && today <= deadline,
     projection_week: options.projectionWeek ?? null,
     teams,
+    games: projectGames(matchups, models, options.liveMeans),
   };
 }
 

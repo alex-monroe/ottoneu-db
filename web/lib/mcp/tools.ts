@@ -1015,6 +1015,18 @@ async function getStandings(args: unknown): Promise<McpToolResult> {
         expected_wins: round(o.expected_wins, 2),
         playoff_odds_with_boost: round(o.boosted_playoff_odds, 3),
         deadline_signal: odds?.signal_active ? o.signal : null,
+        remaining_games: (odds?.games ?? [])
+          .filter((g) => g.home_team_id === row.team_id || g.away_team_id === row.team_id)
+          .map((g) => {
+            const home = g.home_team_id === row.team_id;
+            return {
+              week: g.week,
+              opponent: home ? g.away_team_name : g.home_team_name,
+              projected_for: round(home ? g.home_mean : g.away_mean, 1),
+              projected_against: round(home ? g.away_mean : g.home_mean, 1),
+              win_prob: round(home ? g.home_win_prob : 1 - g.home_win_prob, 3),
+            };
+          }),
       }),
       };
     }),
@@ -1024,9 +1036,12 @@ async function getStandings(args: unknown): Promise<McpToolResult> {
       "clinched/eliminated are arithmetic-only and deliberately conservative — a team not " +
       "flagged may still be settled on tiebreakers. During the regular season each row also " +
       "carries Monte Carlo playoff_odds / top_seed_odds / expected_wins (each team's weekly " +
-      "score drawn around its optimal-lineup weekly projection, else its PPG, with the spread " +
+      "score in each game drawn around its optimal-lineup projection for that week, with players " +
+      "on bye that week benched, else its PPG, with the spread " +
       "of its own weekly scores), playoff_odds_with_boost (odds if its lineup gained boost_ppg " +
-      "points per game) and, before the trade deadline, deadline_signal (buyer/seller/hold).",
+      "points per game), remaining_games (each undecided game's projected score and head-to-head " +
+      "win_prob, the 1v1 odds the simulation is built from) and, before the trade deadline, " +
+      "deadline_signal (buyer/seller/hold).",
   });
 }
 
