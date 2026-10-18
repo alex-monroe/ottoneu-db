@@ -1,6 +1,6 @@
 # Database Schema
 
-Thirty-eight tables owned by this project, grouped into the six subsystems of [SUBSYSTEMS.md](../SUBSYSTEMS.md). Most have UUID primary keys; the OAuth code/token tables are keyed by the SHA-256 hash of their secret instead.
+Thirty-nine tables owned by this project, grouped into the six subsystems of [SUBSYSTEMS.md](../SUBSYSTEMS.md). Most have UUID primary keys; the OAuth code/token tables are keyed by the SHA-256 hash of their secret instead.
 
 ## Shared Database — Hands Off `fp_*`
 
