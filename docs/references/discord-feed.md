@@ -83,13 +83,20 @@ the first run after an outage, from flooding the channel with the back catalogue
 Only trade-history trades are posted, because they carry Ottoneu's trade id to
 key the log on. Trades rebuilt from player cards have none.
 
-**The post:** each side's received players, with position, salary, PPG and games,
-and any cap loan (loans expire after the regular season). Then a **value read**
-per side, and a link to the trade replayed in the trade builder
+**The post (currently a plain summary):** each side's received players, with
+position and salary, and any cap loan (loans expire after the regular season),
+then a link to the trade replayed in the trade builder
 (`/trades/builder?trade=<ottoneu trade id>`, which rebuilds both rosters as they
-were before the trade; see [trades.md](trades.md#replaying-a-recorded-trade)).
+were before the trade; see [trades.md](trades.md#replaying-a-recorded-trade))
+and to `/trades`. The footer reads "From Ottoneu's trade log."
 
-**The value read uses production, not projections.** The preseason projection
+**The value read is switched off for now** (October 2026). The league wants the
+trade builder's method settled before analysis goes to Discord, so
+`buildTradeMessage` posts the plain summary unless it is called with
+`{ valueRead: true }`. The read below is built and tested; turning it back on is
+that one option in `web/scripts/post-trades.ts`.
+
+**When on, the value read uses production, not projections.** The preseason projection
 model is withheld once games start (#748), so a trade is read on what the players
 have done. Each player's this-season **earned value** (`web/lib/earned-value.ts`,
 the same numbers as the `/value` earned tab and the MCP `get_earned_value` tool,

@@ -8,7 +8,8 @@
  *
  * - **Trades** — a heads-up while a trade sits in Ottoneu's 48-hour veto
  *   window, then the trade itself once it processes: both sides' players,
- *   salaries and cap loans, and an in-season value read per side.
+ *   salaries and cap loans. (An in-season value read per side is built but
+ *   switched off for now — `TradeMessageOptions.valueRead`.)
  * - **Daily moves digest** — yesterday's adds and cuts, grouped by team.
  * - **Pick'em** — the week's winner and the season leader once the week's
  *   games are final, and a reminder before picks lock.
@@ -182,10 +183,11 @@ export function tradesToPost(
   );
 }
 
-function playerLine(asset: TradeAsset, book: ProductionBook): string {
+function playerLine(asset: TradeAsset, book: ProductionBook, valueRead: boolean): string {
   const prod = asset.playerId ? book.byPlayer.get(asset.playerId) : undefined;
   const position = asset.position || prod?.position || "?";
   const head = `• **${asset.name}** (${position}, ${dollars(asset.amount)})`;
+  if (!valueRead) return head;
   if (asset.isCollege) return `${head} — college prospect`;
   if (!prod || prod.games === 0) return `${head} — no games yet`;
   const pace = prod.pace !== null ? ` · ${dollars(prod.pace)} pace` : "";
@@ -215,11 +217,22 @@ export function sideValueRead(
   };
 }
 
+export interface TradeMessageOptions {
+  /**
+   * Add each player's production and a per-side value read. Off by default:
+   * the league asked for the plain trade summary until the trade builder's
+   * method settles, so the posts carry only who went where, at what salary,
+   * plus the links. Pass `true` to bring the analysis back.
+   */
+  valueRead?: boolean;
+}
+
 /** The post for one trade, pending or processed. */
 export function buildTradeMessage(
   trade: LeagueTrade,
   book: ProductionBook,
   siteUrl: string,
+  { valueRead = false }: TradeMessageOptions = {},
 ): DiscordMessage {
   const pending = trade.status === "pending";
   const campaign = pending ? "trade_pending" : "trade_processed";
@@ -239,14 +252,16 @@ export function buildTradeMessage(
       lines.push(
         asset.kind === "loan"
           ? `• ${dollars(asset.amount)} cap loan (expires after the regular season)`
-          : playerLine(asset, book),
+          : playerLine(asset, book, valueRead),
       );
     }
     lines.push("");
   }
 
   const hasGames = book.window.fraction > 0;
-  if (hasGames) {
+  if (!valueRead) {
+    // Plain summary: nothing to add between the sides and the links.
+  } else if (hasGames) {
     lines.push(`**Value read** · ${book.window.label}`);
     for (const team of trade.teams) {
       const read = sideValueRead(trade, team, book);
@@ -261,10 +276,8 @@ export function buildTradeMessage(
   // The trade builder replays a recorded trade from its id alone: both rosters
   // as they stood before it, both sides and the loan pre-selected.
   const builder = discordLink(siteUrl, `/trades/builder?trade=${trade.ottoneuTradeId}`, campaign);
-  lines.push(
-    "",
-    `[See it in the trade builder →](${builder}) · [Every trade →](${url})`,
-  );
+  if (valueRead) lines.push("");
+  lines.push(`[See it in the trade builder →](${builder}) · [Every trade →](${url})`);
 
   return {
     embeds: [
@@ -274,7 +287,9 @@ export function buildTradeMessage(
         description: fitLines(lines),
         color: EMBED_COLOR,
         footer: {
-          text: "Pace = earned value so far, scaled to a full season (same units as salary). Production only — no projections.",
+          text: valueRead
+            ? "Pace = earned value so far, scaled to a full season (same units as salary). Production only — no projections."
+            : "From Ottoneu's trade log.",
         },
       },
     ],

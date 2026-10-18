@@ -157,8 +157,24 @@ describe("buildTradeMessage", () => {
   ];
   const b = book({ a: { ppg: 20, games: 5, pace: 60 }, b: { ppg: 9, games: 4, pace: 12 } });
 
-  it("names both sides' players, salaries and the loan, with a value read per side", () => {
-    const msg = buildTradeMessage(trade({ assets }), b, SITE);
+  it("posts a plain summary by default: players, salaries, the loan and the links", () => {
+    const e = buildTradeMessage(trade({ assets }), b, SITE).embeds[0];
+    expect(e.title).toBe("🤝 Trade: Alpha ⇄ Bravo");
+    expect(e.description).toContain("**Bravo gets**\n• **Ace** (RB, $45)\n• $18 cap loan");
+    // Still borrows a missing position from the stats pool.
+    expect(e.description).toContain("**Alpha gets**\n• **Bee** (WR, $5)\n");
+    expect(e.description).not.toContain("PPG");
+    expect(e.description).not.toContain("pace");
+    expect(e.description).not.toContain("Value read");
+    expect(e.footer.text).toBe("From Ottoneu's trade log.");
+    expect(e.description).toContain(
+      `[See it in the trade builder →](${SITE}/trades/builder?trade=1&utm_source=discord&utm_campaign=trade_processed)`,
+    );
+    expect(e.description).toContain(`[Every trade →](${SITE}/trades?utm_source=discord&utm_campaign=trade_processed)`);
+  });
+
+  it("names both sides' players, salaries and the loan, with a value read per side when asked", () => {
+    const msg = buildTradeMessage(trade({ assets }), b, SITE, { valueRead: true });
     const e = msg.embeds[0];
     expect(e.title).toBe("🤝 Trade: Alpha ⇄ Bravo");
     expect(e.url).toBe(`${SITE}/trades?utm_source=discord&utm_campaign=trade_processed`);
@@ -183,7 +199,7 @@ describe("buildTradeMessage", () => {
   });
 
   it("says so rather than reading value before any games", () => {
-    const e = buildTradeMessage(trade({ assets }), book({}, { ...WINDOW, fraction: 0 }), SITE).embeds[0];
+    const e = buildTradeMessage(trade({ assets }), book({}, { ...WINDOW, fraction: 0 }), SITE, { valueRead: true }).embeds[0];
     expect(e.description).toContain("no value read");
     expect(e.description).toContain("**Ace** (RB, $45) — no games yet");
   });
@@ -193,6 +209,7 @@ describe("buildTradeMessage", () => {
       trade({ assets: [player("c", { isCollege: true, name: "Prospect" })] }),
       b,
       SITE,
+      { valueRead: true },
     ).embeds[0];
     expect(e.description).toContain("**Prospect** (RB, $10) — college prospect");
     expect(e.description).toContain("**Alpha gets**\n• nothing on record");
