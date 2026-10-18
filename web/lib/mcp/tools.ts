@@ -68,6 +68,7 @@ import {
 } from "../weekly-projections";
 import { getDisplayWeeks } from "../nfl-week";
 import { fetchLeagueStatus } from "../matchups";
+import { getPlayoffOdds } from "../playoff-odds-data";
 import { formatRecord, type Matchup } from "../standings";
 import { round, clampLimit, jsonResult, errorResult, type McpToolResult } from "./format";
 import {
@@ -970,13 +971,29 @@ async function getStandings(args: unknown): Promise<McpToolResult> {
     });
   }
 
+  const current = await getPlayoffOdds();
+  const odds = current?.season === status.season ? current : null;
+  const oddsByTeam = new Map((odds?.teams ?? []).map((t) => [t.team_id, t]));
+
   return jsonResult({
     league_id: LEAGUE_ID,
     season: status.season,
     season_started: status.playoffs.started,
     playoff_slots: status.playoffs.slots,
     as_of: status.asOf,
-    standings: status.playoffs.seeds.map((row) => ({
+    playoff_odds: odds
+      ? {
+          simulations: odds.simulations,
+          games_remaining: odds.games_remaining,
+          projection_week: odds.projection_week,
+          boost_ppg: odds.boost_ppg,
+          trade_deadline: odds.trade_deadline,
+          deadline_signal_active: odds.signal_active,
+        }
+      : null,
+    standings: status.playoffs.seeds.map((row) => {
+      const o = oddsByTeam.get(row.team_id);
+      return {
       rank: row.rank,
       team_name: row.team_name,
       record: formatRecord(row),
@@ -992,12 +1009,24 @@ async function getStandings(args: unknown): Promise<McpToolResult> {
       games_back: row.games_back,
       clinched: row.clinched,
       eliminated: row.eliminated,
-    })),
+      ...(o && {
+        playoff_odds: round(o.playoff_odds, 3),
+        top_seed_odds: round(o.top_seed_odds, 3),
+        expected_wins: round(o.expected_wins, 2),
+        playoff_odds_with_boost: round(o.boosted_playoff_odds, 3),
+        deadline_signal: odds?.signal_active ? o.signal : null,
+      }),
+      };
+    }),
     methodology:
       "Derived from final regular-season games in the league's own schedule; playoff and " +
       "consolation games do not count. Ties in the standings are broken by points for. " +
       "clinched/eliminated are arithmetic-only and deliberately conservative — a team not " +
-      "flagged may still be settled on tiebreakers.",
+      "flagged may still be settled on tiebreakers. During the regular season each row also " +
+      "carries Monte Carlo playoff_odds / top_seed_odds / expected_wins (each team's weekly " +
+      "score drawn around its optimal-lineup weekly projection, else its PPG, with the spread " +
+      "of its own weekly scores), playoff_odds_with_boost (odds if its lineup gained boost_ppg " +
+      "points per game) and, before the trade deadline, deadline_signal (buyer/seller/hold).",
   });
 }
 
@@ -1030,7 +1059,8 @@ export const MCP_TOOLS: McpToolDef[] = [
     name: "get_standings",
     description:
       "League standings with the playoff picture: record, points for/against, streak, current playoff seed, " +
-      "games back, and conservative clinched/eliminated flags. Derived from final regular-season matchups, " +
+      "games back, and conservative clinched/eliminated flags; during the regular season also simulated playoff " +
+      "odds, #1-seed odds, expected wins and a trade-deadline buyer/seller/hold signal. Derived from final regular-season matchups, " +
       "so it reflects games as they finish rather than a once-a-day snapshot.",
     schema: getStandingsShape,
     handler: getStandings,

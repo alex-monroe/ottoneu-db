@@ -3,6 +3,8 @@ import ScoreboardCard from "@/components/ScoreboardCard";
 import StandingsTable from "@/components/StandingsTable";
 import { fetchLeagueStatus, fetchMatchupSeasons } from "@/lib/matchups";
 import { fetchLiveWeek } from "@/lib/matchup-lineups";
+import { getPlayoffOdds } from "@/lib/playoff-odds-data";
+import PlayoffOddsNote from "@/components/PlayoffOddsNote";
 import { scoreboardProjection, type LiveGame } from "@/lib/live-matchup";
 import { formatRecord } from "@/lib/standings";
 import WeekPicker from "./WeekPicker";
@@ -80,6 +82,10 @@ export default async function ScoreboardPage({ searchParams }: Props) {
   // any other week this is an empty map and the cards show scores alone.
   const live: Map<number, LiveGame> =
     week != null ? await fetchLiveWeek(status.season, week) : new Map();
+  // Odds are for the season being played; an older season picked from the
+  // dropdown shows its final table alone.
+  const currentOdds = await getPlayoffOdds();
+  const odds = currentOdds?.season === status.season ? currentOdds : null;
   const window = weekWindow(slate[0]?.starts_on ?? null, slate[0]?.ends_on ?? null);
   const inField = status.playoffs.seeds.filter((s) => s.in_field);
   const chasing = status.playoffs.seeds.filter((s) => !s.in_field && !s.eliminated);
@@ -146,12 +152,13 @@ export default async function ScoreboardPage({ searchParams }: Props) {
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-subtle">
             Standings
           </h2>
-          <StandingsTable playoffs={status.playoffs} viewerTeam={viewerTeam} />
+          <StandingsTable playoffs={status.playoffs} viewerTeam={viewerTeam} odds={odds} />
           <p className="mt-2 text-xs text-ink-subtle">
             Derived from regular-season results only — playoff and consolation games do
             not count. Ties are broken by points for.
             {status.asOf && ` Last scraped ${new Date(status.asOf).toLocaleString()}.`}
           </p>
+          {odds && <PlayoffOddsNote odds={odds} />}
         </section>
 
         <section>
