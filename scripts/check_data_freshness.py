@@ -54,6 +54,7 @@ WORKFLOW_MAX_AGE_DAYS = {
     "scrape-trade-history.yml": 2,
     "pull-weekly-projections.yml": 2,
     "scrape-arbitration-progress.yml": 2,
+    "scrape-fa-market.yml": 2,
     "scrape-league-calendar.yml": 9,
     "scrape-draft-sharks.yml": 9,
 }

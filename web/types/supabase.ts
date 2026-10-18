@@ -426,6 +426,74 @@ export type Database = {
           },
         ]
       }
+      fa_market: {
+        Row: {
+          cut_at_local: string | null
+          ends_at: string
+          id: number
+          injury_status: string | null
+          is_college: boolean
+          kind: string
+          league_id: number
+          market_id: number | null
+          min_bid: number | null
+          nfl_team: string | null
+          ottoneu_id: number
+          player_id: string | null
+          player_key: string
+          player_name: string
+          position: string | null
+          salary: number | null
+          scraped_at: string
+        }
+        Insert: {
+          cut_at_local?: string | null
+          ends_at: string
+          id?: number
+          injury_status?: string | null
+          is_college?: boolean
+          kind: string
+          league_id: number
+          market_id?: number | null
+          min_bid?: number | null
+          nfl_team?: string | null
+          ottoneu_id: number
+          player_id?: string | null
+          player_key: string
+          player_name: string
+          position?: string | null
+          salary?: number | null
+          scraped_at?: string
+        }
+        Update: {
+          cut_at_local?: string | null
+          ends_at?: string
+          id?: number
+          injury_status?: string | null
+          is_college?: boolean
+          kind?: string
+          league_id?: number
+          market_id?: number | null
+          min_bid?: number | null
+          nfl_team?: string | null
+          ottoneu_id?: number
+          player_id?: string | null
+          player_key?: string
+          player_name?: string
+          position?: string | null
+          salary?: number | null
+          scraped_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fa_market_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       league_matchups: {
         Row: {
           away_score: number | null
