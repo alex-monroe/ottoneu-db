@@ -15,7 +15,6 @@ on:
     workflows:
       - "Check Data Freshness"
       - "Offseason Data Refresh"
-      - "Post Moves Digest"
       - "Post Pickem"
       - "Post Power Rankings"
       - "Post Vote Reminder"
