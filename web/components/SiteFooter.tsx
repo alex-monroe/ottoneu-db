@@ -8,7 +8,8 @@ import { LEAGUE_ID } from "@/lib/config";
  * standalone practice tool for *other* redraft leagues — public, database-free,
  * built on a published static board — so it does not belong in a league-scoped
  * nav menu, where it read as part of The SOFA. Down here it is reachable and
- * plainly marked as separate.
+ * plainly marked as separate. It also carries `/release-notes`, which is
+ * about the site rather than the league.
  */
 export default function SiteFooter() {
   return (
@@ -17,6 +18,9 @@ export default function SiteFooter() {
         <span>Ottoneu League {LEAGUE_ID}</span>
         <Link href="/access" className="hover:underline">
           Access
+        </Link>
+        <Link href="/release-notes" className="hover:underline">
+          Release Notes
         </Link>
         <span className="ml-auto flex items-center gap-1.5">
           <Link href="/snake-draft" className="hover:underline">
