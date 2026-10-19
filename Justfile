@@ -237,6 +237,15 @@ train model seasons="2021,2022,2023,2024,2025":
 holdout-eval *args:
     {{python}} scripts/feature_projections/holdout_eval.py {{args}}
 
+# Keeper outlook (option value) backtest: leakage-free rolling origin, prior vs shrunk vs point
+#   e.g. just keeper-backtest --as-of-week 12 0 --confirm --output docs/generated/keeper-value-backtest.md
+keeper-backtest *args:
+    {{python}} -m scripts.keeper_value.backtest {{args}}
+
+# Fit the keeper outlook and write keeper_outlook (current season; --backfill for history, --dry-run)
+keeper-publish *args:
+    {{python}} -m scripts.keeper_value.publish {{args}}
+
 # Clear the (worktree-shared) holdout-eval cache — run after any stats backfill (GH #597, #629)
 clear-holdout-cache:
     {{python}} -m scripts.feature_projections.holdout_cache --clear

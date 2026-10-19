@@ -9,6 +9,9 @@
  * pool — replacement level is a property of the pool — and then looked up per
  * player.
  *
+ * Keeper value reads each player's newest `keeper_outlook` snapshot for this
+ * season (web/lib/keeper-outlook.ts) at his next-season salary.
+ *
  * With a trade id, the rosters are rewound to just before that trade
  * (`replayTrade`), so a link from a Discord post or a trade card shows the
  * trade as it was made.
@@ -17,6 +20,8 @@
 import { CAP_PER_TEAM, LEAGUE_ID, ROSTER_SPOTS, SEASON_END_RAISE_OTHER, SEASON_END_RAISE_PLAYED } from "./config";
 import { fetchPlayerList, fetchPlayerSet } from "./data";
 import { calculateEarnedValue } from "./earned-value";
+import { readKeeper } from "./keeper-outlook";
+import { fetchLatestKeeperOutlooks } from "./keeper-outlook-data";
 import { fetchMatchups } from "./matchups";
 import { isRealTeam } from "./roster-reconstruction";
 import type { StatWindow } from "./stat-window";
@@ -92,7 +97,10 @@ export async function fetchTradeBuilderData(tradeId?: number | null): Promise<Tr
     fetchPlayerList(),
     tradeId != null ? fetchRecordedTrade(tradeId) : Promise.resolve(null),
   ]);
-  const matchups = await fetchMatchups(window.season);
+  const [matchups, outlooks] = await Promise.all([
+    fetchMatchups(window.season),
+    fetchLatestKeeperOutlooks(window.season),
+  ]);
 
   const earned = new Map(calculateEarnedValue(players, window).map((p) => [p.player_id, p.earned_value]));
 
@@ -103,6 +111,8 @@ export async function fetchTradeBuilderData(tradeId?: number | null): Promise<Tr
     const games = p.games_played ?? 0;
     const salary = p.price ?? 0;
     const toDate = earned.get(p.id) ?? 0;
+    const next = nextSalary(salary, games, SEASON_END_RAISE_PLAYED, SEASON_END_RAISE_OTHER);
+    const outlook = outlooks.get(p.id);
     const row: BuilderPlayer = {
       playerId: p.id,
       ottoneuId: p.ottoneu_id,
@@ -114,7 +124,8 @@ export async function fetchTradeBuilderData(tradeId?: number | null): Promise<Tr
       gamesPlayed: games,
       earnedToDate: toDate,
       seasonPace: Math.round(seasonPace(toDate, window.fraction) * 100) / 100,
-      nextSalary: nextSalary(salary, games, SEASON_END_RAISE_PLAYED, SEASON_END_RAISE_OTHER),
+      nextSalary: next,
+      keeper: outlook ? readKeeper(outlook, next) : null,
     };
     lookup.set(p.id, row);
     if (!isRealTeam(p.team_name)) continue;

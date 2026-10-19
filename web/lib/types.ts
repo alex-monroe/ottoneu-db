@@ -497,3 +497,40 @@ export interface PlayoffOdds {
   /** Every game still to be decided, in schedule order, with its 1v1 odds. */
   games: ProjectedGame[];
 }
+
+/**
+ * One `keeper_outlook` row: the distribution of a player's next-season dollar
+ * value as it looked after `asOfWeek` of `season` (week 0 = offseason). See
+ * docs/references/keeper-value.md.
+ */
+export interface KeeperOutlook {
+  playerId: string;
+  season: number;
+  asOfWeek: number;
+  valueSeason: number;
+  /** 20 equal-probability quantiles (2.5% … 97.5%) of next season's dollar value, ascending, floored at $1. */
+  quantiles: number[];
+  mean: number;
+  p10: number;
+  p50: number;
+  p90: number;
+  /** w = n / (n + k): how much of the outlook is the player's own data (vs. the population prior). */
+  ownWeight: number;
+  yearsInLeague: number;
+  draftBucket: string;
+}
+
+/** A keeper outlook read against one salary: the option value of keeping the contract. */
+export interface KeeperRead {
+  /** E[max(0, V − salary)]: what keeping him is worth, with the free offseason cut priced in. */
+  optionValue: number;
+  /** P(V > salary). */
+  pKeepable: number;
+  p10: number;
+  p50: number;
+  p90: number;
+  ownWeight: number;
+  /** The snapshot it was read from. */
+  season: number;
+  asOfWeek: number;
+}

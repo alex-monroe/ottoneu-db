@@ -25,6 +25,7 @@ import {
   tradesFromCards,
   tradesFromHistory,
   valueTrade,
+  weeksPlayedBefore,
   type CardMoveRow,
   type LeagueTrade,
   type TradeAsset,
@@ -32,6 +33,8 @@ import {
   type TradeRow,
   type ValueBooks,
 } from "@/lib/trades";
+import { groupOutlooks } from "@/lib/keeper-outlook";
+import type { KeeperOutlook } from "@/lib/types";
 
 // --- builders ---------------------------------------------------------------
 
@@ -335,6 +338,33 @@ describe("valueTrade", () => {
     };
     const v = valueTrade(t, thisYearOnly, weeks).sides[1].got[0];
     expect(v).toMatchObject({ nextIsProxy: true, nextValue: 60, keeperValue: 2 });
+  });
+
+  it("reads keeper value as an option from the outlook taken before the trade", () => {
+    const snap = (asOfWeek: number, quantiles: number[]): KeeperOutlook => ({
+      playerId: "hampton", season: 2026, asOfWeek, valueSeason: 2027, quantiles,
+      mean: 0, p10: 1, p50: 50, p90: 100, ownWeight: 0.9, yearsInLeague: 3, draftBucket: "R2",
+    });
+    // Half the outcomes are worthless, half are $100. At a $58 salary the point
+    // read of the mean ($50.50) says $0; the option is worth ½ × $42 = $21.
+    const half = [...Array(10).fill(1), ...Array(10).fill(100)];
+    const withOutlook: ValueBooks = {
+      ...books,
+      // Week 3 is after the trade (one week was played), so it must be ignored.
+      outlook: groupOutlooks([snap(0, half), snap(3, Array(20).fill(500))]),
+    };
+    const got = valueTrade(t, withOutlook, weeks).sides[1].got[0];
+    expect(got.keeperValue).toBe(21);
+    expect(got.keeper).toMatchObject({ pKeepable: 0.5, asOfWeek: 0 });
+    // Brissett and Mason have no outlook: the point read stands.
+    const helixGot = valueTrade(t, withOutlook, weeks).sides[0].got;
+    expect(helixGot.map((a) => a.keeper)).toEqual([null, null]);
+  });
+
+  it("counts the regular-season weeks finished before a trade", () => {
+    expect(weeksPlayedBefore("2026-10-12T06:32", weeks)).toBe(1);
+    expect(weeksPlayedBefore("2026-08-01", weeks)).toBe(0);
+    expect(weeksPlayedBefore("2026-10-12", [])).toBeNull();
   });
 
   it("gives a college prospect the smaller raise", () => {

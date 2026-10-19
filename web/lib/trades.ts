@@ -25,10 +25,15 @@
  * - **This season** — dollar value received minus given, prorated by how much of
  *   the fantasy regular season was left when the trade processed. Players who
  *   are worth $60 in September are worth a fraction of that on the deadline.
- * - **Keeper value** — next season's projected value minus next season's salary
- *   (this salary plus the end-of-season raise), floored at zero: a contract
+ * - **Keeper value** — the contract's option value, E[max(0, V − next salary)]
+ *   over the distribution of next season's dollar value (`keeper_outlook`),
+ *   read from the snapshot taken no later than the trade's week. A contract
  *   worth less than its price is simply cut in the offseason, at no penalty
- *   (see docs/references/ottoneu-rules.md), so it is worth nothing, not a loss.
+ *   (see docs/references/ottoneu-rules.md), so a keeper is a call option: worth
+ *   nothing below its strike, and worth its upside above it. Without a snapshot
+ *   (a college player, or before the publish job has run) it falls back to the
+ *   old point read: next season's projected value minus next season's salary,
+ *   floored at zero.
  * - **Cap** — what the trade does to this season's cap room: salary out minus
  *   salary in, minus a loan made, plus a loan received. Loans expire at the end
  *   of the regular season, so they move this season's cap and nothing after.
@@ -47,8 +52,9 @@ import {
   SEASON_END_RAISE_PLAYED,
 } from "./config";
 import { computeStandings, type Matchup, type StandingsRow } from "./standings";
+import { outlookAsOf, readKeeper, type OutlookSeason } from "./keeper-outlook";
 import { calculateSurplus } from "./surplus";
-import type { CorePlayer, Player } from "./types";
+import type { CorePlayer, KeeperRead, Player } from "./types";
 import {
   dedupeInferred,
   shapeTransaction,
@@ -140,6 +146,8 @@ export interface ValueBooks {
   projected: Map<number, ValueBook>;
   /** Realized dollar values from that season's actual PPG, by season. */
   realized: Map<number, ValueBook>;
+  /** Keeper outlook snapshots (`keeper_outlook`), by season then player. */
+  outlook?: Map<number, OutlookSeason>;
 }
 
 // ---------------------------------------------------------------------------
@@ -570,8 +578,13 @@ export interface AssetValue {
   /** True when `nextValue` is this season's projection standing in for next. */
   nextIsProxy: boolean;
   nextSalary: number;
-  /** max(0, nextValue − nextSalary): what the contract is worth to keep. */
+  /**
+   * What the contract is worth to keep: the outlook's option value when there
+   * is a snapshot, else max(0, nextValue − nextSalary).
+   */
   keeperValue: number | null;
+  /** The option-value read behind `keeperValue`; null = the point fallback was used. */
+  keeper: KeeperRead | null;
   /** What he actually produced next season, in dollars (partial if in progress). */
   realizedNext: number | null;
 }
@@ -674,7 +687,24 @@ function lookup(
   return v == null ? { value: floor, missing: true } : { value: v, missing: false };
 }
 
-function valueAsset(asset: TradeAsset, season: number, books: ValueBooks): AssetValue {
+/**
+ * Regular-season weeks already finished on `at` — the trade's as-of week for
+ * the keeper outlook. 0 before the season (an offseason trade); null when the
+ * schedule is not loaded.
+ */
+export function weeksPlayedBefore(at: string, seasonMatchups: readonly Matchup[]): number | null {
+  const weeks = new Map<number, string>();
+  for (const m of seasonMatchups) {
+    if (m.game_type !== "regular" || !m.ends_on) continue;
+    const prev = weeks.get(m.week);
+    if (!prev || m.ends_on > prev) weeks.set(m.week, m.ends_on);
+  }
+  if (weeks.size === 0) return null;
+  const day = at.slice(0, 10);
+  return [...weeks.values()].filter((end) => end < day).length;
+}
+
+function valueAsset(asset: TradeAsset, season: number, week: number | null, books: ValueBooks): AssetValue {
   const now = lookup(books.projected.get(season), asset.playerId, MIN_PLAYER_SALARY);
   const nextBook = books.projected.get(season + 1);
   const nextIsProxy = !nextBook || nextBook.size === 0;
@@ -685,6 +715,12 @@ function valueAsset(asset: TradeAsset, season: number, books: ValueBooks): Asset
   // Realized production: a player missing from a season that has been played
   // produced nothing countable.
   const realized = lookup(books.realized.get(season + 1), asset.playerId, 0);
+  // The newest snapshot from no later than the trade. With no schedule the
+  // week is unknown, so only the offseason (week 0) view is safe to use.
+  const snapshot = asset.playerId
+    ? outlookAsOf(books.outlook?.get(season)?.get(asset.playerId), week ?? 0)
+    : null;
+  const keeper = snapshot ? readKeeper(snapshot, nextSalary) : null;
   return {
     asset,
     value: now.value,
@@ -692,7 +728,8 @@ function valueAsset(asset: TradeAsset, season: number, books: ValueBooks): Asset
     nextValue: next.value,
     nextIsProxy,
     nextSalary,
-    keeperValue: next.value == null ? null : Math.max(0, next.value - nextSalary),
+    keeperValue: keeper ? keeper.optionValue : next.value == null ? null : Math.max(0, next.value - nextSalary),
+    keeper,
     realizedNext: realized.value,
   };
 }
@@ -721,10 +758,11 @@ export function valueTrade(
 ): TradeValuation {
   const remaining = remainingSeasonFraction(tradeTime(trade), seasonMatchups);
   const share = remaining ?? 1;
+  const week = weeksPlayedBefore(tradeTime(trade), seasonMatchups);
   const side = (team: string): SideValuation => {
     const players = (dir: "from" | "to") => trade.assets
       .filter((a) => a.kind === "player" && (dir === "from" ? a.fromTeam : a.toTeam) === team)
-      .map((a) => valueAsset(a, trade.season, books))
+      .map((a) => valueAsset(a, trade.season, week, books))
       .sort((a, b) => (b.value ?? -1) - (a.value ?? -1) || b.asset.amount - a.asset.amount);
     const loans = (dir: "from" | "to") => trade.assets
       .filter((a) => a.kind === "loan" && (dir === "from" ? a.fromTeam : a.toTeam) === team)

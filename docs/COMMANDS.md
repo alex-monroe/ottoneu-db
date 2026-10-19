@@ -157,6 +157,13 @@ just coverage-report [--min-games N]                # Qualifying-population cove
 # capture DB contents) — clear with `just clear-holdout-cache`.
 just clear-holdout-cache                            # Delete the (shared) holdout cache — run after a stats backfill (GH #597, #629)
 
+# Keeper outlook — next-season value distribution + option value (docs/references/keeper-value.md)
+just keeper-backtest [--as-of-week 12 0] [--confirm] [--output docs/generated/keeper-value-backtest.md]
+                                                    # Rolling-origin backtest: prior vs prior+shrunk vs today's point read
+just keeper-publish [--backfill] [--seasons ...] [--dry-run]
+                                                    # Fit and write keeper_outlook (weekly via update-keeper-outlook.yml)
+# nflverse weekly files are cached under .cache/keeper_value/ (override with OTTONEU_KEEPER_CACHE).
+
 # Backfills / seeds
 just backfill-nfl-stats [--seasons ...] [--dry-run]    # Backfill nfl_stats from nflverse
 just backfill-draft-capital [--since YYYY] [--dry-run] # Backfill draft_capital from nflverse draft_picks

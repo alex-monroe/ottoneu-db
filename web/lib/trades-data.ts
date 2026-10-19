@@ -3,12 +3,15 @@
  * only gathers rows and hands them over.
  *
  * Valuation needs one pricing pool per season a trade touches — its own season
- * and the next — so the reads fan out per season. Every one is small (a season
+ * and the next — plus the keeper outlook snapshots for each trade season, so
+ * the reads fan out per season. Every one is small (a season
  * of projections is ~1,400 rows) and the page revalidates hourly.
  */
 
 import { cache } from "react";
 import { LEAGUE_ID } from "./config";
+import { groupOutlooks } from "./keeper-outlook";
+import { fetchKeeperOutlooks } from "./keeper-outlook-data";
 import { fetchMatchups } from "./matchups";
 import { getProjectionSeason } from "./season";
 import type { Matchup } from "./standings";
@@ -172,11 +175,13 @@ async function fetchCurrentOwners(): Promise<Map<string, string>> {
 async function buildBooks(
   seasons: number[],
   realizedSeasons: number[],
+  tradeSeasons: number[],
   players: CorePlayer[],
 ): Promise<ValueBooks> {
   const projected = new Map<number, ValueBook>();
   const realized = new Map<number, ValueBook>();
-  await Promise.all([
+  const [outlooks] = await Promise.all([
+    fetchKeeperOutlooks(tradeSeasons),
     ...seasons.map(async (s) => {
       projected.set(s, valueBook(projectedPool(players, await fetchProjectionRows(s))));
     }),
@@ -184,7 +189,7 @@ async function buildBooks(
       realized.set(s, valueBook(realizedPool(players, await fetchStatsRows(s))));
     }),
   ]);
-  return { projected, realized };
+  return { projected, realized, outlook: groupOutlooks(outlooks) };
 }
 
 /** Everything the /trades page shows, assembled and valued. */
@@ -212,7 +217,7 @@ export const fetchTradesPageData = cache(async function fetchTradesPageData(): P
   const matchupSeasons = [...new Set(tradeSeasons.flatMap((s) => [s - 1, s, s + 1]))];
 
   const [books, matchupLists] = await Promise.all([
-    buildBooks(valueSeasons, realizedSeasons, players),
+    buildBooks(valueSeasons, realizedSeasons, tradeSeasons, players),
     Promise.all(matchupSeasons.map(async (s) => [s, await fetchMatchups(s)] as const)),
   ]);
   const matchupsBySeason = new Map<number, Matchup[]>(matchupLists);
