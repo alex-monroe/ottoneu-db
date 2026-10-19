@@ -153,12 +153,10 @@ Publishing writes production data, so run it from the main checkout after
 merge, or dispatch the workflow. After a model change, re-run the backtest
 (dev folds only; the confirmation fold is one look per change) and backfill.
 
-## For the follow-up: team exchange rates
+## Downstream: team exchange rates
 
-The next step fits a team-specific exchange rate between this-season value and
-keeper value, from accepted trades and veto votes (`trades.approve_votes` /
-`veto_votes`, `removed` status) and playoff odds (`web/lib/playoff-odds.ts`).
-It can take each traded player's snapshot as of the trade from
-`keeper_outlook`: the option value at his salary, P(keepable), and the full
-quantile grid. `AssetValue.keeper` in `web/lib/trades.ts` already carries that
-read per traded player.
+[trade-exchange-rate.md](trade-exchange-rate.md) reads each traded player's
+option value from these snapshots, as of the trade's week, to estimate how
+many keeper dollars a team gives per this-season dollar (`just
+trade-exchange`). `--rebuild-outlooks` fits the same out-of-fold snapshots
+in memory instead, for trying a model change before it is published.

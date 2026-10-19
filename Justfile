@@ -246,6 +246,12 @@ keeper-backtest *args:
 keeper-publish *args:
     {{python}} -m scripts.keeper_value.publish {{args}}
 
+# Team exchange rate between this-season and keeper value, from trades (read-only; docs/references/trade-exchange-rate.md)
+#   e.g. just trade-exchange --rebuild-outlooks --output docs/generated/trade-exchange-rate.md
+trade-exchange *args:
+    cd web && node --env-file-if-exists=.env.local --import tsx scripts/export-trade-exchange.ts
+    {{python}} -m scripts.trade_exchange.fit {{args}}
+
 # Clear the (worktree-shared) holdout-eval cache — run after any stats backfill (GH #597, #629)
 clear-holdout-cache:
     {{python}} -m scripts.feature_projections.holdout_cache --clear
