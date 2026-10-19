@@ -90,6 +90,9 @@ table): how many gained keeper value, the average, and how many finished higher
 the next season. With one complete season of trade history (2025) the sample is
 small — read it as a set of case studies, not a law.
 
+How the league trades this-season value for keeper value, as a rate, is in
+[trade-exchange-rate.md](trade-exchange-rate.md).
+
 ## Lineage
 
 - `playerTradeChain` — one player's owners in order, with the salary he carried.

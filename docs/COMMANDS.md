@@ -163,6 +163,8 @@ just keeper-backtest [--as-of-week 12 0] [--confirm] [--output docs/generated/ke
 just keeper-publish [--backfill] [--seasons ...] [--dry-run]
                                                     # Fit and write keeper_outlook (weekly via update-keeper-outlook.yml)
 # nflverse weekly files are cached under .cache/keeper_value/ (override with OTTONEU_KEEPER_CACHE).
+just trade-exchange [--rebuild-outlooks] [--outlooks cache|db] [--output docs/generated/trade-exchange-rate.md]
+                                                    # Keeper $ per this-season $ from trades (docs/references/trade-exchange-rate.md); read-only
 
 # Backfills / seeds
 just backfill-nfl-stats [--seasons ...] [--dry-run]    # Backfill nfl_stats from nflverse
