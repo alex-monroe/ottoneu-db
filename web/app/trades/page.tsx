@@ -188,10 +188,11 @@ export default async function TradesPage({ searchParams }: Props) {
           <>
             Every trade on record since {shortDate(data.historyFrom)}, valued three ways per side:
             <strong> this season</strong> (projected dollar value in minus out, prorated by the season
-            left), <strong>keeper value</strong> (next season&apos;s value above next season&apos;s
-            salary — a contract you would cut counts as zero) and <strong>cap room</strong> (salary and
-            loans, this season only). Values use the model&apos;s preseason projection for the
-            trade&apos;s season.
+            left), <strong>keeper value</strong> (an option value: the expected amount next
+            season&apos;s value beats next season&apos;s salary, from the keeper outlook as of the
+            trade&apos;s week; a contract you would cut counts as zero) and <strong>cap room</strong>{" "}
+            (salary and loans, this season only). This-season values use the model&apos;s preseason
+            projection for the trade&apos;s season.
           </>
         }
         links={[

@@ -40,6 +40,7 @@ function p(
     earnedToDate: pace * 0.3,
     seasonPace: pace,
     nextSalary: next,
+    keeper: null,
   };
 }
 
@@ -93,9 +94,15 @@ describe("helpers", () => {
     expect(nextSalary(10, 0, 4, 1)).toBe(11);
   });
 
-  it("floors keeper value at zero", () => {
-    expect(keeperValue({ seasonPace: 50, nextSalary: 30 })).toBe(20);
-    expect(keeperValue({ seasonPace: 10, nextSalary: 30 })).toBe(0);
+  it("falls back to the point read, floored at zero, without an outlook", () => {
+    expect(keeperValue({ seasonPace: 50, nextSalary: 30, keeper: null })).toBe(20);
+    expect(keeperValue({ seasonPace: 10, nextSalary: 30, keeper: null })).toBe(0);
+  });
+
+  it("uses the outlook's option value when there is one", () => {
+    const keeper = { optionValue: 7.5, pKeepable: 0.3, p10: 1, p50: 12, p90: 60, ownWeight: 0.4, season: 2026, asOfWeek: 6 };
+    // A pace under the salary reads $0 on the point method; the option is still worth $7.50.
+    expect(keeperValue({ seasonPace: 10, nextSalary: 30, keeper })).toBe(7.5);
   });
 
   it("scores the optimal Superflex lineup, ignoring the bench", () => {

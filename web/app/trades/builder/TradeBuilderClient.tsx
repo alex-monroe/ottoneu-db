@@ -27,6 +27,7 @@ interface Props {
 
 const money = (v: number) => `${v < 0 ? "−" : ""}$${Math.abs(Math.round(v))}`;
 const signedMoney = (v: number) => (Math.round(v) === 0 ? "$0" : `${v > 0 ? "+" : "−"}$${Math.abs(Math.round(v))}`);
+const pct = (v: number) => `${Math.round(v * 100)}%`;
 const signedPts = (v: number) => (v === 0 ? "0.0" : `${v > 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}`);
 const tone = (v: number | null) =>
   v == null || Math.round(v) === 0 ? "text-ink-muted" : v > 0 ? "text-positive" : "text-negative";
@@ -306,7 +307,7 @@ export default function TradeBuilderClient({ context, initial, replayTradeId, vi
                   />
                   <Row
                     label="Keeper value"
-                    hint="Season pace minus next year's salary; a contract you'd cut counts as $0"
+                    hint="Option value: the expected amount next year's value beats next year's salary. Offseason cuts are free, so a contract you'd cut counts as $0 and a long shot is worth its chance"
                     a={<span className={tone(a.keeperNet)}>{signedMoney(a.keeperNet)}</span>}
                     b={<span className={tone(b.keeperNet)}>{signedMoney(b.keeperNet)}</span>}
                   />
@@ -337,6 +338,8 @@ export default function TradeBuilderClient({ context, initial, replayTradeId, vi
                       <th className="px-3 py-2 text-right font-medium">Earned so far</th>
                       <th className="px-3 py-2 text-right font-medium">Season pace</th>
                       <th className="px-3 py-2 text-right font-medium">Salary → next yr</th>
+                      <th className="px-3 py-2 text-right font-medium">Next yr value p10–p50–p90</th>
+                      <th className="px-3 py-2 text-right font-medium">P(keepable)</th>
                       <th className="px-3 py-2 text-right font-medium">Keeper value</th>
                     </tr>
                   </thead>
@@ -349,12 +352,30 @@ export default function TradeBuilderClient({ context, initial, replayTradeId, vi
                         <td className="px-3 py-1.5 text-right tabular-nums">{money(p.earnedToDate)}</td>
                         <td className="px-3 py-1.5 text-right tabular-nums">{money(p.seasonPace)}</td>
                         <td className="px-3 py-1.5 text-right tabular-nums">{money(p.salary)} → {money(p.nextSalary)}</td>
-                        <td className="px-3 py-1.5 text-right tabular-nums">{money(keeperValue(p))}</td>
+                        <td className="px-3 py-1.5 text-right tabular-nums">
+                          {p.keeper ? `${money(p.keeper.p10)}–${money(p.keeper.p50)}–${money(p.keeper.p90)}` : "—"}
+                        </td>
+                        <td className="px-3 py-1.5 text-right tabular-nums">{p.keeper ? pct(p.keeper.pKeepable) : "—"}</td>
+                        <td
+                          className="px-3 py-1.5 text-right tabular-nums"
+                          title={p.keeper
+                            ? `${pct(p.keeper.ownWeight)} his own data, ${pct(1 - p.keeper.ownWeight)} players like him (position, years, draft round)`
+                            : "No outlook: season pace minus next year's salary"}
+                        >
+                          {money(keeperValue(p))}{p.keeper ? "" : "*"}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+              <p className="mt-2">
+                Keeper value is an option value. It averages max(0, next year&apos;s value − next
+                year&apos;s salary) over the range of outcomes for players like him, shifted by his
+                own production and usage, with more weight on his own data the more games he has
+                played. P(keepable) is the chance he is worth his salary next year. A * marks a
+                player with no outlook, read as season pace minus salary instead.
+              </p>
               <p className="mt-2">
                 Kickers and college players earn no value in this method (every kicker clears at the
                 salary floor), so they read $0. Early in the season a pace rests on few games; weigh

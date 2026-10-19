@@ -15,10 +15,13 @@
  * - **Rest of season** — each player's earned value (web/lib/earned-value.ts)
  *   scaled from the games played so far to a full season, then to the share of
  *   the regular season still to play. A player's pace, not a forecast.
- * - **Keeper value** — that full-season pace against next season's salary
- *   (this salary plus Ottoneu's end-of-season raise), floored at zero, the same
- *   convention `/trades` uses: a contract you would cut in the offseason costs
- *   nothing, because offseason cuts carry no penalty.
+ * - **Keeper value** — the contract's option value: E[max(0, V − next salary)]
+ *   over the distribution of next season's dollar value (`keeper_outlook`,
+ *   web/lib/keeper-outlook.ts). Offseason cuts carry no penalty, so a keeper
+ *   is a call option: a contract you would cut costs nothing, and a long-shot
+ *   breakout is worth its chance. A player with no outlook (a college player,
+ *   or before the publish job has run) falls back to the old point read,
+ *   max(0, pace − next salary), and is flagged.
  * - **Cap room and roster spots** — salary out minus salary in, plus the cap
  *   loan. Loans expire at the end of the regular season.
  *
@@ -28,6 +31,7 @@
  */
 
 import { lineupTotal, optimizeLineup, type LineupPlayer } from "./lineup";
+import type { KeeperRead } from "./types";
 
 export interface BuilderPlayer {
   playerId: string;
@@ -45,6 +49,8 @@ export interface BuilderPlayer {
   seasonPace: number;
   /** Next season's salary after the end-of-season raise. */
   nextSalary: number;
+  /** His keeper outlook read at `nextSalary`; null = no outlook, point read used. */
+  keeper: KeeperRead | null;
 }
 
 export interface BuilderTeam {
@@ -83,8 +89,10 @@ export interface SideResult {
   lineupDelta: number;
   /** Rest-of-season value received minus sent. Null when the schedule is unknown. */
   restOfSeasonNet: number | null;
-  /** Keeper value received minus sent (each player floored at zero). */
+  /** Keeper option value received minus sent (each player's is ≥ 0). */
   keeperNet: number;
+  /** Players moving in this side's trade whose keeper value is the point fallback. */
+  keeperFallbacks: string[];
   /** Salary sent minus salary received. */
   salaryNet: number;
   capBefore: number;
@@ -120,9 +128,12 @@ export function nextSalary(
   return salary + (gamesPlayed > 0 ? raisePlayed : raiseOther);
 }
 
-/** What a player is worth to keep next season, floored at zero. */
-export function keeperValue(p: Pick<BuilderPlayer, "seasonPace" | "nextSalary">): number {
-  return Math.max(0, p.seasonPace - p.nextSalary);
+/**
+ * What a player is worth to keep next season: the option value from his
+ * outlook, else the point read max(0, pace − next salary).
+ */
+export function keeperValue(p: Pick<BuilderPlayer, "seasonPace" | "nextSalary" | "keeper">): number {
+  return p.keeper ? p.keeper.optionValue : Math.max(0, p.seasonPace - p.nextSalary);
 }
 
 function toLineupPlayer(p: BuilderPlayer): LineupPlayer {
@@ -191,6 +202,7 @@ function side(
     lineupDelta: round1(lineupAfter - lineupBefore),
     restOfSeasonNet: ctx.remainingFraction == null ? null : round2(ros(received) - ros(sends)),
     keeperNet: round2(keeper(received) - keeper(sends)),
+    keeperFallbacks: [...sends, ...received].filter((p) => !p.keeper).map((p) => p.name),
     salaryNet,
     capBefore,
     capAfter,

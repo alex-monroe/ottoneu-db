@@ -70,7 +70,8 @@ export default async function TradeBuilderPage({ searchParams }: Props) {
             Pick what each team sends and see the trade from both sides, priced on{" "}
             <strong>{data.window.label}</strong> production, not projections: the starting lineup
             on season PPG, value for the weeks left at each player&apos;s pace, keeper value next
-            season, cap room and roster spots. Copy the link to share the exact trade.
+            season (an option value, with the chance each contract is worth keeping), cap room and
+            roster spots. Copy the link to share the exact trade.
           </>
         }
         links={[

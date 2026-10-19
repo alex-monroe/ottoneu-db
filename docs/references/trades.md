@@ -60,15 +60,16 @@ the pool carries none. Each side of a trade is then read three ways:
 | Read | Meaning |
 |---|---|
 | **This season** | Projected dollar value received minus given, × the share of the fantasy regular season still to play when it processed (`remainingSeasonFraction`, from `league_matchups` weeks). A $60 player on the deadline is worth a fraction of $60. |
-| **Keeper value** | Next season's projected value minus next season's salary (salary + `SEASON_END_RAISE_PLAYED`/`_OTHER`), **floored at zero** — an over-priced contract is cut in the offseason at no penalty ([ottoneu-rules.md](ottoneu-rules.md)), so it is worth nothing, not a loss. When next season has no projections yet (e.g. any in-season trade), this season's projection stands in, flagged `nextIsProxy`. |
+| **Keeper value** | The contract's **option value**, E[max(0, V − next salary)], over the distribution of next season's dollar value from the `keeper_outlook` snapshot taken no later than the trade's week ([keeper-value.md](keeper-value.md)). Next salary = salary + `SEASON_END_RAISE_PLAYED`/`_OTHER`. Offseason cuts carry no penalty ([ottoneu-rules.md](ottoneu-rules.md)), so a keeper is a call option: worth nothing below its strike, and worth its upside above it. The card's tooltip shows P(keepable) and the p10–p90 band. **Fallback** (no snapshot: a college player, or before the first publish): next season's projected value minus next salary, floored at zero; when next season has no projections yet, this season's stands in, flagged `nextIsProxy`. |
 | **Cap room** | Salary out − salary in − loan made + loan received. Loans expire at the end of the regular season, so they move this season's cap only. |
 
 A player missing from a season's projections that *exist* is priced at the
 roster-spot floor (`MIN_PLAYER_SALARY`) and marked `*`; a whole season with no
 projections makes that read `—` rather than a misleading partial sum.
 
-**Projections are preseason.** A November trade is judged on what the model
-believed in August. That is leakage-free — it never credits a trade with what
+**This-season values use preseason projections.** A November trade is judged on
+what the model believed in August. (Keeper value does not: it reads the outlook
+as of the trade's week.) That is leakage-free — it never credits a trade with what
 the season had not yet revealed — but it cannot see an injury the managers
 could. The sell-off table's last column, *produced next yr*, is the hindsight
 counterweight: realized dollar value from `player_stats` in the following season
@@ -122,7 +123,7 @@ is switched off for now). See
 the URL (`?a=&b=&as=&bs=&la=&lb=`) carries the trade so a link reproduces it.
 
 Unlike the rest of this page it is priced on **this season's production**, not
-the preseason projection: in season the model is withheld (#748), and a
+the preseason projection (keeper value comes from the weekly-refitted outlook): in season the model is withheld (#748), and a
 deadline trade is about the weeks left. Logic in `web/lib/trade-builder.ts`
 (pure, tested in `web/__tests__/lib/trade-builder.test.ts`); reads in
 `web/lib/trade-builder-data.ts`.
@@ -131,7 +132,7 @@ deadline trade is about the weeks left. Logic in `web/lib/trade-builder.ts`
 |---|---|
 | **Starting lineup** | The optimal Superflex lineup (`optimizeLineup`, as on `/lineup`) on season-to-date PPG, before and after. Moving a bench player moves nothing. |
 | **Rest of season** | Each player's earned value (`earned-value.ts`) scaled from the games played to a full-season pace, × the share of regular-season weeks still to play (`remainingSeasonFraction`). Received minus sent. |
-| **Keeper value** | Full-season pace minus next season's salary (+`SEASON_END_RAISE_PLAYED` if he played a game, else +`SEASON_END_RAISE_OTHER`), floored at zero — the same convention as above. |
+| **Keeper value** | Option value from each player's newest `keeper_outlook` snapshot this season, at next season's salary (+`SEASON_END_RAISE_PLAYED` if he played a game, else +`SEASON_END_RAISE_OTHER`). The per-player table adds P(keepable) and the next-year p10–p50–p90 band. A player with no outlook falls back to full-season pace minus next salary, floored at zero, and is marked `*`. See [keeper-value.md](keeper-value.md). |
 | **Cap room** | `CAP_PER_TEAM` − current salary (from `league_prices`), then ± salary moved and the loan. Existing cap loans and cut penalties are not stored, so this is salary-only; the page links Ottoneu's finances page for the real figure. |
 | **Roster spots** | Count after the trade against `ROSTER_SPOTS`. IR players are in the count (Ottoneu excludes them). |
 

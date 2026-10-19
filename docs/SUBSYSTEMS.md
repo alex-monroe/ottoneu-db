@@ -93,13 +93,13 @@ TypeScript, not Python — this is the most common thing newcomers get wrong.
 
 | | |
 |---|---|
-| **Tables** | `surplus_adjustments` · `arbitration_plans` · `arbitration_plan_allocations` · `draft_sharks_values` · `weekly_projections` |
-| **Core logic** | `web/lib/vorp.ts` · `surplus.ts` · `earned-value.ts` · `stat-window.ts` (how much football is behind a number — read it before touching any dollar math) · `analysis.ts` · `arbitration.ts` · `arb-logic.ts` · `lineup.ts` · `team-snapshot.ts` (one team's optimal week: lineup, projected total, bench) · `trades.ts` (trade log, loans, sell-offs, trade trees) · `trade-builder.ts` (judge a proposed trade on this season's production) · `scoring.ts` |
+| **Tables** | `surplus_adjustments` · `arbitration_plans` · `arbitration_plan_allocations` · `draft_sharks_values` · `weekly_projections` · `keeper_outlook` |
+| **Core logic** | `web/lib/vorp.ts` · `surplus.ts` · `earned-value.ts` · `stat-window.ts` (how much football is behind a number — read it before touching any dollar math) · `analysis.ts` · `arbitration.ts` · `arb-logic.ts` · `lineup.ts` · `team-snapshot.ts` (one team's optimal week: lineup, projected total, bench) · `trades.ts` (trade log, loans, sell-offs, trade trees) · `trade-builder.ts` (judge a proposed trade on this season's production) · `keeper-outlook.ts` (keeper option value from `keeper_outlook`) · `scoring.ts` |
 | **Data access** | `web/lib/supabase.ts` (use `fetchAllRows` — the client caps at 1000 rows) · `players.ts` · `data.ts` |
-| **Python side** | `scripts/scrape_draft_sharks.py` (market values) · `scripts/weekly_projections/` (in-season per-game, from Sleeper) |
-| **Commands** | `just scrape-draft-sharks` · `just weekly-projections` · `just dev` |
+| **Python side** | `scripts/scrape_draft_sharks.py` (market values) · `scripts/weekly_projections/` (in-season per-game, from Sleeper) · `scripts/keeper_value/` (keeper outlook: prior + shrunk adjustment, backtest, publish) |
+| **Commands** | `just scrape-draft-sharks` · `just weekly-projections` · `just keeper-backtest` · `just keeper-publish` · `just dev` |
 | **Routes** | `/` · `/players` · `/rankings` · `/value` (VORP · Surplus · Adjustments) · `/trades` · `/trades/builder` · `/arbitration` · `/projected-salary` · `/lineup` · `/weekly` · `/arb-planner-public` |
-| **Docs** | [FRONTEND.md](FRONTEND.md) · [references/ottoneu-strategy.md](references/ottoneu-strategy.md) · [references/weekly-projections.md](references/weekly-projections.md) |
+| **Docs** | [FRONTEND.md](FRONTEND.md) · [references/ottoneu-strategy.md](references/ottoneu-strategy.md) · [references/weekly-projections.md](references/weekly-projections.md) · [references/keeper-value.md](references/keeper-value.md) |
 
 **Watch out:** `weekly_projections` (per-game, third-party, market-aware) and
 `player_projections` (season-long PPG, ours, market-free) are deliberately different

@@ -1,0 +1,62 @@
+name: Update Keeper Outlook
+
+# Refits the keeper outlook (scripts/keeper_value/publish.py) and writes this
+# season's newest snapshot to `keeper_outlook`, which /trades/builder and
+# /trades read for keeper option value. See docs/references/keeper-value.md.
+#
+# It reads nflverse's weekly files directly (not our DB), so it needs no
+# upstream job, only nflverse's own republish after Monday night.
+
+on:
+  schedule:
+    # Tuesdays 15:00 UTC, September-January — an hour after pull-player-stats,
+    # once nflverse has republished the week. Outside the season nothing moves.
+    - cron: "0 15 * 9-12,1 2"
+
+  workflow_dispatch:
+    inputs:
+      backfill:
+        description: "Rewrite every season's out-of-fold snapshots (first run, or after a model change)"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -e .
+
+      - name: Create .env
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_SECRET_KEY }}" >> .env
+
+      - name: Publish keeper outlook
+        run: |
+          if [ "${{ inputs.backfill }}" = "true" ]; then
+            python -m scripts.keeper_value.publish --backfill
+          else
+            python -m scripts.keeper_value.publish
+          fi
+
+      - name: Revalidate site
+        uses: ./.github/actions/revalidate-site
+        with:
+          secret: ${{ secrets.REVALIDATE_SECRET }}

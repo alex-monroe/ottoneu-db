@@ -111,9 +111,14 @@ function AssetLine({ a }: { a: AssetValue }) {
         </span>
         <span
           className="w-10 text-right text-ink-muted"
-          title={a.nextIsProxy
-            ? "Keeper value: this season's projection standing in for next season's"
-            : "Keeper value: next season's projected value less next season's salary"}
+          title={a.keeper
+            ? `Keeper option value at a $${a.nextSalary} salary next season: ` +
+              `${Math.round(a.keeper.pKeepable * 100)}% chance he is worth it; ` +
+              `next-season value p10–p90 $${Math.round(a.keeper.p10)}–$${Math.round(a.keeper.p90)} ` +
+              `(as of week ${a.keeper.asOfWeek})`
+            : a.nextIsProxy
+              ? "Keeper value (no outlook): this season's projection standing in for next season's"
+              : "Keeper value (no outlook): next season's projected value less next season's salary"}
         >
           {dollars(a.keeperValue)}
         </span>

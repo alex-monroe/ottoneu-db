@@ -494,6 +494,77 @@ export type Database = {
           },
         ]
       }
+      keeper_outlook: {
+        Row: {
+          as_of_week: number
+          career_games: number
+          draft_bucket: string
+          fit_through: number
+          id: number
+          mean_value: number
+          model_version: string
+          own_weight: number
+          p10: number
+          p50: number
+          p90: number
+          player_id: string
+          position: string
+          season: number
+          updated_at: string
+          value_quantiles: number[]
+          value_season: number
+          years_in_league: number
+        }
+        Insert: {
+          as_of_week: number
+          career_games: number
+          draft_bucket: string
+          fit_through: number
+          id?: number
+          mean_value: number
+          model_version: string
+          own_weight: number
+          p10: number
+          p50: number
+          p90: number
+          player_id: string
+          position: string
+          season: number
+          updated_at?: string
+          value_quantiles: number[]
+          value_season: number
+          years_in_league: number
+        }
+        Update: {
+          as_of_week?: number
+          career_games?: number
+          draft_bucket?: string
+          fit_through?: number
+          id?: number
+          mean_value?: number
+          model_version?: string
+          own_weight?: number
+          p10?: number
+          p50?: number
+          p90?: number
+          player_id?: string
+          position?: string
+          season?: number
+          updated_at?: string
+          value_quantiles?: number[]
+          value_season?: number
+          years_in_league?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "keeper_outlook_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       league_matchups: {
         Row: {
           away_score: number | null
