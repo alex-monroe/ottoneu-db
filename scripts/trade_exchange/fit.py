@@ -429,8 +429,8 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--rebuild-outlooks", action="store_true",
                     help="refit the keeper outlooks for the trade seasons (in memory, cached under .cache/)")
-    ap.add_argument("--outlooks", choices=("cache", "db"), default="cache",
-                    help="read outlooks from the local cache (default) or keeper_outlook")
+    ap.add_argument("--outlooks", choices=("db", "cache"), default="db",
+                    help="read the published keeper_outlook (default) or the local in-memory fit's cache")
     ap.add_argument("--output", type=Path, help="write the markdown report here (else print)")
     args = ap.parse_args()
 
@@ -438,7 +438,9 @@ def main() -> None:
     if args.rebuild_outlooks:
         from scripts.season import stats_season
         outlook.build_outlooks(sorted({s["season"] for s in sides}), stats_season())
-    book = outlook.OutlookBook(outlook.load_outlooks(args.outlooks))
+    # A rebuild is for trying a keeper-model change before it is published.
+    source = "cache" if args.rebuild_outlooks else args.outlooks
+    book = outlook.OutlookBook(outlook.load_outlooks(source))
     trades = features.trade_rows(sides, book, features.fetch_votes())
     text = report(trades, features.count_removed())
     if args.output:

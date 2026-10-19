@@ -1,11 +1,11 @@
-"""Keeper outlooks for the trade seasons, fitted in memory and cached on disk.
+"""Keeper outlooks for the trade seasons: the published table, or an in-memory fit.
 
-Reuses the publisher's fit (``scripts.keeper_value.publish.build``): each
-season's snapshots come from a model fitted only on earlier seasons, so a trade
-is read through what could have been known then. Nothing is written to the
-database — the result is a parquet file under ``.cache/trade_exchange/``, keyed
-by our ``players.id``. Once ``keeper_outlook`` is backfilled in production,
-``load_outlooks(source="db")`` reads the same rows from there instead.
+By default the fit reads ``keeper_outlook`` (out-of-fold snapshots per as-of
+week, written by ``just keeper-publish``). ``build_outlooks`` instead reruns the
+publisher's fit (``scripts.keeper_value.publish.build``) in memory and caches
+it under ``.cache/trade_exchange/``. That is for trying a keeper-model change
+before it is published; it never writes to the database. Both are keyed by our
+``players.id``, and they agree row for row on the published model.
 """
 
 from __future__ import annotations
@@ -48,7 +48,7 @@ def _from_db() -> pd.DataFrame:
     return pd.DataFrame(rows, columns=COLUMNS)
 
 
-def load_outlooks(source: str = "cache") -> pd.DataFrame:
+def load_outlooks(source: str = "db") -> pd.DataFrame:
     if source == "db":
         return _from_db()
     if not CACHE.exists():

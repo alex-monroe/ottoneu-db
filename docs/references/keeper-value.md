@@ -158,5 +158,5 @@ merge, or dispatch the workflow. After a model change, re-run the backtest
 [trade-exchange-rate.md](trade-exchange-rate.md) reads each traded player's
 option value from these snapshots, as of the trade's week, to estimate how
 many keeper dollars a team gives per this-season dollar (`just
-trade-exchange`). Until `keeper_outlook` is backfilled, it fits the same
-out-of-fold snapshots in memory.
+trade-exchange`). `--rebuild-outlooks` fits the same out-of-fold snapshots
+in memory instead, for trying a model change before it is published.

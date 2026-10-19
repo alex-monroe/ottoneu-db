@@ -6,7 +6,7 @@ team's playoff odds.
 
 | | |
 |---|---|
-| **Command** | `just trade-exchange [--rebuild-outlooks] [--outlooks cache\|db] [--output …]` |
+| **Command** | `just trade-exchange [--rebuild-outlooks] [--outlooks db\|cache] [--output …]` |
 | **Python** | `scripts/trade_exchange/` — `outlook.py` (keeper outlooks) · `features.py` (one row per trade) · `fit.py` (fits, backtest, report) |
 | **Web (pure)** | `web/lib/trade-exchange.ts` (playoff odds on the trade day, one row per side) · `web/scripts/export-trade-exchange.ts` (the JSON export) |
 | **Report** | [generated/trade-exchange-rate.md](../generated/trade-exchange-rate.md) |
@@ -138,18 +138,18 @@ fairer (see the headline).
 ## Operating it
 
 ```bash
-just trade-exchange --rebuild-outlooks --output docs/generated/trade-exchange-rate.md   # first run, or after a keeper model change
-just trade-exchange --output docs/generated/trade-exchange-rate.md                      # reuse cached outlooks
-just trade-exchange --outlooks db                                                       # read keeper_outlook once it is published
+just trade-exchange --output docs/generated/trade-exchange-rate.md   # read keeper_outlook (the default)
+just trade-exchange --rebuild-outlooks                               # refit outlooks in memory, e.g. to try a keeper-model change before publishing
 ```
 
-The recipe first runs the TS export (reads only), then the Python fit. Keeper
-outlooks are fitted in memory with `scripts.keeper_value.publish.build`,
-out of fold as in production, and cached at
-`.cache/trade_exchange/outlooks.parquet`. Once `keeper_outlook` is backfilled
-(`just keeper-publish --backfill`), use `--outlooks db` to read the published
-snapshots instead. The export needs `NEXT_PUBLIC_SUPABASE_*` in
-`web/.env.local`, and the fit needs `SUPABASE_*` in `.env`.
+The recipe first runs the TS export (reads only), then the Python fit. By
+default, keeper outlooks come from `keeper_outlook`, the published
+out-of-fold snapshots. `--rebuild-outlooks` refits them in memory with
+`scripts.keeper_value.publish.build` and caches them at
+`.cache/trade_exchange/outlooks.parquet`, which `--outlooks cache` reuses.
+On the published model the two give an identical report. The export needs
+`NEXT_PUBLIC_SUPABASE_*` in `web/.env.local`, and the fit needs `SUPABASE_*`
+in `.env`.
 
 **Revisit** when either of these holds:
 
