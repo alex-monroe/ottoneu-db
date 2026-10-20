@@ -73,7 +73,10 @@ order. See [migrations/README.md](migrations/README.md) for the workflow and
 ## Everyday commands
 
 All work goes through [`just`](https://just.systems) recipes, which select the right
-virtualenv and flags for you. Run `just --list` to see all 53.
+virtualenv and flags for you. The recipes cover setup and environment checks, the dev
+server, tests and CI checks, scrapers and backfills, projection-model training and
+evaluation, and the league's Discord posts. Run `just --list` to see every recipe with
+a one-line description of each.
 
 | Command | What it does |
 |---|---|
