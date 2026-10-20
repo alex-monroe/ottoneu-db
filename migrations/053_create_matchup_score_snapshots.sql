@@ -8,7 +8,7 @@
 -- at that moment.
 --
 -- Source: scripts/scrape_lineups.py, appended after each game's lineup is
--- written (every 30 minutes through game windows). A snapshot is written only
+-- written (every 5 minutes through game windows). A snapshot is written only
 -- once at least one starter in the game has points — before kickoff every row
 -- would read 0–0. Totals are stored, not derived later, because the lineups
 -- they came from are overwritten by the next scrape.

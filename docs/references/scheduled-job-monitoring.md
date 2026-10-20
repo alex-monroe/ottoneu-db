@@ -19,7 +19,7 @@ workflow completes.
 
 | Scheduled run ends in | What happens |
 |---|---|
-| `failure`, `timed_out`, `startup_failure` | Opens the issue **"Scheduled workflow failing: \<name\>"** (label `scheduled-failure`) with the run link. If it is already open, adds a "still failing" comment — at most one per 24h, so the half-hourly matchup pull cannot flood it. |
+| `failure`, `timed_out`, `startup_failure` | Opens the issue **"Scheduled workflow failing: \<name\>"** (label `scheduled-failure`) with the run link. If it is already open, adds a "still failing" comment — at most one per 24h, so the 5-minute matchup pull cannot flood it. |
 | `success` | Closes that workflow's open issue with a "Recovered" comment. |
 | `cancelled`, `skipped` | Ignored — neither a failure nor proof of recovery. |
 

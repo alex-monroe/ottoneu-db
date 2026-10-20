@@ -3,7 +3,7 @@
  *
  * Named for cricket's "worm", which plots each side's cumulative runs over by
  * over so the ebb and flow of a match is visible at a glance. Here the "overs"
- * are the lineup scrapes (`matchup_score_snapshots`, every 30 minutes through
+ * are the lineup scrapes (`matchup_score_snapshots`, every 5 minutes through
  * game windows). This module is pure: it turns stored snapshots into the series
  * the chart draws. Fetching lives in lib/matchup-lineups.ts.
  *
@@ -142,7 +142,7 @@ export function wormSummary(points: WormPoint[], leftName: string, rightName: st
     leads.right > 0 ? `${rightName} ${leads.right.toFixed(2)}` : null,
   ].filter(Boolean);
   const biggest = parts.length ? ` · biggest lead${parts.length > 1 ? "s" : ""}: ${parts.join(", ")}` : "";
-  return `${changed}${biggest}. One point per score update, read every 30 minutes through game windows.`;
+  return `${changed}${biggest}. One point per score update, read every 5 minutes through game windows.`;
 }
 
 export interface WormChart {

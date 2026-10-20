@@ -32,8 +32,8 @@ import ScoreWorm from "@/components/ScoreWorm";
  * third-party numbers /lineup shows to anyone.
  */
 
-// Lineups are re-scraped every half hour through game windows; five minutes
-// keeps the page cheap without it ever being visibly behind a scrape.
+// Lineups are re-scraped every 5 minutes through game windows, and each scrape
+// pings the revalidate webhook; the five-minute timer is the fallback.
 export const revalidate = 300;
 
 interface Props {
@@ -364,7 +364,7 @@ export default async function GamePage({ params }: Props) {
         {header}
         <EmptyState title="No lineups stored for this game">
           Lineups are read from Ottoneu&apos;s box score while a week is being played
-          (<code>just scrape-lineups</code>, every half hour through game windows).
+          (<code>just scrape-lineups</code>, every 5 minutes through game windows).
           Games from before lineups were first captured, and weeks not yet under way,
           have none.
         </EmptyState>

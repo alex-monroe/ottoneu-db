@@ -86,8 +86,11 @@ standings.
 ### Cadence
 
 `pull-matchups.yml` runs daily at 11:00 UTC (the baseline, and off-season the
-only one that matters), then every 30 minutes through the Sunday afternoon and
-evening windows and the Sunday- and Monday-night games. There is **no in-season
+only one that matters), then every 5 minutes (GitHub's minimum cron interval)
+through the Sunday afternoon and evening windows and the Thursday-, Sunday- and
+Monday-night games. The 5-minute cadence is what gives the score worm its
+resolution; GitHub can delay or drop scheduled runs under load, so it is a
+target, not a guarantee. There is **no in-season
 gate**: the schedule page is public and cheap year-round, and the daily
 off-season run is what catches next season's schedule the day it posts.
 

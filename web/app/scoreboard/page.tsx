@@ -23,9 +23,9 @@ import DataFreshness from "@/components/DataFreshness";
  * so unlike the projection and valuation pages this one is not auth-gated.
  */
 
-// Matchups are re-scraped every half hour while games are being played, so a
-// long cache would show a stale Sunday score. Five minutes keeps the page cheap
-// without it ever being visibly behind.
+// Matchups are re-scraped every 5 minutes while games are being played, and
+// each scrape pings the revalidate webhook; the five-minute timer is the
+// fallback if that ping is missed.
 export const revalidate = 300;
 
 interface Props {
