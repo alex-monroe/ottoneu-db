@@ -6,9 +6,9 @@ that knows the league has games.
 
 | | |
 |---|---|
-| **Tables** | `league_matchups` (migration 037) · `matchup_lineups` (migration 044) |
+| **Tables** | `league_matchups` (migration 037) · `matchup_lineups` (migration 044) · `matchup_score_snapshots` (migration 053) |
 | **Scrapers** | `scripts/scrape_matchups.py` — `just scrape-matchups` · `scripts/scrape_lineups.py` — `just scrape-lineups` |
-| **Derivation** | `web/lib/standings.ts` + `web/lib/live-matchup.ts` + `web/lib/playoff-odds.ts` (pure) · `web/lib/matchups.ts` + `web/lib/matchup-lineups.ts` + `web/lib/playoff-odds-data.ts` (fetchers) |
+| **Derivation** | `web/lib/standings.ts` + `web/lib/live-matchup.ts` + `web/lib/playoff-odds.ts` + `web/lib/score-worm.ts` (pure) · `web/lib/matchups.ts` + `web/lib/matchup-lineups.ts` + `web/lib/playoff-odds-data.ts` (fetchers) |
 | **Routes** | `/scoreboard` and `/scoreboard/[gameId]` (public) · the homepage league-status section |
 | **MCP tools** | `get_scoreboard` · `get_standings` (incl. playoff odds) |
 | **Workflow** | `.github/workflows/pull-matchups.yml` |
@@ -242,6 +242,32 @@ render on `/scoreboard/[gameId]` (slot-against-slot lineups, each player's
 original projection beside his points, the benches) and the live figure on each
 `/scoreboard` card. `/matchup` stays the *optimal*-lineup planner and links to
 the real game; team schedules link to it too.
+
+### The score worm
+
+Named after cricket's "worm" chart, which plots each side's running total over
+by over. `matchup_lineups` is overwritten on every scrape, so it only knows the
+score *now*. That is why `scripts/scrape_lineups.py` also appends one
+`matchup_score_snapshots` row per game per run, holding each side's starters'
+points summed (the same figure the game page shows as the score). Pre-kickoff
+runs, where no starter has points yet, write nothing. A failed snapshot write
+is logged and never fails the scrape.
+
+`web/lib/score-worm.ts` (pure) turns those rows into the chart. It sorts by
+time, drops consecutive identical scores, and starts from a 0–0 origin. It
+counts lead changes and each side's biggest lead, and labels the axis with the
+first snapshot of each day (ET). **The x-axis is the snapshot sequence, not
+clock time.** On a clock axis the empty Friday and Saturday would take up most
+of the width and squash Sunday afternoon. `components/ScoreWorm.tsx` draws the
+chart, with an `sr-only` table as its text equivalent. Its series colors are
+the `--worm-left`/`--worm-right` tokens: categorical blue/orange, not
+positive/negative.
+
+It appears on `/scoreboard/[gameId]` (home left) and on `/matchup` (the
+viewer's team first, via `flipSnapshots`, and only once the game is past
+`scheduled`). It is hidden when there are fewer than two distinct scores.
+**No backfill exists.** Weeks played before migration 053 have no history and
+show no worm.
 
 ## Weekly pick'em
 

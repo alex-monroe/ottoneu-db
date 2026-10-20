@@ -14,6 +14,7 @@ from scripts.scrape_lineups import (
     derive_game_state,
     missing_team_ids,
     parse_box_score,
+    score_snapshot,
     to_db_rows,
 )
 
@@ -209,3 +210,32 @@ class TestToDbRows:
         page = PAGE.replace("/team/2531", "/nowhere")
         rows = to_db_rows(parse_box_score(page), {"game_id": 5}, {}, 309, "now")
         assert missing_team_ids(rows) == ["game 5 away"]
+
+
+class TestScoreSnapshot:
+    GAME = {"game_id": 42}
+
+    @staticmethod
+    def _row(side, points, is_starter=True):
+        return {"season": 2026, "week": 3, "side": side, "is_starter": is_starter, "points": points}
+
+    def test_sums_each_sides_starters_only(self):
+        rows = [
+            self._row("home", 10.5), self._row("home", 4.25), self._row("home", 30.0, is_starter=False),
+            self._row("away", 7.0), self._row("away", None),
+        ]
+        snap = score_snapshot(rows, self.GAME, 309, "2026-09-20T18:00:00+00:00")
+        assert snap == {
+            "league_id": 309, "season": 2026, "week": 3, "game_id": 42,
+            "home_points": 14.75, "away_points": 7.0,
+            "scraped_at": "2026-09-20T18:00:00+00:00",
+        }
+
+    def test_no_snapshot_before_any_starter_has_points(self):
+        rows = [self._row("home", None), self._row("away", None), self._row("away", 12.0, is_starter=False)]
+        assert score_snapshot(rows, self.GAME, 309, "now") is None
+
+    def test_a_real_zero_counts_as_started(self):
+        rows = [self._row("home", 0.0), self._row("away", None)]
+        snap = score_snapshot(rows, self.GAME, 309, "now")
+        assert snap is not None and (snap["home_points"], snap["away_points"]) == (0.0, 0.0)

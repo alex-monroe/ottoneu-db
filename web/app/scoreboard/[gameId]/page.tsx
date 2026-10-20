@@ -2,7 +2,8 @@ import { cache } from "react";
 import { notFound } from "next/navigation";
 import { LEAGUE_ID } from "@/lib/config";
 import { fetchMatchup } from "@/lib/matchups";
-import { fetchLiveGame } from "@/lib/matchup-lineups";
+import { fetchLiveGame, fetchScoreSnapshots } from "@/lib/matchup-lineups";
+import { wormChart } from "@/lib/score-worm";
 import { fetchWeeklyAsOf } from "@/lib/weekly-projections";
 import {
   benchOf,
@@ -19,6 +20,7 @@ import { EmptyState } from "@/components/states";
 import PositionBadge from "@/components/PositionBadge";
 import PlayerName from "@/components/PlayerName";
 import TeamName from "@/components/TeamName";
+import ScoreWorm from "@/components/ScoreWorm";
 
 /**
  * One head-to-head game: both actual lineups, slot against slot, with each
@@ -333,10 +335,11 @@ export default async function GamePage({ params }: Props) {
   const game = await load(params);
   if (!game) notFound();
 
-  const [live, asOf, viewerTeam] = await Promise.all([
+  const [live, asOf, viewerTeam, snapshots] = await Promise.all([
     fetchLiveGame(game.season, game.week, game.game_id),
     fetchWeeklyAsOf(game.season, game.week),
     getViewerTeam(),
+    fetchScoreSnapshots(game.game_id),
   ]);
 
   const ottoneuUrl = `https://ottoneu.fangraphs.com/football/${LEAGUE_ID}/game/${game.game_id}`;
@@ -373,6 +376,9 @@ export default async function GamePage({ params }: Props) {
   const homeBench = benchOf(live.home.entries);
   const awayBench = benchOf(live.away.entries);
   const benchRows = Math.max(homeBench.length, awayBench.length);
+  const homeName = live.home.team_name || game.home_team_name;
+  const awayName = live.away.team_name || game.away_team_name;
+  const worm = wormChart(snapshots, homeName, awayName);
 
   return (
     <PageShell>
@@ -380,10 +386,12 @@ export default async function GamePage({ params }: Props) {
 
       <Scoreboard
         game={game}
-        home={{ name: live.home.team_name || game.home_team_name, totals: live.home.totals }}
-        away={{ name: live.away.team_name || game.away_team_name, totals: live.away.totals }}
+        home={{ name: homeName, totals: live.home.totals }}
+        away={{ name: awayName, totals: live.away.totals }}
         viewerTeam={viewerTeam}
       />
+
+      {worm && <ScoreWorm {...worm} />}
 
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-subtle">
