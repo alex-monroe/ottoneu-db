@@ -1,0 +1,7 @@
+Describe the Justfile recipes in one line in the README
+
+Replace the stale "see all 53" count (there are now 77 recipes) with a
+one-line summary of what the recipes cover, so the README doesn't drift
+as recipes are added.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
