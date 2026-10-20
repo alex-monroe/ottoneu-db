@@ -755,6 +755,42 @@ export type Database = {
           },
         ]
       }
+      matchup_score_snapshots: {
+        Row: {
+          away_points: number
+          created_at: string
+          game_id: number
+          home_points: number
+          id: string
+          league_id: number
+          scraped_at: string
+          season: number
+          week: number
+        }
+        Insert: {
+          away_points: number
+          created_at?: string
+          game_id: number
+          home_points: number
+          id?: string
+          league_id: number
+          scraped_at: string
+          season: number
+          week: number
+        }
+        Update: {
+          away_points?: number
+          created_at?: string
+          game_id?: number
+          home_points?: number
+          id?: string
+          league_id?: number
+          scraped_at?: string
+          season?: number
+          week?: number
+        }
+        Relationships: []
+      }
       model_projections: {
         Row: {
           created_at: string

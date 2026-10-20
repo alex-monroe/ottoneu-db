@@ -3,6 +3,8 @@ import { getViewerTeam } from "@/lib/viewer-team";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { fetchLineupWeek } from "@/lib/lineup-data";
 import { fetchLeagueStatus } from "@/lib/matchups";
+import { fetchScoreSnapshots } from "@/lib/matchup-lineups";
+import { flipSnapshots, wormChart } from "@/lib/score-worm";
 import { sameTeamName, teamHref, toTeamGame } from "@/lib/teams";
 import {
   LINEUP_SLOTS,
@@ -18,6 +20,7 @@ import PlayerName from "@/components/PlayerName";
 import PageShell, { PageHeader } from "@/components/PageShell";
 import { EmptyState } from "@/components/states";
 import PositionBadge from "@/components/PositionBadge";
+import ScoreWorm from "@/components/ScoreWorm";
 
 export const revalidate = 3600;
 
@@ -219,6 +222,19 @@ export default async function MatchupPage({ searchParams }: Props) {
     );
   }
 
+  // The worm of the real game so far, your side first. Nothing to draw before
+  // kickoff, or for a week played before score snapshots were kept.
+  const row = status?.matchups.find((m) => m.game_id === game.game_id);
+  const snapshots = game.status !== "scheduled" ? await fetchScoreSnapshots(game.game_id) : [];
+  const worm =
+    row && snapshots.length > 0
+      ? wormChart(
+          sameTeamName(row.home_team_name, viewerTeam) ? snapshots : flipSnapshots(snapshots),
+          viewerTeam,
+          game.opponent,
+        )
+      : null;
+
   const metric: LineupMetric = ctx.hasWeekly
     ? "weekly"
     : user?.hasProjectionsAccess
@@ -310,6 +326,8 @@ export default async function MatchupPage({ searchParams }: Props) {
             </p>
           )}
       </div>
+
+      {worm && <ScoreWorm {...worm} />}
 
       {mine && theirs ? (
         <SlotComparison

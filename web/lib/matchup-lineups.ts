@@ -17,6 +17,7 @@ import {
   type LineupGameState,
   type LiveGame,
 } from "./live-matchup";
+import type { ScoreSnapshot } from "./score-worm";
 
 // One literal so Supabase's generated types can infer the row shape.
 const COLUMNS =
@@ -106,4 +107,33 @@ export async function fetchLiveGame(
   gameId: number,
 ): Promise<LiveGame | null> {
   return (await fetchLiveWeek(season, week)).get(gameId) ?? null;
+}
+
+/**
+ * One game's score history (`matchup_score_snapshots`), oldest first — the
+ * data behind the score worm. Empty when none is stored (games played before
+ * the table existed) or the read fails: the worm is an extra, never a reason
+ * for the game page to error.
+ */
+export async function fetchScoreSnapshots(gameId: number): Promise<ScoreSnapshot[]> {
+  try {
+    const rows = await fetchAllRows<Record<string, unknown>>((from, to) =>
+      supabase
+        .from("matchup_score_snapshots")
+        .select("scraped_at, home_points, away_points")
+        .eq("league_id", LEAGUE_ID)
+        .eq("game_id", gameId)
+        .order("scraped_at")
+        .order("id")
+        .range(from, to),
+    );
+    return rows.map((row) => ({
+      scraped_at: String(row.scraped_at),
+      home_points: Number(row.home_points),
+      away_points: Number(row.away_points),
+    }));
+  } catch (error) {
+    console.error("fetchScoreSnapshots failed:", error);
+    return [];
+  }
 }

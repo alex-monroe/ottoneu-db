@@ -48,6 +48,11 @@
   /* The season phase gets its own hue so the two never collide. */
   --phase: #7c3aed;         /* violet-600 */
   --phase-soft: #f5f3ff;
+  /* The two sides of the score worm (components/ScoreWorm.tsx). Categorical,
+     not status: neither team is the "good" one, so not positive/negative.
+     Blue/orange stay apart under every common color-vision deficiency. */
+  --worm-left: #2563eb;     /* blue-600 */
+  --worm-right: #ea580c;    /* orange-600 */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -75,6 +80,8 @@
     --warning-soft: #451a03;
     --phase: #a78bfa;       /* violet-400 */
     --phase-soft: #2e1065;
+    --worm-left: #3b82f6;   /* blue-500 — blue-400 is too light beside orange */
+    --worm-right: #ea580c;
   }
 }
 

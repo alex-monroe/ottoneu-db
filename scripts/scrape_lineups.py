@@ -21,6 +21,10 @@ overwrites it with the actual score once a player has played, so it is not a
 pre-game projection. The site's own weekly projection (weekly_projections,
 frozen at kickoff) and the live projected total built from it are joined at
 read time in web/lib/live-matchup.ts.
+
+After each game's lineup is written, the two sides' starter totals are also
+appended to `matchup_score_snapshots` — the history behind the game page's
+score worm, which `matchup_lineups` (overwritten every run) cannot keep.
 """
 
 from __future__ import annotations
@@ -39,6 +43,7 @@ from scripts.nfl_week import today_in_league_tz
 from scripts.ottoneu_http import CloudflareBlockedError, GatedPageError, fetch_page
 
 TABLE = "matchup_lineups"
+SNAPSHOT_TABLE = "matchup_score_snapshots"
 
 USER_AGENT = "ottoneu-db-lineups/1.0 (+https://github.com/alex-monroe/ottoneu-db)"
 
@@ -339,6 +344,41 @@ def replace_game(supabase, league_id: int, game_id: int, rows: list[dict]) -> No
     )
 
 
+def score_snapshot(rows: list[dict], game: dict, league_id: int, scraped_at: str) -> dict | None:
+    """One `matchup_score_snapshots` row: each side's starters' points, summed.
+
+    The same total the game page shows as the score (web/lib/live-matchup.ts
+    `sideTotals().actual`). None until a starter in the game has points — a
+    pre-kickoff 0–0 is not a point on the worm.
+    """
+    starters = [r for r in rows if r["is_starter"]]
+    if not any(r["points"] is not None for r in starters):
+        return None
+    totals = {"home": 0.0, "away": 0.0}
+    for r in starters:
+        totals[r["side"]] += r["points"] or 0.0
+    first = rows[0]
+    return {
+        "league_id": league_id,
+        "season": first["season"],
+        "week": first["week"],
+        "game_id": game["game_id"],
+        "home_points": round(totals["home"], 2),
+        "away_points": round(totals["away"], 2),
+        "scraped_at": scraped_at,
+    }
+
+
+def record_snapshot(supabase, snapshot: dict) -> None:
+    """Append a score snapshot. A failure is reported, not fatal — the lineup is already written."""
+    try:
+        supabase.table(SNAPSHOT_TABLE).upsert(
+            snapshot, on_conflict="league_id,game_id,scraped_at"
+        ).execute()
+    except Exception as exc:  # noqa: BLE001 — the worm is a nice-to-have; never fail the scrape
+        print(f"  game {snapshot['game_id']}: score snapshot not written: {exc}", file=sys.stderr)
+
+
 # ─── Entry point ─────────────────────────────────────────────────────────────
 
 
@@ -411,6 +451,9 @@ def main() -> None:
         print(f"  {game['home_team_name']} vs {game['away_team_name']}: {_summarise(rows)}")
         if not args.dry_run:
             replace_game(supabase, args.league_id, game["game_id"], rows)
+            snapshot = score_snapshot(rows, game, args.league_id, scraped_at)
+            if snapshot:
+                record_snapshot(supabase, snapshot)
 
     if args.dry_run:
         print("Dry run — not writing to the database.")

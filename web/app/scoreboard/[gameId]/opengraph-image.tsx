@@ -6,7 +6,7 @@ export const alt = "SOFA DB game score";
 export const size = OG_SIZE;
 export const contentType = "image/png";
 
-// Same cadence as the page: lineups are re-scraped every half hour in game
+// Same cadence as the page: lineups are re-scraped every 5 minutes in game
 // windows, and the revalidate webhook refreshes it after each scrape.
 export const revalidate = 300;
 

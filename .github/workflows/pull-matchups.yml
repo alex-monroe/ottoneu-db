@@ -10,6 +10,13 @@ name: Pull Matchups
 # still useful (it picks up a re-drawn schedule or a newly generated playoff
 # bracket) and is cheap. The dense windows below exist because a score that is
 # hours stale is worse than no score at all on a Sunday afternoon.
+#
+# Every 5 minutes through the windows — GitHub's minimum cron interval. Each
+# lineup scrape also writes the score snapshots behind the game page's score
+# worm (matchup_score_snapshots), so the cadence is the worm's resolution. A
+# run is ~8 requests to Ottoneu (schedule page, CSV, six box scores). GitHub
+# delays and occasionally drops scheduled runs under load, so treat 5 minutes
+# as a target rather than a guarantee.
 
 on:
   workflow_dispatch:
@@ -26,16 +33,16 @@ on:
     # Daily at 11:00 UTC (~7am ET) — the baseline run. Off-season this is the
     # only one that matters; in-season it is the pass that settles Monday night.
     - cron: "0 11 * * *"
-    # Sunday 17:00–23:30 UTC (1pm–7:30pm ET) — the afternoon and late windows.
-    - cron: "*/30 17-23 * * 0"
-    # Monday 00:00–04:30 UTC (Sun 8pm–12:30am ET) — the Sunday night game.
-    - cron: "*/30 0-4 * * 1"
-    # Tuesday 00:00–04:30 UTC (Mon 8pm–12:30am ET) — the Monday night game.
-    - cron: "*/30 0-4 * * 2"
-    # Friday 00:00–04:30 UTC (Thu 8pm–12:30am ET) — the Thursday night game.
+    # Sunday 17:00–23:55 UTC (1pm–7:55pm EDT) — the afternoon and late windows.
+    - cron: "*/5 17-23 * * 0"
+    # Monday 00:00–04:55 UTC (Sun 8pm–12:55am EDT) — the Sunday night game.
+    - cron: "*/5 0-4 * * 1"
+    # Tuesday 00:00–04:55 UTC (Mon 8pm–12:55am EDT) — the Monday night game.
+    - cron: "*/5 0-4 * * 2"
+    # Friday 00:00–04:55 UTC (Thu 8pm–12:55am EDT) — the Thursday night game.
     # Added with the lineup scrape: the live matchup projection is only as live
     # as its last run, and Thursday is when a week's first lineups start scoring.
-    - cron: "*/30 0-4 * * 5"
+    - cron: "*/5 0-4 * * 5"
 
 permissions:
   contents: read
