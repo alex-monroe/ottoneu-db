@@ -1,0 +1,97 @@
+name: Post Auctions
+
+# Announces FA auctions in the league Discord: a post when one opens, another
+# when it closes (winner, price, every bid). Replaces the always-on Railway bot
+# (alex-monroe/ottoneu-discord-auction-bot), which polled every five minutes and
+# kept what it had announced in memory. Here each run starts cold: the scrape
+# writes fa_market / fa_auction_results, and the discord_posts log remembers
+# what has been said (docs/references/discord-feed.md).
+#
+# Every ten minutes, all year, like the bot. GitHub may start a scheduled run a
+# few minutes late; an auction is open for a day, so that is harmless. Each run
+# is one plain-HTTP page load (no login, no browser) plus one per newly closed
+# auction — the logged-in, every-three-hours Scrape FA Market run still owns
+# the waiver rows and auction ids.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Scrape and print the posts without writing or posting"
+        type: boolean
+        default: false
+      seed:
+        description: "Record what is due as posted without sending (one-time cut-over from the old bot)"
+        type: boolean
+        default: false
+
+  schedule:
+    - cron: "*/10 * * * *"
+
+permissions:
+  contents: read
+
+# Shared with scrape-fa-market.yml: both rewrite the fa_market auction rows, and
+# fa_market.first_seen_at (each auction's post key) must not be written by two
+# runs at once.
+concurrency:
+  group: scrape-fa-market
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Python dependencies
+        run: |
+          pip install requests beautifulsoup4 supabase python-dotenv
+          pip install -e . --no-deps
+
+      - name: Scrape auctions
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          ARGS=(--auctions-only)
+          [ "$DRY_RUN" = "true" ] && ARGS+=(--dry-run)
+          python scripts/scrape_fa_market.py "${ARGS[@]}"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Post to Discord
+        working-directory: web
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          DISCORD_CHANNEL_ID: "1396549904234709044"
+          SITE_URL: https://sofa-db.vercel.app
+          DRY_RUN: ${{ inputs.dry_run }}
+          SEED: ${{ inputs.seed }}
+        run: |
+          ARGS=()
+          [ "$DRY_RUN" = "true" ] && ARGS+=(--dry-run)
+          [ "$SEED" = "true" ] && ARGS+=(--seed)
+          npm run post-auctions -- "${ARGS[@]}"

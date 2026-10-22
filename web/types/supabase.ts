@@ -426,10 +426,76 @@ export type Database = {
           },
         ]
       }
+      fa_auction_results: {
+        Row: {
+          auction_id: number
+          bids: Json
+          ended_at_local: string
+          is_college: boolean
+          league_id: number
+          nfl_team: string | null
+          ottoneu_id: number
+          player_id: string | null
+          player_key: string
+          player_name: string
+          position: string | null
+          salary: number | null
+          scraped_at: string
+          started_by_team_name: string | null
+          winner_team_id: number | null
+          winner_team_name: string | null
+        }
+        Insert: {
+          auction_id: number
+          bids?: Json
+          ended_at_local: string
+          is_college?: boolean
+          league_id: number
+          nfl_team?: string | null
+          ottoneu_id: number
+          player_id?: string | null
+          player_key: string
+          player_name: string
+          position?: string | null
+          salary?: number | null
+          scraped_at?: string
+          started_by_team_name?: string | null
+          winner_team_id?: number | null
+          winner_team_name?: string | null
+        }
+        Update: {
+          auction_id?: number
+          bids?: Json
+          ended_at_local?: string
+          is_college?: boolean
+          league_id?: number
+          nfl_team?: string | null
+          ottoneu_id?: number
+          player_id?: string | null
+          player_key?: string
+          player_name?: string
+          position?: string | null
+          salary?: number | null
+          scraped_at?: string
+          started_by_team_name?: string | null
+          winner_team_id?: number | null
+          winner_team_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fa_auction_results_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fa_market: {
         Row: {
           cut_at_local: string | null
           ends_at: string
+          first_seen_at: string
           id: number
           injury_status: string | null
           is_college: boolean
@@ -449,6 +515,7 @@ export type Database = {
         Insert: {
           cut_at_local?: string | null
           ends_at: string
+          first_seen_at?: string
           id?: number
           injury_status?: string | null
           is_college?: boolean
@@ -468,6 +535,7 @@ export type Database = {
         Update: {
           cut_at_local?: string | null
           ends_at?: string
+          first_seen_at?: string
           id?: number
           injury_status?: string | null
           is_college?: boolean

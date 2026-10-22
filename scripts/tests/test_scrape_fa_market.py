@@ -12,12 +12,17 @@ from scripts.fa_market_gate import fa_market_due
 from scripts.fa_market_gate import main as gate_main
 from scripts.scrape_fa_market import (
     MarketRow,
+    carry_over,
     claim_deadline,
+    parse_auction_page,
     parse_auctions,
+    parse_completed_auctions,
     parse_cut_time,
     parse_duration,
     parse_waivers,
+    results_to_fetch,
     to_db_rows,
+    with_auction_page,
 )
 
 BASE = "https://ottoneu.fangraphs.com/football/309"
@@ -43,8 +48,12 @@ def _auctions_page(logged_in: bool) -> str:
       <tr><td colspan="5"><input type="submit" name="submit" value="Bid"></td></tr>
     </tbody></table></section></form>
     <section><header><h1>2026 Completed Auctions</h1></header><table><tbody>
-      <tr><td><a href="{BASE}/player_card/nfl/7063">Calvin Ridley</a> <span class="smaller">TEN WR</span></td>
+      <tr><td><a href="{BASE}/player_card/nfl/7063">Calvin Ridley</a> <span class="smaller">TEN WR</span>
+        <span class="salary">$3</span></td>
       <td>Oct 17, 2026 9:39 AM</td><td><a href="/football/309/auctions/65463">View</a></td></tr>
+      <tr><td><a href="{BASE}/player_card/college/139723">Nate Frazier</a> <span class="smaller">UGA JR RB</span>
+        <span class="salary">$1</span></td>
+      <td>Oct 15, 2026 12:52 PM</td><td><a href="/football/309/auctions/65400">View</a></td></tr>
     </tbody></table></section></main>
     """
 
@@ -152,3 +161,81 @@ class TestGate:
         monkeypatch.setenv("GITHUB_OUTPUT", str(out))
         assert gate_main(["--force"], today=date(2026, 3, 1)) == 0
         assert out.read_text() == "due=true\n"
+
+
+# League 309's /auctions/65780 on 2026-10-21, trimmed: a team-link table with
+# the bids out of order, to show the parser sorts them.
+AUCTION_PAGE = f"""
+<main><header class="page-header">
+  <h3>Auction for <a href="{BASE}/player_card/nfl/13211">Tyrone Tracy</a> <span class="smaller">NYG RB</span></h3>
+  <h3>Started by The Roseman Empire</h3><h5>Ended at Oct 21, 2026 12:52 PM</h5>
+</header>
+<table><thead><tr><th>Team</th><th>Bid Amount</th></tr></thead><tbody>
+  <tr><td><a href="/football/309/team/2625">
+            Ball So Hard University          </a></td><td>$5</td></tr>
+  <tr><td><a href="/football/309/team/2629">
+            Marin County Mountain Runners          </a></td><td>$6</td></tr>
+  <tr><td><a href="/football/309/team/2628">The Roseman Empire</a></td><td>$4</td></tr>
+</tbody></table></main>
+"""
+
+
+class TestParseCompletedAuctions:
+    def test_rows_with_auction_id_salary_and_site_clock_end(self):
+        ridley, frazier = parse_completed_auctions(_auctions_page(logged_in=False))
+        assert (ridley.auction_id, ridley.player_key, ridley.salary) == (65463, "nfl:7063", 3)
+        assert ridley.ended_at_local == "2026-10-17T09:39:00"
+        assert (ridley.nfl_team, ridley.position) == ("TEN", "WR")
+        assert frazier.player_key == "college:139723" and frazier.ended_at_local == "2026-10-15T12:52:00"
+
+    def test_active_table_is_not_completed(self):
+        assert "Christian Kirk" not in [c.player_name for c in parse_completed_auctions(_auctions_page(True))]
+
+    def test_no_heading_is_empty(self):
+        assert parse_completed_auctions("<main><h1>Active Auctions</h1><table></table></main>") == []
+
+
+class TestParseAuctionPage:
+    def test_started_by_and_bids_highest_first(self):
+        page = parse_auction_page(AUCTION_PAGE)
+        assert page["started_by_team_name"] == "The Roseman Empire"
+        assert [(b["team_id"], b["amount"]) for b in page["bids"]] == [(2629, 6), (2625, 5), (2628, 4)]
+        assert page["bids"][0]["team_name"] == "Marin County Mountain Runners"
+
+    def test_winner_is_the_top_bid(self):
+        ridley = parse_completed_auctions(_auctions_page(False))[0]
+        done = with_auction_page(ridley, parse_auction_page(AUCTION_PAGE))
+        assert (done.winner_team_id, done.winner_team_name) == (2629, "Marin County Mountain Runners")
+        assert done.salary == 3  # the table's price, not the top bid (second-price auction)
+        assert done.started_by_team_name == "The Roseman Empire"
+
+    def test_no_bids_means_no_winner(self):
+        ridley = parse_completed_auctions(_auctions_page(False))[0]
+        done = with_auction_page(ridley, parse_auction_page("<main><h3>Started by X</h3></main>"))
+        assert done.winner_team_name is None and done.bids == []
+
+
+class TestResultsToFetch:
+    def test_recent_and_unstored_only(self):
+        completed = parse_completed_auctions(_auctions_page(False))  # ended Oct 17 and Oct 15
+        assert [c.auction_id for c in results_to_fetch(completed, set(), date(2026, 10, 18))] == [65463]
+        assert results_to_fetch(completed, {65463}, date(2026, 10, 18)) == []
+        assert len(results_to_fetch(completed, set(), date(2026, 10, 17))) == 2
+
+
+class TestCarryOver:
+    ROW = {"player_key": "nfl:7", "scraped_at": "2026-10-21T18:00:00+00:00", "market_id": None}
+
+    def test_new_auction_is_first_seen_now(self):
+        out = carry_over([self.ROW], {})
+        assert out[0]["first_seen_at"] == "2026-10-21T18:00:00+00:00"
+
+    def test_seen_auction_keeps_its_first_sighting_and_auction_id(self):
+        prev = {"nfl:7": {"first_seen_at": "2026-10-21T09:00:00+00:00", "market_id": 65780}}
+        out = carry_over([self.ROW], prev)
+        assert out[0]["first_seen_at"] == "2026-10-21T09:00:00+00:00"
+        assert out[0]["market_id"] == 65780  # a public scrape must not blank it
+
+    def test_a_logged_in_auction_id_wins(self):
+        prev = {"nfl:7": {"first_seen_at": "x", "market_id": 1}}
+        assert carry_over([{**self.ROW, "market_id": 2}], prev)[0]["market_id"] == 2

@@ -15,6 +15,7 @@ on:
     workflows:
       - "Check Data Freshness"
       - "Offseason Data Refresh"
+      - "Post Auctions"
       - "Post Pickem"
       - "Post Power Rankings"
       - "Post Vote Reminder"

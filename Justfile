@@ -374,8 +374,9 @@ scrape-lineups *args:
     {{python}} scripts/scrape_lineups.py {{args}}
 
 # Snapshot the open FA market (active auctions + claimable waivers) into fa_market.
-# Logs in with FANGRAPHS_USERNAME/PASSWORD for waivers; auctions-only without them.
-# e.g. just scrape-fa-market --dry-run
+# Logs in with FANGRAPHS_USERNAME/PASSWORD for waivers; auctions-only without them
+# or with --auctions-only. Also stores recently completed auctions (fa_auction_results).
+# e.g. just scrape-fa-market --dry-run ; just scrape-fa-market --auctions-only
 scrape-fa-market *args:
     {{python}} scripts/scrape_fa_market.py {{args}}
 
@@ -404,6 +405,12 @@ post-moves-digest *args:
 # e.g. just post-pickem --results --dry-run ; just post-pickem --reminder --dry-run
 post-pickem *args:
     cd web && npm run post-pickem -- {{args}}
+
+# Post FA auctions opened/closed since the last run (reads fa_market + fa_auction_results).
+# --seed records what is due as posted without sending (cut-over from the old bot).
+# e.g. just post-auctions --dry-run ; just post-auctions --seed
+post-auctions *args:
+    cd web && npm run post-auctions -- {{args}}
 
 # Weekly release notes (docs/references/release-notes.md): list last week's merged
 # PRs. e.g. just release-notes --dry-run ; just release-notes --until 2026-10-19 --dry-run

@@ -3,6 +3,7 @@
 Usage:
     just scrape-fa-market                       # fetch both pages, write the table
     just scrape-fa-market --dry-run             # fetch and print, write nothing
+    just scrape-fa-market --auctions-only       # public auctions page only, no login
     just scrape-fa-market --auctions-file a.html --waivers-file w.html --dry-run
 
 Two Ottoneu pages, two different access rules (checked 2026-10-17):
@@ -17,11 +18,18 @@ Two Ottoneu pages, two different access rules (checked 2026-10-17):
                                 in, each row carries the claim id (`claim[393882]`).
                                 The cutting team is not shown.
 
+  /football/{league}/auctions/<id>
+                                PUBLIC, once the auction has closed. The
+                                "Completed Auctions" table on /auctions links
+                                each one: who started it, when it ended, and
+                                every bid, highest (the winner) first.
+
 So the scrape logs in when FANGRAPHS_USERNAME / FANGRAPHS_PASSWORD are set
 (`scripts/fangraphs_login.py`) and reads both pages in one browser session.
-Without credentials it still reads the public auctions page over plain HTTP and
-leaves the waiver rows alone, so a missing secret degrades to half a board rather
-than none.
+Without credentials — or with `--auctions-only`, which the every-few-minutes
+Discord job uses — it reads the public auctions page over plain HTTP and leaves
+the waiver rows alone, so a missing secret degrades to half a board rather than
+none.
 
 ## Times
 
@@ -34,14 +42,20 @@ league's time zone (`nfl_week.LEAGUE_TZ`, US Eastern) plus WAIVER_CLAIM_HOURS.
 
 ## Writes
 
-One table, `fa_market`, one row per player currently up for auction or on
-waivers. Each kind is a snapshot of its page: upsert what is listed, then delete
-what is no longer listed. A kind that was not fetched this run is left untouched;
-the web filters out rows whose `ends_at` has passed, so a stale row expires on
-its own.
+`fa_market`, one row per player currently up for auction or on waivers. Each
+kind is a snapshot of its page: upsert what is listed, then delete what is no
+longer listed. A kind that was not fetched this run is left untouched; the web
+filters out rows whose `ends_at` has passed, so a stale row expires on its own.
+Two values outlive a single scrape (`carry_over`): `first_seen_at`, which keys
+the auction's Discord post, and `market_id`, which only a logged-in scrape sees.
 
-Two page loads (plus a login) per run, at a cadence of hours — well clear of the
-429s the per-player card scrape hits (#752).
+`fa_auction_results`, one row per completed auction that ended in the last
+RESULT_LOOKBACK_DAYS and is not stored yet — one extra page load each, so a
+handful a day. These feed the "auction finished" Discord post.
+
+Two page loads (plus a login) per logged-in run every few hours, and one page
+load per `--auctions-only` run — well clear of the 429s the per-player card
+scrape hits (#752).
 """
 
 from __future__ import annotations
@@ -50,8 +64,8 @@ import argparse
 import asyncio
 import re
 import sys
-from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta, timezone
+from dataclasses import asdict, dataclass, field
+from datetime import date, datetime, timedelta, timezone
 
 from bs4 import BeautifulSoup
 
@@ -61,7 +75,9 @@ from scripts.nfl_week import LEAGUE_TZ
 from scripts.ottoneu_http import BASE_URL, fetch_page
 
 TABLE = "fa_market"
+RESULTS_TABLE = "fa_auction_results"
 AUCTIONS_PATH = "/football/{league_id}/auctions"
+AUCTION_PATH = "/football/{league_id}/auctions/{auction_id}"
 WAIVERS_PATH = "/football/{league_id}/waivers"
 USER_AGENT = (
     "ottoneu-db-fa-market/1.0 "
@@ -77,7 +93,13 @@ BROWSER_UA = (
 CARD_HREF_RE = re.compile(r"/player_card/(nfl|college)/(\d+)")
 DURATION_RE = re.compile(r"(\d+)\s*(day|hour|minute|second)s?", re.I)
 INPUT_ID_RE = re.compile(r"\[(\d+)\]")
+AUCTION_HREF_RE = re.compile(r"/auctions/(\d+)/?$")
+TEAM_HREF_RE = re.compile(r"/team/(\d+)")
 CUT_DATE_FORMAT = "%B %d, %Y %I:%M %p"
+ENDED_DATE_FORMAT = "%b %d, %Y %I:%M %p"
+# Completed auctions older than this (by site-clock date) are never fetched, so a
+# first run reads a few days of results rather than the whole season's.
+RESULT_LOOKBACK_DAYS = 2
 
 
 @dataclass
@@ -94,6 +116,27 @@ class MarketRow:
     min_bid: int | None = None      # auctions
     salary: int | None = None       # waivers: the salary a claim pays
     cut_at_local: str | None = None  # waivers: Ottoneu site clock, ISO, no zone
+
+    @property
+    def player_key(self) -> str:
+        return f"{'college' if self.is_college else 'nfl'}:{self.ottoneu_id}"
+
+
+@dataclass
+class CompletedAuction:
+    """A row of the 'Completed Auctions' table, filled in from its auction page."""
+    auction_id: int
+    ottoneu_id: int
+    is_college: bool
+    player_name: str
+    nfl_team: str | None
+    position: str | None
+    salary: int | None              # the price paid, from the table
+    ended_at_local: str             # Ottoneu site clock, ISO, no zone
+    started_by_team_name: str | None = None
+    winner_team_id: int | None = None
+    winner_team_name: str | None = None
+    bids: list[dict] = field(default_factory=list)  # highest first
 
     @property
     def player_key(self) -> str:
@@ -117,6 +160,14 @@ def parse_duration(text: str) -> timedelta | None:
 def parse_money(text: str) -> int | None:
     digits = re.sub(r"[^\d]", "", text or "")
     return int(digits) if digits else None
+
+
+def parse_ended_time(text: str) -> datetime | None:
+    """'Oct 21, 2026 12:52 PM' -> naive datetime on the site clock."""
+    try:
+        return datetime.strptime(" ".join((text or "").split()), ENDED_DATE_FORMAT)
+    except ValueError:
+        return None
 
 
 def parse_cut_time(text: str) -> datetime | None:
@@ -160,9 +211,14 @@ def _player_cell(td) -> dict | None:
 
 
 def _table_after_heading(soup: BeautifulSoup, heading: str):
-    """The first <table> after the <h1> whose text is `heading`."""
+    """The first <table> after the <h1> whose text is `heading`.
+
+    The completed table's heading carries the season ("2026 Completed
+    Auctions"), so a heading may also match on its last words.
+    """
     for h1 in soup.find_all("h1"):
-        if h1.get_text(strip=True) == heading:
+        text = " ".join(h1.get_text(" ", strip=True).split())
+        if text == heading or text.endswith(f" {heading}"):
             return h1.find_next("table")
     return None
 
@@ -202,6 +258,90 @@ def parse_auctions(html: str, now: datetime) -> list[MarketRow]:
             **ident,
         ))
     return rows
+
+
+def parse_completed_auctions(html: str) -> list[CompletedAuction]:
+    """Rows of the '<season> Completed Auctions' table, newest first as listed.
+
+    Only what the table prints; `parse_auction_page` adds the winner and bids.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    table = _table_after_heading(soup, "Completed Auctions")
+    if table is None or table.tbody is None:
+        return []
+    rows = []
+    for tr in table.tbody.find_all("tr"):
+        tds = tr.find_all("td", recursive=False)
+        if len(tds) < 3:
+            continue
+        ident = _player_cell(tds[0])
+        ended = parse_ended_time(tds[1].get_text(" ", strip=True))
+        link = tds[2].find("a", href=AUCTION_HREF_RE)
+        if ident is None or ended is None or link is None:
+            continue
+        salary = tds[0].find("span", class_="salary")
+        ident.pop("injury_status")
+        rows.append(CompletedAuction(
+            auction_id=int(AUCTION_HREF_RE.search(link["href"]).group(1)),
+            salary=parse_money(salary.get_text()) if salary else None,
+            ended_at_local=ended.isoformat(),
+            **ident,
+        ))
+    return rows
+
+
+def parse_auction_page(html: str) -> dict:
+    """Who started a completed auction and every bid on it, highest first.
+
+    Returns {'started_by_team_name', 'bids': [{'team_id', 'team_name', 'amount'}]}.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    started_by = None
+    for h3 in soup.find_all("h3"):
+        text = " ".join(h3.get_text(" ", strip=True).split())
+        if text.startswith("Started by "):
+            started_by = text.removeprefix("Started by ").strip() or None
+            break
+    bids = []
+    table = soup.find("table")
+    if table is not None and table.tbody is not None:
+        for tr in table.tbody.find_all("tr"):
+            tds = tr.find_all("td", recursive=False)
+            if len(tds) < 2:
+                continue
+            link = tds[0].find("a", href=TEAM_HREF_RE)
+            amount = parse_money(tds[1].get_text())
+            if link is None or amount is None:
+                continue
+            bids.append({
+                "team_id": int(TEAM_HREF_RE.search(link["href"]).group(1)),
+                "team_name": " ".join(link.get_text(" ", strip=True).split()),
+                "amount": amount,
+            })
+    bids.sort(key=lambda b: -b["amount"])
+    return {"started_by_team_name": started_by, "bids": bids}
+
+
+def results_to_fetch(
+    completed: list[CompletedAuction], stored_ids: set[int], today_local: date,
+    lookback_days: int = RESULT_LOOKBACK_DAYS,
+) -> list[CompletedAuction]:
+    """Completed auctions recent enough to fetch and not already stored."""
+    cutoff = (today_local - timedelta(days=lookback_days)).isoformat()
+    return [c for c in completed if c.ended_at_local[:10] >= cutoff and c.auction_id not in stored_ids]
+
+
+def with_auction_page(c: CompletedAuction, page: dict) -> CompletedAuction:
+    """`c` plus who started it, the bids, and the winner (the highest bid)."""
+    bids = page["bids"]
+    top = bids[0] if bids else None
+    return CompletedAuction(**{
+        **asdict(c),
+        "started_by_team_name": page["started_by_team_name"],
+        "bids": bids,
+        "winner_team_id": top["team_id"] if top else None,
+        "winner_team_name": top["team_name"] if top else None,
+    })
 
 
 def parse_waivers(html: str) -> list[MarketRow]:
@@ -245,11 +385,49 @@ def to_db_rows(rows: list[MarketRow], league_id: int, player_ids: dict[str, str]
     return out
 
 
+def carry_over(rows: list[dict], existing: dict[str, dict]) -> list[dict]:
+    """Keep what an earlier scrape knew that this one cannot see.
+
+    `existing` maps player_key -> the stored row's {first_seen_at, market_id}.
+    A row seen before keeps its `first_seen_at` (the auction's Discord key); a
+    new one is first seen now. A public scrape cannot see `market_id`, so it
+    keeps the logged-in scrape's rather than blanking it.
+    """
+    out = []
+    for r in rows:
+        prev = existing.get(r["player_key"]) or {}
+        out.append({
+            **r,
+            "first_seen_at": prev.get("first_seen_at") or r["scraped_at"],
+            "market_id": r.get("market_id") or prev.get("market_id"),
+        })
+    return out
+
+
+def result_db_rows(results: list[CompletedAuction], league_id: int, player_ids: dict[str, str],
+                   scraped_at: str) -> list[dict]:
+    out = []
+    for c in results:
+        d = asdict(c)
+        d.update(
+            league_id=league_id,
+            player_key=c.player_key,
+            player_id=player_ids.get(c.player_key),
+            scraped_at=scraped_at,
+        )
+        out.append(d)
+    return out
+
+
 # ─── Fetching ────────────────────────────────────────────────────────────────
 
 
 def fetch_auctions_public(league_id: int) -> str:
     return fetch_page(AUCTIONS_PATH.format(league_id=league_id), USER_AGENT)
+
+
+def fetch_auction_page(league_id: int, auction_id: int) -> str:
+    return fetch_page(AUCTION_PATH.format(league_id=league_id, auction_id=auction_id), USER_AGENT)
 
 
 async def fetch_logged_in(league_id: int) -> tuple[str, str]:
@@ -281,7 +459,7 @@ async def fetch_logged_in(league_id: int) -> tuple[str, str]:
 # ─── Writing ─────────────────────────────────────────────────────────────────
 
 
-def resolve_player_ids(supabase, rows: list[MarketRow]) -> dict[str, str]:
+def resolve_player_ids(supabase, rows: list[MarketRow | CompletedAuction]) -> dict[str, str]:
     """player_key -> players.id for the handful of players on the market."""
     ids = sorted({r.ottoneu_id for r in rows})
     if not ids:
@@ -301,8 +479,39 @@ def resolve_player_ids(supabase, rows: list[MarketRow]) -> dict[str, str]:
     }
 
 
+def fetch_existing(supabase, league_id: int, kind: str) -> dict[str, dict]:
+    """player_key -> {first_seen_at, market_id} for this kind's stored rows."""
+    data = (
+        supabase.table(TABLE)
+        .select("player_key, first_seen_at, market_id")
+        .eq("league_id", league_id)
+        .eq("kind", kind)
+        .limit(999)  # pagination-safe: a snapshot of the few dozen players on the market
+        .execute()
+        .data
+        or []
+    )
+    return {r["player_key"]: r for r in data}
+
+
+def fetch_stored_result_ids(supabase, league_id: int, auction_ids: list[int]) -> set[int]:
+    if not auction_ids:
+        return set()
+    data = (
+        supabase.table(RESULTS_TABLE)
+        .select("auction_id")
+        .eq("league_id", league_id)
+        .in_("auction_id", auction_ids)  # pagination-safe: bounded by the ids asked about
+        .execute()
+        .data
+        or []
+    )
+    return {r["auction_id"] for r in data}
+
+
 def replace_kind(supabase, league_id: int, kind: str, rows: list[dict]) -> None:
     """Upsert this kind's snapshot, then drop anyone no longer listed."""
+    rows = carry_over(rows, fetch_existing(supabase, league_id, kind))
     if rows:
         supabase.table(TABLE).upsert(rows, on_conflict="league_id,kind,player_key").execute()
     q = supabase.table(TABLE).delete().eq("league_id", league_id).eq("kind", kind)
@@ -325,6 +534,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dry-run", action="store_true", help="Print rows; write nothing.")
     parser.add_argument("--auctions-file", help="Parse a saved auctions page instead of fetching.")
     parser.add_argument("--waivers-file", help="Parse a saved waivers page instead of fetching.")
+    parser.add_argument("--auctions-only", action="store_true",
+                        help="Read only the public auctions page over plain HTTP (no login, no waivers).")
     args = parser.parse_args(argv)
 
     now = datetime.now(timezone.utc).replace(microsecond=0)
@@ -336,11 +547,12 @@ def main(argv: list[str] | None = None) -> int:
             auctions_html = open(args.auctions_file, encoding="utf-8").read()
         if args.waivers_file:
             waivers_html = open(args.waivers_file, encoding="utf-8").read()
-    elif have_credentials():
+    elif have_credentials() and not args.auctions_only:
         auctions_html, waivers_html = asyncio.run(fetch_logged_in(LEAGUE_ID))
     else:
-        print("FANGRAPHS_USERNAME/PASSWORD not set: reading public auctions only; "
-              "waiver rows are left as they are.")
+        if not args.auctions_only:
+            print("FANGRAPHS_USERNAME/PASSWORD not set: reading public auctions only; "
+                  "waiver rows are left as they are.")
         auctions_html = fetch_auctions_public(LEAGUE_ID)
 
     scraped: dict[str, list[MarketRow]] = {}
@@ -357,23 +569,50 @@ def main(argv: list[str] | None = None) -> int:
             print("Error: no 'Waiver Claims' heading — not logged in, or markup changed?")
             return 1
 
+    completed = parse_completed_auctions(auctions_html) if auctions_html is not None else []
+
     for kind, rows in scraped.items():
         print(f"{len(rows)} {kind} row(s)")
         _print(rows)
+
+    supabase = None if args.dry_run else get_supabase_client()
+    # Results need a page load each, so only recent ones not already stored.
+    stored = fetch_stored_result_ids(supabase, LEAGUE_ID, [c.auction_id for c in completed]) if supabase else set()
+    due = results_to_fetch(completed, stored, now.astimezone(LEAGUE_TZ).date())
+    results = []
+    for c in due:
+        try:
+            result = with_auction_page(c, parse_auction_page(fetch_auction_page(LEAGUE_ID, c.auction_id)))
+        except Exception as e:  # noqa: BLE001 - one bad page must not sink the snapshot; next run retries
+            print(f"Warning: auction {c.auction_id} ({c.player_name}) page failed: {e}")
+            continue
+        # Every auction has at least the nominating bid, so no bids means the page
+        # did not parse. Leave it unstored and the next run tries again.
+        if result.winner_team_name is None:
+            print(f"Warning: auction {c.auction_id} ({c.player_name}) page listed no bids — will retry.")
+            continue
+        results.append(result)
+    for r in results:
+        print(f"  result  {r.player_name:28} ${r.salary} to {r.winner_team_name} "
+              f"({len(r.bids)} bid(s)), ended {r.ended_at_local}")
 
     if args.dry_run:
         print("Dry run: nothing written.")
         return 0
 
-    supabase = get_supabase_client()
     all_rows = [r for rows in scraped.values() for r in rows]
-    player_ids = resolve_player_ids(supabase, all_rows)
+    player_ids = resolve_player_ids(supabase, [*all_rows, *results])
     unmatched = [r.player_name for r in all_rows if r.player_key not in player_ids]
     if unmatched:
         print(f"No players row for: {', '.join(unmatched)} (stored with player_id NULL)")
     for kind, rows in scraped.items():
         replace_kind(supabase, LEAGUE_ID, kind, to_db_rows(rows, LEAGUE_ID, player_ids, now.isoformat()))
         print(f"Wrote {len(rows)} {kind} row(s) to {TABLE}.")
+    if results:
+        supabase.table(RESULTS_TABLE).upsert(
+            result_db_rows(results, LEAGUE_ID, player_ids, now.isoformat()), on_conflict="league_id,auction_id"
+        ).execute()
+        print(f"Wrote {len(results)} completed auction(s) to {RESULTS_TABLE}.")
     return 0
 
 

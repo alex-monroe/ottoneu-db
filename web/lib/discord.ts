@@ -6,7 +6,7 @@
  * (`Authorization: Bot …`, token in `DISCORD_TOKEN`) to a channel id in
  * `DISCORD_CHANNEL_ID` — one bot, not a webhook per feature. The posts
  * themselves are built in `./discord-power-rankings` (weekly ranking, vote
- * reminder) and `./discord-feed` (trades, daily moves, pick'em).
+ * reminder) and `./discord-feed` (trades, daily moves, pick'em, FA auctions).
  *
  * ## Every link is tagged
  *
@@ -50,7 +50,9 @@ export type DiscordCampaign =
   | "trade_processed"
   | "moves_digest"
   | "pickem_results"
-  | "pickem_reminder";
+  | "pickem_reminder"
+  | "auction_started"
+  | "auction_finished";
 
 /** The site origin for links: `SITE_URL`, else the production site. */
 export function siteUrlFromEnv(env: Readonly<Record<string, string | undefined>> = process.env): string {
