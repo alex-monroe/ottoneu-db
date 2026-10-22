@@ -6,8 +6,9 @@ week 6. The feed takes the site's news to where the conversation already is, and
 links back to the site with tags that show which posts bring people over.
 
 Every post goes out as the league's existing bot, the same one the power rankings
-use ([podcast-tools.md](podcast-tools.md#the-discord-post)). There is one bot and
-one channel, not a webhook per feature.
+use ([podcast-tools.md](podcast-tools.md#the-discord-post)). There is one bot,
+not a webhook per feature, and every post goes to the general channel except the
+FA auction posts, which go to the league's #auctions channel.
 
 | Post | Job | When | `post_type` / key |
 |---|---|---|---|
@@ -221,8 +222,9 @@ Events carry no user id or team. They count engagement and nothing else.
 ## Operating it
 
 - **Secrets:** `DISCORD_TOKEN` (the GitHub Actions secret the power rankings
-  already use) and the channel id in each workflow. `SITE_URL` sets the links'
-  origin.
+  already use) and the channel id in each workflow (`post-auctions.yml` points
+  at #auctions, `1409590042422149211`; the rest at the general channel).
+  `SITE_URL` sets the links' origin.
 - **Monitoring:** `Post Moves Digest`, `Post Pickem` and `Post Auctions` are on the
   `alert-scheduled-failure.yml` list. The trade posts run inside `Scrape Trade
   History`, so a failed post fails that run and alerts under its name.
