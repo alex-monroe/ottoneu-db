@@ -86,7 +86,8 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-          DISCORD_CHANNEL_ID: "1396549904234709044"
+          # The league #auctions channel, not the general one the other feed posts use.
+          DISCORD_CHANNEL_ID: "1409590042422149211"
           SITE_URL: https://sofa-db.vercel.app
           DRY_RUN: ${{ inputs.dry_run }}
           SEED: ${{ inputs.seed }}
