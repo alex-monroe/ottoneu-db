@@ -9,7 +9,8 @@ long each window has left, and what the viewer should do about each one.
 | Scraper | `scripts/scrape_fa_market.py` (`just scrape-fa-market [--dry-run]`) |
 | Login | `scripts/fangraphs_login.py` (shared with the arbitration scrape) |
 | Schedule | `.github/workflows/scrape-fa-market.yml` — every 3 hours, gated to the `in_season` phase by `scripts/fa_market_gate.py` |
-| Table | `fa_market` (migration 051) — a snapshot, one row per player on the market |
+| Table | `fa_market` (migration 051) — a snapshot, one row per player on the market; `fa_auction_results` (migration 054) — completed auctions |
+| Discord | `.github/workflows/post-auctions.yml` — every 10 minutes, `--auctions-only`, then posts openings and results ([discord-feed.md](discord-feed.md#fa-auctions)) |
 | Pricing | `web/lib/fa-market.ts` (pure) · `web/lib/fa-market-data.ts` (read) |
 | UI | `web/app/free-agents/FaMarketBoard.tsx`, wired in `web/app/free-agents/page.tsx` |
 
@@ -19,11 +20,28 @@ long each window has left, and what the viewer should do about each one.
 |---|---|---|---|
 | `/football/{league}/auctions` | **Public** | Active auctions: player, a countdown ("1 hours 30 minutes 6 seconds"), minimum bid. Logged in, each row also carries Ottoneu's auction id in its bid box. | The nominating team, any bid (bids are blind) |
 | `/football/{league}/waivers` | **Login-gated** (anonymous requests 307 to the league home) | Waiver claims: player, salary, cut time. Logged in, each row carries the claim id. | The team that cut him |
+| `/football/{league}/auctions/<id>` (checked 2026-10-21) | **Public**, once closed; linked from the "Completed Auctions" table on `/auctions` (which also prints the price and the ending time) | Who started it, when it ended, every bid with its team, highest first | Anything while the auction is open |
 
 So the scrape logs in when `FANGRAPHS_USERNAME` / `FANGRAPHS_PASSWORD` are set and
 reads both pages in one Playwright session. Without them it reads the public auctions
 page over plain HTTP (`scripts/ottoneu_http.py`, honest User-Agent) and leaves the
-waiver rows alone. The board says "nominated by" nowhere because no page says it.
+waiver rows alone. The board says "nominated by" nowhere because no page says it while the auction is open;
+the closed auction's page does, which is what the Discord result post uses.
+
+## Completed auctions and the Discord feed
+
+Each run also reads the "Completed Auctions" table on the page it already fetched and,
+for each auction that ended in the last `RESULT_LOOKBACK_DAYS` (2) and is not stored yet,
+loads its `/auctions/<id>` page into `fa_auction_results`: price, ending time (site
+clock), who started it, every bid, and the winner (the top bid). A page that parses to no
+bids is left unstored for the next run to retry.
+
+`fa_market.first_seen_at` is the first scrape that listed a row, carried over by every later
+scrape (`carry_over`), so `(player_key, first_seen_at)` names an open auction for its whole
+life. That is the key of its "auction started" Discord post, because the public page prints
+no auction id. `carry_over` also keeps a logged-in scrape's `market_id` when a public
+scrape cannot see it. Both workflows share the `scrape-fa-market` concurrency group so two
+runs never race on `first_seen_at`.
 
 **FanGraphs login change (October 2026).** `wp-login.php` was re-skinned: the stock
 `#wp-submit` button is still in the form but hidden, and the visible "Sign In" button is

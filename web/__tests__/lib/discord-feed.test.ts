@@ -1,5 +1,9 @@
 import {
   addDays,
+  auctionStartedKey,
+  auctionsToPost,
+  buildAuctionFinishedMessage,
+  buildAuctionStartedMessage,
   buildMovesDigestMessage,
   buildPickemReminderMessage,
   buildPickemResultsMessage,
@@ -13,6 +17,8 @@ import {
   sideValueRead,
   tradesToPost,
   weekEndsOn,
+  type AuctionResult,
+  type OpenAuction,
   type ProductionBook,
 } from "@/lib/discord-feed";
 import type { Board, BoardRow } from "@/lib/pickem";
@@ -378,5 +384,109 @@ describe("buildPickemReminderMessage", () => {
   it("says when nobody has picked yet", () => {
     const e = buildPickemReminderMessage({ week: 7, locksAt: "2026-10-23T00:00:00.000Z", players: 0, games: 6, siteUrl: SITE }).embeds[0];
     expect(e.description).toContain("Nobody has picked yet.");
+  });
+});
+
+describe("FA auctions", () => {
+  const NOW = new Date("2026-10-21T18:00:00Z");
+  const open = (over: Partial<OpenAuction> = {}): OpenAuction => ({
+    playerKey: "nfl:7366",
+    ottoneuId: 7366,
+    isCollege: false,
+    playerName: "Christian Kirk",
+    nflTeam: "SF",
+    position: "WR",
+    injuryStatus: "IR",
+    minBid: 2,
+    endsAt: "2026-10-22T09:00:00+00:00",
+    firstSeenAt: "2026-10-21T09:00:00+00:00",
+    ...over,
+  });
+  const result = (over: Partial<AuctionResult> = {}): AuctionResult => ({
+    auctionId: 65780,
+    ottoneuId: 13211,
+    isCollege: false,
+    playerName: "Tyrone Tracy",
+    nflTeam: "NYG",
+    position: "RB",
+    salary: 6,
+    endedAtLocal: "2026-10-21T12:52:00",
+    startedByTeamName: "The Roseman Empire",
+    winnerTeamName: "Marin County Mountain Runners",
+    bids: [
+      { teamId: 2629, teamName: "Marin County Mountain Runners", amount: 6 },
+      { teamId: 2625, teamName: "Ball So Hard University", amount: 5 },
+    ],
+    ...over,
+  });
+
+  describe("auctionStartedKey", () => {
+    it("names the auction by player and first sighting, whatever the timestamp spelling", () => {
+      expect(auctionStartedKey(open())).toBe("nfl:7366@2026-10-21T09:00:00.000Z");
+      expect(auctionStartedKey(open({ firstSeenAt: "2026-10-21T09:00:00Z" }))).toBe(auctionStartedKey(open()));
+    });
+
+    it("tells a later auction of the same player apart", () => {
+      expect(auctionStartedKey(open({ firstSeenAt: "2026-11-02T09:00:00Z" }))).not.toBe(auctionStartedKey(open()));
+    });
+  });
+
+  describe("auctionsToPost", () => {
+    it("posts results then openings, oldest first", () => {
+      const due = auctionsToPost(
+        [open({ playerKey: "nfl:2", firstSeenAt: "2026-10-21T10:00:00Z" }), open()],
+        [result({ auctionId: 2, endedAtLocal: "2026-10-21T13:00:00" }), result()],
+        new Set(),
+        NOW,
+        "2026-10-20",
+      );
+      expect(due.map((p) => `${p.id.type}:${p.id.key}`)).toEqual([
+        "auction_finished:65780",
+        "auction_finished:2",
+        "auction_started:nfl:7366@2026-10-21T09:00:00.000Z",
+        "auction_started:nfl:2@2026-10-21T10:00:00.000Z",
+      ]);
+    });
+
+    it("skips what is posted, closed, too old, or has no winner", () => {
+      const posted = new Set(["auction_finished:65780"]);
+      const due = auctionsToPost(
+        [open({ endsAt: "2026-10-21T17:59:00Z" })],
+        [result(), result({ auctionId: 1, endedAtLocal: "2026-10-19T23:00:00" }), result({ auctionId: 3, winnerTeamName: null })],
+        posted,
+        NOW,
+        "2026-10-20",
+      );
+      expect(due).toEqual([]);
+    });
+  });
+
+  describe("buildAuctionStartedMessage", () => {
+    it("carries the player, min bid, a closing timestamp and both links", () => {
+      const embed = buildAuctionStartedMessage(open(), SITE).embeds[0];
+      expect(embed.title).toBe("🚨 New auction: Christian Kirk");
+      expect(embed.url).toMatch(/ottoneu\.fangraphs\.com\/football\/\d+\/auctions$/);
+      expect(embed.description).toContain("**SF WR** · IR");
+      expect(embed.description).toContain("Min bid **$2** · closes <t:1792659600:R>");
+      expect(embed.description).toContain(`${SITE}/free-agents?utm_source=discord&utm_campaign=auction_started`);
+    });
+  });
+
+  describe("buildAuctionFinishedMessage", () => {
+    it("names the winner, the price and every bid, linking the auction", () => {
+      const embed = buildAuctionFinishedMessage(result(), SITE).embeds[0];
+      expect(embed.title).toBe("✅ Auction won: Tyrone Tracy");
+      expect(embed.url).toMatch(/\/auctions\/65780$/);
+      expect(embed.description).toContain("**Marin County Mountain Runners** signed **Tyrone Tracy** (NYG RB) for **$6**.");
+      expect(embed.description).toContain("🏆 Marin County Mountain Runners — $6\n▫️ Ball So Hard University — $5");
+      expect(embed.description).toContain("Started by The Roseman Empire");
+      expect(embed.description).toContain(`${SITE}/players/13211?utm_source=discord&utm_campaign=auction_finished`);
+      expect(embed.footer.text).toBe("2 bids · closed Oct 21, 12:52 PM ET");
+    });
+
+    it("has no site link for a college player", () => {
+      const embed = buildAuctionFinishedMessage(result({ isCollege: true }), SITE).embeds[0];
+      expect(embed.description).not.toContain("/players/");
+    });
   });
 });

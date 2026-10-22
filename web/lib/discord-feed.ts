@@ -1,7 +1,8 @@
 /**
  * The league Discord feed — pure logic only. Reads and the send live in
  * `./discord-feed-data`; the jobs are `web/scripts/post-trades.ts`,
- * `post-moves-digest.ts` and `post-pickem.ts`. See docs/references/discord-feed.md.
+ * `post-moves-digest.ts`, `post-pickem.ts` and `post-auctions.ts`. See
+ * docs/references/discord-feed.md.
  *
  * The league talks in Discord, not on the site, so the feed takes the site's
  * news to where the conversation already is:
@@ -13,6 +14,8 @@
  * - **Daily moves digest** — yesterday's adds and cuts, grouped by team.
  * - **Pick'em** — the week's winner and the season leader once the week's
  *   games are final, and a reminder before picks lock.
+ * - **FA auctions** — a post when an auction opens and another when it closes,
+ *   with the winner, the price and every bid. (This replaced a standalone bot.)
  *
  * ## The in-season value read is earned value, not the projection
  *
@@ -30,6 +33,7 @@
  * what to post takes the set of already-posted keys and leaves those out.
  */
 
+import { LEAGUE_ID } from "./config";
 import {
   discordLink,
   discordTimestamp,
@@ -50,7 +54,9 @@ export type FeedPostType =
   | "trade_processed"
   | "moves_digest"
   | "pickem_results"
-  | "pickem_reminder";
+  | "pickem_reminder"
+  | "auction_started"
+  | "auction_finished";
 
 /** `discord_posts` identity of one post. */
 export interface FeedPostId {
@@ -499,6 +505,142 @@ export function buildPickemReminderMessage(input: {
         ].join("\n"),
         color: EMBED_COLOR,
         footer: { text: "Nobody sees anyone's picks until the lock" },
+      },
+    ],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// FA auctions
+// ---------------------------------------------------------------------------
+
+const OTTONEU_AUCTIONS_URL = `https://ottoneu.fangraphs.com/football/${LEAGUE_ID}/auctions`;
+
+/** An auction still open, as `fa_market` holds it. */
+export interface OpenAuction {
+  playerKey: string;
+  ottoneuId: number;
+  isCollege: boolean;
+  playerName: string;
+  nflTeam: string | null;
+  position: string | null;
+  injuryStatus: string | null;
+  minBid: number | null;
+  endsAt: string;
+  /** When the scrape first listed it; stable for the auction's life. */
+  firstSeenAt: string;
+}
+
+export interface AuctionBid {
+  teamId: number;
+  teamName: string;
+  amount: number;
+}
+
+/** A closed auction, as `fa_auction_results` holds it. */
+export interface AuctionResult {
+  auctionId: number;
+  ottoneuId: number;
+  isCollege: boolean;
+  playerName: string;
+  nflTeam: string | null;
+  position: string | null;
+  salary: number | null;
+  /** Ottoneu site clock (US Eastern, no zone). */
+  endedAtLocal: string;
+  startedByTeamName: string | null;
+  winnerTeamName: string | null;
+  /** Highest first. */
+  bids: AuctionBid[];
+}
+
+export type AuctionPost =
+  | { id: FeedPostId; kind: "started"; auction: OpenAuction }
+  | { id: FeedPostId; kind: "finished"; result: AuctionResult };
+
+/**
+ * The public auctions page prints no auction id, so an open auction is named
+ * by its player and the moment the scrape first saw it. Normalised through
+ * `Date` so `+00:00` and `Z` spellings of one instant make one key.
+ */
+export function auctionStartedKey(a: Pick<OpenAuction, "playerKey" | "firstSeenAt">): string {
+  return `${a.playerKey}@${new Date(a.firstSeenAt).toISOString()}`;
+}
+
+/**
+ * What is due: every still-open auction not yet announced, then every result
+ * from `sinceDay` (`YYYY-MM-DD`, site clock) on that names a winner and is not
+ * yet announced. Oldest first within each, so the channel reads in order.
+ *
+ * A finished post does not wait for its started post: an auction opened and
+ * closed between two runs still gets its result.
+ */
+export function auctionsToPost(
+  open: readonly OpenAuction[],
+  results: readonly AuctionResult[],
+  posted: ReadonlySet<string>,
+  now: Date,
+  sinceDay: string,
+): AuctionPost[] {
+  const started: AuctionPost[] = [...open]
+    .filter((a) => Date.parse(a.endsAt) > now.getTime())
+    .sort((x, y) => Date.parse(x.firstSeenAt) - Date.parse(y.firstSeenAt))
+    .map((auction) => ({ id: { type: "auction_started" as const, key: auctionStartedKey(auction) }, kind: "started" as const, auction }));
+  const finished: AuctionPost[] = [...results]
+    .filter((r) => r.winnerTeamName && r.endedAtLocal.slice(0, 10) >= sinceDay)
+    .sort((x, y) => x.endedAtLocal.localeCompare(y.endedAtLocal))
+    .map((result) => ({ id: { type: "auction_finished" as const, key: String(result.auctionId) }, kind: "finished" as const, result }));
+  return [...finished, ...started].filter((p) => !posted.has(postIdString(p.id)));
+}
+
+const teamPosition = (p: { nflTeam: string | null; position: string | null }) =>
+  [p.nflTeam, p.position].filter(Boolean).join(" ") || "?";
+
+/** The player's page on the site; college players have none. */
+const playerPath = (p: { isCollege: boolean; ottoneuId: number }) =>
+  p.isCollege ? null : `/players/${p.ottoneuId}`;
+
+export function buildAuctionStartedMessage(a: OpenAuction, siteUrl: string): DiscordMessage {
+  const closes = discordTimestamp(a.endsAt, "R");
+  const lines = [
+    `**${teamPosition(a)}**${a.injuryStatus ? ` · ${a.injuryStatus}` : ""}`,
+    [a.minBid === null ? null : `Min bid **${dollars(a.minBid)}**`, closes ? `closes ${closes}` : null]
+      .filter(Boolean)
+      .join(" · "),
+    "",
+    `[Bid on Ottoneu](${OTTONEU_AUCTIONS_URL}) · [Your max bid on SOFA DB →](${discordLink(siteUrl, "/free-agents", "auction_started")})`,
+  ];
+  return {
+    embeds: [
+      {
+        title: `🚨 New auction: ${a.playerName}`,
+        url: OTTONEU_AUCTIONS_URL,
+        description: lines.join("\n"),
+        color: EMBED_COLOR,
+        footer: { text: "Ottoneu FA auction · bids are blind until it closes" },
+      },
+    ],
+  };
+}
+
+export function buildAuctionFinishedMessage(r: AuctionResult, siteUrl: string): DiscordMessage {
+  const price = r.salary === null ? "" : ` for **${dollars(r.salary)}**`;
+  const lines = [
+    `**${r.winnerTeamName ?? "Unknown"}** signed **${r.playerName}** (${teamPosition(r)})${price}.`,
+    "",
+    ...r.bids.map((b, i) => `${i === 0 ? "🏆" : "▫️"} ${b.teamName} — ${dollars(b.amount)}`),
+  ];
+  if (r.startedByTeamName) lines.push("", `Started by ${r.startedByTeamName}`);
+  const path = playerPath(r);
+  const tail = path ? `[${r.playerName} on SOFA DB →](${discordLink(siteUrl, path, "auction_finished")})` : "";
+  return {
+    embeds: [
+      {
+        title: `✅ Auction won: ${r.playerName}`,
+        url: `${OTTONEU_AUCTIONS_URL}/${r.auctionId}`,
+        description: fitLines(lines, undefined, tail),
+        color: EMBED_COLOR,
+        footer: { text: `${plural(r.bids.length, "bid")} · closed ${formatSiteClock(r.endedAtLocal)} ET` },
       },
     ],
   };

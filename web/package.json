@@ -14,6 +14,7 @@
     "post-trades": "tsx --env-file-if-exists=.env.local scripts/post-trades.ts",
     "post-moves-digest": "tsx --env-file-if-exists=.env.local scripts/post-moves-digest.ts",
     "post-pickem": "tsx --env-file-if-exists=.env.local scripts/post-pickem.ts",
+    "post-auctions": "tsx --env-file-if-exists=.env.local scripts/post-auctions.ts",
     "gather-release-notes": "tsx --env-file-if-exists=.env.local scripts/gather-release-notes.ts"
   },
   "dependencies": {

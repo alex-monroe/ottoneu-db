@@ -14,7 +14,16 @@ import {
   postDiscordMessage,
   type DiscordMessage,
 } from "./discord";
-import { addDays, postIdString, productionBook, type FeedPostId, type ProductionBook } from "./discord-feed";
+import {
+  addDays,
+  postIdString,
+  productionBook,
+  type AuctionBid,
+  type AuctionResult,
+  type FeedPostId,
+  type OpenAuction,
+  type ProductionBook,
+} from "./discord-feed";
 import { calculateEarnedValue } from "./earned-value";
 import { fetchAllRows, getSupabaseAdmin, supabase } from "./supabase";
 import { tradesFromHistory, type LeagueTrade, type TradeAssetRow, type TradeRow } from "./trades";
@@ -42,7 +51,21 @@ export async function fetchPostedIds(ids: readonly FeedPostId[]): Promise<Set<st
   return posted;
 }
 
-export type SendOutcome = "posted" | "dry-run" | "already-posted";
+export type SendOutcome = "posted" | "dry-run" | "already-posted" | "seeded";
+
+/**
+ * Mark a post as sent without sending it. For a cut-over: when another poster
+ * (the old Railway auction bot) has already announced what is open now, a
+ * seeding run records it so the first real run does not repeat it.
+ */
+export async function seedFeedPost(id: FeedPostId): Promise<SendOutcome> {
+  const { error } = await getSupabaseAdmin()
+    .from("discord_posts")
+    .insert({ league_id: LEAGUE_ID, post_type: id.type, post_key: id.key });
+  if (!error) return "seeded";
+  if (error.code === "23505") return "already-posted";
+  throw new Error(`Could not record ${postIdString(id)}: ${error.message}`);
+}
 
 /**
  * Post one message, at most once ever.
@@ -146,4 +169,64 @@ export async function fetchRecentTrades(since: string): Promise<LeagueTrade[]> {
 export async function fetchProductionBook(): Promise<ProductionBook> {
   const { players, window } = await fetchPlayerSetEndOfSeason();
   return productionBook(players, calculateEarnedValue(players, window), window);
+}
+
+// ---------------------------------------------------------------------------
+// FA auctions
+// ---------------------------------------------------------------------------
+
+/**
+ * Auctions open at `now`, from the `fa_market` snapshot. Unlike the board's
+ * reader this throws on a failed read: a feed job should fail loudly, not
+ * quietly post nothing.
+ */
+export async function fetchOpenAuctions(now: Date = new Date()): Promise<OpenAuction[]> {
+  const { data, error } = await supabase
+    .from("fa_market")
+    .select("player_key, ottoneu_id, is_college, player_name, nfl_team, position, injury_status, min_bid, ends_at, first_seen_at")
+    .eq("league_id", LEAGUE_ID)
+    .eq("kind", "auction")
+    .gt("ends_at", now.toISOString())
+    .order("id")
+    .limit(500); // pagination-safe: one row per player on the market, a few dozen
+  if (error) throw new Error(`Could not read fa_market: ${error.message}`);
+  return (data ?? []).map((r) => ({
+    playerKey: r.player_key,
+    ottoneuId: r.ottoneu_id,
+    isCollege: r.is_college,
+    playerName: r.player_name,
+    nflTeam: r.nfl_team,
+    position: r.position,
+    injuryStatus: r.injury_status,
+    minBid: r.min_bid,
+    endsAt: r.ends_at,
+    firstSeenAt: r.first_seen_at,
+  }));
+}
+
+/** Completed auctions that ended on or after `sinceDay` (`YYYY-MM-DD`, site clock). */
+export async function fetchRecentAuctionResults(sinceDay: string): Promise<AuctionResult[]> {
+  const { data, error } = await supabase
+    .from("fa_auction_results")
+    .select("auction_id, ottoneu_id, is_college, player_name, nfl_team, position, salary, ended_at_local, started_by_team_name, winner_team_name, bids")
+    .eq("league_id", LEAGUE_ID)
+    .gte("ended_at_local", sinceDay)
+    .order("auction_id")
+    .limit(500); // pagination-safe: a few days of auctions, a handful a day
+  if (error) throw new Error(`Could not read fa_auction_results: ${error.message}`);
+  return (data ?? []).map((r) => ({
+    auctionId: r.auction_id,
+    ottoneuId: r.ottoneu_id,
+    isCollege: r.is_college,
+    playerName: r.player_name,
+    nflTeam: r.nfl_team,
+    position: r.position,
+    salary: r.salary,
+    endedAtLocal: r.ended_at_local,
+    startedByTeamName: r.started_by_team_name,
+    winnerTeamName: r.winner_team_name,
+    bids: ((r.bids ?? []) as { team_id: number; team_name: string; amount: number }[]).map(
+      (b): AuctionBid => ({ teamId: b.team_id, teamName: b.team_name, amount: b.amount }),
+    ),
+  }));
 }
