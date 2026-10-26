@@ -373,6 +373,11 @@ scrape-trades *args:
 scrape-lineups *args:
     {{python}} scripts/scrape_lineups.py {{args}}
 
+# Rebuild finished games' score worms play by play from nflverse play-by-play.
+# e.g. just rebuild-score-worm --dry-run ; just rebuild-score-worm --week 3
+rebuild-score-worm *args:
+    {{python}} scripts/rebuild_score_worm.py {{args}}
+
 # Snapshot the open FA market (active auctions + claimable waivers) into fa_market.
 # Logs in with FANGRAPHS_USERNAME/PASSWORD for waivers; auctions-only without them
 # or with --auctions-only. Also stores recently completed auctions (fa_auction_results).

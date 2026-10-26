@@ -6,12 +6,12 @@ that knows the league has games.
 
 | | |
 |---|---|
-| **Tables** | `league_matchups` (migration 037) · `matchup_lineups` (migration 044) · `matchup_score_snapshots` (migration 053) |
-| **Scrapers** | `scripts/scrape_matchups.py` — `just scrape-matchups` · `scripts/scrape_lineups.py` — `just scrape-lineups` |
+| **Tables** | `league_matchups` (migration 037) · `matchup_lineups` (migration 044) · `matchup_score_snapshots` (migration 053) · `matchup_score_plays` (migration 055) |
+| **Scrapers** | `scripts/scrape_matchups.py` — `just scrape-matchups` · `scripts/scrape_lineups.py` — `just scrape-lineups` · `scripts/rebuild_score_worm.py` — `just rebuild-score-worm` (nflverse play-by-play) |
 | **Derivation** | `web/lib/standings.ts` + `web/lib/live-matchup.ts` + `web/lib/playoff-odds.ts` + `web/lib/score-worm.ts` (pure) · `web/lib/matchups.ts` + `web/lib/matchup-lineups.ts` + `web/lib/playoff-odds-data.ts` (fetchers) |
 | **Routes** | `/scoreboard` and `/scoreboard/[gameId]` (public) · the homepage league-status section |
 | **MCP tools** | `get_scoreboard` · `get_standings` (incl. playoff odds) |
-| **Workflow** | `.github/workflows/pull-matchups.yml` |
+| **Workflow** | `.github/workflows/pull-matchups.yml` · `.github/workflows/rebuild-score-worms.yml` |
 
 ## The one design decision: standings are derived, not scraped
 
@@ -88,9 +88,10 @@ standings.
 `pull-matchups.yml` runs daily at 11:00 UTC (the baseline, and off-season the
 only one that matters), then every 5 minutes (GitHub's minimum cron interval)
 through the Sunday afternoon and evening windows and the Thursday-, Sunday- and
-Monday-night games. The 5-minute cadence is what gives the score worm its
-resolution; GitHub can delay or drop scheduled runs under load, so it is a
-target, not a guarantee. There is **no in-season
+Monday-night games. The 5-minute cadence is what gives the *live* score worm
+its resolution, and it is a target, not a guarantee: in October 2026 GitHub
+fired a whole Sunday window (17:00–04:55 UTC) five times, roughly every two
+hours. That is why finished weeks are redrawn from play-by-play (below). There is **no in-season
 gate**: the schedule page is public and cheap year-round, and the daily
 off-season run is what catches next season's schedule the day it posts.
 
@@ -269,8 +270,46 @@ positive/negative.
 It appears on `/scoreboard/[gameId]` (home left) and on `/matchup` (the
 viewer's team first, via `flipSnapshots`, and only once the game is past
 `scheduled`). It is hidden when there are fewer than two distinct scores.
-**No backfill exists.** Weeks played before migration 053 have no history and
-show no worm.
+
+#### Rebuilt play by play once the week is over
+
+The live snapshots are only as fine as the cron that writes them, which in
+practice is every couple of hours. Once a week's NFL games are over,
+`scripts/rebuild_score_worm.py` (`just rebuild-score-worm`, daily in
+`rebuild-score-worms.yml`) redraws it exactly from nflverse play-by-play. It
+scores every play with the league's rules, credits the points to that game's
+starters in `matchup_lineups`, and writes one `matchup_score_plays` row
+(migration 055) per play that moved either side's total. Each row carries the
+play's wall-clock time and a note on who scored ("J. Chase +9.40"), which the
+chart's tooltip shows. `fetchScoreSnapshots` returns these rows whenever a game
+has any, and falls back to the live snapshots otherwise. The chart's footnote
+names the source.
+
+- **Scoring** is `SCORING_SETTINGS` plus `SCORING_EXTRAS` in `config.json`:
+  fumbles lost −2, a two-point conversion +2 to the runner or receiver and +1 to
+  the passer, and a missed FG or PAT −1. Ottoneu scores these too, but they are
+  kept apart from `SCORING_SETTINGS` because the season-total pipelines
+  (`pull_player_stats`, projections) loop over every key in that dict. Return
+  and defensive touchdowns score nobody. A fumble lost is charged to
+  `fumbled_1_player_id` only. These rules were checked against Ottoneu's box
+  scores: for 2026 weeks 1–6, all 1,295 started player-games match to the
+  hundredth, and so do the league's final scores.
+- **Players** are matched to gsis ids by normalized name through that
+  season's nflverse roster file. Position, then NFL team, breaks ties.
+- **A week is rebuilt only when it is over on both sides.** Every NFL game of
+  the week must have an `END GAME` row in play-by-play, and every league game
+  of the week must be `final` in `league_matchups`. The league week is the NFL
+  week of the same number. In practice Tuesday's run (15:30 UTC) picks up the
+  week that Monday night finished. A day's run with nothing waiting exits
+  before downloading anything.
+- **Every run re-checks itself.** It prints each starter whose rebuilt points
+  differ from Ottoneu's. If a side's rebuilt total still misses Ottoneu's (a
+  stat correction nflverse has not picked up, or an unmatched player), a final
+  row noted `Adjustment to Ottoneu's final` closes the gap.
+- Already-rebuilt weeks are skipped. `--week N` or `--all` rebuilds them again,
+  replacing each game's rows wholesale.
+
+Every 2026 week from week 1 on has been rebuilt, so the worm has no gap.
 
 ## Weekly pick'em
 

@@ -1,0 +1,209 @@
+"""Tests for the play-by-play score worm rebuild (scripts/rebuild_score_worm.py).
+
+Pure functions over hand-built nflverse-shaped plays — no network, no DB. The
+play descriptions are the real ones the scoring rules were checked against
+(2026 weeks 1–6, every started player-game matching Ottoneu to the hundredth).
+"""
+
+import math
+
+import pandas as pd
+import pytest
+
+from scripts.rebuild_score_worm import (
+    ADJUSTMENT_NOTE,
+    build_game_plays,
+    finished_nfl_weeks,
+    gsis_index,
+    match_gsis,
+    pick_weeks,
+    play_points,
+    play_times,
+    player_mismatches,
+)
+
+NAN = math.nan
+
+
+def play(**fields):
+    """A pbp row: every scoring column empty unless given."""
+    base = {
+        "passer_player_id": NAN, "rusher_player_id": NAN, "receiver_player_id": NAN,
+        "lateral_rusher_player_id": NAN, "lateral_receiver_player_id": NAN,
+        "passing_yards": NAN, "rushing_yards": NAN, "receiving_yards": NAN,
+        "lateral_rushing_yards": NAN, "lateral_receiving_yards": NAN,
+        "complete_pass": 0, "pass_touchdown": 0, "interception": 0,
+        "touchdown": 0, "td_player_id": NAN, "td_team": NAN, "posteam": "SF",
+        "kicker_player_id": NAN, "field_goal_result": NAN, "kick_distance": NAN,
+        "extra_point_result": NAN, "two_point_conv_result": NAN,
+        "fumble_lost": 0, "fumbled_1_player_id": NAN,
+    }
+    base.update(fields)
+    return base
+
+
+def rounded(points):
+    return {k: round(v, 2) for k, v in points.items()}
+
+
+class TestPlayPoints:
+    def test_touchdown_pass(self):
+        # Purdy deep right to Evans for 23 yards, TOUCHDOWN.
+        p = play(passer_player_id="QB", receiver_player_id="WR", passing_yards=23,
+                 receiving_yards=23, complete_pass=1, pass_touchdown=1, touchdown=1,
+                 td_player_id="WR", td_team="SF")
+        assert rounded(play_points(p)) == {"QB": 4.92, "WR": 8.8}
+
+    def test_lateral_touchdown_goes_to_the_lateral_receiver(self):
+        # Purdy to Evans for 2, lateral to Samuel for 80 yards, TOUCHDOWN.
+        p = play(passer_player_id="QB", receiver_player_id="WR1", lateral_receiver_player_id="WR2",
+                 passing_yards=82, receiving_yards=2, lateral_receiving_yards=80,
+                 complete_pass=1, pass_touchdown=1, touchdown=1, td_player_id="WR2", td_team="SF")
+        assert rounded(play_points(p)) == {"QB": 7.28, "WR1": 0.7, "WR2": 14.0}
+
+    def test_defensive_touchdown_scores_nobody(self):
+        p = play(passer_player_id="QB", interception=1, touchdown=1, td_player_id="CB", td_team="DAL")
+        assert play_points(p) == {"QB": -2}
+
+    def test_rushing_touchdown(self):
+        p = play(rusher_player_id="RB", rushing_yards=4, touchdown=1, td_player_id="RB", td_team="SF")
+        assert rounded(play_points(p)) == {"RB": 6.4}
+
+    @pytest.mark.parametrize("distance,points", [(39, 3), (40, 4), (49, 4), (50, 5), (62, 5)])
+    def test_field_goal_tiers(self, distance, points):
+        p = play(kicker_player_id="K", field_goal_result="made", kick_distance=distance)
+        assert play_points(p) == {"K": points}
+
+    @pytest.mark.parametrize("result", ["missed", "blocked"])
+    def test_missed_field_goal(self, result):
+        assert play_points(play(kicker_player_id="K", field_goal_result=result)) == {"K": -1}
+
+    @pytest.mark.parametrize("result,points", [("good", 1), ("failed", -1), ("blocked", -1)])
+    def test_extra_point(self, result, points):
+        assert play_points(play(kicker_player_id="K", extra_point_result=result)) == {"K": points}
+
+    def test_two_point_pass(self):
+        p = play(passer_player_id="QB", receiver_player_id="TE", two_point_conv_result="success")
+        assert play_points(p) == {"QB": 1, "TE": 2}
+
+    def test_failed_two_point_scores_nothing(self):
+        p = play(rusher_player_id="RB", two_point_conv_result="failure")
+        assert play_points(p) == {}
+
+    def test_fumble_lost_charges_the_first_fumbler(self):
+        # Brown fumbles, MIA recovers and fumbles it back: only Brown loses 2.
+        p = play(passer_player_id="QB", receiver_player_id="RB", passing_yards=3, receiving_yards=3,
+                 complete_pass=1, fumble_lost=1, fumbled_1_player_id="RB")
+        assert rounded(play_points(p)) == {"QB": 0.12, "RB": -1.2}
+
+    def test_sack_has_no_passing_yards(self):
+        assert play_points(play(passer_player_id="QB")) == {}
+
+
+class TestMatching:
+    ROSTER = pd.DataFrame(
+        [
+            ("00-1", "Josh Allen", "QB", "BUF"),
+            ("00-2", "Josh Allen", "LB", "JAX"),
+            ("00-3", "Mike Williams", "WR", "NYJ"),
+            ("00-4", "Mike Williams", "WR", "PIT"),
+            ("00-5", "D.J. Moore", "WR", "CHI"),
+        ],
+        columns=["gsis_id", "full_name", "position", "team"],
+    )
+
+    def test_position_breaks_a_name_tie(self):
+        index = gsis_index(self.ROSTER)
+        assert match_gsis({"player_name": "Josh Allen", "position": "QB", "nfl_team": "BUF"}, index) == "00-1"
+
+    def test_team_breaks_a_name_and_position_tie(self):
+        index = gsis_index(self.ROSTER)
+        assert match_gsis({"player_name": "Mike Williams", "position": "WR", "nfl_team": "PIT"}, index) == "00-4"
+
+    def test_names_are_normalized(self):
+        index = gsis_index(self.ROSTER)
+        assert match_gsis({"player_name": "DJ Moore", "position": "WR", "nfl_team": "CHI"}, index) == "00-5"
+
+    def test_unknown_or_ambiguous_is_none(self):
+        index = gsis_index(self.ROSTER)
+        assert match_gsis({"player_name": "Nobody", "position": "WR", "nfl_team": "CHI"}, index) is None
+        assert match_gsis({"player_name": "Mike Williams", "position": "WR", "nfl_team": "LAC"}, index) is None
+
+
+GAME = {"game_id": 7, "season": 2026, "week": 3}
+
+
+def starter(side, ottoneu_id, name, points):
+    return {"side": side, "ottoneu_id": ottoneu_id, "player_name": name, "nfl_team": "SF", "points": points}
+
+
+def event(at, points, game="2026_03_SF_LA", play_id=1.0):
+    return (pd.Timestamp(at), game, play_id, points)
+
+
+class TestBuildGamePlays:
+    STARTERS = [starter("home", 1, "Brock Purdy", 4.92), starter("away", 2, "Ja'Marr Chase", 8.8)]
+    GSIS = {1: "QB", 2: "WR"}
+
+    def test_running_totals_and_notes(self):
+        events = [
+            event("2026-09-20T17:05:00Z", {"QB": 4.92, "BENCH": 3.0}),
+            event("2026-09-20T17:10:00Z", {"NOBODY": 1.0}),
+            event("2026-09-20T20:30:00Z", {"WR": 8.8}),
+        ]
+        rows = build_game_plays(GAME, self.STARTERS, self.GSIS, events, 309)
+        assert [(r["seq"], r["home_points"], r["away_points"], r["note"]) for r in rows] == [
+            (1, 4.92, 0.0, "B. Purdy +4.92"),
+            (2, 4.92, 8.8, "J. Chase +8.80"),
+        ]
+        assert rows[0]["play_at"].startswith("2026-09-20T17:05:00")
+        assert {r["week"] for r in rows} == {3}
+
+    def test_adjusts_to_ottoneus_final(self):
+        starters = [starter("home", 1, "Brock Purdy", 6.92), starter("away", 2, "Ja'Marr Chase", 8.8)]
+        events = [event("2026-09-20T17:05:00Z", {"QB": 4.92}), event("2026-09-20T17:06:00Z", {"WR": 8.8})]
+        rows = build_game_plays(GAME, starters, self.GSIS, events, 309)
+        last = rows[-1]
+        assert (last["home_points"], last["away_points"], last["note"]) == (6.92, 8.8, ADJUSTMENT_NOTE)
+        assert last["play_at"].startswith("2026-09-20T17:07:00")
+
+    def test_no_plays_no_rows(self):
+        assert build_game_plays(GAME, self.STARTERS, self.GSIS, [], 309) == []
+
+    def test_player_mismatches(self):
+        starters = self.STARTERS + [starter("home", 3, "Unmatched Guy", 2.0), starter("home", 4, "Benched", None)]
+        events = [event("2026-09-20T17:05:00Z", {"QB": 4.92}), event("2026-09-20T17:06:00Z", {"WR": 6.8})]
+        assert player_mismatches(starters, self.GSIS, events) == [
+            "Ja'Marr Chase (SF): Ottoneu 8.80, rebuilt 6.80",
+            "Unmatched Guy (SF): no nflverse match",
+        ]
+
+
+class TestWeekReadiness:
+    def test_finished_nfl_weeks_needs_every_game_ended(self):
+        schedule = pd.DataFrame({"game_id": ["a", "b", "c"], "week": [1, 1, 2]})
+        pbp = pd.DataFrame({"game_id": ["a", "a", "b", "c"], "desc": ["x", "END GAME", "x", "END GAME"]})
+        assert finished_nfl_weeks(schedule, pbp) == {2}
+
+    def test_pick_weeks(self):
+        games = [
+            {"week": 1, "status": "final"}, {"week": 2, "status": "final"},
+            {"week": 3, "status": "final"}, {"week": 4, "status": "in_progress"},
+        ]
+        assert pick_weeks(games, {1, 2, 4}, {1}, None, False) == (
+            [2], ["week 3: nflverse play-by-play not complete yet"],
+        )
+        assert pick_weeks(games, {1, 2, 4}, {1}, None, True)[0] == [1, 2]
+        assert pick_weeks(games, {1, 2, 4}, {1}, 1, False)[0] == [1]
+        assert pick_weeks(games, {1, 2, 4}, set(), 4, False) == (
+            [], ["week 4: league games not all final yet"],
+        )
+
+    def test_play_times_fill_untimed_rows_within_a_game(self):
+        pbp = pd.DataFrame({
+            "game_id": ["g", "g", "g", "h"],
+            "play_id": [1, 2, 3, 1],
+            "time_of_day": [None, "2026-09-20T17:00:00Z", None, "2026-09-20T20:00:00Z"],
+        })
+        times = play_times(pbp).dt.strftime("%H:%M").tolist()
+        assert times == ["17:00", "17:00", "17:00", "20:00"]

@@ -335,7 +335,7 @@ export default async function GamePage({ params }: Props) {
   const game = await load(params);
   if (!game) notFound();
 
-  const [live, asOf, viewerTeam, snapshots] = await Promise.all([
+  const [live, asOf, viewerTeam, history] = await Promise.all([
     fetchLiveGame(game.season, game.week, game.game_id),
     fetchWeeklyAsOf(game.season, game.week),
     getViewerTeam(),
@@ -378,7 +378,7 @@ export default async function GamePage({ params }: Props) {
   const benchRows = Math.max(homeBench.length, awayBench.length);
   const homeName = live.home.team_name || game.home_team_name;
   const awayName = live.away.team_name || game.away_team_name;
-  const worm = wormChart(snapshots, homeName, awayName);
+  const worm = wormChart(history.snapshots, homeName, awayName, history.source);
 
   return (
     <PageShell>

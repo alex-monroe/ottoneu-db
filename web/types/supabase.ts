@@ -859,6 +859,48 @@ export type Database = {
         }
         Relationships: []
       }
+      matchup_score_plays: {
+        Row: {
+          away_points: number
+          created_at: string
+          game_id: number
+          home_points: number
+          id: string
+          league_id: number
+          note: string | null
+          play_at: string
+          season: number
+          seq: number
+          week: number
+        }
+        Insert: {
+          away_points: number
+          created_at?: string
+          game_id: number
+          home_points: number
+          id?: string
+          league_id: number
+          note?: string | null
+          play_at: string
+          season: number
+          seq: number
+          week: number
+        }
+        Update: {
+          away_points?: number
+          created_at?: string
+          game_id?: number
+          home_points?: number
+          id?: string
+          league_id?: number
+          note?: string | null
+          play_at?: string
+          season?: number
+          seq?: number
+          week?: number
+        }
+        Relationships: []
+      }
       model_projections: {
         Row: {
           created_at: string

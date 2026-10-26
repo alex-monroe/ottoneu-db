@@ -12,8 +12,9 @@ import {
 import type { WormPoint } from "@/lib/score-worm";
 
 /**
- * The score worm: both sides' running totals, snapshot by snapshot — cricket's
- * worm chart for a fantasy week. Everything is computed on the server
+ * The score worm: both sides' running totals, play by play (scrape by scrape
+ * until a week is rebuilt) — cricket's worm chart for a fantasy week. A rebuilt
+ * point's tooltip also says who scored. Everything is computed on the server
  * (lib/score-worm.ts); this component only draws it.
  *
  * Series colors are the `--worm-left` / `--worm-right` tokens in globals.css,
@@ -59,6 +60,7 @@ function WormTooltip({
         <span className="max-w-[10rem] truncate">{right}</span>
         <span className="ml-auto font-semibold text-ink">{p.right.toFixed(2)}</span>
       </p>
+      {p.note && <p className="mt-1 max-w-[16rem] text-ink-muted">{p.note}</p>}
       <p className="mt-1 text-ink-subtle">
         {Math.abs(p.margin) < 0.005
           ? "Level"

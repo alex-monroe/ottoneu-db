@@ -1,0 +1,74 @@
+name: Rebuild Score Worms
+
+# Redraws each finished game's score worm play by play from nflverse
+# play-by-play (scripts/rebuild_score_worm.py → matchup_score_plays). The live
+# worm comes from the lineup scrape in pull-matchups.yml, so it is only as fine
+# as GitHub's cron, which fires that 5-minute schedule every couple of hours on
+# a busy Sunday. Once a week is over this replaces it with one point per play.
+#
+# Daily, because a week is ready only once two things have happened: the daily
+# Pull Matchups run (11:00 UTC, often an hour or more late) has marked every
+# league game final, and nflverse has published every NFL game of the week.
+# Monday night's game usually makes the week ready on Tuesday's run; if not, the
+# next day's run picks it up. A run with no finished, un-rebuilt week exits
+# before downloading anything. September–January only, like the season.
+
+on:
+  schedule:
+    - cron: "30 15 * 9-12,1 *"
+
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "Rebuild this week, even if already rebuilt (blank = every finished week not yet rebuilt)"
+        required: false
+      dry_run:
+        description: "Score and check without writing"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rebuild-score-worms
+  cancel-in-progress: false
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          # pandas, and fastparquet (via nfl_data_py) to read nflverse's parquet.
+          pip install -e .
+
+      - name: Create .env
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_SECRET_KEY }}" >> .env
+
+      - name: Rebuild score worms
+        run: |
+          ARGS=""
+          [ -n "${{ inputs.week }}" ] && ARGS="$ARGS --week ${{ inputs.week }}"
+          [ "${{ inputs.dry_run }}" = "true" ] && ARGS="$ARGS --dry-run"
+          python scripts/rebuild_score_worm.py $ARGS
+
+      - name: Revalidate site
+        if: inputs.dry_run != true
+        uses: ./.github/actions/revalidate-site
+        with:
+          secret: ${{ secrets.REVALIDATE_SECRET }}

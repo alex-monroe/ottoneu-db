@@ -39,6 +39,13 @@
     "fg_made_50_plus": 5,
     "pat_made": 1
   },
+  "SCORING_EXTRAS": {
+    "fumbles_lost": -2,
+    "two_point_pass": 1,
+    "two_point_rush_rec": 2,
+    "fg_missed": -1,
+    "pat_missed": -1
+  },
   "MIN_GAMES": 4,
   "NFL_REGULAR_SEASON_WEEKS": 18,
   "ROSTER_SPOTS": 20,

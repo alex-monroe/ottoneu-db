@@ -3,9 +3,11 @@
  *
  * Named for cricket's "worm", which plots each side's cumulative runs over by
  * over so the ebb and flow of a match is visible at a glance. Here the "overs"
- * are the lineup scrapes (`matchup_score_snapshots`, every 5 minutes through
- * game windows). This module is pure: it turns stored snapshots into the series
- * the chart draws. Fetching lives in lib/matchup-lineups.ts.
+ * are either the scoring plays of a finished week (`matchup_score_plays`,
+ * rebuilt from nflverse play-by-play by scripts/rebuild_score_worm.py) or,
+ * until then, the live lineup scrapes (`matchup_score_snapshots`). This module
+ * is pure: it turns stored rows into the series the chart draws. Fetching
+ * lives in lib/matchup-lineups.ts.
  *
  * The x-axis is the snapshot sequence, not wall-clock time. A fantasy week is
  * Thursday night, a long empty Friday and Saturday, then Sunday and Monday; on
@@ -18,9 +20,24 @@ import { LEAGUE_TZ } from "./nfl-week";
 
 /** One stored snapshot, home and away as Ottoneu has them. */
 export interface ScoreSnapshot {
+  /** When the score was read (a scrape) or made (a play). */
   scraped_at: string;
   home_points: number;
   away_points: number;
+  /** Who scored, for a rebuilt play ("J. Chase +9.40"); absent for a scrape. */
+  note?: string | null;
+}
+
+/**
+ * Where a game's worm comes from: `plays` once the week has been rebuilt from
+ * play-by-play, `scrapes` (the live snapshots) before that.
+ */
+export type WormSource = "plays" | "scrapes";
+
+/** A game's stored score history and which table it came from. */
+export interface ScoreHistory {
+  source: WormSource;
+  snapshots: ScoreSnapshot[];
 }
 
 /**
@@ -36,6 +53,8 @@ export interface WormPoint {
   margin: number;
   /** "Sun 2:30 PM" (league time), or "Start". Precomputed so the client chart needs no timezone code. */
   label: string;
+  /** Who scored on this play, for a rebuilt worm; null otherwise. */
+  note: string | null;
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -46,6 +65,7 @@ export function flipSnapshots(snapshots: ScoreSnapshot[]): ScoreSnapshot[] {
     scraped_at: s.scraped_at,
     home_points: s.away_points,
     away_points: s.home_points,
+    note: s.note,
   }));
 }
 
@@ -59,7 +79,9 @@ export function flipSnapshots(snapshots: ScoreSnapshot[]): ScoreSnapshot[] {
  */
 export function buildWorm(snapshots: ScoreSnapshot[]): WormPoint[] {
   const sorted = [...snapshots].sort((a, b) => a.scraped_at.localeCompare(b.scraped_at));
-  const points: WormPoint[] = [{ at: null, left: 0, right: 0, margin: 0, label: wormTimeLabel(null) }];
+  const points: WormPoint[] = [
+    { at: null, left: 0, right: 0, margin: 0, label: wormTimeLabel(null), note: null },
+  ];
   for (const s of sorted) {
     const left = round2(s.home_points);
     const right = round2(s.away_points);
@@ -71,6 +93,7 @@ export function buildWorm(snapshots: ScoreSnapshot[]): WormPoint[] {
       right,
       margin: round2(left - right),
       label: wormTimeLabel(s.scraped_at),
+      note: s.note ?? null,
     });
   }
   return points.length >= 3 ? points : [];
@@ -131,8 +154,19 @@ export function dayTicks(points: WormPoint[]): { index: number; label: string }[
   return ticks;
 }
 
+const SOURCE_NOTE: Record<WormSource, string> = {
+  plays: "One point per scoring play, rebuilt from NFL play-by-play.",
+  scrapes:
+    "One point per score update, read during game windows; rebuilt play by play once the week's games are final.",
+};
+
 /** "Lead changed hands 3 times · biggest leads: Alpha 21.40, Beta 8.10." */
-export function wormSummary(points: WormPoint[], leftName: string, rightName: string): string {
+export function wormSummary(
+  points: WormPoint[],
+  leftName: string,
+  rightName: string,
+  source: WormSource = "scrapes",
+): string {
   const changes = leadChanges(points);
   const leads = biggestLeads(points);
   const changed =
@@ -142,7 +176,7 @@ export function wormSummary(points: WormPoint[], leftName: string, rightName: st
     leads.right > 0 ? `${rightName} ${leads.right.toFixed(2)}` : null,
   ].filter(Boolean);
   const biggest = parts.length ? ` · biggest lead${parts.length > 1 ? "s" : ""}: ${parts.join(", ")}` : "";
-  return `${changed}${biggest}. One point per score update, read every 5 minutes through game windows.`;
+  return `${changed}${biggest}. ${SOURCE_NOTE[source]}`;
 }
 
 export interface WormChart {
@@ -161,6 +195,7 @@ export function wormChart(
   snapshots: ScoreSnapshot[],
   leftName: string,
   rightName: string,
+  source: WormSource = "scrapes",
 ): WormChart | null {
   const points = buildWorm(snapshots);
   if (points.length === 0) return null;
@@ -170,6 +205,6 @@ export function wormChart(
     ticks: dayTicks(points),
     left: { name: leftName, score: last.left },
     right: { name: rightName, score: last.right },
-    summary: wormSummary(points, leftName, rightName),
+    summary: wormSummary(points, leftName, rightName, source),
   };
 }
