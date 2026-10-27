@@ -21,6 +21,10 @@
  * That is closer to the cricket original, where each innings is measured in
  * its own overs: it shows who was ahead at the same point in their lineups,
  * however the NFL schedule spread those lineups across the week.
+ *
+ * And by **win probability** (`home_win_prob`, the left side's chance after
+ * each play, plus a pre-game value on a 0–0 "Kickoff" row). The model lives in
+ * scripts/rebuild_score_worm.py; this module only orients and summarises it.
  */
 
 import { LEAGUE_TZ } from "./nfl-week";
@@ -36,6 +40,8 @@ export interface ScoreSnapshot {
   /** Share (0–1) of each side's lineup minutes played; absent for a scrape. */
   home_progress?: number | null;
   away_progress?: number | null;
+  /** The home side's chance of winning after this play (0–1); absent for a scrape. */
+  home_win_prob?: number | null;
 }
 
 /**
@@ -65,10 +71,13 @@ export interface WormPoint {
   label: string;
   /** Who scored on this play, for a rebuilt worm; null otherwise. */
   note: string | null;
+  /** The left side's win probability in percent (0–100); null when not stored. */
+  winPct: number | null;
 }
 
 /** What the tooltip reads off any point, whichever axis it is drawn on. */
-export type WormReading = Pick<WormPoint, "left" | "right" | "margin" | "label" | "note">;
+export type WormReading = Pick<WormPoint, "left" | "right" | "margin" | "label" | "note"> &
+  Partial<Pick<WormPoint, "winPct">>;
 
 /**
  * One point of the minutes-played view: both sides' scores once each had
@@ -80,6 +89,8 @@ export interface MinutesPoint extends WormReading {
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
+const round4 = (n: number) => Math.round(n * 10000) / 10000;
+const toPct = (p: number | null | undefined) => (p == null ? null : Math.round(p * 1000) / 10);
 
 /** Swap home and away, so the viewer's team can be drawn first on /matchup. */
 export function flipSnapshots(snapshots: ScoreSnapshot[]): ScoreSnapshot[] {
@@ -90,6 +101,7 @@ export function flipSnapshots(snapshots: ScoreSnapshot[]): ScoreSnapshot[] {
     note: s.note,
     home_progress: s.away_progress,
     away_progress: s.home_progress,
+    home_win_prob: s.home_win_prob == null ? s.home_win_prob : round4(1 - s.home_win_prob),
   }));
 }
 
@@ -103,8 +115,19 @@ export function flipSnapshots(snapshots: ScoreSnapshot[]): ScoreSnapshot[] {
  */
 export function buildWorm(snapshots: ScoreSnapshot[]): WormPoint[] {
   const sorted = [...snapshots].sort((a, b) => a.scraped_at.localeCompare(b.scraped_at));
+  // A rebuilt game's 0–0 Kickoff row carries the pre-game win probability:
+  // it becomes the origin's, and is otherwise dropped as a repeat of 0–0.
+  const kickoff = sorted.find((s) => s.home_points === 0 && s.away_points === 0);
   const points: WormPoint[] = [
-    { at: null, left: 0, right: 0, margin: 0, label: wormTimeLabel(null), note: null },
+    {
+      at: null,
+      left: 0,
+      right: 0,
+      margin: 0,
+      label: wormTimeLabel(null),
+      note: null,
+      winPct: toPct(kickoff?.home_win_prob),
+    },
   ];
   for (const s of sorted) {
     const left = round2(s.home_points);
@@ -118,6 +141,7 @@ export function buildWorm(snapshots: ScoreSnapshot[]): WormPoint[] {
       margin: round2(left - right),
       label: wormTimeLabel(s.scraped_at),
       note: s.note ?? null,
+      winPct: toPct(s.home_win_prob),
     });
   }
   return points.length >= 3 ? points : [];
@@ -264,6 +288,44 @@ export function buildMinutesWorm(snapshots: ScoreSnapshot[]): MinutesPoint[] {
   return distinct >= 3 ? points : [];
 }
 
+const WIN_NOTE =
+  "Win probability blends each side's points so far with its starters' kickoff projections for their remaining minutes.";
+
+/**
+ * "Pre-game: Alpha 58%. Beta won after falling to 12% (Sun 4:30 PM)." — the
+ * kickoff odds and the eventual winner's low point, its comeback.
+ */
+export function winSummary(points: WormPoint[], leftName: string, rightName: string): string {
+  const first = points[0];
+  const last = points[points.length - 1];
+  const parts: string[] = [];
+  if (first.winPct != null) {
+    const leftPregame = Math.round(first.winPct);
+    parts.push(
+      leftPregame >= 50
+        ? `Pre-game: ${leftName} ${leftPregame}%`
+        : `Pre-game: ${rightName} ${100 - leftPregame}%`,
+    );
+  }
+  if (Math.abs(last.margin) >= 0.005) {
+    const leftWon = last.margin > 0;
+    const winner = leftWon ? leftName : rightName;
+    let low = points[0];
+    for (const p of points) {
+      const mine = leftWon ? p.winPct! : 100 - p.winPct!;
+      const lowest = leftWon ? low.winPct! : 100 - low.winPct!;
+      if (mine < lowest) low = p;
+    }
+    const lowPct = Math.round(leftWon ? low.winPct! : 100 - low.winPct!);
+    parts.push(
+      lowPct >= 50
+        ? `${winner} was favoured throughout`
+        : `${winner} won after falling to ${lowPct < 1 ? "<1" : lowPct}% (${low.label})`,
+    );
+  }
+  return `${parts.join(". ")}. ${WIN_NOTE}`;
+}
+
 export interface WormChart {
   points: WormPoint[];
   ticks: { index: number; label: string }[];
@@ -272,6 +334,8 @@ export interface WormChart {
   summary: string;
   /** The minutes-played view, when every row carries progress; else null. */
   minutes: { points: MinutesPoint[]; summary: string } | null;
+  /** The win-probability view's summary, when every point has a win probability; else null. */
+  win: { summary: string } | null;
 }
 
 /**
@@ -296,6 +360,9 @@ export function wormChart(
     summary: wormSummary(points, leftName, rightName, source),
     minutes: minutesPoints.length
       ? { points: minutesPoints, summary: wormSummary(minutesPoints, leftName, rightName, "minutes") }
+      : null,
+    win: points.every((p) => p.winPct != null)
+      ? { summary: winSummary(points, leftName, rightName) }
       : null,
   };
 }

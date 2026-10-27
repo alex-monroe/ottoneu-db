@@ -345,6 +345,48 @@ clock but may be level minute for minute.
 - **The toggle appears only on rebuilt weeks.** The live scrapes don't record
   the game clock, so a game whose rows lack progress shows the clock view only.
 
+#### Win %: the worm as win probability
+
+The third view, **Win %**, plots the left team's chance of winning against the
+clock, from the pre-game value to 100% or 0% at the end. Its footnote gives
+the pre-game favourite and the winner's low point (its comeback). The x-axis
+is always the clock: win probability depends on where *both* lineups stand at
+the same moment, so it has no per-team minutes axis.
+
+The model (`WinModel` in `scripts/rebuild_score_worm.py`; one
+`home_win_prob` per `matchup_score_plays` row, migration 057):
+
+- **Expected final, per side:** points so far, plus each starter's kickoff
+  projection (`weekly_projections.projected_points`) × the share of their own
+  game still to play. This is the same blend as the game page's live
+  projection (`expectedPoints` in `web/lib/live-matchup.ts`). Starters without
+  a projection count 0, as do starters on bye.
+- **Projections are shrunk toward the week's mean starter projection** by
+  `WORM_PROJECTION_WEIGHT` (0.54, `config.json`), so a 10-point projected edge
+  counts as 5.4. That is what 2026 weeks 1–7 say a projected edge was worth:
+  the slope of actual margin on projected margin over 42 games. Their
+  correlation was only 0.23, and favourites won 22 of 42. Without the shrink
+  the model was confidently wrong before kickoff: favourites it gave 60–70%
+  won 39% of the time.
+- **Uncertainty left, per side:** `WORM_LINEUP_SD` (20.3 points, the spread of
+  a lineup's actual total around its projection) × √(share of that lineup's
+  minutes still to play). The win probability is the normal-curve chance that
+  the expected margin holds, given both sides' remaining uncertainty. At the
+  end it is settled, and a tie counts ½.
+- **Each game gets a 0–0 `Kickoff` row** (seq 1, at the earliest starter's
+  kickoff) holding the pre-game value. `buildWorm` moves that value onto the
+  chart's origin and otherwise drops the row as a repeat of 0–0.
+- **Checking it:** `just rebuild-score-worm --calibrate` scores every finished
+  week with the spread and weight fitted on the *other* weeks, and prints the
+  Brier score at 0/25/50/75/90% of lineup minutes against a coin flip's 0.25,
+  plus a reliability table. For 2026 weeks 1–7 the Brier score was 0.243 at
+  kickoff, 0.221 at 25%, 0.184 at 50%, 0.141 at 75% and 0.114 at 90%. 42 games
+  is a small sample, so refit both constants (the run prints the all-weeks
+  values) as the season goes on.
+- **Known blind spots:** a starter injured early keeps getting his remaining
+  projection until his game ends, which flatters his team, and scoring is
+  assumed to be spread evenly across a game.
+
 ## Weekly pick'em
 
 `/pickem` is a mini-game on top of the game log: signed-in accounts pick the

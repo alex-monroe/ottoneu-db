@@ -38,6 +38,18 @@ whatever overtime that game went to, so a lineup always finishes at exactly 1.
 A starter on bye, or whose NFL game cannot be found, brings none. At any moment
 a side's progress is the game minutes elapsed across its starters' games over
 that total.
+
+Each row also carries the **home side's win probability** (`home_win_prob`).
+Every starter's expected final is his points so far plus his kickoff projection
+(`weekly_projections`) for the share of his game still to play — the same
+blend as the game page's live projection (web/lib/live-matchup.ts). The
+uncertainty left in each lineup is WORM_LINEUP_SD (config.json, the spread of
+a lineup's actual total around its projection) scaled by the square root of
+the share of its minutes still to play. The win probability is the normal
+chance that the expected margin survives that uncertainty. A "Kickoff" row
+before the first score holds the pre-game value. `just rebuild-score-worm
+--calibrate` checks the model against every finished week, fitting the spread
+on the other weeks each time.
 """
 
 from __future__ import annotations
@@ -46,9 +58,11 @@ import argparse
 import io
 import math
 import sys
+import statistics
 import time
 from bisect import bisect_right
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -58,6 +72,8 @@ from scripts.config import (
     LEAGUE_ID,
     SCORING_EXTRAS,
     SCORING_SETTINGS,
+    WORM_LINEUP_SD,
+    WORM_PROJECTION_WEIGHT,
     fetch_all_rows,
     get_supabase_client,
 )
@@ -338,6 +354,53 @@ def side_progress(games: list[str], clocks: dict[str, GameClock], when: pd.Times
     return round(sum(c.at(when) for c in known) / total, 4)
 
 
+# --- Win probability ---------------------------------------------------------
+
+_NORMAL = statistics.NormalDist()
+
+KICKOFF_NOTE = "Kickoff"
+
+
+def win_probability(margin: float, variance: float) -> float:
+    """P(the side `margin` favours wins) when `variance` points² of uncertainty remain.
+
+    With nothing left to play it is settled: 1, 0, or ½ for a tie.
+    """
+    if variance <= 1e-9:
+        return 1.0 if margin >= _EPSILON else 0.0 if margin <= -_EPSILON else 0.5
+    return _NORMAL.cdf(margin / math.sqrt(variance))
+
+
+@dataclass
+class WinModel:
+    """What a game's win probability needs beyond its running totals.
+
+    `starters` is one (side, nfl game id or None, kickoff projection) per
+    starter; `lineup_sd` is a full lineup's spread around its projection.
+    """
+    starters: list[tuple[str, str | None, float]]
+    lineup_sd: float = WORM_LINEUP_SD
+
+    def home_win_prob(
+        self,
+        totals: dict[str, float],
+        progress: dict[str, float | None],
+        clocks: dict[str, GameClock],
+        when: pd.Timestamp,
+    ) -> float:
+        expected = dict(totals)
+        for side, nfl_game, projected in self.starters:
+            clock = clocks.get(nfl_game) if nfl_game else None
+            if clock is not None:
+                expected[side] += projected * (1 - clock.at(when) / clock.length)
+        variance = sum(
+            self.lineup_sd ** 2 * (1 - share)
+            for share in (progress["home"], progress["away"])
+            if share is not None
+        )
+        return round(win_probability(expected["home"] - expected["away"], variance), 4)
+
+
 # --- Player matching ---------------------------------------------------------
 
 def gsis_index(roster: pd.DataFrame) -> dict[str, list[tuple[str, str, str]]]:
@@ -376,6 +439,7 @@ def build_game_plays(
     league_id: int,
     side_games: dict[str, list[str]] | None = None,
     clocks: dict[str, GameClock] | None = None,
+    win_model: WinModel | None = None,
 ) -> list[dict]:
     """One game's `matchup_score_plays` rows (pure).
 
@@ -386,7 +450,9 @@ def build_game_plays(
 
     `side_games` (side -> each starter's NFL game id, one entry per starter)
     and `clocks` give each row both sides' share of lineup minutes played;
-    without them the progress columns are None.
+    without them the progress columns are None. `win_model` (with `clocks`)
+    adds the home win probability, and a "Kickoff" row at 0–0 ahead of the
+    first score holding the pre-game value; without it that column is None.
     """
     owner: dict[str, tuple[str, str]] = {}
     official = {"home": 0.0, "away": 0.0}
@@ -404,8 +470,18 @@ def build_game_plays(
             return None
         return side_progress(side_games.get(side, []), clocks, at)
 
+    def win_prob(when: pd.Timestamp, shares: dict[str, float | None], finished: bool) -> float | None:
+        if win_model is None or clocks is None:
+            return None
+        if finished:
+            return win_probability(totals["home"] - totals["away"], 0.0)
+        return win_model.home_win_prob(totals, shares, clocks, when)
+
     def emit(at: datetime, note: str, *, finished: bool = False) -> None:
         when = pd.Timestamp(at)
+        shares = {
+            side: 1.0 if finished and side_games else progress(side, when) for side in ("home", "away")
+        }
         rows.append({
             "league_id": league_id,
             "season": game["season"],
@@ -416,14 +492,18 @@ def build_game_plays(
             "home_points": round(totals["home"], 2),
             "away_points": round(totals["away"], 2),
             "note": note,
-            "home_progress": 1.0 if finished and side_games else progress("home", when),
-            "away_progress": 1.0 if finished and side_games else progress("away", when),
+            "home_progress": shares["home"],
+            "away_progress": shares["away"],
+            "home_win_prob": win_prob(when, shares, finished),
         })
 
     for at, _nfl_game, _play_id, points in events:
         credited = [(owner[g], pts) for g, pts in points.items() if g in owner]
         if not credited:
             continue
+        if not rows and win_model is not None and clocks is not None:
+            starts = [clocks[g].times[0] for _s, g, _p in win_model.starters if g in clocks and clocks[g].times]
+            emit(min([*starts, at]).to_pydatetime(), KICKOFF_NOTE)
         for (side, _name), pts in credited:
             totals[side] += pts
         note = " · ".join(f"{name} {pts:+.2f}" for (_side, name), pts in credited)
@@ -493,7 +573,7 @@ def rebuilt_weeks(supabase, league_id: int, season: int) -> set[int]:
 def week_starters(supabase, league_id: int, season: int, week: int) -> list[dict]:
     return fetch_all_rows(
         supabase, "matchup_lineups",
-        "game_id, side, ottoneu_id, player_name, nfl_team, position, points, game_state",
+        "game_id, side, ottoneu_id, player_id, player_name, nfl_team, position, points, game_state",
         filters=[("eq", "league_id", league_id), ("eq", "season", season),
                  ("eq", "week", week), ("eq", "is_starter", True)],
     )
@@ -535,13 +615,119 @@ def pick_weeks(
     return chosen, skipped
 
 
+def week_projections(supabase, season: int, week: int) -> dict[str, float]:
+    """player id -> kickoff projection (`weekly_projections.projected_points`)."""
+    rows = fetch_all_rows(
+        supabase, "weekly_projections", "player_id, projected_points",
+        filters=[("eq", "season", season), ("eq", "week", week)],
+    )
+    return {r["player_id"]: float(r["projected_points"]) for r in rows if r["projected_points"] is not None}
+
+
+def lineup_residuals(starters: list[dict], projections: dict[str, float]) -> list[float]:
+    """Each lineup's actual total minus its kickoff projection, one per (game, side)."""
+    sums: dict[tuple[int, str], list[float]] = defaultdict(lambda: [0.0, 0.0])
+    for row in starters:
+        pair = sums[(row["game_id"], row["side"])]
+        pair[0] += row["points"] or 0.0
+        pair[1] += projections.get(row.get("player_id"), 0.0)
+    return [actual - projected for actual, projected in sums.values()]
+
+
+def margin_slope(starters: list[dict], projections: dict[str, float]) -> tuple[float, float]:
+    """(Σ projected·actual, Σ projected²) of game margins, for a through-origin slope.
+
+    Summed per week so a held-out fit can add other weeks' sums. The slope of
+    actual margin on projected margin is how much of a projected edge turned
+    into a real one.
+    """
+    games: dict[int, list[float]] = defaultdict(lambda: [0.0, 0.0])
+    for row in starters:
+        sign = 1 if row["side"] == "home" else -1
+        games[row["game_id"]][0] += sign * (row["points"] or 0.0)
+        games[row["game_id"]][1] += sign * projections.get(row.get("player_id"), 0.0)
+    return (sum(a * p for a, p in games.values()), sum(p * p for _a, p in games.values()))
+
+
+def shrink_projections(projections: dict[str, float], player_ids: list[str], weight: float) -> dict[str, float]:
+    """Pull each starter's projection toward the week's mean starter projection.
+
+    `weight` 1 keeps them; 0 makes every starter average. A projected edge of
+    10 points becomes one of 10·weight, which is what the season's margins
+    say a projected edge has been worth.
+    """
+    known = [projections[p] for p in player_ids if p in projections]
+    if not known:
+        return projections
+    mean = statistics.fmean(known)
+    return {p: mean + weight * (v - mean) for p, v in projections.items()}
+
+
+def rms(values: list[float]) -> float:
+    """Root mean square — the spread around 0, since projections are unbiased (mean ≈ 0)."""
+    return math.sqrt(sum(v * v for v in values) / len(values)) if values else WORM_LINEUP_SD
+
+
+CHECKPOINTS = (0.0, 0.25, 0.5, 0.75, 0.9)
+
+
+def checkpoint_rows(rows: list[dict]) -> dict[float, dict]:
+    """The row at which the two lineups' mean share of minutes first reaches each checkpoint.
+
+    0 is the Kickoff row. Rows without progress or win probability are ignored.
+    """
+    usable = [r for r in rows if r.get("home_win_prob") is not None and r.get("home_progress") is not None
+              and r.get("away_progress") is not None]
+    picked: dict[float, dict] = {}
+    for q in CHECKPOINTS:
+        for r in usable:
+            if (r["home_progress"] + r["away_progress"]) / 2 >= q:
+                picked[q] = r
+                break
+    return picked
+
+
+def calibration_report(results: list[tuple[list[dict], float]]) -> list[str]:
+    """Brier score by checkpoint and a reliability table, from (rows, home result) per game.
+
+    `home result` is 1 for a home win, 0 for a loss, 0.5 for a tie.
+    """
+    by_q: dict[float, list[tuple[float, float]]] = defaultdict(list)
+    for rows, outcome in results:
+        for q, row in checkpoint_rows(rows).items():
+            by_q[q].append((row["home_win_prob"], outcome))
+    lines = [f"{'minutes played':>15} {'games':>5} {'Brier':>6} {'coin flip':>9}"]
+    for q in CHECKPOINTS:
+        pairs = by_q.get(q, [])
+        if pairs:
+            brier = sum((p - o) ** 2 for p, o in pairs) / len(pairs)
+            lines.append(f"{q:>14.0%} {len(pairs):>5} {brier:>6.3f} {0.25:>9.3f}")
+    # Reliability: fold each forecast onto the favourite's side so bins read 50–100%.
+    bins: dict[int, list[float]] = defaultdict(list)
+    for pairs in by_q.values():
+        for p, o in pairs:
+            fav_p, fav_o = (p, o) if p >= 0.5 else (1 - p, 1 - o)
+            bins[min(int(fav_p * 10), 9)].append((fav_p, fav_o))
+    lines.append(f"{'favourite given':>15} {'n':>5} {'mean':>6} {'won':>9}")
+    for b in sorted(bins):
+        pts = bins[b]
+        lines.append(f"{f'{b * 10}–{b * 10 + 10}%':>15} {len(pts):>5} "
+                     f"{sum(p for p, _ in pts) / len(pts):>6.0%} {sum(o for _, o in pts) / len(pts):>9.0%}")
+    return lines
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Rebuild score worms from nflverse play-by-play.")
     parser.add_argument("--league-id", type=int, default=LEAGUE_ID)
     parser.add_argument("--week", type=int, help="Rebuild this week (even if already rebuilt).")
     parser.add_argument("--all", action="store_true", help="Rebuild every finished week again.")
     parser.add_argument("--dry-run", action="store_true", help="Score and check without writing.")
+    parser.add_argument("--calibrate", action="store_true",
+                        help="Check the win probability against every finished week (each scored with the "
+                             "lineup spread fitted on the other weeks). Writes nothing.")
     args = parser.parse_args()
+    if args.calibrate:
+        args.all, args.dry_run = True, True
 
     supabase = get_supabase_client()
     games = league_games(supabase, args.league_id)
@@ -566,10 +752,33 @@ def main() -> None:
         print("Nothing to rebuild.")
         return
 
+    starters_by_week = {w: week_starters(supabase, args.league_id, season, w) for w in weeks}
+    projections_by_week = {w: week_projections(supabase, season, w) for w in weeks}
+    residuals_by_week = {w: lineup_residuals(starters_by_week[w], projections_by_week[w]) for w in weeks}
+    slope_by_week = {w: margin_slope(starters_by_week[w], projections_by_week[w]) for w in weeks}
+    if args.calibrate:
+        pooled = [r for w in weeks for r in residuals_by_week[w]]
+        xy, xx = (sum(slope_by_week[w][i] for w in weeks) for i in (0, 1))
+        print(f"Lineup spread over weeks {weeks[0]}–{weeks[-1]}: {rms(pooled):.1f} points "
+              f"(mean {statistics.fmean(pooled):+.2f}, {len(pooled)} lineups); "
+              f"config WORM_LINEUP_SD = {WORM_LINEUP_SD}")
+        print(f"Projected-edge weight (actual margin on projected margin): {xy / xx:.2f}; "
+              f"config WORM_PROJECTION_WEIGHT = {WORM_PROJECTION_WEIGHT}")
+    calibration: list[tuple[list[dict], float]] = []
+
     roster = load_roster(season)
     index = gsis_index(roster)
     for week in weeks:
-        starters = week_starters(supabase, args.league_id, season, week)
+        starters = starters_by_week[week]
+        projections = projections_by_week[week]
+        # Calibrating, each week is scored with a spread fitted on the others (no peeking).
+        lineup_sd = (rms([r for w in weeks if w != week for r in residuals_by_week[w]])
+                     if args.calibrate else WORM_LINEUP_SD)
+        weight = WORM_PROJECTION_WEIGHT
+        if args.calibrate:
+            xy, xx = (sum(slope_by_week[w][i] for w in weeks if w != week) for i in (0, 1))
+            weight = min(1.0, max(0.0, xy / xx)) if xx else 1.0
+        projections = shrink_projections(projections, [r.get("player_id") for r in starters], weight)
         gsis_of = {}
         for row in starters:
             gsis = match_gsis(row, index)
@@ -592,20 +801,30 @@ def main() -> None:
             by_game[row["game_id"]].append(row)
         for game in (g for g in games if g["week"] == week):
             side_games: dict[str, list[str]] = {"home": [], "away": []}
+            model = WinModel([], lineup_sd)
             for row in by_game[game["game_id"]]:
                 nfl_game = starter_game(row, gsis_of.get(row["ottoneu_id"]), weekly_team, games_by_team)
                 if nfl_game:
                     side_games[row["side"]].append(nfl_game)
                 elif row.get("game_state") != "bye":
                     print(f"  game {game['game_id']}: no NFL game for {row['player_name']} ({row['nfl_team']})")
+                model.starters.append((row["side"], nfl_game, projections.get(row.get("player_id"), 0.0)))
             rows = build_game_plays(game, by_game[game["game_id"]], gsis_of, events, args.league_id,
-                                    side_games, clocks)
+                                    side_games, clocks, model)
             adjusted = " (adjusted to Ottoneu's final)" if rows and rows[-1]["note"] == ADJUSTMENT_NOTE else ""
             final = f"{rows[-1]['home_points']:.2f}–{rows[-1]['away_points']:.2f}" if rows else "no plays"
-            print(f"  game {game['game_id']}: {len(rows)} rows, {final}{adjusted}")
+            pregame = f", pre-game home {rows[0]['home_win_prob']:.0%}" if rows and rows[0]["home_win_prob"] is not None else ""
+            print(f"  game {game['game_id']}: {len(rows)} rows, {final}{adjusted}{pregame}")
+            if rows:
+                home = sum(r["points"] or 0 for r in by_game[game["game_id"]] if r["side"] == "home")
+                away = sum(r["points"] or 0 for r in by_game[game["game_id"]] if r["side"] == "away")
+                calibration.append((rows, win_probability(home - away, 0.0)))
             if rows and not args.dry_run:
                 replace_game(supabase, args.league_id, game["game_id"], rows)
 
+    if args.calibrate:
+        print()
+        print("\n".join(calibration_report(calibration)))
     if args.dry_run:
         print("Dry run — not writing to the database.")
 

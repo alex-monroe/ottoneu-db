@@ -183,6 +183,7 @@ just scrape-trades [--no-details] [--dry-run]          # Scrape the trade histor
 just scrape-fa-market [--dry-run] [--auctions-only]  # Snapshot open FA auctions + claimable waivers into fa_market (drives the /free-agents market board; logs in for waivers unless --auctions-only), plus recently completed auctions into fa_auction_results
 just scrape-lineups [--week N] [--dry-run]            # Scrape each game's box score (both lineups, slots, live points) into matchup_lineups (drives /scoreboard/[gameId] + live projections)
 just rebuild-score-worm [--week N] [--all] [--dry-run] # Redraw finished weeks' score worms play by play from nflverse play-by-play into matchup_score_plays
+just rebuild-score-worm --calibrate                   # Check the worm's win probability on every finished week (held-out fits); writes nothing
 just post-power-rankings [--week N] [--dry-run]       # Post the published week's community power ranking to Discord (web/scripts/post-power-rankings.ts; never a private week)
 just post-vote-reminder [--dry-run]                   # Post the "vote in this week's power rankings" reminder to Discord (web/scripts/post-vote-reminder.ts; only while voting is open)
 just post-trades [--max-age-days N] [--dry-run]       # Post new pending/processed trades to Discord with an earned-value read (once each; discord_posts log)

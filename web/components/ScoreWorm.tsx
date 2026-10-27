@@ -5,6 +5,7 @@ import {
   CartesianGrid,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -17,8 +18,9 @@ import type { MinutesPoint, WormPoint, WormReading } from "@/lib/score-worm";
  * until a week is rebuilt) — cricket's worm chart for a fantasy week. A rebuilt
  * point's tooltip also says who scored. A rebuilt worm can switch its x-axis
  * from the clock to **minutes played** — each team's score against the share
- * of its own lineup's game minutes played. Everything is computed on the
- * server (lib/score-worm.ts); this component only draws it.
+ * of its own lineup's game minutes played — or its y-axis to the left team's
+ * **win probability**. Everything is computed on the server
+ * (lib/score-worm.ts); this component only draws it.
  *
  * Series colors are the `--worm-left` / `--worm-right` tokens in globals.css,
  * deliberately not positive/negative: neither team is the "good" one.
@@ -32,11 +34,12 @@ interface Side {
 
 const COLORS = { left: "var(--worm-left)", right: "var(--worm-right)" } as const;
 
-type View = "clock" | "minutes";
+type View = "clock" | "minutes" | "win";
 
 const VIEWS: { key: View; label: string }[] = [
   { key: "clock", label: "Clock" },
   { key: "minutes", label: "Minutes played" },
+  { key: "win", label: "Win %" },
 ];
 
 const PCT_TICKS = [0, 25, 50, 75, 100];
@@ -84,6 +87,38 @@ function WormTooltip({
   );
 }
 
+function WinTooltip({
+  active,
+  payload,
+  left,
+  right,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: WormPoint }>;
+  left: string;
+  right: string;
+}) {
+  if (!active || !payload?.length) return null;
+  const p = payload[0].payload;
+  if (p.winPct == null) return null;
+  return (
+    <div className="rounded border border-line bg-raised p-2 text-xs shadow-lg">
+      <p className="mb-1 font-semibold text-ink">{p.label}</p>
+      {([[left, p.winPct, "left"], [right, 100 - p.winPct, "right"]] as const).map(([name, pct, key]) => (
+        <p key={key} className="flex items-center gap-2 tabular-nums text-ink-muted">
+          <Swatch color={COLORS[key]} />
+          <span className="max-w-[10rem] truncate">{name}</span>
+          <span className="ml-auto font-semibold text-ink">{pct < 1 && pct > 0 ? "<1" : Math.round(pct)}%</span>
+        </p>
+      ))}
+      {p.note && <p className="mt-1 max-w-[16rem] text-ink-muted">{p.note}</p>}
+      <p className="mt-1 tabular-nums text-ink-subtle">
+        Score {p.left.toFixed(2)}–{p.right.toFixed(2)}
+      </p>
+    </div>
+  );
+}
+
 export default function ScoreWorm({
   points,
   ticks,
@@ -91,6 +126,7 @@ export default function ScoreWorm({
   right,
   summary,
   minutes,
+  win,
 }: {
   points: WormPoint[];
   /** Index + label of the first snapshot of each day. */
@@ -101,9 +137,15 @@ export default function ScoreWorm({
   summary: string;
   /** The minutes-played view; null hides the toggle (live scrapes have no game clock). */
   minutes: { points: MinutesPoint[]; summary: string } | null;
+  /** The win-probability view (drawn from `points`); null hides it. */
+  win: { summary: string } | null;
 }) {
   const [view, setView] = useState<View>("clock");
   const byMinutes = view === "minutes" && minutes !== null;
+  const byWin = view === "win" && win !== null;
+  const available = VIEWS.filter(
+    ({ key }) => key === "clock" || (key === "minutes" && minutes) || (key === "win" && win),
+  );
   const clockData = points.map((p, i) => ({ ...p, i }));
   const tickLabel = new Map(ticks.map((t) => [t.index, t.label]));
   const shown: WormReading[] = byMinutes ? minutes.points : points;
@@ -115,13 +157,13 @@ export default function ScoreWorm({
           <span className="text-sm font-semibold uppercase tracking-wide text-ink-subtle">
             The worm
           </span>
-          {minutes && (
+          {available.length > 1 && (
             <span
               className="flex overflow-hidden rounded-md border border-line text-xs font-medium"
               role="group"
               aria-label="Worm x-axis"
             >
-              {VIEWS.map(({ key, label }) => (
+              {available.map(({ key, label }) => (
                 <button
                   key={key}
                   type="button"
@@ -178,18 +220,49 @@ export default function ScoreWorm({
                 axisLine={{ stroke: "var(--line-strong)" }}
               />
             )}
-            <YAxis
-              tick={AXIS_TICK}
-              tickLine={false}
-              axisLine={false}
-              width={40}
-              allowDecimals={false}
-            />
+            {byWin ? (
+              <YAxis
+                domain={[0, 100]}
+                ticks={PCT_TICKS}
+                tickFormatter={(pct: number) => `${pct}%`}
+                tick={AXIS_TICK}
+                tickLine={false}
+                axisLine={false}
+                width={40}
+              />
+            ) : (
+              <YAxis
+                tick={AXIS_TICK}
+                tickLine={false}
+                axisLine={false}
+                width={40}
+                allowDecimals={false}
+              />
+            )}
             <Tooltip
-              content={<WormTooltip left={left.name} right={right.name} />}
+              content={
+                byWin ? (
+                  <WinTooltip left={left.name} right={right.name} />
+                ) : (
+                  <WormTooltip left={left.name} right={right.name} />
+                )
+              }
               cursor={{ stroke: "var(--line-strong)" }}
             />
-            {(["left", "right"] as const).map((key) => (
+            {byWin && <ReferenceLine y={50} stroke="var(--line-strong)" strokeDasharray="4 4" />}
+            {byWin && (
+              // One line: the left team's chance. The right team's is its mirror.
+              <Line
+                dataKey="winPct"
+                type="linear"
+                stroke={COLORS.left}
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4, stroke: "var(--raised)", strokeWidth: 2 }}
+                isAnimationActive={false}
+              />
+            )}
+            {!byWin && (["left", "right"] as const).map((key) => (
               <Line
                 key={key}
                 dataKey={key}
@@ -207,24 +280,32 @@ export default function ScoreWorm({
         </ResponsiveContainer>
       </div>
 
-      <p className="mt-2 text-xs text-ink-subtle">{byMinutes ? minutes.summary : summary}</p>
+      <p className="mt-2 text-xs text-ink-subtle">
+        {byWin ? win.summary : byMinutes ? minutes.summary : summary}
+      </p>
 
       {/* The chart is aria-hidden; this is its text equivalent. */}
       <table className="sr-only">
-        <caption>{byMinutes ? "Running score by share of lineup minutes played" : "Running score by snapshot"}</caption>
+        <caption>
+          {byWin
+            ? "Win probability by play"
+            : byMinutes
+              ? "Running score by share of lineup minutes played"
+              : "Running score by snapshot"}
+        </caption>
         <thead>
           <tr>
             <th scope="col">{byMinutes ? "Lineup minutes played" : "Time"}</th>
-            <th scope="col">{left.name}</th>
-            <th scope="col">{right.name}</th>
+            <th scope="col">{left.name}{byWin ? " win %" : ""}</th>
+            <th scope="col">{right.name}{byWin ? " win %" : ""}</th>
           </tr>
         </thead>
         <tbody>
           {shown.map((p, i) => (
             <tr key={i}>
               <td>{p.label}</td>
-              <td>{p.left.toFixed(2)}</td>
-              <td>{p.right.toFixed(2)}</td>
+              <td>{byWin && p.winPct != null ? `${Math.round(p.winPct)}%` : p.left.toFixed(2)}</td>
+              <td>{byWin && p.winPct != null ? `${Math.round(100 - p.winPct)}%` : p.right.toFixed(2)}</td>
             </tr>
           ))}
         </tbody>
