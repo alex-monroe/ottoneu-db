@@ -9,7 +9,7 @@
 | Shared config | `config.json` | **Single source of truth** for every constant shared across Python and TypeScript |
 | TS types | `web/lib/types.ts` | All shared TypeScript interfaces (`CorePlayer → RosteredPlayer → StatsPlayer → Player`) |
 | Data layer | `web/lib/data.ts` | **Unified data access** — all Supabase fetching goes through here |
-| Scoring | `web/lib/scoring.ts` | Ottoneu Half PPR scoring formula (`calculateFantasyPoints`) |
+| Scoring | `web/lib/scoring.ts`, `scripts/scoring.py` | Ottoneu scoring formula, `SCORING_SETTINGS` + `SCORING_EXTRAS` (`calculateFantasyPoints`; Python `FULL_SCORING`, `add_nflverse_extras`) |
 | Analysis math | `web/lib/analysis.ts` | Projection-enriched data + backtest fetching (builds on `data.ts`) |
 | Arb logic | `web/lib/arb-logic.ts` | Arbitration simulation logic |
 | API input schemas | `web/lib/schemas/` | Zod schemas for API route bodies (admin/users, arbitration-plans, surplus-adjustments) |

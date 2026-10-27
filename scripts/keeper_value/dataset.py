@@ -23,9 +23,10 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from scripts.config import MIN_PLAYER_SALARY, SCORING_SETTINGS
+from scripts.config import MIN_PLAYER_SALARY
 from scripts.keeper_value import nflverse
 from scripts.keeper_value.market import Market
+from scripts.scoring import EXTRA_KEYS, FULL_SCORING, add_nflverse_extras
 
 # Ottoneu's trade deadline is the start of December (2026-12-01, league_calendar),
 # i.e. after NFL week 12. Historical deadlines are not stored, so week 12 stands in.
@@ -39,7 +40,8 @@ LATENT_FLOOR = -30.0
 EXPERIENCE_BUCKETS = ("1", "2", "3", "4", "5-6", "7+")
 DRAFT_BUCKETS = ("R1", "R2", "R3", "R4-5", "R6-7", "UDFA")
 
-# nflverse weekly column → Ottoneu scoring key (skill-position scoring only).
+# nflverse weekly column → Ottoneu scoring key (skill-position scoring only), plus
+# the SCORING_EXTRAS columns add_nflverse_extras derives under their own names.
 _SCORING_COLUMNS = {
     "passing_yards": "passing_yards",
     "passing_tds": "passing_tds",
@@ -49,6 +51,7 @@ _SCORING_COLUMNS = {
     "receptions": "receptions",
     "receiving_yards": "receiving_yards",
     "receiving_tds": "receiving_tds",
+    **{key: key for key in EXTRA_KEYS},
 }
 
 
@@ -80,10 +83,10 @@ class SeasonData:
 
 
 def _game_rows(weekly: pd.DataFrame, snaps: pd.DataFrame, pfr_to_gsis: dict[str, str]) -> pd.DataFrame:
-    df = weekly.copy()
+    df = add_nflverse_extras(weekly.copy())
     pts = np.zeros(len(df))
     for col, key in _SCORING_COLUMNS.items():
-        pts += df[col].fillna(0).to_numpy(dtype=float) * float(SCORING_SETTINGS[key])
+        pts += df[col].fillna(0).to_numpy(dtype=float) * float(FULL_SCORING[key])
     df["points"] = pts
     for col in ("targets", "carries", "attempts"):
         df[col] = df[col].fillna(0).astype(float)

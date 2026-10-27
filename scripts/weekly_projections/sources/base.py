@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 class WeeklyRow:
     """One player's projected (or actual) line for one NFL week.
 
-    `stats` is keyed by scripts.config.SCORING_SETTINGS names, so
+    `stats` is keyed by scripts.scoring.FULL_SCORING names, so
     scripts.weekly_projections.scoring can score it without knowing the source.
     """
 

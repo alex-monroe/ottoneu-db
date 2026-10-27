@@ -61,6 +61,21 @@ describe("calculateFantasyPoints — per-rule fixtures", () => {
     });
 });
 
+describe("calculateFantasyPoints — SCORING_EXTRAS", () => {
+    test("fumble lost at -2 points", () => {
+        expect(calculateFantasyPoints({ fumbles_lost: 2 })).toBe(-4);
+    });
+
+    test("two-point conversion: +1 to the passer, +2 to the runner or receiver", () => {
+        expect(calculateFantasyPoints({ two_point_pass: 1 })).toBe(1);
+        expect(calculateFantasyPoints({ two_point_rush_rec: 1 })).toBe(2);
+    });
+
+    test("missed field goal and missed PAT at -1 each", () => {
+        expect(calculateFantasyPoints({ fg_missed: 2, pat_missed: 1 })).toBe(-3);
+    });
+});
+
 describe("calculateFantasyPoints — combined stat lines", () => {
     test("realistic QB line (300 pass yds, 2 pass TD, 1 INT, 20 rush yds)", () => {
         const points = calculateFantasyPoints({

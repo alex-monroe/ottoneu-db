@@ -4,7 +4,7 @@ Standalone script (not a queue task) that:
 1. Pulls per-season regular-season stats from nflverse-data parquet files
 2. Pulls snap count data from nflverse-data
 3. Creates players rows for historical NFL players not already in the DB
-4. Calculates Ottoneu Half PPR fantasy points
+4. Calculates Ottoneu fantasy points (the league's full scoring, extras included)
 5. Upserts everything into the nfl_stats table
 
 Usage:
@@ -24,6 +24,7 @@ import pandas as pd
 
 from scripts.config import get_supabase_client
 from scripts.name_utils import normalize_player_name
+from scripts.scoring import EXTRA_KEYS, add_nflverse_extras, score_stats
 
 # --- Constants ---
 
@@ -48,21 +49,13 @@ _ROSTERS_URL = (
 # --- Fantasy Point Calculation ---
 
 def calc_half_ppr_points(row: dict) -> float:
-    """Calculate Ottoneu fantasy points from raw stats using Half PPR scoring."""
-    return (
-        (row.get("passing_yards") or 0) * 0.04 +
-        (row.get("passing_tds") or 0) * 4 +
-        (row.get("interceptions") or 0) * -2 +
-        (row.get("rushing_yards") or 0) * 0.1 +
-        (row.get("rushing_tds") or 0) * 6 +
-        (row.get("receptions") or 0) * 0.5 +
-        (row.get("receiving_yards") or 0) * 0.1 +
-        (row.get("receiving_tds") or 0) * 6 +
-        (row.get("fg_made_0_39") or 0) * 3 +
-        (row.get("fg_made_40_49") or 0) * 4 +
-        (row.get("fg_made_50_plus") or 0) * 5 +
-        (row.get("pat_made") or 0) * 1
-    )
+    """Calculate Ottoneu fantasy points from raw stats (the league's full scoring).
+
+    The SCORING_EXTRAS stats (fumbles lost, two-point conversions, missed kicks)
+    count when the row carries them. nfl_stats has no columns for them, so they
+    ride along only until the points are computed and are dropped before upsert.
+    """
+    return score_stats(row)
 
 
 # --- Helpers ---
@@ -177,6 +170,7 @@ def process_stats(combined: pd.DataFrame) -> pd.DataFrame:
         combined["fg_made_0_39"] = combined[present_sub].sum(axis=1)
     if present_50:
         combined["fg_made_50_plus"] = combined[present_50].sum(axis=1)
+    add_nflverse_extras(combined)
 
     # Normalize column names
     combined = combined.rename(columns={
@@ -194,6 +188,7 @@ def process_stats(combined: pd.DataFrame) -> pd.DataFrame:
         "receptions", "targets", "receiving_yards", "receiving_tds",
         "fg_made_0_39", "fg_made_40_49", "fg_made_50_plus", "pat_made",
         "passing_attempts", "completions", "receiving_air_yards",
+        *EXTRA_KEYS,
     ]
     agg_cols = {c: "sum" for c in stat_cols if c in combined.columns}
 
@@ -465,6 +460,7 @@ def backfill_seasons(
             "air_yards_share": _safe_float(getattr(row, "air_yards_share", None)),
             "wopr": _safe_float(getattr(row, "wopr", None)),
             "racr": _safe_float(getattr(row, "racr", None)),
+            **{key: _safe_int(getattr(row, key, None)) for key in EXTRA_KEYS},
         }
 
         # Preserve recent_team for historical team tracking
@@ -507,6 +503,7 @@ def backfill_seasons(
             "fg_made_0_39", "fg_made_40_49", "fg_made_50_plus", "pat_made",
             "passing_attempts", "completions", "receiving_air_yards",
             "offense_snaps", "defense_snaps", "st_snaps", "total_snaps",
+            *EXTRA_KEYS,
         ]
         rate_avg_cols = ["target_share", "air_yards_share", "wopr", "racr"]
         dedup_df = pd.DataFrame(upsert_rows)
@@ -520,6 +517,9 @@ def backfill_seasons(
         dedup_df["total_points"] = dedup_df.apply(
             lambda r: round(calc_half_ppr_points(r.to_dict()), 2), axis=1
         )
+        # The extras only feed the points — nfl_stats has no columns for them.
+        dedup_df = dedup_df.drop(columns=[c for c in EXTRA_KEYS if c in dedup_df.columns])
+        present_sum = [c for c in present_sum if c not in EXTRA_KEYS]
         # pandas sum() promotes int columns with NaN to float64 — cast back to int|None
         for col in present_sum:
             dedup_df[col] = dedup_df[col].apply(_safe_int)
