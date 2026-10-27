@@ -223,15 +223,19 @@ export default async function MatchupPage({ searchParams }: Props) {
   }
 
   // The worm of the real game so far, your side first. Nothing to draw before
-  // kickoff, or for a week played before score snapshots were kept.
+  // kickoff, or for a game with no stored score history.
   const row = status?.matchups.find((m) => m.game_id === game.game_id);
-  const snapshots = game.status !== "scheduled" ? await fetchScoreSnapshots(game.game_id) : [];
+  const history =
+    game.status !== "scheduled" ? await fetchScoreSnapshots(game.game_id) : null;
   const worm =
-    row && snapshots.length > 0
+    row && history && history.snapshots.length > 0
       ? wormChart(
-          sameTeamName(row.home_team_name, viewerTeam) ? snapshots : flipSnapshots(snapshots),
+          sameTeamName(row.home_team_name, viewerTeam)
+            ? history.snapshots
+            : flipSnapshots(history.snapshots),
           viewerTeam,
           game.opponent,
+          history.source,
         )
       : null;
 

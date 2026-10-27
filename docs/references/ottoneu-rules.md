@@ -18,6 +18,15 @@ League 309 is a **12-team Superflex Half PPR** league.
 | FG 40-49 yds | 4 |
 | FG 50+ yds | 5 |
 | Extra point | 1 |
+| Fumble lost | -2 |
+| 2-pt conversion (runner/receiver) | 2 |
+| 2-pt conversion (passer) | 1 |
+| Missed FG / missed PAT | -1 |
+
+The last four rows are `SCORING_EXTRAS` in `config.json`. They were confirmed by
+rebuilding every started player-game of 2026 weeks 1–6 from play-by-play and
+matching Ottoneu to the hundredth. They are kept out of `SCORING_SETTINGS`, which
+the season-total stat pipelines iterate over.
 
 ## Roster (Superflex format)
 

@@ -23,6 +23,7 @@ on:
       - "Pull Player Stats"
       - "Pull Roster CSV"
       - "Pull Weekly Projections"
+      - "Rebuild Score Worms"
       - "Scrape Arbitration Progress"
       - "Scrape Draft Sharks Auction Values"
       - "Scrape FA Market"

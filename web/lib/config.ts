@@ -39,6 +39,7 @@ export const SEASON_END_RAISE_OTHER = config.SEASON_END_RAISE_OTHER;
 export const POSITIONS = config.POSITIONS as unknown as readonly ["QB", "RB", "WR", "TE", "K"];
 export const COLLEGE_POSITIONS: readonly string[] = config.COLLEGE_POSITIONS;
 export const SCORING_SETTINGS = config.SCORING_SETTINGS;
+export const SCORING_EXTRAS = config.SCORING_EXTRAS;
 export const MIN_GAMES = config.MIN_GAMES;
 export const NFL_REGULAR_SEASON_WEEKS = config.NFL_REGULAR_SEASON_WEEKS;
 export const ROSTER_SPOTS = config.ROSTER_SPOTS;

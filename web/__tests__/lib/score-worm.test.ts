@@ -88,7 +88,21 @@ describe("dayTicks", () => {
 
 describe("flipSnapshots", () => {
   it("swaps the sides so the viewer can be drawn first", () => {
-    expect(flipSnapshots([snap("t", 1, 2)])).toEqual([snap("t", 2, 1)]);
+    expect(flipSnapshots([snap("t", 1, 2)])).toEqual([{ ...snap("t", 2, 1), note: undefined }]);
+  });
+
+  it("keeps a rebuilt play's note", () => {
+    expect(flipSnapshots([{ ...snap("t", 1, 2), note: "J. Chase +9.40" }])[0].note).toBe("J. Chase +9.40");
+  });
+});
+
+describe("notes", () => {
+  it("carry onto worm points; scrapes and the origin have none", () => {
+    const points = buildWorm([
+      { ...snap("2026-09-13T17:00:00Z", 6.4, 0), note: "C. McCaffrey +6.40" },
+      snap("2026-09-13T18:00:00Z", 9, 2),
+    ]);
+    expect(points.map((p) => p.note)).toEqual([null, "C. McCaffrey +6.40", null]);
   });
 });
 
@@ -102,6 +116,13 @@ describe("wormChart", () => {
 
   it("is null without enough history", () => {
     expect(wormChart([], "Alpha", "Beta")).toBeNull();
+  });
+
+  it("says where the points came from", () => {
+    expect(wormChart(WEEK, "Alpha", "Beta")!.summary).toMatch(/read during game windows/);
+    expect(wormChart(WEEK, "Alpha", "Beta", "plays")!.summary).toMatch(
+      /One point per scoring play, rebuilt from NFL play-by-play\.$/,
+    );
   });
 
   it("summarises a wire-to-wire game", () => {

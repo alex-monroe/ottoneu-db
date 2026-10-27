@@ -17,7 +17,7 @@ import {
   type LineupGameState,
   type LiveGame,
 } from "./live-matchup";
-import type { ScoreSnapshot } from "./score-worm";
+import type { ScoreHistory } from "./score-worm";
 
 // One literal so Supabase's generated types can infer the row shape.
 const COLUMNS =
@@ -110,13 +110,36 @@ export async function fetchLiveGame(
 }
 
 /**
- * One game's score history (`matchup_score_snapshots`), oldest first — the
- * data behind the score worm. Empty when none is stored (games played before
- * the table existed) or the read fails: the worm is an extra, never a reason
- * for the game page to error.
+ * One game's score history, oldest first — the data behind the score worm.
+ * Once the week has been rebuilt from play-by-play (`matchup_score_plays`)
+ * that is every scoring play; before then it is the live lineup scrapes
+ * (`matchup_score_snapshots`). Empty when neither is stored or a read fails:
+ * the worm is an extra, never a reason for the game page to error.
  */
-export async function fetchScoreSnapshots(gameId: number): Promise<ScoreSnapshot[]> {
+export async function fetchScoreSnapshots(gameId: number): Promise<ScoreHistory> {
   try {
+    const plays = await fetchAllRows<Record<string, unknown>>((from, to) =>
+      supabase
+        .from("matchup_score_plays")
+        .select("play_at, home_points, away_points, note")
+        .eq("league_id", LEAGUE_ID)
+        .eq("game_id", gameId)
+        .order("seq")
+        .order("id")
+        .range(from, to),
+    );
+    if (plays.length > 0) {
+      return {
+        source: "plays",
+        snapshots: plays.map((row) => ({
+          scraped_at: String(row.play_at),
+          home_points: Number(row.home_points),
+          away_points: Number(row.away_points),
+          note: row.note == null ? null : String(row.note),
+        })),
+      };
+    }
+
     const rows = await fetchAllRows<Record<string, unknown>>((from, to) =>
       supabase
         .from("matchup_score_snapshots")
@@ -127,13 +150,16 @@ export async function fetchScoreSnapshots(gameId: number): Promise<ScoreSnapshot
         .order("id")
         .range(from, to),
     );
-    return rows.map((row) => ({
-      scraped_at: String(row.scraped_at),
-      home_points: Number(row.home_points),
-      away_points: Number(row.away_points),
-    }));
+    return {
+      source: "scrapes",
+      snapshots: rows.map((row) => ({
+        scraped_at: String(row.scraped_at),
+        home_points: Number(row.home_points),
+        away_points: Number(row.away_points),
+      })),
+    };
   } catch (error) {
     console.error("fetchScoreSnapshots failed:", error);
-    return [];
+    return { source: "scrapes", snapshots: [] };
   }
 }
