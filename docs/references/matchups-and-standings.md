@@ -312,6 +312,39 @@ names the source.
 
 Every 2026 week from week 1 on has been rebuilt, so the worm has no gap.
 
+#### Minutes played: the worm by lineup minutes, not the clock
+
+A rebuilt worm has a **Clock | Minutes played** toggle. In the minutes view
+each team's score is plotted against the share of *its own* lineup's game
+minutes that have elapsed, which is closer to cricket's worm, where each innings
+is measured in its own overs. It answers "who was ahead at the same point in
+their lineups?", however the NFL schedule spread the two lineups across the
+week. A team whose starters all played at 1pm Sunday looks far ahead on the
+clock but may be level minute for minute.
+
+- **The denominator** is each starter's NFL game length: 60 minutes, plus
+  whatever overtime that game went to. Every lineup therefore ends at exactly
+  100%, and an overtime game stretches its team's axis instead of overflowing
+  it. Starters on bye bring no minutes, and empty slots aren't starters at
+  all, so they bring none either.
+- **The numerator** is the game time elapsed in each starter's game, read from
+  play-by-play: `3600 − game_seconds_remaining` in regulation. In overtime
+  nflverse restarts `game_seconds_remaining` on the overtime period's own
+  clock, so the code reads `quarter_seconds_remaining` there instead. The
+  series is kept non-decreasing.
+- **Starter → NFL game** goes through the nflverse roster's team for that week,
+  which follows trades. For a player who didn't match, it falls back to the
+  lineup's team code, with Ottoneu's spellings (`JAC`, `LAR`, …) mapped to
+  nflverse's.
+- **Storage:** each `matchup_score_plays` row has `home_progress` and
+  `away_progress` (0–1, migration 056): both sides' shares at that play.
+  `buildMinutesWorm` (`web/lib/score-worm.ts`) turns each side into a step
+  function of its own share. It reads both at every share where either moved,
+  so a tooltip's two scores belong to the same percentage, and draws them as
+  steps.
+- **The toggle appears only on rebuilt weeks.** The live scrapes don't record
+  the game clock, so a game whose rows lack progress shows the clock view only.
+
 ## Weekly pick'em
 
 `/pickem` is a mini-game on top of the game log: signed-in accounts pick the

@@ -12,9 +12,15 @@ import pytest
 
 from scripts.rebuild_score_worm import (
     ADJUSTMENT_NOTE,
+    GameClock,
     build_game_plays,
+    elapsed_seconds,
     finished_nfl_weeks,
+    game_clocks,
     gsis_index,
+    side_progress,
+    starter_game,
+    team_games,
     match_gsis,
     pick_weeks,
     play_points,
@@ -207,3 +213,83 @@ class TestWeekReadiness:
         })
         times = play_times(pbp).dt.strftime("%H:%M").tolist()
         assert times == ["17:00", "17:00", "17:00", "20:00"]
+
+
+T = pd.Timestamp
+
+
+class TestGameClock:
+    def test_elapsed_seconds_regulation_and_overtime(self):
+        assert elapsed_seconds(1, 900, 3600) == 0
+        assert elapsed_seconds(3, 450, 1350) == 2250
+        # nflverse restarts game_seconds_remaining on the overtime clock.
+        assert elapsed_seconds(5, 94, 94) == 3600 + 506
+        assert elapsed_seconds(2, NAN, NAN) is None
+
+    def test_clock_lengths_include_overtime(self):
+        pbp = pd.DataFrame({
+            "game_id": ["reg", "reg", "reg", "ot", "ot", "ot"],
+            "play_id": [1, 2, 3, 1, 2, 3],
+            "time_of_day": ["2026-09-20T17:00:00Z", "2026-09-20T18:30:00Z", None,
+                            "2026-09-20T20:25:00Z", "2026-09-20T23:40:00Z", "2026-09-20T23:50:00Z"],
+            "qtr": [1, 4, 4, 1, 5, 5],
+            "quarter_seconds_remaining": [900, 0, 0, 900, 300, 94],
+            "game_seconds_remaining": [3600, 0, 0, 3600, 300, 94],
+        })
+        clocks = game_clocks(pbp)
+        assert clocks["reg"].length == 3600
+        assert clocks["ot"].length == 3600 + 506
+        assert clocks["ot"].at(T("2026-09-20T20:00:00Z")) == 0  # before kickoff
+        assert clocks["ot"].at(T("2026-09-20T23:45:00Z")) == 3600 + 300
+        assert clocks["ot"].at(T("2026-09-21T03:00:00Z")) == 3600 + 506  # over
+
+    def test_elapsed_never_runs_backwards(self):
+        pbp = pd.DataFrame({
+            "game_id": ["g", "g", "g"], "play_id": [1, 2, 3],
+            "time_of_day": ["2026-09-20T17:00:00Z", "2026-09-20T17:30:00Z", "2026-09-20T17:31:00Z"],
+            "qtr": [1, 2, 2], "quarter_seconds_remaining": [900, 300, 400],
+            "game_seconds_remaining": [3600, 2100, 2200],
+        })
+        assert game_clocks(pbp)["g"].elapsed == [0, 1500, 1500]
+
+    def test_side_progress_weights_by_game_length(self):
+        regulation = GameClock([T("2026-09-20T17:00:00Z"), T("2026-09-20T20:00:00Z")], [0, 3600])
+        overtime = GameClock([T("2026-09-20T20:25:00Z"), T("2026-09-20T22:00:00Z"), T("2026-09-21T00:00:00Z")],
+                             [0, 1800, 4200])
+        clocks = {"a": regulation, "b": overtime}
+        # Two starters in the 1pm game (done), one in the late game at halftime.
+        assert side_progress(["a", "a", "b"], clocks, T("2026-09-20T22:30:00Z")) == round(
+            (3600 + 3600 + 1800) / (3600 + 3600 + 4200), 4)
+        assert side_progress(["a", "b"], clocks, T("2026-09-21T05:00:00Z")) == 1.0
+        assert side_progress([], clocks, T("2026-09-21T05:00:00Z")) is None
+
+    def test_starter_game(self):
+        games = team_games(pd.DataFrame({"game_id": ["g1", "g2"], "home_team": ["LA", "JAX"],
+                                         "away_team": ["SF", "HOU"]}))
+        assert starter_game({"nfl_team": "SF"}, "00-1", {"00-1": "LA"}, games) == "g1"  # roster wins
+        assert starter_game({"nfl_team": "JAC"}, None, {}, games) == "g2"  # Ottoneu code mapped
+        assert starter_game({"nfl_team": "LAR", "game_state": "bye"}, None, {}, games) is None
+        assert starter_game({"nfl_team": "DAL"}, None, {}, games) is None
+
+    def test_rows_carry_progress(self):
+        clocks = {
+            "g": GameClock([T("2026-09-20T17:00:00Z"), T("2026-09-20T18:00:00Z"), T("2026-09-20T20:00:00Z")],
+                           [0, 1800, 3600]),
+        }
+        events = [event("2026-09-20T18:00:00Z", {"QB": 4.92}), event("2026-09-20T19:00:00Z", {"WR": 8.8})]
+        rows = build_game_plays(GAME, TestBuildGamePlays.STARTERS, TestBuildGamePlays.GSIS, events, 309,
+                                {"home": ["g"], "away": []}, clocks)
+        assert [(r["home_progress"], r["away_progress"]) for r in rows] == [(0.5, None), (0.5, None)]
+
+    def test_adjustment_row_is_at_full_progress(self):
+        clocks = {"g": GameClock([T("2026-09-20T17:00:00Z"), T("2026-09-20T20:00:00Z")], [0, 3600])}
+        starters = [starter("home", 1, "Brock Purdy", 6.92), starter("away", 2, "Ja'Marr Chase", 8.8)]
+        events = [event("2026-09-20T17:05:00Z", {"QB": 4.92}), event("2026-09-20T17:06:00Z", {"WR": 8.8})]
+        rows = build_game_plays(GAME, starters, TestBuildGamePlays.GSIS, events, 309,
+                                {"home": ["g"], "away": ["g"]}, clocks)
+        assert (rows[-1]["home_progress"], rows[-1]["away_progress"]) == (1.0, 1.0)
+
+    def test_progress_is_none_without_clocks(self):
+        events = [event("2026-09-20T17:05:00Z", {"QB": 4.92})]
+        rows = build_game_plays(GAME, TestBuildGamePlays.STARTERS, TestBuildGamePlays.GSIS, events, 309)
+        assert rows[0]["home_progress"] is None

@@ -30,6 +30,14 @@ final in `league_matchups`. The league week is the NFL week of the same number.
 Players are matched to nflverse gsis ids by normalized name through that
 season's roster file, with position and then NFL team as tie-breaks — the same
 approach as scripts/backfill_red_zone.py.
+
+Each row also carries each side's **share of lineup minutes played**
+(`home_progress` / `away_progress`, 0–1) — the x-axis of the worm's "Minutes
+played" view. Every starter brings his NFL game's full length: 60 minutes, plus
+whatever overtime that game went to, so a lineup always finishes at exactly 1.
+A starter on bye, or whose NFL game cannot be found, brings none. At any moment
+a side's progress is the game minutes elapsed across its starters' games over
+that total.
 """
 
 from __future__ import annotations
@@ -39,6 +47,7 @@ import io
 import math
 import sys
 import time
+from bisect import bisect_right
 from collections import defaultdict
 from datetime import datetime, timedelta
 
@@ -66,8 +75,15 @@ ADJUSTMENT_NOTE = "Adjustment to Ottoneu's final"
 # Two totals closer than this are the same score (points are kept to 2 dp).
 _EPSILON = 0.005
 
+REGULATION_SECONDS = 3600
+OVERTIME_PERIOD_SECONDS = 600  # regular-season overtime
+
+# Ottoneu team codes that nflverse spells differently.
+_NFLVERSE_TEAM = {"JAC": "JAX", "LAR": "LA", "WSH": "WAS", "LVR": "LV", "OAK": "LV", "STL": "LA", "SD": "LAC"}
+
 _PBP_COLUMNS = [
     "game_id", "play_id", "season_type", "week", "time_of_day", "desc", "posteam",
+    "home_team", "away_team", "qtr", "quarter_seconds_remaining", "game_seconds_remaining",
     "passer_player_id", "rusher_player_id", "receiver_player_id",
     "lateral_rusher_player_id", "lateral_receiver_player_id",
     "passing_yards", "rushing_yards", "receiving_yards",
@@ -192,7 +208,7 @@ def load_pbp(season: int) -> pd.DataFrame:
 
 def load_roster(season: int) -> pd.DataFrame:
     df = pd.read_parquet(io.BytesIO(_download(ROSTER_URL.format(season=season))))
-    return df[["gsis_id", "full_name", "position", "team"]].dropna(subset=["gsis_id", "full_name"])
+    return df[["gsis_id", "full_name", "position", "team", "week"]].dropna(subset=["gsis_id", "full_name"])
 
 
 def load_schedule(season: int) -> pd.DataFrame:
@@ -228,6 +244,98 @@ def scoring_events(pbp_week: pd.DataFrame) -> list[tuple[pd.Timestamp, str, floa
             events.append((play["_at"], play["game_id"], float(play["play_id"]), points))
     events.sort(key=lambda e: (e[0], e[1], e[2]))
     return events
+
+
+# --- Game clocks -------------------------------------------------------------
+
+def elapsed_seconds(qtr, quarter_remaining, game_remaining) -> float | None:
+    """Game seconds played at a play. In overtime nflverse restarts
+    `game_seconds_remaining` on the period's own clock, so read the quarter's."""
+    quarter = _num(qtr)
+    if quarter >= 5:
+        remaining = _num(quarter_remaining)
+        return REGULATION_SECONDS + OVERTIME_PERIOD_SECONDS * (quarter - 5) + OVERTIME_PERIOD_SECONDS - remaining
+    if game_remaining is None or (isinstance(game_remaining, float) and math.isnan(game_remaining)):
+        return None
+    return REGULATION_SECONDS - _num(game_remaining)
+
+
+class GameClock:
+    """One NFL game's elapsed game time against wall-clock time."""
+
+    def __init__(self, times: list[pd.Timestamp], elapsed: list[float]):
+        self.times = times
+        self.elapsed = elapsed
+        # A game's length is where its clock stopped: 3600, or more after overtime.
+        self.length = max(elapsed[-1] if elapsed else 0.0, REGULATION_SECONDS)
+
+    def at(self, when: pd.Timestamp) -> float:
+        """Seconds played by `when` (0 before kickoff, the full length after the end)."""
+        index = bisect_right(self.times, when) - 1
+        if index < 0:
+            return 0.0
+        if index == len(self.times) - 1:
+            return self.length
+        return self.elapsed[index]
+
+
+def game_clocks(pbp_week: pd.DataFrame) -> dict[str, GameClock]:
+    """nfl game id -> its clock, from every timed play's elapsed seconds.
+
+    The elapsed series is made non-decreasing, so a replay review or an
+    out-of-order timeout never moves a lineup backwards.
+    """
+    timed = pbp_week.assign(_at=play_times(pbp_week)).dropna(subset=["_at"])
+    clocks: dict[str, GameClock] = {}
+    for game_id, plays in timed.sort_values(["_at", "play_id"]).groupby("game_id", sort=False):
+        times, elapsed, high = [], [], 0.0
+        for at, qtr, q_rem, g_rem in plays[["_at", "qtr", "quarter_seconds_remaining",
+                                            "game_seconds_remaining"]].itertuples(index=False):
+            seconds = elapsed_seconds(qtr, q_rem, g_rem)
+            if seconds is None:
+                continue
+            high = max(high, seconds)
+            times.append(at)
+            elapsed.append(high)
+        clocks[game_id] = GameClock(times, elapsed)
+    return clocks
+
+
+def team_games(pbp_week: pd.DataFrame) -> dict[str, str]:
+    """nflverse team code -> that week's nfl game id."""
+    games: dict[str, str] = {}
+    for game_id, home, away in pbp_week[["game_id", "home_team", "away_team"]].drop_duplicates().itertuples(index=False):
+        games[home] = game_id
+        games[away] = game_id
+    return games
+
+
+def starter_game(
+    starter: dict,
+    gsis: str | None,
+    weekly_team: dict[str, str],
+    games_by_team: dict[str, str],
+) -> str | None:
+    """The NFL game a starter's minutes come from, or None (bye, not found).
+
+    The nflverse roster's team for that week wins (it follows trades); the
+    lineup's own team code is the fallback for a player who did not match.
+    """
+    if starter.get("game_state") == "bye":
+        return None
+    team = weekly_team.get(gsis) if gsis else None
+    if team is None and starter.get("nfl_team"):
+        team = _NFLVERSE_TEAM.get(starter["nfl_team"], starter["nfl_team"])
+    return games_by_team.get(team) if team else None
+
+
+def side_progress(games: list[str], clocks: dict[str, GameClock], when: pd.Timestamp) -> float | None:
+    """Share (0–1) of a side's lineup minutes played by `when`; None if it has none."""
+    known = [clocks[g] for g in games if g in clocks]
+    total = sum(c.length for c in known)
+    if total <= 0:
+        return None
+    return round(sum(c.at(when) for c in known) / total, 4)
 
 
 # --- Player matching ---------------------------------------------------------
@@ -266,6 +374,8 @@ def build_game_plays(
     gsis_of: dict[int, str],
     events: list[tuple[pd.Timestamp, str, float, dict[str, float]]],
     league_id: int,
+    side_games: dict[str, list[str]] | None = None,
+    clocks: dict[str, GameClock] | None = None,
 ) -> list[dict]:
     """One game's `matchup_score_plays` rows (pure).
 
@@ -273,6 +383,10 @@ def build_game_plays(
     their ottoneu_id to a gsis id. Each event that moves either side's total
     becomes a row of running totals. If the rebuilt finals differ from the
     lineups' (Ottoneu's) totals, a last adjustment row closes the gap.
+
+    `side_games` (side -> each starter's NFL game id, one entry per starter)
+    and `clocks` give each row both sides' share of lineup minutes played;
+    without them the progress columns are None.
     """
     owner: dict[str, tuple[str, str]] = {}
     official = {"home": 0.0, "away": 0.0}
@@ -285,7 +399,13 @@ def build_game_plays(
     totals = {"home": 0.0, "away": 0.0}
     rows: list[dict] = []
 
-    def emit(at: datetime, note: str) -> None:
+    def progress(side: str, at: pd.Timestamp) -> float | None:
+        if side_games is None or clocks is None:
+            return None
+        return side_progress(side_games.get(side, []), clocks, at)
+
+    def emit(at: datetime, note: str, *, finished: bool = False) -> None:
+        when = pd.Timestamp(at)
         rows.append({
             "league_id": league_id,
             "season": game["season"],
@@ -296,6 +416,8 @@ def build_game_plays(
             "home_points": round(totals["home"], 2),
             "away_points": round(totals["away"], 2),
             "note": note,
+            "home_progress": 1.0 if finished and side_games else progress("home", when),
+            "away_progress": 1.0 if finished and side_games else progress("away", when),
         })
 
     for at, _nfl_game, _play_id, points in events:
@@ -311,7 +433,7 @@ def build_game_plays(
     if rows and off:
         totals.update(official)
         last = datetime.fromisoformat(rows[-1]["play_at"])
-        emit(last + timedelta(minutes=1), ADJUSTMENT_NOTE)
+        emit(last + timedelta(minutes=1), ADJUSTMENT_NOTE, finished=True)
     return rows
 
 
@@ -444,7 +566,8 @@ def main() -> None:
         print("Nothing to rebuild.")
         return
 
-    index = gsis_index(load_roster(season))
+    roster = load_roster(season)
+    index = gsis_index(roster)
     for week in weeks:
         starters = week_starters(supabase, args.league_id, season, week)
         gsis_of = {}
@@ -452,7 +575,11 @@ def main() -> None:
             gsis = match_gsis(row, index)
             if gsis:
                 gsis_of[row["ottoneu_id"]] = gsis
-        events = scoring_events(pbp[pbp["week"] == week])
+        pbp_week = pbp[pbp["week"] == week]
+        events = scoring_events(pbp_week)
+        clocks = game_clocks(pbp_week)
+        games_by_team = team_games(pbp_week)
+        weekly_team = dict(roster.loc[roster["week"] == week, ["gsis_id", "team"]].itertuples(index=False))
 
         mismatches = player_mismatches(starters, gsis_of, events)
         print(f"Week {week}: {len(starters)} starters, {len(events)} scoring plays, "
@@ -464,7 +591,15 @@ def main() -> None:
         for row in starters:
             by_game[row["game_id"]].append(row)
         for game in (g for g in games if g["week"] == week):
-            rows = build_game_plays(game, by_game[game["game_id"]], gsis_of, events, args.league_id)
+            side_games: dict[str, list[str]] = {"home": [], "away": []}
+            for row in by_game[game["game_id"]]:
+                nfl_game = starter_game(row, gsis_of.get(row["ottoneu_id"]), weekly_team, games_by_team)
+                if nfl_game:
+                    side_games[row["side"]].append(nfl_game)
+                elif row.get("game_state") != "bye":
+                    print(f"  game {game['game_id']}: no NFL game for {row['player_name']} ({row['nfl_team']})")
+            rows = build_game_plays(game, by_game[game["game_id"]], gsis_of, events, args.league_id,
+                                    side_games, clocks)
             adjusted = " (adjusted to Ottoneu's final)" if rows and rows[-1]["note"] == ADJUSTMENT_NOTE else ""
             final = f"{rows[-1]['home_points']:.2f}–{rows[-1]['away_points']:.2f}" if rows else "no plays"
             print(f"  game {game['game_id']}: {len(rows)} rows, {final}{adjusted}")
