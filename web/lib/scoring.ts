@@ -5,10 +5,12 @@
  * the canonical TypeScript implementation of the scoring rules so that any
  * future need to compute points from stats uses a single source of truth.
  *
- * Scoring weights are loaded from the shared config.json.
+ * Scoring weights are loaded from the shared config.json: SCORING_SETTINGS plus
+ * SCORING_EXTRAS (fumbles lost, two-point conversions, missed kicks), which
+ * together are the league's full scoring.
  */
 
-import { SCORING_SETTINGS } from "./config";
+import { SCORING_EXTRAS, SCORING_SETTINGS } from "./config";
 
 /** Raw stat line that can be scored. All fields default to 0 if absent. */
 export interface ScorableStats {
@@ -24,6 +26,11 @@ export interface ScorableStats {
   fg_made_40_49?: number;
   fg_made_50_plus?: number;
   pat_made?: number;
+  fumbles_lost?: number;
+  two_point_pass?: number;
+  two_point_rush_rec?: number;
+  fg_missed?: number;
+  pat_missed?: number;
 }
 
 /**
@@ -31,7 +38,7 @@ export interface ScorableStats {
  *
  * This is the single source of truth for the scoring formula.
  * The same weights are used by the Python scraper when computing
- * nfl_stats.total_points.
+ * nfl_stats.total_points (scripts/scoring.py).
  */
 export function calculateFantasyPoints(stats: ScorableStats): number {
   return (
@@ -46,6 +53,11 @@ export function calculateFantasyPoints(stats: ScorableStats): number {
     (stats.fg_made_0_39 ?? 0) * SCORING_SETTINGS.fg_made_0_39 +
     (stats.fg_made_40_49 ?? 0) * SCORING_SETTINGS.fg_made_40_49 +
     (stats.fg_made_50_plus ?? 0) * SCORING_SETTINGS.fg_made_50_plus +
-    (stats.pat_made ?? 0) * SCORING_SETTINGS.pat_made
+    (stats.pat_made ?? 0) * SCORING_SETTINGS.pat_made +
+    (stats.fumbles_lost ?? 0) * SCORING_EXTRAS.fumbles_lost +
+    (stats.two_point_pass ?? 0) * SCORING_EXTRAS.two_point_pass +
+    (stats.two_point_rush_rec ?? 0) * SCORING_EXTRAS.two_point_rush_rec +
+    (stats.fg_missed ?? 0) * SCORING_EXTRAS.fg_missed +
+    (stats.pat_missed ?? 0) * SCORING_EXTRAS.pat_missed
   );
 }

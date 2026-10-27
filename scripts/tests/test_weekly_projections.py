@@ -105,6 +105,36 @@ class TestSleeperParsing:
         assert rows[0].stats["fg_made_50_plus"] == 1.0
         assert rows[0].stats["pat_made"] == 3.0
 
+    def test_maps_scoring_extras(self):
+        payload = [
+            _sleeper_row(
+                "Josh Allen", "QB", "BUF",
+                {"pass_td": 1, "pass_2pt": 1, "rush_2pt": 1, "rec_2pt": 1, "fum_lost": 1},
+            )
+        ]
+        rows = sleeper.parse(payload, 2025, 1)
+        assert rows[0].stats["two_point_pass"] == 1.0
+        assert rows[0].stats["two_point_rush_rec"] == 2.0
+        assert rows[0].stats["fumbles_lost"] == 1.0
+        # 4 (pass TD) + 1 (2pt pass) + 4 (two 2pt runs/catches) - 2 (fumble lost)
+        assert score_stat_line(rows[0].stats) == 7.0
+
+    def test_missed_kicks_take_the_total_or_the_bands_never_both(self):
+        # Actuals carry `fgmiss` beside its bands; projections carry only bands.
+        actual = _sleeper_row(
+            "Kicker Guy", "K", "KC",
+            {"fgm_30_39": 1, "fgmiss": 2, "fgmiss_40_49": 1, "fgmiss_50p": 1, "xpm": 2, "xpmiss": 1},
+        )
+        projected = _sleeper_row(
+            "Kicker Two", "K", "LV",
+            {"fgmiss_30_39": 0.1, "fgmiss_40_49": 0.2, "fgmiss_50p": 0.3},
+        )
+        rows = sleeper.parse([actual, projected], 2025, 1)
+        assert rows[0].stats["fg_missed"] == 2.0
+        assert rows[0].stats["pat_missed"] == 1.0
+        assert score_stat_line(rows[0].stats) == 3 + 2 - 2 - 1
+        assert rows[1].stats["fg_missed"] == pytest.approx(0.6)
+
     def test_carries_opponent_and_week(self):
         rows = sleeper.parse([_sleeper_row("A B", "WR", "SF", {"rec": 5}, week=7)], 2025, 7)
         assert rows[0].opponent == "LAC"

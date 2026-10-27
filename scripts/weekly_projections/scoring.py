@@ -2,9 +2,10 @@
 
 The seasonal twin, scripts/feature_projections/external_sources/scoring.py,
 hardcodes its multipliers and divides by a game count to produce PPG. This one
-reads the multipliers from scripts.config.SCORING_SETTINGS (so a scoring change
-in config.json propagates automatically) and returns points for ONE game — the
-unit the weekly feature is about.
+reads the multipliers from scripts.scoring.FULL_SCORING — SCORING_SETTINGS plus
+SCORING_EXTRAS (fumbles lost, two-point conversions, missed kicks), so a scoring
+change in config.json propagates automatically — and returns points for ONE game,
+the unit the weekly feature is about.
 
 It also scores kickers, which the seasonal helper omits entirely: Ottoneu's field
 goals are distance-tiered (3/4/5 points by yardage bucket), which is exactly the
@@ -14,12 +15,12 @@ this league's half PPR.
 
 from __future__ import annotations
 
-from scripts.config import SCORING_SETTINGS
+from scripts.scoring import FULL_SCORING
 
-# Our normalised stat keys are deliberately the SCORING_SETTINGS keys, so scoring
+# Our normalised stat keys are deliberately the FULL_SCORING keys, so scoring
 # is a dot product and a new scoring category needs no code change here — only a
 # source-side mapping to the new key.
-STAT_KEYS: tuple[str, ...] = tuple(SCORING_SETTINGS.keys())
+STAT_KEYS: tuple[str, ...] = tuple(FULL_SCORING.keys())
 
 
 def _num(value) -> float:
@@ -36,7 +37,7 @@ def score_stat_line(stats: dict) -> float:
     """Ottoneu points for a single game from a normalised stat line.
 
     Args:
-        stats: Dict keyed by the names in SCORING_SETTINGS. Missing keys count
+        stats: Dict keyed by the names in FULL_SCORING. Missing keys count
             as zero, so a WR's stat line needs no passing entries.
 
     Returns:
@@ -46,7 +47,7 @@ def score_stat_line(stats: dict) -> float:
     season totals the same way.
     """
     total = 0.0
-    for stat, multiplier in SCORING_SETTINGS.items():
+    for stat, multiplier in FULL_SCORING.items():
         total += _num(stats.get(stat)) * multiplier
     return round(total, 2)
 

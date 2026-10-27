@@ -1,68 +1,16 @@
-import sys
+"""Tests for the nfl_stats backfill's points calculation and stat processing."""
+
+import pandas as pd
 import pytest
-from unittest.mock import MagicMock, patch
 
-# --- Fixture to mock dependencies safely ---
-@pytest.fixture(scope="module", autouse=True)
-def mock_dependencies():
-    """
-    Mock pandas and scripts.config for the duration of this test module.
-    Uses patch.dict to ensure sys.modules is restored after tests complete.
-    """
-    mocks = {
-        "pandas": MagicMock(),
-        "scripts.config": MagicMock(),
-    }
+from scripts.backfill_nfl_stats import calc_half_ppr_points, process_stats
 
-    # Apply patch to sys.modules
-    with patch.dict(sys.modules, mocks):
-        yield
-
-# We import the function inside the tests or after the patch is active.
-# However, since pytest collects tests by importing the module, top-level imports
-# run before fixtures. To handle this without global pollution, we can use
-# import_module inside the tests, or rely on the fact that if we use patch.dict
-# in a fixture that wraps the whole session/module, it might be safer.
-# BUT, simplest way for a unit test of a pure function:
-# Just import inside the test function? No, that's annoying.
-# Best approach: Use a setup that imports the module *after* patching.
-
-# Actually, the previous implementation did:
-# sys.modules["pandas"] = MagicMock()
-# from scripts.backfill_nfl_stats import calc_half_ppr_points
-# This leaves sys.modules modified.
-
-# New approach:
-# 1. Use a fixture to patch sys.modules.
-# 2. Import the function-under-test INSIDE the fixture or test functions.
-# 3. Clean up is handled by the patch context manager.
 
 class TestCalcHalfPPRPoints:
 
     @pytest.fixture
     def calc_func(self):
-        """Import the function while dependencies are mocked."""
-        with patch.dict(sys.modules, {
-            "pandas": MagicMock(),
-            "scripts.config": MagicMock()
-        }):
-            # We must reload or import here. Since it might be already imported
-            # by other tests (unlikely in this isolated run, but possible),
-            # we force a fresh import if needed, or just import it now.
-            # Warning: if scripts.backfill_nfl_stats was already imported by another test
-            # with REAL pandas, this import might just grab that cached module.
-            # But here we want to support the case where pandas is MISSING.
-
-            if "scripts.backfill_nfl_stats" in sys.modules:
-                del sys.modules["scripts.backfill_nfl_stats"]
-
-            from scripts.backfill_nfl_stats import calc_half_ppr_points
-            yield calc_half_ppr_points
-
-            # Cleanup: remove the module so it doesn't pollute subsequent tests
-            # with the mocked dependencies baked in.
-            if "scripts.backfill_nfl_stats" in sys.modules:
-                del sys.modules["scripts.backfill_nfl_stats"]
+        return calc_half_ppr_points
 
     def test_basic_scoring(self, calc_func):
         """Test basic scoring for a standard player row."""
@@ -125,3 +73,38 @@ class TestCalcHalfPPRPoints:
         }
         # 250.5 * 0.04 = 10.02
         assert abs(calc_func(row) - 10.02) < 0.0001
+
+    def test_scoring_extras(self, calc_func):
+        """Fumbles lost, two-point conversions and missed kicks score too."""
+        row = {
+            "fumbles_lost": 1,        # -2 pts
+            "two_point_pass": 1,      # 1 pt
+            "two_point_rush_rec": 1,  # 2 pts
+            "fg_missed": 1,           # -1 pt
+            "pat_missed": 2,          # -2 pts
+        }
+        assert calc_func(row) == -2.0
+
+
+class TestProcessStatsExtras:
+
+    def test_derives_extras_from_nflverse_columns(self):
+        """The extras are derived per row, then summed across a traded player's teams."""
+        raw = pd.DataFrame([
+            {"player_display_name": "A", "season": 2024, "games": 8, "fumbles_lost_total": 1,
+             "passing_2pt_conversions": 1, "rushing_2pt_conversions": 0, "receiving_2pt_conversions": 1,
+             "fg_att": 0, "fg_made": 0, "pat_att": 0, "pat_made": 0},
+            {"player_display_name": "A", "season": 2024, "games": 9, "fumbles_lost_total": 2,
+             "passing_2pt_conversions": 0, "rushing_2pt_conversions": 1, "receiving_2pt_conversions": 0,
+             "fg_att": 0, "fg_made": 0, "pat_att": 0, "pat_made": 0},
+            {"player_display_name": "K", "season": 2024, "games": 17, "fumbles_lost_total": 0,
+             "passing_2pt_conversions": 0, "rushing_2pt_conversions": 0, "receiving_2pt_conversions": 0,
+             # nflverse's own fg_missed / pat_missed leave out blocked kicks; Ottoneu docks them.
+             "fg_att": 30, "fg_made": 26, "fg_missed": 3, "pat_att": 40, "pat_made": 38, "pat_missed": 1},
+        ])
+        out = process_stats(raw).set_index("player_display_name")
+        assert out.loc["A", "fumbles_lost"] == 3
+        assert out.loc["A", "two_point_pass"] == 1
+        assert out.loc["A", "two_point_rush_rec"] == 2
+        assert out.loc["K", "fg_missed"] == 4
+        assert out.loc["K", "pat_missed"] == 2

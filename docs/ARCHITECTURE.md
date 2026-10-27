@@ -85,7 +85,7 @@ All web data fetching goes through `web/lib/data.ts` — the single source of tr
 - **Salary source of truth:** `league_prices` table for current views. Historical salary uses transaction replay (`roster-reconstruction.ts`).
 - **Type hierarchy:** `CorePlayer → RosteredPlayer → StatsPlayer → Player` — each layer adds data from a different source (players table → league_prices → player_stats).
 - **Calculations are TypeScript-only:** VORP, surplus, arbitration, and projected salary are computed in `web/lib/` and are the canonical implementations.
-- **Scoring formula:** `web/lib/scoring.ts` provides `calculateFantasyPoints()` — the Ottoneu Half PPR formula as a pure function of raw NFL stats.
+- **Scoring formula:** `web/lib/scoring.ts` provides `calculateFantasyPoints()` — the Ottoneu formula (`SCORING_SETTINGS` + `SCORING_EXTRAS`) as a pure function of raw NFL stats. The Python twin is `scripts/scoring.py` (`FULL_SCORING`, `add_nflverse_extras` for nflverse columns).
 
 ### Key Metrics
 

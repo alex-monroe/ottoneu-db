@@ -44,9 +44,11 @@ HEADERS = {"User-Agent": USER_AGENT, "Accept": "application/json"}
 # Ottoneu FF 309 rosters QB/RB/WR/TE/K — no DST or IDP, so we never ask for them.
 POSITIONS = ("QB", "RB", "WR", "TE", "K")
 
-# Sleeper stat key -> our SCORING_SETTINGS key. Several Sleeper keys fold into
-# one of ours: Ottoneu buckets field goals as 0-39 / 40-49 / 50+, while Sleeper
-# reports finer distance bands, so the short bands sum into fg_made_0_39.
+# Sleeper stat key -> our FULL_SCORING key (SCORING_SETTINGS + SCORING_EXTRAS).
+# Several Sleeper keys fold into one of ours: Ottoneu buckets field goals as
+# 0-39 / 40-49 / 50+, while Sleeper reports finer distance bands, so the short
+# bands sum into fg_made_0_39, and rushing and receiving two-pointers share one
+# key. Missed field goals are handled apart, in _MISSED_FG_*.
 _STAT_MAP: dict[str, str] = {
     "pass_yd": "passing_yards",
     "pass_td": "passing_tds",
@@ -62,7 +64,20 @@ _STAT_MAP: dict[str, str] = {
     "fgm_40_49": "fg_made_40_49",
     "fgm_50p": "fg_made_50_plus",
     "xpm": "pat_made",
+    "xpmiss": "pat_missed",
+    "fum_lost": "fumbles_lost",
+    "pass_2pt": "two_point_pass",
+    "rush_2pt": "two_point_rush_rec",
+    "rec_2pt": "two_point_rush_rec",
 }
+
+# Missed field goals: Sleeper's actuals carry a `fgmiss` total beside the
+# distance bands, but its projections carry only the bands. Take the total when
+# present, else sum the bands — never both, which would double count. (`fgmiss_50p`
+# already includes 50-59 and 60+, so those finer bands are left out.)
+_MISSED_FG_TOTAL = "fgmiss"
+_MISSED_FG_BANDS = ("fgmiss_0_19", "fgmiss_20_29", "fgmiss_30_39", "fgmiss_40_49", "fgmiss_50p")
+_MISSED_FG_KEY = "fg_missed"
 
 # If a payload contains none of these, the response shape has changed and we
 # refuse to write. Chosen as the keys that must appear across any real slate of
@@ -162,19 +177,28 @@ def validate_payload(payload: list[dict], url_hint: str = "") -> None:
 
 
 def _to_ottoneu_stats(sleeper_stats: dict) -> dict:
-    """Translate one Sleeper stats dict into our SCORING_SETTINGS keys.
+    """Translate one Sleeper stats dict into our FULL_SCORING keys.
 
     Note the `+=`: several Sleeper field-goal bands fold into one Ottoneu bucket.
     """
     out: dict[str, float] = {}
-    for src_key, our_key in _STAT_MAP.items():
+
+    def add(src_key: str, our_key: str) -> None:
         value = sleeper_stats.get(src_key)
         if value is None:
-            continue
+            return
         try:
             out[our_key] = out.get(our_key, 0.0) + float(value)
         except (TypeError, ValueError):
-            continue
+            return
+
+    for src_key, our_key in _STAT_MAP.items():
+        add(src_key, our_key)
+    if sleeper_stats.get(_MISSED_FG_TOTAL) is not None:
+        add(_MISSED_FG_TOTAL, _MISSED_FG_KEY)
+    else:
+        for band in _MISSED_FG_BANDS:
+            add(band, _MISSED_FG_KEY)
     return out
 
 

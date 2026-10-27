@@ -16,8 +16,8 @@ becomes a `matchup_score_plays` row. The game page draws those in place of the
 snapshots.
 
 Scoring is SCORING_SETTINGS plus SCORING_EXTRAS (fumbles lost, two-point
-conversions, missed kicks), which Ottoneu also scores but the season-total
-pipelines never see. Checked against Ottoneu's box scores: weeks 1–6 of 2026
+conversions, missed kicks) — the same full scoring the season-total pipelines
+use through scripts/scoring.py. Checked against Ottoneu's box scores: weeks 1–6 of 2026
 match all 1,295 started player-games to the hundredth. Every run repeats that
 check for the weeks it rebuilds and prints any player who disagrees; if a side's
 rebuilt total still differs from Ottoneu's (a stat correction, an unmatched

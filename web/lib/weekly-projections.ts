@@ -15,7 +15,7 @@
 
 import { supabase, fetchAllRows } from "./supabase";
 
-/** A stat line, keyed by the names in SCORING_SETTINGS. */
+/** A stat line, keyed by the names in SCORING_SETTINGS + SCORING_EXTRAS. */
 export type WeeklyStatLine = Record<string, number>;
 
 export interface WeeklyProjection {

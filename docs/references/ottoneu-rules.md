@@ -25,8 +25,22 @@ League 309 is a **12-team Superflex Half PPR** league.
 
 The last four rows are `SCORING_EXTRAS` in `config.json`. They were confirmed by
 rebuilding every started player-game of 2026 weeks 1–6 from play-by-play and
-matching Ottoneu to the hundredth. They are kept out of `SCORING_SETTINGS`, which
-the season-total stat pipelines iterate over.
+matching Ottoneu to the hundredth. Every points-from-stats calculation scores
+`SCORING_SETTINGS` plus `SCORING_EXTRAS` together: `FULL_SCORING` in
+`scripts/scoring.py` (`player_stats` and `nfl_stats` points/PPG, keeper-value game
+points, weekly Sleeper projections), `calculateFantasyPoints` in
+`web/lib/scoring.ts`, and the play-by-play score worm.
+
+From nflverse `stats_player_*` files (`add_nflverse_extras`): fumbles lost is
+`fumbles_lost_total` (return fumbles included, as the play-by-play rebuild counts
+them); a missed FG or PAT is attempts minus makes, because nflverse's own
+`fg_missed` / `pat_missed` leave out blocked kicks and Ottoneu docks those too.
+
+Not covered, because the source has no such stats: the FantasyPros external
+comparator (`external_sources/scoring.py`, skill-position stat lines only), and
+the component-rebuild projection features (`xfp_redzone`, `qb_volume_efficiency`),
+which only re-weight touchdown and passing-efficiency terms and keep the rest of
+realized PPG as is.
 
 ## Roster (Superflex format)
 

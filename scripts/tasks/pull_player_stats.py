@@ -6,6 +6,8 @@ Reads directly from the nflverse-data `stats_player` GitHub release, which:
   updated within days of each season ending
 - Pre-aggregates stats by player/season (no groupby needed)
 - Includes kicking stats (fg_made_0_39, fg_made_40_49, fg_made_50_plus, pat_made)
+- Includes the SCORING_EXTRAS stats (fumbles lost, two-point conversions,
+  missed kicks), so points are the league's full scoring
 - Works independently of the archived nfl_data_py library
 
 URL pattern: https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_reg_{year}.parquet
@@ -18,9 +20,9 @@ import math
 import pandas as pd
 from supabase import Client
 
-from scripts.config import SCORING_SETTINGS
 from scripts.tasks import TaskResult
 from scripts.name_utils import normalize_player_name
+from scripts.scoring import EXTRA_KEYS, add_nflverse_extras, score_stats
 
 _STATS_PLAYER_URL = (
     "https://github.com/nflverse/nflverse-data/releases/download/"
@@ -29,11 +31,8 @@ _STATS_PLAYER_URL = (
 
 
 def _calc_points(row: dict) -> float:
-    """Calculate Ottoneu fantasy points from raw stats using Half PPR scoring."""
-    points = 0.0
-    for stat, multiplier in SCORING_SETTINGS.items():
-        points += (row.get(stat) or 0) * multiplier
-    return points
+    """Calculate Ottoneu fantasy points from raw stats (the league's full scoring)."""
+    return score_stats(row)
 
 
 def _build_player_lookup(supabase: Client) -> dict[str, str]:
@@ -108,6 +107,7 @@ def run(params: dict, supabase: Client) -> TaskResult:
             combined["fg_made_0_39"] = combined[present_sub].sum(axis=1)
         if present_50:
             combined["fg_made_50_plus"] = combined[present_50].sum(axis=1)
+        add_nflverse_extras(combined)
 
         # Normalize column names to match DB schema
         combined = combined.rename(columns={
@@ -123,6 +123,7 @@ def run(params: dict, supabase: Client) -> TaskResult:
             "rushing_yards", "rushing_tds", "rushing_attempts",
             "receptions", "targets", "receiving_yards", "receiving_tds",
             "fg_made_0_39", "fg_made_40_49", "fg_made_50_plus", "pat_made",
+            *EXTRA_KEYS,
         ]
         agg_cols = {c: "sum" for c in stat_cols if c in combined.columns}
         combined = (
@@ -168,6 +169,7 @@ def run(params: dict, supabase: Client) -> TaskResult:
                 "fg_made_40_49": _safe_int(row.get("fg_made_40_49")),
                 "fg_made_50_plus": _safe_int(row.get("fg_made_50_plus")),
                 "pat_made": _safe_int(row.get("pat_made")),
+                **{key: _safe_int(row.get(key)) for key in EXTRA_KEYS},
             }
             total_points = _calc_points(raw_stats)
             games = _safe_int(row.get("games_played")) or 0

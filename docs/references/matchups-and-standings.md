@@ -287,9 +287,10 @@ names the source.
 
 - **Scoring** is `SCORING_SETTINGS` plus `SCORING_EXTRAS` in `config.json`:
   fumbles lost −2, a two-point conversion +2 to the runner or receiver and +1 to
-  the passer, and a missed FG or PAT −1. Ottoneu scores these too, but they are
-  kept apart from `SCORING_SETTINGS` because the season-total pipelines
-  (`pull_player_stats`, projections) loop over every key in that dict. Return
+  the passer, and a missed FG or PAT −1. Ottoneu scores these too, and so does
+  every season-total pipeline (`pull_player_stats`, `backfill_nfl_stats`, the
+  keeper model, weekly projections) through `FULL_SCORING` in
+  `scripts/scoring.py`; see [ottoneu-rules.md](ottoneu-rules.md). Return
   and defensive touchdowns score nobody. A fumble lost is charged to
   `fumbled_1_player_id` only. These rules were checked against Ottoneu's box
   scores: for 2026 weeks 1–6, all 1,295 started player-games match to the
