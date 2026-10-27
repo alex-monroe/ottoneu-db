@@ -862,9 +862,11 @@ export type Database = {
       matchup_score_plays: {
         Row: {
           away_points: number
+          away_progress: number | null
           created_at: string
           game_id: number
           home_points: number
+          home_progress: number | null
           id: string
           league_id: number
           note: string | null
@@ -875,9 +877,11 @@ export type Database = {
         }
         Insert: {
           away_points: number
+          away_progress?: number | null
           created_at?: string
           game_id: number
           home_points: number
+          home_progress?: number | null
           id?: string
           league_id: number
           note?: string | null
@@ -888,9 +892,11 @@ export type Database = {
         }
         Update: {
           away_points?: number
+          away_progress?: number | null
           created_at?: string
           game_id?: number
           home_points?: number
+          home_progress?: number | null
           id?: string
           league_id?: number
           note?: string | null

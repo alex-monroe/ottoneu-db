@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   CartesianGrid,
   Line,
@@ -9,13 +10,15 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { WormPoint } from "@/lib/score-worm";
+import type { MinutesPoint, WormPoint, WormReading } from "@/lib/score-worm";
 
 /**
  * The score worm: both sides' running totals, play by play (scrape by scrape
  * until a week is rebuilt) — cricket's worm chart for a fantasy week. A rebuilt
- * point's tooltip also says who scored. Everything is computed on the server
- * (lib/score-worm.ts); this component only draws it.
+ * point's tooltip also says who scored. A rebuilt worm can switch its x-axis
+ * from the clock to **minutes played** — each team's score against the share
+ * of its own lineup's game minutes played. Everything is computed on the
+ * server (lib/score-worm.ts); this component only draws it.
  *
  * Series colors are the `--worm-left` / `--worm-right` tokens in globals.css,
  * deliberately not positive/negative: neither team is the "good" one.
@@ -29,6 +32,17 @@ interface Side {
 
 const COLORS = { left: "var(--worm-left)", right: "var(--worm-right)" } as const;
 
+type View = "clock" | "minutes";
+
+const VIEWS: { key: View; label: string }[] = [
+  { key: "clock", label: "Clock" },
+  { key: "minutes", label: "Minutes played" },
+];
+
+const PCT_TICKS = [0, 25, 50, 75, 100];
+
+const AXIS_TICK = { fontSize: 11, fill: "var(--ink-subtle)" };
+
 function Swatch({ color }: { color: string }) {
   return <span className="inline-block h-0.5 w-4 shrink-0 rounded" style={{ background: color }} />;
 }
@@ -40,7 +54,7 @@ function WormTooltip({
   right,
 }: {
   active?: boolean;
-  payload?: Array<{ payload: WormPoint }>;
+  payload?: Array<{ payload: WormReading }>;
   left: string;
   right: string;
 }) {
@@ -76,6 +90,7 @@ export default function ScoreWorm({
   left,
   right,
   summary,
+  minutes,
 }: {
   points: WormPoint[];
   /** Index + label of the first snapshot of each day. */
@@ -84,15 +99,43 @@ export default function ScoreWorm({
   right: Side;
   /** One line under the chart — lead changes, biggest leads. */
   summary: string;
+  /** The minutes-played view; null hides the toggle (live scrapes have no game clock). */
+  minutes: { points: MinutesPoint[]; summary: string } | null;
 }) {
-  const data = points.map((p, i) => ({ ...p, i }));
+  const [view, setView] = useState<View>("clock");
+  const byMinutes = view === "minutes" && minutes !== null;
+  const clockData = points.map((p, i) => ({ ...p, i }));
   const tickLabel = new Map(ticks.map((t) => [t.index, t.label]));
+  const shown: WormReading[] = byMinutes ? minutes.points : points;
 
   return (
     <figure className="rounded-lg border border-line bg-raised p-4">
-      <figcaption className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <span className="text-sm font-semibold uppercase tracking-wide text-ink-subtle">
-          The worm
+      <figcaption className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+        <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <span className="text-sm font-semibold uppercase tracking-wide text-ink-subtle">
+            The worm
+          </span>
+          {minutes && (
+            <span
+              className="flex overflow-hidden rounded-md border border-line text-xs font-medium"
+              role="group"
+              aria-label="Worm x-axis"
+            >
+              {VIEWS.map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setView(key)}
+                  aria-pressed={view === key}
+                  className={`whitespace-nowrap px-2.5 py-1 transition-colors ${
+                    view === key ? "bg-blue-600 text-white" : "bg-raised text-ink-muted hover:bg-sunken"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </span>
+          )}
         </span>
         <span className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
           {([["left", left], ["right", right]] as const).map(([key, side]) => (
@@ -107,20 +150,36 @@ export default function ScoreWorm({
 
       <div className="h-56 w-full sm:h-64" aria-hidden="true">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -8 }}>
+          <LineChart
+            data={byMinutes ? minutes.points : clockData}
+            margin={{ top: 8, right: 8, bottom: 0, left: -8 }}
+          >
             <CartesianGrid vertical={false} stroke="var(--line)" />
-            <XAxis
-              dataKey="i"
-              type="number"
-              domain={[0, Math.max(1, data.length - 1)]}
-              ticks={ticks.map((t) => t.index)}
-              tickFormatter={(i: number) => tickLabel.get(i) ?? ""}
-              tick={{ fontSize: 11, fill: "var(--ink-subtle)" }}
-              tickLine={false}
-              axisLine={{ stroke: "var(--line-strong)" }}
-            />
+            {byMinutes ? (
+              <XAxis
+                dataKey="pct"
+                type="number"
+                domain={[0, 100]}
+                ticks={PCT_TICKS}
+                tickFormatter={(pct: number) => `${pct}%`}
+                tick={AXIS_TICK}
+                tickLine={false}
+                axisLine={{ stroke: "var(--line-strong)" }}
+              />
+            ) : (
+              <XAxis
+                dataKey="i"
+                type="number"
+                domain={[0, Math.max(1, clockData.length - 1)]}
+                ticks={ticks.map((t) => t.index)}
+                tickFormatter={(i: number) => tickLabel.get(i) ?? ""}
+                tick={AXIS_TICK}
+                tickLine={false}
+                axisLine={{ stroke: "var(--line-strong)" }}
+              />
+            )}
             <YAxis
-              tick={{ fontSize: 11, fill: "var(--ink-subtle)" }}
+              tick={AXIS_TICK}
               tickLine={false}
               axisLine={false}
               width={40}
@@ -134,7 +193,9 @@ export default function ScoreWorm({
               <Line
                 key={key}
                 dataKey={key}
-                type="linear"
+                // Minutes-played points are where either side moved; a score
+                // holds until its own next step, so draw steps, not slopes.
+                type={byMinutes ? "stepAfter" : "linear"}
                 stroke={COLORS[key]}
                 strokeWidth={2}
                 dot={false}
@@ -146,20 +207,20 @@ export default function ScoreWorm({
         </ResponsiveContainer>
       </div>
 
-      <p className="mt-2 text-xs text-ink-subtle">{summary}</p>
+      <p className="mt-2 text-xs text-ink-subtle">{byMinutes ? minutes.summary : summary}</p>
 
       {/* The chart is aria-hidden; this is its text equivalent. */}
       <table className="sr-only">
-        <caption>Running score by snapshot</caption>
+        <caption>{byMinutes ? "Running score by share of lineup minutes played" : "Running score by snapshot"}</caption>
         <thead>
           <tr>
-            <th scope="col">Time</th>
+            <th scope="col">{byMinutes ? "Lineup minutes played" : "Time"}</th>
             <th scope="col">{left.name}</th>
             <th scope="col">{right.name}</th>
           </tr>
         </thead>
         <tbody>
-          {points.map((p, i) => (
+          {shown.map((p, i) => (
             <tr key={i}>
               <td>{p.label}</td>
               <td>{p.left.toFixed(2)}</td>

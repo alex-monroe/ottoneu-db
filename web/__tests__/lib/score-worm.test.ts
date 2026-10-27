@@ -4,7 +4,9 @@
 
 import {
   biggestLeads,
+  buildMinutesWorm,
   buildWorm,
+  minutesLabel,
   dayTicks,
   flipSnapshots,
   leadChanges,
@@ -88,7 +90,9 @@ describe("dayTicks", () => {
 
 describe("flipSnapshots", () => {
   it("swaps the sides so the viewer can be drawn first", () => {
-    expect(flipSnapshots([snap("t", 1, 2)])).toEqual([{ ...snap("t", 2, 1), note: undefined }]);
+    expect(flipSnapshots([snap("t", 1, 2)])).toEqual([
+      { ...snap("t", 2, 1), note: undefined, home_progress: undefined, away_progress: undefined },
+    ]);
   });
 
   it("keeps a rebuilt play's note", () => {
@@ -130,5 +134,65 @@ describe("wormChart", () => {
     expect(wormSummary(points, "Alpha", "Beta")).toMatch(
       /^The lead never changed hands · biggest lead: Alpha 7\.00\./,
     );
+  });
+});
+
+// A rebuilt play: totals plus each side's share (0–1) of lineup minutes played.
+const play = (
+  at: string,
+  home_points: number,
+  away_points: number,
+  home_progress: number,
+  away_progress: number,
+): ScoreSnapshot => ({ scraped_at: at, home_points, away_points, home_progress, away_progress });
+
+// Home plays early (1pm games), away late: on the clock away trails all
+// afternoon, but at equal shares of their lineups it was level, then ahead.
+const LOPSIDED: ScoreSnapshot[] = [
+  play("2026-09-13T17:30:00Z", 10, 0, 0.2, 0),
+  play("2026-09-13T19:00:00Z", 30, 0, 0.5, 0),
+  play("2026-09-14T01:00:00Z", 30, 10, 0.5, 0.2),
+  play("2026-09-14T02:00:00Z", 30, 40, 0.5, 0.5),
+  play("2026-09-15T02:00:00Z", 50, 40, 1, 0.9),
+];
+
+describe("buildMinutesWorm", () => {
+  it("reads both sides at the same share of their own lineup minutes", () => {
+    const points = buildMinutesWorm(LOPSIDED);
+    expect(points.map(({ pct, left, right }) => [pct, left, right])).toEqual([
+      [0, 0, 0],
+      [20, 10, 10],
+      [50, 30, 40], // the 90% read repeats this score, so it is dropped
+      [100, 50, 40],
+    ]);
+    expect(points[2].label).toBe("50% of lineup minutes played");
+    expect(points[2].margin).toBe(-10);
+  });
+
+  it("is empty for scrapes, which carry no game clock", () => {
+    expect(buildMinutesWorm(WEEK)).toEqual([]);
+    expect(buildMinutesWorm([])).toEqual([]);
+  });
+
+  it("follows the flip, so /matchup draws the viewer first", () => {
+    const flipped = buildMinutesWorm(flipSnapshots(LOPSIDED));
+    expect(flipped.at(-1)).toMatchObject({ pct: 100, left: 40, right: 50 });
+  });
+
+  it("labels a sliver of minutes as under 1%", () => {
+    expect(minutesLabel(0.4)).toBe("<1% of lineup minutes played");
+    expect(minutesLabel(0)).toBe("0% of lineup minutes played");
+  });
+});
+
+describe("wormChart minutes view", () => {
+  it("is offered for rebuilt plays, with its own summary", () => {
+    const chart = wormChart(LOPSIDED, "Alpha", "Beta", "plays")!;
+    expect(chart.minutes!.points).toHaveLength(4);
+    expect(chart.minutes!.summary).toMatch(/^Lead changed hands 1 time · .*60 per starter, plus any overtime\.$/);
+  });
+
+  it("is null for scrapes", () => {
+    expect(wormChart(WEEK, "Alpha", "Beta")!.minutes).toBeNull();
   });
 });
