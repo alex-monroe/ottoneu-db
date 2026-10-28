@@ -97,6 +97,13 @@ export type WormReading = Pick<WormPoint, "left" | "right" | "margin" | "label" 
 export interface MinutesPoint extends WormReading {
   /** 0–100. */
   pct: number;
+  /**
+   * Each side's projected points still to come once it had played `pct` of
+   * its lineup minutes — what the hover cone (lib/worm-cone.ts) needs here,
+   * where `pct` is itself both sides' progress. Null when not stored.
+   */
+  leftRemaining: number | null;
+  rightRemaining: number | null;
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -275,35 +282,48 @@ export function buildMinutesWorm(snapshots: ScoreSnapshot[]): MinutesPoint[] {
     return [];
   }
   const last = snapshots[snapshots.length - 1];
-  const series = (side: "home" | "away"): [number, number][] => [
-    [0, 0],
-    ...snapshots.map((s): [number, number] => [
+  // [share played, score, projected points still to come] per side. The
+  // Kickoff row (0%) supplies the pre-game projection; at 100% nothing is left.
+  type Step = [number, number, number | null];
+  const series = (side: "home" | "away"): Step[] => [
+    [0, 0, null],
+    ...snapshots.map((s): Step => [
       round2((s[`${side}_progress`] as number) * 100),
       round2(s[`${side}_points`]),
+      s[`${side}_proj_remaining`] ?? null,
     ]),
-    [100, round2(last[`${side}_points`])],
+    [100, round2(last[`${side}_points`]), last[`${side}_proj_remaining`] == null ? null : 0],
   ];
   const home = series("home");
   const away = series("away");
-  // Score once `pct` of the lineup is played: the latest step at or before it.
-  const scoreAt = (steps: [number, number][], pct: number) => {
-    let score = 0;
-    for (const [at, value] of steps) {
-      if (at > pct) break;
-      score = value;
+  // A side's state once `pct` of the lineup is played: the latest step at or before it.
+  const stepAt = (steps: Step[], pct: number): Step => {
+    let found = steps[0];
+    for (const step of steps) {
+      if (step[0] > pct) break;
+      found = step;
     }
-    return score;
+    return found;
   };
 
   const shares = [...new Set([...home, ...away].map(([pct]) => pct))].sort((a, b) => a - b);
   const points: MinutesPoint[] = [];
   shares.forEach((pct, i) => {
-    const left = scoreAt(home, pct);
-    const right = scoreAt(away, pct);
+    const [, left, leftRemaining] = stepAt(home, pct);
+    const [, right, rightRemaining] = stepAt(away, pct);
     const previous = points[points.length - 1];
     const isLast = i === shares.length - 1;
     if (previous && previous.left === left && previous.right === right && !isLast) return;
-    points.push({ pct, left, right, margin: round2(left - right), label: minutesLabel(pct), note: null });
+    points.push({
+      pct,
+      left,
+      right,
+      margin: round2(left - right),
+      label: minutesLabel(pct),
+      note: null,
+      leftRemaining,
+      rightRemaining,
+    });
   });
   const distinct = new Set(points.map((p) => `${p.left}|${p.right}`)).size;
   return distinct >= 3 ? points : [];

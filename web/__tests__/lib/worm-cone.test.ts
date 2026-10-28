@@ -2,8 +2,8 @@
  * The worm's hurricane cone (web/lib/worm-cone.ts) — 80% bands from any moment.
  */
 
-import { buildWorm, flipSnapshots, type ScoreSnapshot } from "@/lib/score-worm";
-import { CONE_Z, coneFrom, finalRanges, hasCone } from "@/lib/worm-cone";
+import { buildMinutesWorm, buildWorm, flipSnapshots, type ScoreSnapshot } from "@/lib/score-worm";
+import { CONE_Z, coneFrom, finalRanges, hasCone, minutesConePoints } from "@/lib/worm-cone";
 
 // A rebuilt game: Kickoff row, then plays, each with both sides' projected
 // points still to come and share of lineup minutes played.
@@ -92,5 +92,46 @@ describe("finalRanges", () => {
       ]),
     );
     expect(finalRanges(flipped, 1, 20)!.left).toEqual(finalRanges(GAME, 1, 20)!.right);
+  });
+});
+
+describe("minutes-played cone", () => {
+  // Home plays early, away late — each side's x is its own share of minutes.
+  const rows = [
+    row("2026-09-13T17:00:00Z", 0, 0, 100, 90, 0, 0), // Kickoff
+    row("2026-09-13T19:00:00Z", 30, 0, 60, 90, 0.4, 0),
+    row("2026-09-14T02:00:00Z", 30, 40, 60, 45, 0.4, 0.5),
+    row("2026-09-15T03:00:00Z", 98, 92, 0, 0, 1, 1),
+  ];
+  const minutes = buildMinutesWorm(rows);
+  const fields = minutesConePoints(minutes);
+
+  it("carries each side's projected points still to come at its own share", () => {
+    expect(minutes.map((p) => [p.pct, p.leftRemaining, p.rightRemaining])).toEqual([
+      [0, 100, 90], // from the Kickoff row
+      [40, 60, 90],
+      [50, 60, 45],
+      [100, 0, 0],
+    ]);
+    expect(fields.every((f) => f.leftProgress === f.rightProgress)).toBe(true);
+    expect(hasCone(fields)).toBe(true);
+  });
+
+  it("widens with the share played since the hovered share", () => {
+    const cone = coneFrom(fields, 1, 20); // hovered at 40%
+    expect(cone[1].leftBand).toEqual([30, 30]);
+    // Right at 50%: 0 + (90 − 45) = 45, spread over 10% of its minutes.
+    const h = half(20, 0.1);
+    expect(cone[2].rightBand).toEqual([r2(45 - h), r2(45 + h)]);
+  });
+
+  it("gives final ranges from the hovered share", () => {
+    const h = half(20, 0.6);
+    expect(finalRanges(fields, 1, 20)!.left).toEqual([r2(90 - h), r2(90 + h)]);
+  });
+
+  it("has no cone when the rows predate projected-remaining", () => {
+    const old = buildMinutesWorm(rows.map(({ home_proj_remaining, away_proj_remaining, ...r }) => r));
+    expect(hasCone(minutesConePoints(old))).toBe(false);
   });
 });
