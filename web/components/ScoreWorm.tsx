@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
+  Area,
   CartesianGrid,
+  ComposedChart,
   Line,
-  LineChart,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -12,6 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import type { MinutesPoint, WormPoint, WormReading } from "@/lib/score-worm";
+import { coneFrom, finalRanges, hasCone, type Band } from "@/lib/worm-cone";
 
 /**
  * The score worm: both sides' running totals, play by play (scrape by scrape
@@ -19,8 +21,10 @@ import type { MinutesPoint, WormPoint, WormReading } from "@/lib/score-worm";
  * point's tooltip also says who scored. A rebuilt worm can switch its x-axis
  * from the clock to **minutes played** — each team's score against the share
  * of its own lineup's game minutes played — or its y-axis to the left team's
- * **win probability**. Everything is computed on the server
- * (lib/score-worm.ts); this component only draws it.
+ * **win probability**. On a rebuilt worm's clock view, hovering a moment
+ * shades each team's 80% "hurricane" cone from there to the end of the week
+ * (lib/worm-cone.ts, computed here per hover). Everything else is computed on
+ * the server (lib/score-worm.ts); this component only draws it.
  *
  * Series colors are the `--worm-left` / `--worm-right` tokens in globals.css,
  * deliberately not positive/negative: neither team is the "good" one.
@@ -50,16 +54,21 @@ function Swatch({ color }: { color: string }) {
   return <span className="inline-block h-0.5 w-4 shrink-0 rounded" style={{ background: color }} />;
 }
 
+const fmtBand = ([low, high]: Band) => `${low.toFixed(0)}–${high.toFixed(0)}`;
+
 function WormTooltip({
   active,
   payload,
   left,
   right,
+  ranges,
 }: {
   active?: boolean;
   payload?: Array<{ payload: WormReading }>;
   left: string;
   right: string;
+  /** Each side's 80% final-score range from the hovered moment, when the cone is on. */
+  ranges?: { left: Band; right: Band } | null;
 }) {
   if (!active || !payload?.length) return null;
   const p = payload[0].payload;
@@ -83,6 +92,18 @@ function WormTooltip({
           ? "Level"
           : `${leader} by ${Math.abs(p.margin).toFixed(2)}`}
       </p>
+      {ranges && (
+        <div className="mt-1 border-t border-line pt-1 text-ink-subtle">
+          <p>Likely finals from here (80%)</p>
+          {([[left, ranges.left, "left"], [right, ranges.right, "right"]] as const).map(([name, range, key]) => (
+            <p key={key} className="flex items-center gap-2 tabular-nums">
+              <Swatch color={COLORS[key]} />
+              <span className="max-w-[10rem] truncate">{name}</span>
+              <span className="ml-auto text-ink-muted">{fmtBand(range)}</span>
+            </p>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -141,12 +162,31 @@ export default function ScoreWorm({
   win: { summary: string } | null;
 }) {
   const [view, setView] = useState<View>("clock");
+  const [hover, setHover] = useState<number | null>(null);
   const byMinutes = view === "minutes" && minutes !== null;
   const byWin = view === "win" && win !== null;
+  const coneOn = view === "clock" && hasCone(points);
+  // Fix the y-axis to the widest any cone gets, so it never rescales mid-hover.
+  const yTop = useMemo(() => {
+    if (!hasCone(points)) return null;
+    let top = 0;
+    points.forEach((p, i) => {
+      const r = finalRanges(points, i);
+      top = Math.max(top, p.left, p.right, r?.left[1] ?? 0, r?.right[1] ?? 0);
+    });
+    return Math.ceil(top / 10) * 10;
+  }, [points]);
+  const cone = coneOn && hover !== null ? coneFrom(points, hover) : [];
+  const ranges = coneOn && hover !== null ? finalRanges(points, hover) : null;
   const available = VIEWS.filter(
     ({ key }) => key === "clock" || (key === "minutes" && minutes) || (key === "win" && win),
   );
-  const clockData = points.map((p, i) => ({ ...p, i }));
+  const clockData = points.map((p, i) => ({
+    ...p,
+    i,
+    leftBand: cone[i]?.leftBand ?? null,
+    rightBand: cone[i]?.rightBand ?? null,
+  }));
   const tickLabel = new Map(ticks.map((t) => [t.index, t.label]));
   const shown: WormReading[] = byMinutes ? minutes.points : points;
 
@@ -192,9 +232,15 @@ export default function ScoreWorm({
 
       <div className="h-56 w-full sm:h-64" aria-hidden="true">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart
+          <ComposedChart
             data={byMinutes ? minutes.points : clockData}
             margin={{ top: 8, right: 8, bottom: 0, left: -8 }}
+            onMouseMove={(state) => {
+              if (!coneOn) return;
+              const index = state?.activeTooltipIndex;
+              setHover(index == null ? null : Number(index));
+            }}
+            onMouseLeave={() => setHover(null)}
           >
             <CartesianGrid vertical={false} stroke="var(--line)" />
             {byMinutes ? (
@@ -232,6 +278,8 @@ export default function ScoreWorm({
               />
             ) : (
               <YAxis
+                domain={coneOn && yTop !== null ? [0, yTop] : undefined}
+                allowDataOverflow={coneOn && yTop !== null}
                 tick={AXIS_TICK}
                 tickLine={false}
                 axisLine={false}
@@ -244,12 +292,26 @@ export default function ScoreWorm({
                 byWin ? (
                   <WinTooltip left={left.name} right={right.name} />
                 ) : (
-                  <WormTooltip left={left.name} right={right.name} />
+                  <WormTooltip left={left.name} right={right.name} ranges={ranges} />
                 )
               }
               cursor={{ stroke: "var(--line-strong)" }}
             />
             {byWin && <ReferenceLine y={50} stroke="var(--line-strong)" strokeDasharray="4 4" />}
+            {coneOn &&
+              (["left", "right"] as const).map((key) => (
+                // The hurricane cone: [low, high] per point from the hovered one on.
+                <Area
+                  key={`${key}Band`}
+                  dataKey={`${key}Band`}
+                  type="linear"
+                  stroke="none"
+                  fill={COLORS[key]}
+                  fillOpacity={0.15}
+                  activeDot={false}
+                  isAnimationActive={false}
+                />
+              ))}
             {byWin && (
               // One line: the left team's chance. The right team's is its mirror.
               <Line
@@ -276,12 +338,13 @@ export default function ScoreWorm({
                 isAnimationActive={false}
               />
             ))}
-          </LineChart>
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
 
       <p className="mt-2 text-xs text-ink-subtle">
         {byWin ? win.summary : byMinutes ? minutes.summary : summary}
+        {coneOn && " Hover to see where each team was headed from that moment: the shading is its 80% range."}
       </p>
 
       {/* The chart is aria-hidden; this is its text equivalent. */}

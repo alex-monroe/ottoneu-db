@@ -121,7 +121,7 @@ export async function fetchScoreSnapshots(gameId: number): Promise<ScoreHistory>
     const plays = await fetchAllRows<Record<string, unknown>>((from, to) =>
       supabase
         .from("matchup_score_plays")
-        .select("play_at, home_points, away_points, note, home_progress, away_progress, home_win_prob")
+        .select("play_at, home_points, away_points, note, home_progress, away_progress, home_win_prob, home_proj_remaining, away_proj_remaining")
         .eq("league_id", LEAGUE_ID)
         .eq("game_id", gameId)
         .order("seq")
@@ -139,6 +139,8 @@ export async function fetchScoreSnapshots(gameId: number): Promise<ScoreHistory>
           home_progress: row.home_progress == null ? null : Number(row.home_progress),
           away_progress: row.away_progress == null ? null : Number(row.away_progress),
           home_win_prob: row.home_win_prob == null ? null : Number(row.home_win_prob),
+          home_proj_remaining: row.home_proj_remaining == null ? null : Number(row.home_proj_remaining),
+          away_proj_remaining: row.away_proj_remaining == null ? null : Number(row.away_proj_remaining),
         })),
       };
     }

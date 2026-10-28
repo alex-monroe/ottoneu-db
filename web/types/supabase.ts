@@ -863,10 +863,12 @@ export type Database = {
         Row: {
           away_points: number
           away_progress: number | null
+          away_proj_remaining: number | null
           created_at: string
           game_id: number
           home_points: number
           home_progress: number | null
+          home_proj_remaining: number | null
           home_win_prob: number | null
           id: string
           league_id: number
@@ -879,10 +881,12 @@ export type Database = {
         Insert: {
           away_points: number
           away_progress?: number | null
+          away_proj_remaining?: number | null
           created_at?: string
           game_id: number
           home_points: number
           home_progress?: number | null
+          home_proj_remaining?: number | null
           home_win_prob?: number | null
           id?: string
           league_id: number
@@ -895,10 +899,12 @@ export type Database = {
         Update: {
           away_points?: number
           away_progress?: number | null
+          away_proj_remaining?: number | null
           created_at?: string
           game_id?: number
           home_points?: number
           home_progress?: number | null
+          home_proj_remaining?: number | null
           home_win_prob?: number | null
           id?: string
           league_id?: number

@@ -46,7 +46,12 @@ blend as the game page's live projection (web/lib/live-matchup.ts). The
 uncertainty left in each lineup is WORM_LINEUP_SD (config.json, the spread of
 a lineup's actual total around its projection) scaled by the square root of
 the share of its minutes still to play. The win probability is the normal
-chance that the expected margin survives that uncertainty. A "Kickoff" row
+chance that the expected margin survives that uncertainty. Each row also stores
+each side's projected points still to come (`home_proj_remaining` /
+`away_proj_remaining`), from which the chart draws its "hurricane" cone: from
+any moment, a side's score at a later moment is expected to be its score now
+plus the projected points that come off the board in between, give or take
+WORM_LINEUP_SD × √(the lineup minutes played in between). A "Kickoff" row
 before the first score holds the pre-game value. `just rebuild-score-worm
 --calibrate` checks the model against every finished week, fitting the spread
 on the other weeks each time.
@@ -380,6 +385,16 @@ class WinModel:
     starters: list[tuple[str, str | None, float]]
     lineup_sd: float = WORM_LINEUP_SD
 
+    def remaining(self, clocks: dict[str, GameClock], when: pd.Timestamp) -> dict[str, float]:
+        """Each side's projected points still to come at `when`: every starter's
+        kickoff projection × the share of his game not yet played."""
+        left = {"home": 0.0, "away": 0.0}
+        for side, nfl_game, projected in self.starters:
+            clock = clocks.get(nfl_game) if nfl_game else None
+            if clock is not None:
+                left[side] += projected * (1 - clock.at(when) / clock.length)
+        return left
+
     def home_win_prob(
         self,
         totals: dict[str, float],
@@ -387,11 +402,8 @@ class WinModel:
         clocks: dict[str, GameClock],
         when: pd.Timestamp,
     ) -> float:
-        expected = dict(totals)
-        for side, nfl_game, projected in self.starters:
-            clock = clocks.get(nfl_game) if nfl_game else None
-            if clock is not None:
-                expected[side] += projected * (1 - clock.at(when) / clock.length)
+        remaining = self.remaining(clocks, when)
+        expected = {side: totals[side] + remaining[side] for side in totals}
         variance = sum(
             self.lineup_sd ** 2 * (1 - share)
             for share in (progress["home"], progress["away"])
@@ -476,8 +488,16 @@ def build_game_plays(
             return win_probability(totals["home"] - totals["away"], 0.0)
         return win_model.home_win_prob(totals, shares, clocks, when)
 
+    def projected_remaining(when: pd.Timestamp, finished: bool) -> dict[str, float | None]:
+        if win_model is None or clocks is None:
+            return {"home": None, "away": None}
+        if finished:
+            return {"home": 0.0, "away": 0.0}
+        return {side: round(v, 2) for side, v in win_model.remaining(clocks, when).items()}
+
     def emit(at: datetime, note: str, *, finished: bool = False) -> None:
         when = pd.Timestamp(at)
+        remaining = projected_remaining(when, finished)
         shares = {
             side: 1.0 if finished and side_games else progress(side, when) for side in ("home", "away")
         }
@@ -494,6 +514,8 @@ def build_game_plays(
             "home_progress": shares["home"],
             "away_progress": shares["away"],
             "home_win_prob": win_prob(when, shares, finished),
+            "home_proj_remaining": remaining["home"],
+            "away_proj_remaining": remaining["away"],
         })
 
     for at, _nfl_game, _play_id, points in events:
@@ -704,6 +726,34 @@ def calibration_report(results: list[tuple[list[dict], float]]) -> list[str]:
     return lines
 
 
+CONE_Z = 1.2816  # the central 80% of a normal distribution is ±1.2816 sd
+
+
+def coverage_report(games: list[tuple[list[dict], dict[str, float], float]]) -> list[str]:
+    """How often each side's actual final landed inside its 80% cone, by checkpoint.
+
+    From (rows, {side: Ottoneu final}, lineup sd) per game. At a checkpoint the
+    cone's final range is points + projected remaining ± 1.2816·sd·√(1 − progress).
+    A well-sized cone holds about 80% of finals at every checkpoint.
+    """
+    hits: dict[float, list[bool]] = defaultdict(list)
+    for rows, finals, lineup_sd in games:
+        for q, row in checkpoint_rows(rows).items():
+            for side in ("home", "away"):
+                remaining = row.get(f"{side}_proj_remaining")
+                progress = row.get(f"{side}_progress")
+                if remaining is None or progress is None:
+                    continue
+                centre = row[f"{side}_points"] + remaining
+                half = CONE_Z * lineup_sd * math.sqrt(max(0.0, 1 - progress))
+                hits[q].append(centre - half <= finals[side] <= centre + half)
+    lines = [f"{'minutes played':>15} {'lineups':>7} {'inside 80% cone':>16}"]
+    for q in CHECKPOINTS:
+        if hits.get(q):
+            lines.append(f"{q:>14.0%} {len(hits[q]):>7} {sum(hits[q]) / len(hits[q]):>16.0%}")
+    return lines
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Rebuild score worms from nflverse play-by-play.")
     parser.add_argument("--league-id", type=int, default=LEAGUE_ID)
@@ -753,6 +803,7 @@ def main() -> None:
         print(f"Projected edge realised (slope of actual on projected margin, 1 = perfectly "
               f"sized): {xy / xx:.2f}")
     calibration: list[tuple[list[dict], float]] = []
+    cones: list[tuple[list[dict], dict[str, float], float]] = []
 
     roster = load_roster(season)
     index = gsis_index(roster)
@@ -802,12 +853,15 @@ def main() -> None:
                 home = sum(r["points"] or 0 for r in by_game[game["game_id"]] if r["side"] == "home")
                 away = sum(r["points"] or 0 for r in by_game[game["game_id"]] if r["side"] == "away")
                 calibration.append((rows, win_probability(home - away, 0.0)))
+                cones.append((rows, {"home": home, "away": away}, lineup_sd))
             if rows and not args.dry_run:
                 replace_game(supabase, args.league_id, game["game_id"], rows)
 
     if args.calibrate:
         print()
         print("\n".join(calibration_report(calibration)))
+        print()
+        print("\n".join(coverage_report(cones)))
     if args.dry_run:
         print("Dry run — not writing to the database.")
 
