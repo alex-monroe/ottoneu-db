@@ -12,7 +12,14 @@ import pytest
 
 from scripts.rebuild_score_worm import (
     ADJUSTMENT_NOTE,
+    KICKOFF_NOTE,
     GameClock,
+    WinModel,
+    calibration_report,
+    checkpoint_rows,
+    lineup_residuals,
+    margin_slope,
+    win_probability,
     build_game_plays,
     elapsed_seconds,
     finished_nfl_weeks,
@@ -293,3 +300,79 @@ class TestGameClock:
         events = [event("2026-09-20T17:05:00Z", {"QB": 4.92})]
         rows = build_game_plays(GAME, TestBuildGamePlays.STARTERS, TestBuildGamePlays.GSIS, events, 309)
         assert rows[0]["home_progress"] is None
+
+
+class TestWinProbability:
+    def test_normal_chance_and_settled_games(self):
+        assert win_probability(0.0, 400.0) == pytest.approx(0.5)
+        assert win_probability(20.0, 400.0) == pytest.approx(0.8413, abs=1e-4)  # one sd ahead
+        assert win_probability(-20.0, 400.0) == pytest.approx(0.1587, abs=1e-4)
+        assert (win_probability(0.5, 0), win_probability(-0.5, 0), win_probability(0.0, 0)) == (1.0, 0.0, 0.5)
+
+    def test_model_blends_points_with_remaining_projection(self):
+        clock = GameClock([T("2026-09-20T17:00:00Z"), T("2026-09-20T18:00:00Z"), T("2026-09-20T20:00:00Z")],
+                          [0, 1800, 3600])
+        model = WinModel([("home", "g", 20.0), ("away", "g", 10.0)], lineup_sd=10.0)
+        # Halftime: home 5 + 20·½ = 15, away 10 + 10·½ = 15 → level.
+        p = model.home_win_prob({"home": 5.0, "away": 10.0}, {"home": 0.5, "away": 0.5}, {"g": clock},
+                                T("2026-09-20T18:00:00Z"))
+        assert p == 0.5
+        # Pre-game: 20 v 10, margin sd 10·√2 → Φ(10 / 14.14).
+        p = model.home_win_prob({"home": 0.0, "away": 0.0}, {"home": 0.0, "away": 0.0}, {"g": clock},
+                                T("2026-09-20T16:00:00Z"))
+        assert p == pytest.approx(0.7602, abs=1e-4)
+
+    def test_starter_without_a_game_brings_no_projection(self):
+        model = WinModel([("home", None, 30.0)], lineup_sd=10.0)
+        p = model.home_win_prob({"home": 0.0, "away": 0.0}, {"home": 0.0, "away": 0.0}, {}, T("2026-09-20T16:00:00Z"))
+        assert p == 0.5
+
+    def test_rows_start_with_kickoff_and_settle_at_the_end(self):
+        clocks = {"g": GameClock([T("2026-09-20T17:00:00Z"), T("2026-09-20T20:00:00Z")], [0, 3600])}
+        starters = [starter("home", 1, "Brock Purdy", 6.92), starter("away", 2, "Ja'Marr Chase", 8.8)]
+        events = [event("2026-09-20T17:05:00Z", {"QB": 4.92}), event("2026-09-20T17:06:00Z", {"WR": 8.8})]
+        model = WinModel([("home", "g", 15.0), ("away", "g", 10.0)], lineup_sd=20.0)
+        rows = build_game_plays(GAME, starters, TestBuildGamePlays.GSIS, events, 309,
+                                {"home": ["g"], "away": ["g"]}, clocks, model)
+        kickoff = rows[0]
+        assert (kickoff["note"], kickoff["home_points"], kickoff["away_points"]) == (KICKOFF_NOTE, 0.0, 0.0)
+        assert kickoff["play_at"].startswith("2026-09-20T17:00:00")
+        assert kickoff["home_win_prob"] > 0.5  # projected 15 v 10
+        assert [r["seq"] for r in rows] == [1, 2, 3, 4]
+        # The adjustment row (Ottoneu's 6.92 v 8.80) settles it for away.
+        assert (rows[-1]["note"], rows[-1]["home_win_prob"]) == (ADJUSTMENT_NOTE, 0.0)
+
+    def test_no_kickoff_row_without_a_model(self):
+        events = [event("2026-09-20T17:05:00Z", {"QB": 4.92})]
+        rows = build_game_plays(GAME, TestBuildGamePlays.STARTERS, TestBuildGamePlays.GSIS, events, 309)
+        assert rows[0]["note"] != KICKOFF_NOTE and rows[0]["home_win_prob"] is None
+
+
+class TestCalibrationHelpers:
+    STARTERS = [
+        {"game_id": 1, "side": "home", "player_id": "a", "points": 30.0},
+        {"game_id": 1, "side": "away", "player_id": "b", "points": 10.0},
+        {"game_id": 2, "side": "home", "player_id": "c", "points": 5.0},
+        {"game_id": 2, "side": "away", "player_id": "d", "points": 15.0},
+    ]
+    PROJ = {"a": 20.0, "b": 10.0, "c": 10.0, "d": 10.0}
+
+    def test_lineup_residuals(self):
+        assert sorted(lineup_residuals(self.STARTERS, self.PROJ)) == [-5.0, 0.0, 5.0, 10.0]
+
+    def test_margin_slope_sums(self):
+        # Game 1: projected +10, actual +20; game 2: projected 0, actual −10.
+        assert margin_slope(self.STARTERS, self.PROJ) == (200.0, 100.0)
+
+    def test_checkpoints_and_report(self):
+        rows = [
+            {"home_progress": 0.0, "away_progress": 0.0, "home_win_prob": 0.6},
+            {"home_progress": 0.5, "away_progress": 0.5, "home_win_prob": 0.8},
+            {"home_progress": 1.0, "away_progress": 1.0, "home_win_prob": 1.0},
+        ]
+        picked = checkpoint_rows(rows)
+        assert picked[0.0]["home_win_prob"] == 0.6
+        assert picked[0.5]["home_win_prob"] == 0.8
+        assert picked[0.9]["home_win_prob"] == 1.0
+        report = "\n".join(calibration_report([(rows, 1.0)]))
+        assert "0.160" in report  # Brier at kickoff: (0.6 − 1)²

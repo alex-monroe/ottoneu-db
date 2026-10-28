@@ -7,6 +7,7 @@ import {
   buildMinutesWorm,
   buildWorm,
   minutesLabel,
+  winSummary,
   dayTicks,
   flipSnapshots,
   leadChanges,
@@ -91,7 +92,13 @@ describe("dayTicks", () => {
 describe("flipSnapshots", () => {
   it("swaps the sides so the viewer can be drawn first", () => {
     expect(flipSnapshots([snap("t", 1, 2)])).toEqual([
-      { ...snap("t", 2, 1), note: undefined, home_progress: undefined, away_progress: undefined },
+      {
+        ...snap("t", 2, 1),
+        note: undefined,
+        home_progress: undefined,
+        away_progress: undefined,
+        home_win_prob: undefined,
+      },
     ]);
   });
 
@@ -194,5 +201,57 @@ describe("wormChart minutes view", () => {
 
   it("is null for scrapes", () => {
     expect(wormChart(WEEK, "Alpha", "Beta")!.minutes).toBeNull();
+  });
+});
+
+// Rebuilt plays with win probabilities, behind a 0–0 Kickoff row.
+const wp = (at: string, home: number, away: number, p: number, note?: string): ScoreSnapshot => ({
+  scraped_at: at,
+  home_points: home,
+  away_points: away,
+  home_win_prob: p,
+  note,
+});
+
+const COMEBACK: ScoreSnapshot[] = [
+  wp("2026-09-13T17:00:00Z", 0, 0, 0.6, "Kickoff"),
+  wp("2026-09-13T18:00:00Z", 6, 20, 0.2),
+  wp("2026-09-13T21:00:00Z", 10, 40, 0.05),
+  wp("2026-09-15T03:00:00Z", 45, 40, 1),
+];
+
+describe("win probability", () => {
+  it("puts the Kickoff row's pre-game value on the origin and drops the row", () => {
+    const points = buildWorm(COMEBACK);
+    expect(points.map((p) => p.winPct)).toEqual([60, 20, 5, 100]);
+    expect(points[0].label).toBe("Start");
+  });
+
+  it("flips with the sides", () => {
+    expect(buildWorm(flipSnapshots(COMEBACK)).map((p) => p.winPct)).toEqual([40, 80, 95, 0]);
+  });
+
+  it("summarises the pre-game odds and the winner's low point", () => {
+    const points = buildWorm(COMEBACK);
+    expect(winSummary(points, "Alpha", "Beta")).toMatch(
+      /^Pre-game: Alpha 60%\. Alpha won after falling to 5% \(Sun 5:00 PM\)\. Win probability blends/,
+    );
+    expect(winSummary(buildWorm(flipSnapshots(COMEBACK)), "Beta", "Alpha")).toMatch(
+      /^Pre-game: Alpha 60%\. Alpha won after falling to 5%/,
+    );
+  });
+
+  it("says when the winner was favoured throughout", () => {
+    const points = buildWorm([
+      wp("2026-09-13T17:00:00Z", 0, 0, 0.7),
+      wp("2026-09-13T18:00:00Z", 20, 6, 0.9),
+      wp("2026-09-15T03:00:00Z", 45, 40, 1),
+    ]);
+    expect(winSummary(points, "Alpha", "Beta")).toMatch(/^Pre-game: Alpha 70%\. Alpha was favoured throughout\./);
+  });
+
+  it("is offered only when every point has a win probability", () => {
+    expect(wormChart(COMEBACK, "Alpha", "Beta", "plays")!.win).not.toBeNull();
+    expect(wormChart(WEEK, "Alpha", "Beta")!.win).toBeNull();
   });
 });

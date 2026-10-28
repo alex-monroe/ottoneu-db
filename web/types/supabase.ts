@@ -867,6 +867,7 @@ export type Database = {
           game_id: number
           home_points: number
           home_progress: number | null
+          home_win_prob: number | null
           id: string
           league_id: number
           note: string | null
@@ -882,6 +883,7 @@ export type Database = {
           game_id: number
           home_points: number
           home_progress?: number | null
+          home_win_prob?: number | null
           id?: string
           league_id: number
           note?: string | null
@@ -897,6 +899,7 @@ export type Database = {
           game_id?: number
           home_points?: number
           home_progress?: number | null
+          home_win_prob?: number | null
           id?: string
           league_id?: number
           note?: string | null
