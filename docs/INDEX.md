@@ -48,13 +48,14 @@ touch, then the doc it links.
 - **Projection Iteration:** Use `/experiment` to run a full experiment loop (train → project → backtest → verdict). Use `/ablation` for feature ablation studies, `/feature-importance` for learned model inspection, `/compare-models` for side-by-side comparisons, `/diagnose-segment` for segment deep-dives.
 - **Market Projections:** See [docs/exec-plans/market-projections.md](exec-plans/market-projections.md) for the market-based projection system (DEFERRED)
 - **Experiment Log:** See [docs/generated/experiment-log.md](generated/experiment-log.md) for history of all model iteration attempts.
+- **Validation first:** Use `/define-done` at the start of a loosely specified task to turn it into a checkable one (observable outcomes, the command that checks each, a baseline) before editing. Why it is a skill plus a one-line AGENTS.md rule, and not just one of the two: [docs/exec-plans/validation-first-workflow.md](exec-plans/validation-first-workflow.md)
 - **Retrospective:** Use `/retro` skill after completing a task to surface friction points and open a PR with doc/skill improvements.
 - **Build System Spec:** See [docs/exec-plans/build-system-just-design.md](exec-plans/build-system-just-design.md) for the transition specification to `just` build runner
 - **Build System Plan:** See [docs/exec-plans/build-system-just-plan.md](exec-plans/build-system-just-plan.md) for the build system migration step-by-step plan
 
 ## File map
 
-Skills (`.claude/skills/`): `ablation`, `compare-models`, `create-pr`, `diagnose-segment`, `experiment`, `feature-importance`, `ottoneu-roster-question`, `projection-accuracy`, `retro`, `review-permission-gates`, `run-analyses`, `run-scraper`, `run-tests`, `start-dev`
+Skills (`.claude/skills/`): `ablation`, `compare-models`, `create-pr`, `db-schema`, `define-done`, `diagnose-segment`, `experiment`, `feature-importance`, `ottoneu-roster-question`, `projection-accuracy`, `retro`, `review-permission-gates`, `run-analyses`, `run-scraper`, `run-tests`, `scraper-logic`, `start-dev`, `verify`
 
 ```
 AGENTS.md                              ← agent entry point
@@ -82,6 +83,7 @@ docs/
 │   ├── [python-312-upgrade-spike.md](exec-plans/python-312-upgrade-spike.md)  # Spike: Py3.9→3.12 + pandas 2.x — GO verdict + nfl_data_py blocker (#627)
 │   ├── [qb-usage-share.md](exec-plans/qb-usage-share.md)              # QB Usage Share findings and next steps
 │   ├── [season-cycle.md](exec-plans/season-cycle.md)                # Cross-season data & UI scheme (date-driven season-cycle resolver)
+│   ├── [validation-first-workflow.md](exec-plans/validation-first-workflow.md)  # Why validation-first is a `/define-done` skill + one AGENTS.md rule, not either alone
 │   ├── [ux-design-review-2026-09.md](exec-plans/ux-design-review-2026-09.md)  # 2026-09 design review of the shipped UX overhaul: no design-token layer, contrast + navigation-feedback gaps
 │   ├── [build-system-just-design.md](exec-plans/build-system-just-design.md)  # Make → just transition spec (done)
 │   ├── [build-system-just-plan.md](exec-plans/build-system-just-plan.md)    # Make → just migration plan (done)
