@@ -396,8 +396,9 @@ The model (`WinModel` in `scripts/rebuild_score_worm.py`; one
 
 #### The hurricane cone: where each team was headed
 
-On a rebuilt worm's **Clock** view, hovering a moment shades each team's 80%
-range from there to the end of the week, like a hurricane forecast cone. It
+On a rebuilt worm's **Clock** and **Minutes played** views, hovering a point
+shades each team's 80% range from there to the end, like a hurricane forecast
+cone. It
 has no width at the hovered moment and widens to the team's likely final-score
 range. Hovered at kickoff it is wide; as the hover moves right it closes in
 around the actual score line. The tooltip adds "Likely finals from here
@@ -424,7 +425,16 @@ around the actual score line. The tooltip adds "Likely finals from here
   about 76% overall: close to 80% given ±4 points of sampling noise, but a
   little narrow. Refitting `WORM_LINEUP_SD` as the season goes on is the
   fix, not a cone-only fudge.
-- Hidden on scrape-only weeks and on the Minutes played and Win % views.
+- **On the Minutes played view** the same cone is drawn with x = each side's
+  share of its own lineup minutes. There progress *is* the x-axis, so from a
+  hovered share x a side's cone at a later share y is centred on
+  `points(x) + remaining(x) − remaining(y)`, give or take
+  `1.2816 × WORM_LINEUP_SD × √(y − x)`. `buildMinutesWorm` carries each
+  side's projected points still to come at its own share
+  (`MinutesPoint.leftRemaining`/`rightRemaining`), and `minutesConePoints`
+  adapts those points to the cone. Both views share one fixed y-axis, so
+  switching between them doesn't rescale it.
+- Hidden on scrape-only weeks and on the Win % view.
 
 ## Weekly pick'em
 

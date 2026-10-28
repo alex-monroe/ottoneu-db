@@ -16,20 +16,24 @@
  * final-score range; hovered early it is wide, and it closes around the actual
  * line as the hover moves right. The same model drives the Win % view.
  *
+ * The Minutes played view uses the same cone with x = each side's share of
+ * its own lineup minutes (`minutesConePoints`): there progress *is* the x-axis,
+ * so a side's cone widens with √(share played since the hovered share).
+ *
  * Pure and dependency-free (config only), so the client chart can import it:
  * a cone per hover point is computed on demand rather than shipped from the
  * server.
  */
 
 import { WORM_LINEUP_SD } from "./config";
-import type { WormPoint } from "./score-worm";
+import type { MinutesPoint, WormPoint } from "./score-worm";
 
 /** The central 80% of a normal distribution is ±1.2816 standard deviations. */
 export const CONE_Z = 1.2816;
 
 export type Band = [number, number];
 
-type ConeFields = Pick<
+export type ConeFields = Pick<
   WormPoint,
   "left" | "right" | "leftRemaining" | "rightRemaining" | "leftProgress" | "rightProgress"
 >;
@@ -93,4 +97,20 @@ export function finalRanges(
     left: band(o.left + o.leftRemaining!, 1 - o.leftProgress!, sd),
     right: band(o.right + o.rightRemaining!, 1 - o.rightProgress!, sd),
   };
+}
+
+/**
+ * Minutes-played points in the cone's shape: on that view a point at `pct`
+ * is where *both* sides had played `pct` of their own lineup minutes, so both
+ * progresses are `pct / 100`.
+ */
+export function minutesConePoints(points: MinutesPoint[]): ConeFields[] {
+  return points.map((p) => ({
+    left: p.left,
+    right: p.right,
+    leftRemaining: p.leftRemaining,
+    rightRemaining: p.rightRemaining,
+    leftProgress: p.pct / 100,
+    rightProgress: p.pct / 100,
+  }));
 }

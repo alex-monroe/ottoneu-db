@@ -13,7 +13,14 @@ import {
   YAxis,
 } from "recharts";
 import type { MinutesPoint, WormPoint, WormReading } from "@/lib/score-worm";
-import { coneFrom, finalRanges, hasCone, type Band } from "@/lib/worm-cone";
+import {
+  coneFrom,
+  finalRanges,
+  hasCone,
+  minutesConePoints,
+  type Band,
+  type ConeFields,
+} from "@/lib/worm-cone";
 
 /**
  * The score worm: both sides' running totals, play by play (scrape by scrape
@@ -21,9 +28,9 @@ import { coneFrom, finalRanges, hasCone, type Band } from "@/lib/worm-cone";
  * point's tooltip also says who scored. A rebuilt worm can switch its x-axis
  * from the clock to **minutes played** — each team's score against the share
  * of its own lineup's game minutes played — or its y-axis to the left team's
- * **win probability**. On a rebuilt worm's clock view, hovering a moment
- * shades each team's 80% "hurricane" cone from there to the end of the week
- * (lib/worm-cone.ts, computed here per hover). Everything else is computed on
+ * **win probability**. On a rebuilt worm's Clock and Minutes played views,
+ * hovering a point shades each team's 80% "hurricane" cone from there to the
+ * end (lib/worm-cone.ts, computed here per hover). Everything else is computed on
  * the server (lib/score-worm.ts); this component only draws it.
  *
  * Series colors are the `--worm-left` / `--worm-right` tokens in globals.css,
@@ -165,28 +172,38 @@ export default function ScoreWorm({
   const [hover, setHover] = useState<number | null>(null);
   const byMinutes = view === "minutes" && minutes !== null;
   const byWin = view === "win" && win !== null;
-  const coneOn = view === "clock" && hasCone(points);
-  // Fix the y-axis to the widest any cone gets, so it never rescales mid-hover.
+  const minutesCone = useMemo(() => (minutes ? minutesConePoints(minutes.points) : null), [minutes]);
+  // The cone follows the view: clock points, or minutes points (x = share played).
+  const conePoints: ConeFields[] | null =
+    view === "clock" ? points : view === "minutes" ? minutesCone : null;
+  const coneOn = conePoints !== null && hasCone(conePoints);
+  // Fix the y-axis to the widest any cone gets in either view, so it never
+  // rescales mid-hover or when switching between them.
   const yTop = useMemo(() => {
-    if (!hasCone(points)) return null;
     let top = 0;
-    points.forEach((p, i) => {
-      const r = finalRanges(points, i);
-      top = Math.max(top, p.left, p.right, r?.left[1] ?? 0, r?.right[1] ?? 0);
-    });
-    return Math.ceil(top / 10) * 10;
-  }, [points]);
-  const cone = coneOn && hover !== null ? coneFrom(points, hover) : [];
-  const ranges = coneOn && hover !== null ? finalRanges(points, hover) : null;
+    for (const fields of [points, minutesCone]) {
+      if (!fields || !hasCone(fields)) continue;
+      fields.forEach((p, i) => {
+        const r = finalRanges(fields, i);
+        top = Math.max(top, p.left, p.right, r?.left[1] ?? 0, r?.right[1] ?? 0);
+      });
+    }
+    return top > 0 ? Math.ceil(top / 10) * 10 : null;
+  }, [points, minutesCone]);
+  const cone = coneOn && hover !== null ? coneFrom(conePoints, hover) : [];
+  const ranges = coneOn && hover !== null ? finalRanges(conePoints, hover) : null;
   const available = VIEWS.filter(
     ({ key }) => key === "clock" || (key === "minutes" && minutes) || (key === "win" && win),
   );
-  const clockData = points.map((p, i) => ({
-    ...p,
-    i,
-    leftBand: cone[i]?.leftBand ?? null,
-    rightBand: cone[i]?.rightBand ?? null,
-  }));
+  const withBands = <T,>(rows: T[]) =>
+    rows.map((p, i) => ({
+      ...p,
+      i,
+      leftBand: cone[i]?.leftBand ?? null,
+      rightBand: cone[i]?.rightBand ?? null,
+    }));
+  const clockData = withBands(points);
+  const minutesData = byMinutes ? withBands(minutes.points) : [];
   const tickLabel = new Map(ticks.map((t) => [t.index, t.label]));
   const shown: WormReading[] = byMinutes ? minutes.points : points;
 
@@ -207,7 +224,10 @@ export default function ScoreWorm({
                 <button
                   key={key}
                   type="button"
-                  onClick={() => setView(key)}
+                  onClick={() => {
+                    setView(key);
+                    setHover(null);
+                  }}
                   aria-pressed={view === key}
                   className={`whitespace-nowrap px-2.5 py-1 transition-colors ${
                     view === key ? "bg-blue-600 text-white" : "bg-raised text-ink-muted hover:bg-sunken"
@@ -233,7 +253,7 @@ export default function ScoreWorm({
       <div className="h-56 w-full sm:h-64" aria-hidden="true">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
-            data={byMinutes ? minutes.points : clockData}
+            data={byMinutes ? minutesData : clockData}
             margin={{ top: 8, right: 8, bottom: 0, left: -8 }}
             onMouseMove={(state) => {
               if (!coneOn) return;
@@ -344,7 +364,7 @@ export default function ScoreWorm({
 
       <p className="mt-2 text-xs text-ink-subtle">
         {byWin ? win.summary : byMinutes ? minutes.summary : summary}
-        {coneOn && " Hover to see where each team was headed from that moment: the shading is its 80% range."}
+        {coneOn && " Hover a point to see where each team was headed from there: the shading is its 80% range."}
       </p>
 
       {/* The chart is aria-hidden; this is its text equivalent. */}
