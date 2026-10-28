@@ -361,13 +361,11 @@ The model (`WinModel` in `scripts/rebuild_score_worm.py`; one
   game still to play. This is the same blend as the game page's live
   projection (`expectedPoints` in `web/lib/live-matchup.ts`). Starters without
   a projection count 0, as do starters on bye.
-- **Projections are shrunk toward the week's mean starter projection** by
-  `WORM_PROJECTION_WEIGHT` (0.54, `config.json`), so a 10-point projected edge
-  counts as 5.4. That is what 2026 weeks 1–7 say a projected edge was worth:
-  the slope of actual margin on projected margin over 42 games. Their
-  correlation was only 0.23, and favourites won 22 of 42. Without the shrink
-  the model was confidently wrong before kickoff: favourites it gave 60–70%
-  won 39% of the time.
+- **Projections are used exactly as stored**, deliberately. The chart must
+  agree with the live projection printed above it, and the site should have
+  one set of weekly projections rather than a second one made just for this
+  chart. If the projections turn out to be miscalibrated, fix them where they
+  are ingested, so every page benefits.
 - **Uncertainty left, per side:** `WORM_LINEUP_SD` (20.3 points, the spread of
   a lineup's actual total around its projection) × √(share of that lineup's
   minutes still to play). The win probability is the normal-curve chance that
@@ -377,12 +375,21 @@ The model (`WinModel` in `scripts/rebuild_score_worm.py`; one
   kickoff) holding the pre-game value. `buildWorm` moves that value onto the
   chart's origin and otherwise drops the row as a repeat of 0–0.
 - **Checking it:** `just rebuild-score-worm --calibrate` scores every finished
-  week with the spread and weight fitted on the *other* weeks, and prints the
-  Brier score at 0/25/50/75/90% of lineup minutes against a coin flip's 0.25,
-  plus a reliability table. For 2026 weeks 1–7 the Brier score was 0.243 at
-  kickoff, 0.221 at 25%, 0.184 at 50%, 0.141 at 75% and 0.114 at 90%. 42 games
-  is a small sample, so refit both constants (the run prints the all-weeks
-  values) as the season goes on.
+  week with the spread fitted on the *other* weeks, and prints the Brier score
+  at 0/25/50/75/90% of lineup minutes against a coin flip's 0.25, plus a
+  reliability table. For 2026 weeks 1–7 the Brier score was 0.254 at kickoff,
+  0.225 at 25%, 0.177 at 50%, 0.135 at 75% and 0.110 at 90%. Refit
+  `WORM_LINEUP_SD` (the run prints the all-weeks value) as the season goes on.
+- **What the check found about the projections themselves:** the run also
+  prints how much of a projected margin turned into a real one (the slope of
+  actual margin on projected margin; 1 means perfectly sized). For weeks 1–7
+  the slope was 0.54 over 42 games, with a margin correlation of 0.23, and
+  favourites won 22 of 42. So the projections ranked lineups roughly right but
+  overstated the gaps between them. That shows up here as early
+  overconfidence: favourites the model gave 60–70% before kickoff won 39% of
+  the time. The sample is small (the slope's uncertainty is about ±0.34), but
+  it is evidence for calibrating the weekly projections where they are
+  ingested, not for adjusting them inside this chart.
 - **Known blind spots:** a starter injured early keeps getting his remaining
   projection until his game ends, which flatters his team, and scoring is
   assumed to be spread evenly across a game.

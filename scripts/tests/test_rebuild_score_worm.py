@@ -19,7 +19,6 @@ from scripts.rebuild_score_worm import (
     checkpoint_rows,
     lineup_residuals,
     margin_slope,
-    shrink_projections,
     win_probability,
     build_game_plays,
     elapsed_seconds,
@@ -364,11 +363,6 @@ class TestCalibrationHelpers:
     def test_margin_slope_sums(self):
         # Game 1: projected +10, actual +20; game 2: projected 0, actual −10.
         assert margin_slope(self.STARTERS, self.PROJ) == (200.0, 100.0)
-
-    def test_shrink_toward_the_weeks_mean(self):
-        shrunk = shrink_projections(self.PROJ, ["a", "b", "c", "d"], 0.5)
-        assert shrunk == {"a": 16.25, "b": 11.25, "c": 11.25, "d": 11.25}
-        assert shrink_projections(self.PROJ, ["a", "b"], 1.0) == self.PROJ
 
     def test_checkpoints_and_report(self):
         rows = [

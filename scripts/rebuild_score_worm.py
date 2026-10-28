@@ -73,7 +73,6 @@ from scripts.config import (
     SCORING_EXTRAS,
     SCORING_SETTINGS,
     WORM_LINEUP_SD,
-    WORM_PROJECTION_WEIGHT,
     fetch_all_rows,
     get_supabase_client,
 )
@@ -637,9 +636,12 @@ def lineup_residuals(starters: list[dict], projections: dict[str, float]) -> lis
 def margin_slope(starters: list[dict], projections: dict[str, float]) -> tuple[float, float]:
     """(Σ projected·actual, Σ projected²) of game margins, for a through-origin slope.
 
-    Summed per week so a held-out fit can add other weeks' sums. The slope of
-    actual margin on projected margin is how much of a projected edge turned
-    into a real one.
+    Summed per week so weeks can be pooled. The slope of actual margin on
+    projected margin is how much of a projected edge turned into a real one —
+    a diagnostic of the weekly projections themselves, printed by --calibrate.
+    The win model uses the projections exactly as stored (the same numbers
+    as the game page's live projection), so a miscalibration found here is a
+    fix for the projections, not for this chart.
     """
     games: dict[int, list[float]] = defaultdict(lambda: [0.0, 0.0])
     for row in starters:
@@ -647,20 +649,6 @@ def margin_slope(starters: list[dict], projections: dict[str, float]) -> tuple[f
         games[row["game_id"]][0] += sign * (row["points"] or 0.0)
         games[row["game_id"]][1] += sign * projections.get(row.get("player_id"), 0.0)
     return (sum(a * p for a, p in games.values()), sum(p * p for _a, p in games.values()))
-
-
-def shrink_projections(projections: dict[str, float], player_ids: list[str], weight: float) -> dict[str, float]:
-    """Pull each starter's projection toward the week's mean starter projection.
-
-    `weight` 1 keeps them; 0 makes every starter average. A projected edge of
-    10 points becomes one of 10·weight, which is what the season's margins
-    say a projected edge has been worth.
-    """
-    known = [projections[p] for p in player_ids if p in projections]
-    if not known:
-        return projections
-    mean = statistics.fmean(known)
-    return {p: mean + weight * (v - mean) for p, v in projections.items()}
 
 
 def rms(values: list[float]) -> float:
@@ -762,8 +750,8 @@ def main() -> None:
         print(f"Lineup spread over weeks {weeks[0]}–{weeks[-1]}: {rms(pooled):.1f} points "
               f"(mean {statistics.fmean(pooled):+.2f}, {len(pooled)} lineups); "
               f"config WORM_LINEUP_SD = {WORM_LINEUP_SD}")
-        print(f"Projected-edge weight (actual margin on projected margin): {xy / xx:.2f}; "
-              f"config WORM_PROJECTION_WEIGHT = {WORM_PROJECTION_WEIGHT}")
+        print(f"Projected edge realised (slope of actual on projected margin, 1 = perfectly "
+              f"sized): {xy / xx:.2f}")
     calibration: list[tuple[list[dict], float]] = []
 
     roster = load_roster(season)
@@ -774,11 +762,6 @@ def main() -> None:
         # Calibrating, each week is scored with a spread fitted on the others (no peeking).
         lineup_sd = (rms([r for w in weeks if w != week for r in residuals_by_week[w]])
                      if args.calibrate else WORM_LINEUP_SD)
-        weight = WORM_PROJECTION_WEIGHT
-        if args.calibrate:
-            xy, xx = (sum(slope_by_week[w][i] for w in weeks if w != week) for i in (0, 1))
-            weight = min(1.0, max(0.0, xy / xx)) if xx else 1.0
-        projections = shrink_projections(projections, [r.get("player_id") for r in starters], weight)
         gsis_of = {}
         for row in starters:
             gsis = match_gsis(row, index)
