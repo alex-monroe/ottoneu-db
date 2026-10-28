@@ -98,6 +98,8 @@ describe("flipSnapshots", () => {
         home_progress: undefined,
         away_progress: undefined,
         home_win_prob: undefined,
+        home_proj_remaining: undefined,
+        away_proj_remaining: undefined,
       },
     ]);
   });

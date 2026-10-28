@@ -17,6 +17,7 @@ from scripts.rebuild_score_worm import (
     WinModel,
     calibration_report,
     checkpoint_rows,
+    coverage_report,
     lineup_residuals,
     margin_slope,
     win_probability,
@@ -376,3 +377,32 @@ class TestCalibrationHelpers:
         assert picked[0.9]["home_win_prob"] == 1.0
         report = "\n".join(calibration_report([(rows, 1.0)]))
         assert "0.160" in report  # Brier at kickoff: (0.6 − 1)²
+
+
+class TestCone:
+    def test_remaining_is_projection_times_game_left(self):
+        clock = GameClock([T("2026-09-20T17:00:00Z"), T("2026-09-20T18:00:00Z"), T("2026-09-20T20:00:00Z")],
+                          [0, 1800, 3600])
+        model = WinModel([("home", "g", 20.0), ("home", None, 9.0), ("away", "g", 10.0)])
+        assert model.remaining({"g": clock}, T("2026-09-20T18:00:00Z")) == {"home": 10.0, "away": 5.0}
+
+    def test_rows_carry_projected_remaining_and_end_at_zero(self):
+        clocks = {"g": GameClock([T("2026-09-20T17:00:00Z"), T("2026-09-20T18:00:00Z"),
+                                  T("2026-09-20T20:00:00Z")], [0, 1800, 3600])}
+        starters = [starter("home", 1, "Brock Purdy", 6.92), starter("away", 2, "Ja'Marr Chase", 8.8)]
+        events = [event("2026-09-20T18:00:00Z", {"QB": 4.92}), event("2026-09-20T18:00:00Z", {"WR": 8.8}, play_id=2.0)]
+        model = WinModel([("home", "g", 20.0), ("away", "g", 10.0)])
+        rows = build_game_plays(GAME, starters, TestBuildGamePlays.GSIS, events, 309,
+                                {"home": ["g"], "away": ["g"]}, clocks, model)
+        assert (rows[0]["home_proj_remaining"], rows[0]["away_proj_remaining"]) == (20.0, 10.0)  # Kickoff
+        assert (rows[1]["home_proj_remaining"], rows[1]["away_proj_remaining"]) == (10.0, 5.0)  # halftime
+        assert (rows[-1]["note"], rows[-1]["home_proj_remaining"]) == (ADJUSTMENT_NOTE, 0.0)
+
+    def test_coverage_report(self):
+        # Halfway: 50 + 50 left, sd 20 → 80% final range 100 ± 1.2816·20·√½ ≈ 81.9–118.1.
+        rows = [
+            {"home_progress": 0.5, "away_progress": 0.5, "home_win_prob": 0.5, "home_points": 50.0,
+             "away_points": 50.0, "home_proj_remaining": 50.0, "away_proj_remaining": 50.0},
+        ]
+        report = "\n".join(coverage_report([(rows, {"home": 110.0, "away": 125.0}, 20.0)]))
+        assert "50%       2              50%" in report  # home inside, away outside

@@ -394,6 +394,38 @@ The model (`WinModel` in `scripts/rebuild_score_worm.py`; one
   projection until his game ends, which flatters his team, and scoring is
   assumed to be spread evenly across a game.
 
+#### The hurricane cone: where each team was headed
+
+On a rebuilt worm's **Clock** view, hovering a moment shades each team's 80%
+range from there to the end of the week, like a hurricane forecast cone. It
+has no width at the hovered moment and widens to the team's likely final-score
+range. Hovered at kickoff it is wide; as the hover moves right it closes in
+around the actual score line. The tooltip adds "Likely finals from here
+(80%)" for both teams.
+
+- **Same model as Win %.** From hovered moment *t*, a side's score at a later
+  moment *s* is centred on `points(t) + remaining(t) − remaining(s)`. Its 80%
+  half-width is `1.2816 × WORM_LINEUP_SD × √(progress(s) − progress(t))`.
+  `remaining` is the side's projected points still to come: each starter's
+  kickoff projection, as stored, × the share of his game not yet played. It
+  is stored per play as `home_proj_remaining`/`away_proj_remaining`
+  (migration 058); `progress` is from migration 056. The tooltip's final
+  range uses the whole remaining projection and all minutes still to play,
+  because the drawn cone ends at the last scoring play, which can come before
+  the last whistle.
+- **Computed in the browser** (`web/lib/worm-cone.ts`, pure, imports config
+  only). One cone per hover point is cheap to work out on demand but too much
+  to ship from the server. The y-axis is fixed to the widest cone the game
+  ever has, so it doesn't rescale as the mouse moves. Bands are floored at 0.
+- **Checking it:** `just rebuild-score-worm --calibrate` also prints how often
+  a lineup's actual final landed inside its 80% range at each checkpoint, with
+  the spread fitted on the other weeks. For 2026 weeks 1–7 (84 lineups) it was
+  73% at kickoff, 76% at 25%, 74% at 50%, 85% at 75% and 71% at 90%. That's
+  about 76% overall: close to 80% given ±4 points of sampling noise, but a
+  little narrow. Refitting `WORM_LINEUP_SD` as the season goes on is the
+  fix, not a cone-only fudge.
+- Hidden on scrape-only weeks and on the Minutes played and Win % views.
+
 ## Weekly pick'em
 
 `/pickem` is a mini-game on top of the game log: signed-in accounts pick the

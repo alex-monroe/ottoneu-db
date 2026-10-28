@@ -42,6 +42,9 @@ export interface ScoreSnapshot {
   away_progress?: number | null;
   /** The home side's chance of winning after this play (0–1); absent for a scrape. */
   home_win_prob?: number | null;
+  /** Each side's projected points still to come after this play; absent for a scrape. */
+  home_proj_remaining?: number | null;
+  away_proj_remaining?: number | null;
 }
 
 /**
@@ -73,6 +76,14 @@ export interface WormPoint {
   note: string | null;
   /** The left side's win probability in percent (0–100); null when not stored. */
   winPct: number | null;
+  /**
+   * What the hover cone (lib/worm-cone.ts) needs, per side: projected points
+   * still to come, and share (0–1) of lineup minutes played. Null for scrapes.
+   */
+  leftRemaining: number | null;
+  rightRemaining: number | null;
+  leftProgress: number | null;
+  rightProgress: number | null;
 }
 
 /** What the tooltip reads off any point, whichever axis it is drawn on. */
@@ -102,6 +113,8 @@ export function flipSnapshots(snapshots: ScoreSnapshot[]): ScoreSnapshot[] {
     home_progress: s.away_progress,
     away_progress: s.home_progress,
     home_win_prob: s.home_win_prob == null ? s.home_win_prob : round4(1 - s.home_win_prob),
+    home_proj_remaining: s.away_proj_remaining,
+    away_proj_remaining: s.home_proj_remaining,
   }));
 }
 
@@ -127,6 +140,10 @@ export function buildWorm(snapshots: ScoreSnapshot[]): WormPoint[] {
       label: wormTimeLabel(null),
       note: null,
       winPct: toPct(kickoff?.home_win_prob),
+      leftRemaining: kickoff?.home_proj_remaining ?? null,
+      rightRemaining: kickoff?.away_proj_remaining ?? null,
+      leftProgress: kickoff ? (kickoff.home_progress ?? null) : null,
+      rightProgress: kickoff ? (kickoff.away_progress ?? null) : null,
     },
   ];
   for (const s of sorted) {
@@ -142,6 +159,10 @@ export function buildWorm(snapshots: ScoreSnapshot[]): WormPoint[] {
       label: wormTimeLabel(s.scraped_at),
       note: s.note ?? null,
       winPct: toPct(s.home_win_prob),
+      leftRemaining: s.home_proj_remaining ?? null,
+      rightRemaining: s.away_proj_remaining ?? null,
+      leftProgress: s.home_progress ?? null,
+      rightProgress: s.away_progress ?? null,
     });
   }
   return points.length >= 3 ? points : [];
