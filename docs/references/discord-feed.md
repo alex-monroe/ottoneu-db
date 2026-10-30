@@ -7,19 +7,26 @@ links back to the site with tags that show which posts bring people over.
 
 Every post goes out as the league's existing bot, the same one the power rankings
 use ([podcast-tools.md](podcast-tools.md#the-discord-post)). There is one bot,
-not a webhook per feature, and every post goes to the general channel except the
-FA auction posts, which go to the league's #auctions channel.
+not a webhook per feature. Each kind of post has its own channel: trades go to
+the league's trade channel and FA auctions to #auctions. The general channel
+only gets the posts that are paused for now (see below).
+
+**Scaled down (October 2026).** The general channel had too many bot posts.
+Trades moved to the trade channel, and the pick'em, power-rankings and
+vote-reminder schedules are **paused**, as the daily moves digest already was.
+Each paused workflow still runs by hand, and its header comment has the cron
+lines to restore.
 
 | Post | Job | When | `post_type` / key |
 |---|---|---|---|
-| Pending trade (heads-up) | `web/scripts/post-trades.ts` | after each 4-hourly trade-history scrape | `trade_pending` / trade id |
+| Pending trade (heads-up) | `web/scripts/post-trades.ts` | after each 4-hourly trade-history scrape (trade channel) | `trade_pending` / trade id |
 | Processed trade | same | same | `trade_processed` / trade id |
 | Daily moves digest | `web/scripts/post-moves-digest.ts` | **paused** — manual dispatch only | `moves_digest` / `YYYY-MM-DD` |
-| Pick'em results | `web/scripts/post-pickem.ts --results` | daily 15:00 UTC; posts once a week is final | `pickem_results` / `<season>-w<week>` |
-| Pick'em reminder | `web/scripts/post-pickem.ts --reminder` | Thursday 15:00 UTC, before the lock | `pickem_reminder` / `<season>-w<week>` |
+| Pick'em results | `web/scripts/post-pickem.ts --results` | **paused** — manual dispatch only | `pickem_results` / `<season>-w<week>` |
+| Pick'em reminder | `web/scripts/post-pickem.ts --reminder` | **paused** — manual dispatch only | `pickem_reminder` / `<season>-w<week>` |
 | FA auction opened | `web/scripts/post-auctions.ts` | every 10 minutes, all year | `auction_started` / `<player_key>@<first_seen_at>` |
 | FA auction closed | same | same | `auction_finished` / Ottoneu auction id |
-| Power rankings, vote reminder | `post-power-rankings.ts`, `post-vote-reminder.ts` | Thu / Wed | not logged (see podcast-tools.md) |
+| Power rankings, vote reminder | `post-power-rankings.ts`, `post-vote-reminder.ts` | **paused** — manual dispatch only | not logged (see podcast-tools.md) |
 
 Code: `web/lib/discord.ts` (message type, send, link tagging),
 `web/lib/discord-feed.ts` (what to post and how it reads, pure),
@@ -74,7 +81,8 @@ post log and pick'em picks are server-only.
 ## Trades
 
 `post-trades.ts` runs as a second job in `scrape-trade-history.yml`, after the
-scrape. It reads trade-history trades (`trades` + `trade_assets`, shaped by
+scrape, and posts to the league's trade channel (the `DISCORD_TRADES_CHANNEL_ID`
+repository variable; see [Operating it](#operating-it)). It reads trade-history trades (`trades` + `trade_assets`, shaped by
 `tradesFromHistory` in `web/lib/trades.ts`), and for each one:
 
 - **pending** (inside Ottoneu's 48-hour veto window): one heads-up post, marked
@@ -142,8 +150,11 @@ day is then logged as posted. Re-post a corrected day by deleting its
 
 ## Pick'em
 
-`post-pickem.yml` runs daily at 15:00 UTC, and adds the reminder on Thursdays
-(ET).
+**Paused (October 2026)**, with the power rankings and vote reminder, to cut
+the general channel's noise. The workflow still runs by hand.
+
+When scheduled, `post-pickem.yml` runs daily at 15:00 UTC, and adds the
+reminder on Thursdays (ET).
 
 - **Results** (`--results`): the latest week of the season being played whose
   league games are **all** `final` (`latestFinishedWeek`). The post names the
@@ -222,11 +233,15 @@ Events carry no user id or team. They count engagement and nothing else.
 ## Operating it
 
 - **Secrets:** `DISCORD_TOKEN` (the GitHub Actions secret the power rankings
-  already use) and the channel id in each workflow (`post-auctions.yml` points
-  at #auctions, `1409590042422149211`; the rest at the general channel).
+  already use) and the channel id in each workflow. `post-auctions.yml` points
+  at #auctions, `1409590042422149211`. The trade posts read the
+  `DISCORD_TRADES_CHANNEL_ID` **repository variable** (Settings → Secrets and
+  variables → Actions → Variables); while it is unset the `post-discord` job
+  is skipped except for a dry run. The rest point at the general channel,
+  `1396549904234709044`.
   `SITE_URL` sets the links' origin.
-- **Monitoring:** `Post Moves Digest`, `Post Pickem` and `Post Auctions` are on the
-  `alert-scheduled-failure.yml` list. The trade posts run inside `Scrape Trade
+- **Monitoring:** `Post Auctions` is on the `alert-scheduled-failure.yml`
+  list (the paused jobs come off it while they have no schedule). The trade posts run inside `Scrape Trade
   History`, so a failed post fails that run and alerts under its name.
 - **Changing what a post says** is a `web/lib/discord-feed.ts` edit plus its
   test. **Adding a post type** means extending the `post_type` CHECK in a new

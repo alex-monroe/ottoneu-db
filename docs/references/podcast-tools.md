@@ -236,8 +236,12 @@ the current week.
 
 ### The Discord post
 
+**Paused (October 2026)** to cut the league Discord's general-channel noise:
+both workflows below have no schedule and run only by hand. Their header
+comments have the cron lines to restore.
+
 `.github/workflows/post-power-rankings.yml` posts the published week to the
-league Discord **once a week, Thursday 14:15 UTC** (10:15 EDT / 09:15 EST, so
+league Discord, when scheduled **once a week, Thursday 14:15 UTC** (10:15 EDT / 09:15 EST, so
 always after the 09:00 ET publish). The post is every team in order, its
 movement since last week (▲/▼/—, omitted with no public prior week) and a link
 to `/power-rankings?week=N`.

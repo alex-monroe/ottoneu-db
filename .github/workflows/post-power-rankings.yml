@@ -14,6 +14,15 @@ name: Post Power Rankings
 #
 # Posts as the league's existing Discord bot (the auction bot's token), which
 # needs Send Messages + Embed Links in the channel below.
+#
+# PAUSED (October 2026): the schedule is off to cut down the league Discord's
+# noise in the general channel. Manual runs still work. To turn it back on,
+# restore:
+#
+#   schedule:
+#     - cron: "15 14 * * 4"
+#
+# and add "Post Power Rankings" back to alert-scheduled-failure.yml's list.
 
 on:
   workflow_dispatch:
@@ -25,9 +34,6 @@ on:
         description: "Print the message instead of posting it"
         type: boolean
         default: false
-
-  schedule:
-    - cron: "15 14 * * 4"
 
 permissions:
   contents: read
