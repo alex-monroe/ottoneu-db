@@ -630,6 +630,10 @@ export function buildAuctionFinishedMessage(r: AuctionResult, siteUrl: string): 
     "",
     ...r.bids.map((b, i) => `${i === 0 ? "🏆" : "▫️"} ${b.teamName} — ${dollars(b.amount)}`),
   ];
+  // The scrape puts the tiebreak winner first; say so, or the 🏆 looks arbitrary.
+  if (r.bids.length > 1 && r.bids[0].amount === r.bids[1].amount) {
+    lines.push("", "Tied top bid: ties go to the team lower in the standings.");
+  }
   if (r.startedByTeamName) lines.push("", `Started by ${r.startedByTeamName}`);
   const path = playerPath(r);
   const tail = path ? `[${r.playerName} on SOFA DB →](${discordLink(siteUrl, path, "auction_finished")})` : "";

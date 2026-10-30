@@ -484,6 +484,20 @@ describe("FA auctions", () => {
       expect(embed.footer.text).toBe("2 bids · closed Oct 21, 12:52 PM ET");
     });
 
+    it("explains a tied top bid, and says nothing when there is no tie", () => {
+      const tied = result({
+        winnerTeamName: "Ball So Hard University",
+        bids: [
+          { teamId: 2625, teamName: "Ball So Hard University", amount: 6 },
+          { teamId: 2629, teamName: "Marin County Mountain Runners", amount: 6 },
+        ],
+      });
+      const embed = buildAuctionFinishedMessage(tied, SITE).embeds[0];
+      expect(embed.description).toContain("🏆 Ball So Hard University — $6\n▫️ Marin County Mountain Runners — $6");
+      expect(embed.description).toContain("ties go to the team lower in the standings");
+      expect(buildAuctionFinishedMessage(result(), SITE).embeds[0].description).not.toContain("Tied");
+    });
+
     it("has no site link for a college player", () => {
       const embed = buildAuctionFinishedMessage(result({ isCollege: true }), SITE).embeds[0];
       expect(embed.description).not.toContain("/players/");

@@ -22,7 +22,9 @@ Two Ottoneu pages, two different access rules (checked 2026-10-17):
                                 PUBLIC, once the auction has closed. The
                                 "Completed Auctions" table on /auctions links
                                 each one: who started it, when it ended, and
-                                every bid, highest (the winner) first.
+                                every bid, highest first. A tie for the top bid goes
+                                to the team lower in the standings (`break_ties`),
+                                whatever order the page lists the tied bids in.
 
 So the scrape logs in when FANGRAPHS_USERNAME / FANGRAPHS_PASSWORD are set
 (`scripts/fangraphs_login.py`) and reads both pages in one browser session.
@@ -331,10 +333,69 @@ def results_to_fetch(
     return [c for c in completed if c.ended_at_local[:10] >= cutoff and c.auction_id not in stored_ids]
 
 
-def with_auction_page(c: CompletedAuction, page: dict) -> CompletedAuction:
-    """`c` plus who started it, the bids, and the winner (the highest bid)."""
-    bids = page["bids"]
-    top = bids[0] if bids else None
+def standings_order(games: list[dict]) -> list[int]:
+    """Team ids best first, from `league_matchups` rows (see `web/lib/standings.ts`).
+
+    The league's order: wins, then points for. Only final regular-season games
+    count. Uses the latest season with a decided game, so before the first game
+    of a season is final the previous season's final standings stand.
+    """
+    decided = [
+        g for g in games
+        if g.get("game_type") == "regular" and g.get("status") == "final"
+        and g.get("home_score") is not None and g.get("away_score") is not None
+    ]
+    if not decided:
+        return []
+    season = max(g["season"] for g in decided)
+    tally: dict[int, dict] = {}
+    for g in games:
+        if g["season"] != season:
+            continue
+        for side in ("home", "away"):
+            tally.setdefault(g[f"{side}_team_id"], {"wins": 0, "pf": 0.0, "name": g[f"{side}_team_name"]})
+    for g in decided:
+        if g["season"] != season:
+            continue
+        hs, as_ = float(g["home_score"]), float(g["away_score"])
+        tally[g["home_team_id"]]["pf"] += hs
+        tally[g["away_team_id"]]["pf"] += as_
+        if hs > as_:
+            tally[g["home_team_id"]]["wins"] += 1
+        elif as_ > hs:
+            tally[g["away_team_id"]]["wins"] += 1
+    return sorted(tally, key=lambda t: (-tally[t]["wins"], -tally[t]["pf"], tally[t]["name"]))
+
+
+def break_ties(bids: list[dict], standings: list[int]) -> list[dict] | None:
+    """`bids` (highest first) with a tie for the top bid settled, or None if it can't be.
+
+    Ottoneu breaks a tied auction in reverse standings order: of the teams tied
+    for the top bid, the one lowest in the standings wins. The auction page lists
+    tied bids in no meaningful order, so the first row is not the winner (#19:
+    Eli Raridon, /auctions/66346). Returns the bids with the winner moved first,
+    or None when the tied teams are not all in `standings`.
+    """
+    if len(bids) < 2 or bids[0]["amount"] != bids[1]["amount"]:
+        return bids
+    top = [b for b in bids if b["amount"] == bids[0]["amount"]]
+    if any(b["team_id"] not in standings for b in top):
+        return None
+    top.sort(key=lambda b: -standings.index(b["team_id"]))
+    return top + bids[len(top):]
+
+
+def with_auction_page(c: CompletedAuction, page: dict, standings: list[int] | None = None) -> CompletedAuction:
+    """`c` plus who started it, the bids, and the winner.
+
+    The winner is the highest bid, with a tie settled by `break_ties`. A tie that
+    `standings` cannot settle leaves no winner, so the result is not stored.
+    """
+    bids = break_ties(page["bids"], standings or [])
+    if bids is None:
+        bids, top = page["bids"], None
+    else:
+        top = bids[0] if bids else None
     return CompletedAuction(**{
         **asdict(c),
         "started_by_team_name": page["started_by_team_name"],
@@ -494,6 +555,23 @@ def fetch_existing(supabase, league_id: int, kind: str) -> dict[str, dict]:
     return {r["player_key"]: r for r in data}
 
 
+def fetch_standings(supabase, league_id: int) -> list[int]:
+    """Team ids best first, for breaking tied auctions (`standings_order`)."""
+    games = (
+        supabase.table("league_matchups")
+        .select("season, game_id, home_team_id, home_team_name, home_score, "
+                "away_team_id, away_team_name, away_score, status, game_type")
+        .eq("league_id", league_id)
+        .order("season", desc=True)
+        .order("game_id")
+        .limit(400)  # pagination-safe: a league-season is ~90 games, so this spans two
+        .execute()
+        .data
+        or []
+    )
+    return standings_order(games)
+
+
 def fetch_stored_result_ids(supabase, league_id: int, auction_ids: list[int]) -> set[int]:
     if not auction_ids:
         return set()
@@ -579,17 +657,21 @@ def main(argv: list[str] | None = None) -> int:
     # Results need a page load each, so only recent ones not already stored.
     stored = fetch_stored_result_ids(supabase, LEAGUE_ID, [c.auction_id for c in completed]) if supabase else set()
     due = results_to_fetch(completed, stored, now.astimezone(LEAGUE_TZ).date())
+    # Ties go to the team lower in the standings; a dry run has no DB to read them
+    # from, so a tied auction there prints as unresolved.
+    standings = fetch_standings(supabase, LEAGUE_ID) if supabase and due else []
     results = []
     for c in due:
         try:
-            result = with_auction_page(c, parse_auction_page(fetch_auction_page(LEAGUE_ID, c.auction_id)))
+            result = with_auction_page(c, parse_auction_page(fetch_auction_page(LEAGUE_ID, c.auction_id)), standings)
         except Exception as e:  # noqa: BLE001 - one bad page must not sink the snapshot; next run retries
             print(f"Warning: auction {c.auction_id} ({c.player_name}) page failed: {e}")
             continue
         # Every auction has at least the nominating bid, so no bids means the page
         # did not parse. Leave it unstored and the next run tries again.
         if result.winner_team_name is None:
-            print(f"Warning: auction {c.auction_id} ({c.player_name}) page listed no bids — will retry.")
+            why = "has a tied top bid the standings cannot break" if result.bids else "page listed no bids"
+            print(f"Warning: auction {c.auction_id} ({c.player_name}) {why} — will retry.")
             continue
         results.append(result)
     for r in results:
