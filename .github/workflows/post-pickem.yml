@@ -11,6 +11,15 @@ name: Post Pickem
 #   evening at 20:00 ET (noon on Thanksgiving), so this lands before both.
 #
 # Both no-op outside the season. Thursday's cron runs both modes.
+#
+# PAUSED (October 2026): the schedule is off to cut down the league Discord's
+# noise in the general channel. Manual runs still work. To turn it back on,
+# restore:
+#
+#   schedule:
+#     - cron: "0 15 * * *"
+#
+# and add "Post Pickem" back to alert-scheduled-failure.yml's list.
 
 on:
   workflow_dispatch:
@@ -27,9 +36,6 @@ on:
         description: "Print the message instead of posting it"
         type: boolean
         default: false
-
-  schedule:
-    - cron: "0 15 * * *"
 
 permissions:
   contents: read

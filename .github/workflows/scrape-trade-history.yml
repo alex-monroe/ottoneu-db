@@ -73,8 +73,14 @@ jobs:
   # new pending trade (the 48-hour veto window), then each newly processed one.
   # The discord_posts log keeps every trade to one post per state, so a re-run
   # posts nothing new. A dry-run dispatch prints the posts instead.
+  #
+  # Trades go to the league's trade channel, not the general one. Its id is the
+  # DISCORD_TRADES_CHANNEL_ID repository variable (Settings → Secrets and
+  # variables → Actions → Variables); until it is set the job runs only for a dry run, and
+  # the --max-age-days window posts the last three days' trades once it is.
   post-discord:
     needs: scrape
+    if: vars.DISCORD_TRADES_CHANNEL_ID != '' || inputs.dry_run == true
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -100,7 +106,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-          DISCORD_CHANNEL_ID: "1396549904234709044"
+          DISCORD_CHANNEL_ID: ${{ vars.DISCORD_TRADES_CHANNEL_ID }}
           SITE_URL: https://sofa-db.vercel.app
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
