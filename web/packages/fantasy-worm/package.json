@@ -1,0 +1,14 @@
+{
+  "name": "fantasy-worm",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Score worm, win probability and 80% \"hurricane\" cone for any head-to-head fantasy game.",
+  "license": "UNLICENSED",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": ["src", "fixtures", "README.md"],
+  "sideEffects": false
+}

@@ -577,3 +577,45 @@ describe("Supabase stable pagination order", () => {
     ).toHaveLength(0);
   });
 });
+
+// ===========================================================================
+// Rule 7: the fantasy-worm package stays standalone
+// ===========================================================================
+
+describe("fantasy-worm package boundary", () => {
+  /**
+   * WHY: web/packages/fantasy-worm is the league-agnostic worm / win-probability
+   * / cone core, meant to ship outside this repo (see
+   * docs/references/worm-productization.md). One import of app code (`@/lib/...`,
+   * config, Supabase) or a framework would tie it back to Ottoneu.
+   *
+   * FIX: Pass the league-specific value in as a parameter or option (as `sd`,
+   * `timeZone` and `notes` are), and keep the Ottoneu wiring in
+   * web/lib/score-worm.ts / web/lib/worm-cone.ts.
+   */
+  test("imports nothing from outside the package", () => {
+    const pkgDir = path.join(WEB_ROOT, "packages", "fantasy-worm");
+    const files = [...getFilesRecursive(pkgDir, ".ts"), ...getFilesRecursive(pkgDir, ".tsx")];
+    expect(files.length).toBeGreaterThan(0);
+    const violations: string[] = [];
+    const importPattern = /(?:from|import)\s+['"]([^'"]+)['"]/g;
+    for (const file of files) {
+      const content = fs.readFileSync(file, "utf-8");
+      for (const match of content.matchAll(importPattern)) {
+        const spec = match[1];
+        const resolved = spec.startsWith(".") ? path.resolve(path.dirname(file), spec) : null;
+        if (resolved === null || !resolved.startsWith(pkgDir + path.sep)) {
+          violations.push(`  ${relativeTo(file, REPO_ROOT)}: ${spec}`);
+        }
+      }
+    }
+    if (violations.length > 0) {
+      fail(
+        "web/packages/fantasy-worm must import only its own files (relative paths).\n" +
+          "FIX: Pass league-specific values in as parameters; keep Ottoneu wiring in web/lib/score-worm.ts.\n" +
+          "Violations:\n" +
+          violations.join("\n")
+      );
+    }
+  });
+});

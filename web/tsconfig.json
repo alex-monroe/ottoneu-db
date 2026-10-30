@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "fantasy-worm": ["./packages/fantasy-worm/src/index.ts"]
     }
   },
   "include": [

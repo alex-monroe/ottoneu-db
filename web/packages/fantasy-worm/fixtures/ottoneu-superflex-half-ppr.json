@@ -1,0 +1,42 @@
+{
+  "format": "Ottoneu League 309: NFL, 12-team superflex, half PPR, Thursday-to-Monday week (lineups abridged)",
+  "sd": 20.3,
+  "clockUnit": "seconds",
+  "games": {
+    "KC_BUF": { "start": "2026-09-18T00:15:00Z", "wallMinutes": 190, "length": 3600 },
+    "CIN_PIT": { "start": "2026-09-20T17:00:00Z", "wallMinutes": 185, "length": 3600 },
+    "SF_LA": { "start": "2026-09-20T20:25:00Z", "wallMinutes": 215, "length": 4200 },
+    "DAL_NYG": { "start": "2026-09-22T00:15:00Z", "wallMinutes": 190, "length": 3600 }
+  },
+  "slots": [
+    { "id": "allen", "side": "left", "projected": 22.1, "game": "KC_BUF", "name": "J. Allen" },
+    { "id": "burrow", "side": "left", "projected": 19.4, "game": "CIN_PIT", "name": "J. Burrow" },
+    { "id": "mccaffrey", "side": "left", "projected": 18.0, "game": "SF_LA", "name": "C. McCaffrey" },
+    { "id": "chase", "side": "left", "projected": 16.2, "game": "CIN_PIT", "name": "J. Chase" },
+    { "id": "lamb", "side": "left", "projected": 15.0, "game": "DAL_NYG", "name": "C. Lamb" },
+    { "id": "kelce", "side": "left", "projected": 10.5, "game": "KC_BUF", "name": "T. Kelce" },
+    { "id": "bye_k", "side": "left", "projected": 8.0, "game": null, "name": "Bye kicker" },
+    { "id": "mahomes", "side": "right", "projected": 21.0, "game": "KC_BUF", "name": "P. Mahomes" },
+    { "id": "purdy", "side": "right", "projected": 18.2, "game": "SF_LA", "name": "B. Purdy" },
+    { "id": "pollard", "side": "right", "projected": 13.0, "game": "DAL_NYG", "name": "T. Pollard" },
+    { "id": "nacua", "side": "right", "projected": 17.5, "game": "SF_LA", "name": "P. Nacua" },
+    { "id": "pickens", "side": "right", "projected": 13.0, "game": "CIN_PIT", "name": "G. Pickens" },
+    { "id": "kittle", "side": "right", "projected": 11.0, "game": "SF_LA", "name": "G. Kittle" }
+  ],
+  "events": [
+    { "at": "2026-09-18T00:40:00Z", "points": { "mahomes": 6.1, "kelce": 3.4 } },
+    { "at": "2026-09-18T01:30:00Z", "points": { "allen": 9.2 } },
+    { "at": "2026-09-18T02:20:00Z", "points": { "mahomes": 7.0, "allen": -2.0 } },
+    { "at": "2026-09-18T03:10:00Z", "points": { "kelce": 5.5, "mahomes": 4.4 } },
+    { "at": "2026-09-20T17:50:00Z", "points": { "chase": 12.3, "burrow": 6.0 } },
+    { "at": "2026-09-20T18:45:00Z", "points": { "pickens": 9.1 } },
+    { "at": "2026-09-20T19:30:00Z", "points": { "burrow": 5.2 } },
+    { "at": "2026-09-20T21:05:00Z", "points": { "purdy": 8.4, "nacua": 11.2 } },
+    { "at": "2026-09-20T22:15:00Z", "points": { "mccaffrey": 14.0 } },
+    { "at": "2026-09-20T23:40:00Z", "points": { "kittle": 7.3, "purdy": 6.0 } },
+    { "at": "2026-09-22T01:00:00Z", "points": { "lamb": 8.6 } },
+    { "at": "2026-09-22T02:30:00Z", "points": { "pollard": 11.9 } },
+    { "at": "2026-09-22T03:15:00Z", "points": { "lamb": 6.2 } }
+  ],
+  "close": { "at": "2026-09-22T03:30:00Z", "note": "Final" }
+}
