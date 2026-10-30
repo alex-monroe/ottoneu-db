@@ -12,6 +12,7 @@ from scripts.fa_market_gate import fa_market_due
 from scripts.fa_market_gate import main as gate_main
 from scripts.scrape_fa_market import (
     MarketRow,
+    break_ties,
     carry_over,
     claim_deadline,
     parse_auction_page,
@@ -21,6 +22,7 @@ from scripts.scrape_fa_market import (
     parse_duration,
     parse_waivers,
     results_to_fetch,
+    standings_order,
     to_db_rows,
     with_auction_page,
 )
@@ -213,6 +215,63 @@ class TestParseAuctionPage:
         ridley = parse_completed_auctions(_auctions_page(False))[0]
         done = with_auction_page(ridley, parse_auction_page("<main><h3>Started by X</h3></main>"))
         assert done.winner_team_name is None and done.bids == []
+
+
+def _game(gid, home, away, hs, as_, season=2026, status="final", game_type="regular"):
+    return {"season": season, "game_id": gid, "home_team_id": home, "home_team_name": f"T{home}",
+            "home_score": hs, "away_team_id": away, "away_team_name": f"T{away}", "away_score": as_,
+            "status": status, "game_type": game_type}
+
+
+class TestStandingsOrder:
+    def test_wins_then_points_for(self):
+        games = [_game(1, 1, 2, 100, 90), _game(2, 3, 4, 120, 80), _game(3, 1, 3, 70, 110),
+                 _game(4, 2, 4, 95, 85)]
+        # 1: 1-1 170pf, 2: 1-1 185pf, 3: 2-0, 4: 0-2
+        assert standings_order(games) == [3, 2, 1, 4]
+
+    def test_ignores_unfinished_and_playoff_games(self):
+        games = [_game(1, 1, 2, 100, 90), _game(2, 2, 1, 200, 0, game_type="playoff"),
+                 _game(3, 2, 1, None, None, status="scheduled")]
+        assert standings_order(games) == [1, 2]
+
+    def test_before_a_final_game_last_season_stands(self):
+        games = [_game(9, 1, 2, None, None, season=2027, status="scheduled"), _game(1, 2, 1, 100, 90, season=2026)]
+        assert standings_order(games) == [2, 1]
+
+    def test_no_games_is_empty(self):
+        assert standings_order([]) == []
+
+
+class TestBreakTies:
+    @staticmethod
+    def _bids(*pairs):
+        return [{"team_id": t, "team_name": f"T{t}", "amount": a} for t, a in pairs]
+
+    def test_no_tie_keeps_order(self):
+        bids = self._bids((1, 6), (2, 5))
+        assert break_ties(bids, []) == bids
+
+    def test_tie_goes_to_the_team_lower_in_the_standings(self):
+        # Page lists the leader first; the team in last place wins (#19, Eli Raridon).
+        bids = self._bids((1, 4), (3, 4), (2, 4), (4, 2))
+        assert [b["team_id"] for b in break_ties(bids, [1, 2, 3, 4])] == [3, 2, 1, 4]
+
+    def test_tie_outside_the_standings_is_unresolved(self):
+        assert break_ties(self._bids((1, 4), (9, 4)), [1, 2]) is None
+
+    def test_with_auction_page_names_the_tiebreak_winner(self):
+        ridley = parse_completed_auctions(_auctions_page(False))[0]
+        page = {"started_by_team_name": "X", "bids": self._bids((2629, 6), (2625, 6), (2628, 4))}
+        done = with_auction_page(ridley, page, standings=[2629, 2628, 2625])
+        assert (done.winner_team_id, done.winner_team_name) == (2625, "T2625")
+        assert [b["team_id"] for b in done.bids] == [2625, 2629, 2628]
+
+    def test_unbreakable_tie_leaves_no_winner_but_keeps_bids(self):
+        ridley = parse_completed_auctions(_auctions_page(False))[0]
+        page = {"started_by_team_name": "X", "bids": self._bids((2629, 6), (2625, 6))}
+        done = with_auction_page(ridley, page)
+        assert done.winner_team_name is None and len(done.bids) == 2
 
 
 class TestResultsToFetch:

@@ -36,6 +36,16 @@ loads its `/auctions/<id>` page into `fa_auction_results`: price, ending time (s
 clock), who started it, every bid, and the winner (the top bid). A page that parses to no
 bids is left unstored for the next run to retry.
 
+**Tied top bids.** Ottoneu breaks a tie in reverse standings order — of the teams tied for
+the top bid, the one lowest in the standings wins — and the auction page lists tied bids in
+no useful order, so its first row is not necessarily the winner (Eli Raridon,
+`/auctions/66346`, was posted for the wrong team). `break_ties` settles it from the
+standings, derived from `league_matchups` the same way as `web/lib/standings.ts` (wins, then
+points for; the previous season's final standings until a game of the new one is final),
+and moves the winner to the front of `bids`. A tie the standings cannot settle (a tied team
+missing from them, or a `--dry-run`, which reads no DB) is left unstored and retried. The
+Discord post adds a line saying the tiebreak decided it.
+
 `fa_market.first_seen_at` is the first scrape that listed a row, carried over by every later
 scrape (`carry_over`), so `(player_key, first_seen_at)` names an open auction for its whole
 life. That is the key of its "auction started" Discord post, because the public page prints
