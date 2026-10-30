@@ -307,6 +307,9 @@ names the source.
   differ from Ottoneu's. If a side's rebuilt total still misses Ottoneu's (a
   stat correction nflverse has not picked up, or an unmatched player), a final
   row noted `Adjustment to Ottoneu's final` closes the gap.
+- **Getting it sooner:** nflverse publishes after each game window, not the next
+  day; options for same-night and live play-by-play are in
+  [live-play-by-play-spike.md](../exec-plans/live-play-by-play-spike.md).
 - Already-rebuilt weeks are skipped. `--week N` or `--all` rebuilds them again,
   replacing each game's rows wholesale.
 
