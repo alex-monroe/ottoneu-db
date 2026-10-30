@@ -75,6 +75,7 @@ docs/
 ├── exec-plans/
 │   ├── [data-acquisition-spike-651.md](exec-plans/data-acquisition-spike-651.md)  # Spike #651: next data-acquisition lever — coaching change built→TIE, FA/contract next
 │   ├── [feature-projections.md](exec-plans/feature-projections.md)         # Feature-based player projection system
+│   ├── [live-play-by-play-spike.md](exec-plans/live-play-by-play-spike.md)  # Spike: same-day / live play-by-play — per-game nflverse rebuild, ESPN plays feed, paid fallbacks
 │   ├── [market-projections.md](exec-plans/market-projections.md)          # Market-based projection system (DEFERRED)
 │   ├── [projection-accuracy-improvement.md](exec-plans/projection-accuracy-improvement.md)  # 4-phase accuracy improvement roadmap
 │   ├── [projection-methodology-audit.md](exec-plans/projection-methodology-audit.md)  # ML-quality audit: train/test leakage + eval findings (#571–#577)
