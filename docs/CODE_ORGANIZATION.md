@@ -16,6 +16,7 @@
 | Request validation | `web/lib/validate.ts` | `parseJson(req, schema)` helper — returns typed data or a 400 response with Zod issues |
 | DB schema | [db-schema.md](generated/db-schema.md) | Generated, human-readable schema reference |
 | Migrations | `migrations/` | Numbered `NNN_snake_case.sql` files (source of truth); linted by `just check-migrations`. See [migrations/README.md](../migrations/README.md) |
+| Worm package | `web/packages/fantasy-worm/` | League-agnostic score worm, win probability and hurricane cone (no deps, no app imports; alias `fantasy-worm`). Ottoneu adapters: `web/lib/score-worm.ts`, `web/lib/worm-cone.ts`. See [worm-productization.md](references/worm-productization.md) |
 | Components | `web/components/` | Reusable React components |
 | Pages | `web/app/` | Next.js App Router pages |
 | Feature projections | `scripts/feature_projections/` | Feature-based projection system (features, combiner, runner, backtest, CLI) |

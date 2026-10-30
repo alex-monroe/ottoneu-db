@@ -1,0 +1,33 @@
+{
+  "format": "ESPN-style NBA head-to-head points, Monday-to-Sunday week; one slot per player per game, 48-minute games (lineups abridged)",
+  "sd": 32.0,
+  "clockUnit": "seconds",
+  "games": {
+    "MON_BOS_NYK": { "start": "2026-11-02T00:30:00Z", "wallMinutes": 140, "length": 2880 },
+    "WED_DEN_LAL": { "start": "2026-11-05T03:30:00Z", "wallMinutes": 165, "length": 3180 },
+    "THU_BOS_MIA": { "start": "2026-11-06T00:30:00Z", "wallMinutes": 140, "length": 2880 },
+    "SAT_DEN_PHX": { "start": "2026-11-08T03:00:00Z", "wallMinutes": 140, "length": 2880 },
+    "SUN_NYK_MIL": { "start": "2026-11-08T23:30:00Z", "wallMinutes": 140, "length": 2880 }
+  },
+  "slots": [
+    { "id": "tatum@MON", "side": "left", "projected": 48.0, "game": "MON_BOS_NYK", "name": "J. Tatum" },
+    { "id": "tatum@THU", "side": "left", "projected": 48.0, "game": "THU_BOS_MIA", "name": "J. Tatum" },
+    { "id": "jokic@WED", "side": "left", "projected": 62.0, "game": "WED_DEN_LAL", "name": "N. Jokic" },
+    { "id": "jokic@SAT", "side": "left", "projected": 62.0, "game": "SAT_DEN_PHX", "name": "N. Jokic" },
+    { "id": "brunson@MON", "side": "right", "projected": 44.0, "game": "MON_BOS_NYK", "name": "J. Brunson" },
+    { "id": "brunson@SUN", "side": "right", "projected": 44.0, "game": "SUN_NYK_MIL", "name": "J. Brunson" },
+    { "id": "james@WED", "side": "right", "projected": 46.0, "game": "WED_DEN_LAL", "name": "L. James" },
+    { "id": "giannis@SUN", "side": "right", "projected": 60.0, "game": "SUN_NYK_MIL", "name": "G. Antetokounmpo" }
+  ],
+  "events": [
+    { "at": "2026-11-02T01:20:00Z", "points": { "tatum@MON": 21.5, "brunson@MON": 18.0 } },
+    { "at": "2026-11-02T02:45:00Z", "points": { "tatum@MON": 24.0, "brunson@MON": 31.5 } },
+    { "at": "2026-11-05T04:40:00Z", "points": { "jokic@WED": 33.0, "james@WED": 22.0 } },
+    { "at": "2026-11-05T06:10:00Z", "points": { "jokic@WED": 38.5, "james@WED": 27.5 } },
+    { "at": "2026-11-06T02:45:00Z", "points": { "tatum@THU": 52.0 } },
+    { "at": "2026-11-08T05:15:00Z", "points": { "jokic@SAT": 49.0 } },
+    { "at": "2026-11-09T00:30:00Z", "points": { "giannis@SUN": 30.0, "brunson@SUN": 20.0 } },
+    { "at": "2026-11-09T01:50:00Z", "points": { "giannis@SUN": 41.5, "brunson@SUN": 27.0 } }
+  ],
+  "close": { "at": "2026-11-09T02:00:00Z", "note": "Final" }
+}

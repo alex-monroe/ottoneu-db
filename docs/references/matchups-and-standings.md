@@ -257,7 +257,10 @@ points summed (the same figure the game page shows as the score). Pre-kickoff
 runs, where no starter has points yet, write nothing. A failed snapshot write
 is logged and never fails the scrape.
 
-`web/lib/score-worm.ts` (pure) turns those rows into the chart. It sorts by
+`web/lib/score-worm.ts` (pure) turns those rows into the chart, through the
+league-agnostic `fantasy-worm` package in `web/packages/fantasy-worm` (it maps
+`home_*`/`away_*` rows to the package's left/right frames and supplies league
+time and wording; see [worm-productization.md](worm-productization.md)). It sorts by
 time, drops consecutive identical scores, and starts from a 0–0 origin. It
 counts lead changes and each side's biggest lead, and labels the axis with the
 first snapshot of each day (ET). **The x-axis is the snapshot sequence, not

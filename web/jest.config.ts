@@ -15,6 +15,8 @@ const config: Config = {
     moduleNameMapper: {
         '^@/components/(.*)$': '<rootDir>/components/$1',
         '^@/lib/(.*)$': '<rootDir>/lib/$1',
+        // The in-repo fantasy-worm package (tsconfig.json maps the same alias).
+        '^fantasy-worm$': '<rootDir>/packages/fantasy-worm/src/index.ts',
     }
 }
 

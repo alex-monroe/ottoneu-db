@@ -1,0 +1,159 @@
+{
+ "generatedBy": "scripts/rebuild_score_worm.py build_game_plays (WinModel) on ottoneu-superflex-half-ppr.json, clocks sampled 13 times per game; see web/packages/fantasy-worm/README.md (Parity)",
+ "frames": [
+  {
+   "at": "2026-09-18T00:15:00Z",
+   "left": 0.0,
+   "right": 0.0,
+   "note": "Kickoff",
+   "leftProgress": 0.0,
+   "rightProgress": 0.0,
+   "leftWinProb": 0.603,
+   "leftRemaining": 101.2,
+   "rightRemaining": 93.7
+  },
+  {
+   "at": "2026-09-18T00:40:00Z",
+   "left": 3.4,
+   "right": 6.1,
+   "note": "P. Mahomes +6.10 \u00b7 T. Kelce +3.40",
+   "leftProgress": 0.027,
+   "rightProgress": 0.0128,
+   "leftWinProb": 0.5536,
+   "leftRemaining": 98.48,
+   "rightRemaining": 91.95
+  },
+  {
+   "at": "2026-09-18T01:30:00Z",
+   "left": 12.6,
+   "right": 6.1,
+   "note": "J. Allen +9.20",
+   "leftProgress": 0.1081,
+   "rightProgress": 0.0513,
+   "leftWinProb": 0.6435,
+   "leftRemaining": 90.33,
+   "rightRemaining": 86.7
+  },
+  {
+   "at": "2026-09-18T02:20:00Z",
+   "left": 10.6,
+   "right": 13.1,
+   "note": "P. Mahomes +7.00 \u00b7 J. Allen -2.00",
+   "leftProgress": 0.1892,
+   "rightProgress": 0.0897,
+   "leftWinProb": 0.4736,
+   "leftRemaining": 82.18,
+   "rightRemaining": 81.45
+  },
+  {
+   "at": "2026-09-18T03:10:00Z",
+   "left": 16.1,
+   "right": 17.5,
+   "note": "T. Kelce +5.50 \u00b7 P. Mahomes +4.40",
+   "leftProgress": 0.2973,
+   "rightProgress": 0.141,
+   "leftWinProb": 0.4291,
+   "leftRemaining": 71.32,
+   "rightRemaining": 74.45
+  },
+  {
+   "at": "2026-09-20T17:50:00Z",
+   "left": 34.4,
+   "right": 17.5,
+   "note": "J. Chase +12.30 \u00b7 J. Burrow +6.00",
+   "leftProgress": 0.4054,
+   "rightProgress": 0.1923,
+   "leftWinProb": 0.6169,
+   "leftRemaining": 59.7,
+   "rightRemaining": 69.45
+  },
+  {
+   "at": "2026-09-20T18:45:00Z",
+   "left": 34.4,
+   "right": 26.6,
+   "note": "G. Pickens +9.10",
+   "leftProgress": 0.4865,
+   "rightProgress": 0.2308,
+   "leftWinProb": 0.3705,
+   "leftRemaining": 50.8,
+   "rightRemaining": 66.2
+  },
+  {
+   "at": "2026-09-20T19:30:00Z",
+   "left": 39.6,
+   "right": 26.6,
+   "note": "J. Burrow +5.20",
+   "leftProgress": 0.5676,
+   "rightProgress": 0.2692,
+   "leftWinProb": 0.3566,
+   "leftRemaining": 41.9,
+   "rightRemaining": 62.95
+  },
+  {
+   "at": "2026-09-20T21:05:00Z",
+   "left": 39.6,
+   "right": 46.2,
+   "note": "B. Purdy +8.40 \u00b7 P. Nacua +11.20",
+   "leftProgress": 0.6802,
+   "rightProgress": 0.3974,
+   "leftWinProb": 0.0718,
+   "leftRemaining": 30.0,
+   "rightRemaining": 51.92
+  },
+  {
+   "at": "2026-09-20T22:15:00Z",
+   "left": 53.6,
+   "right": 46.2,
+   "note": "C. McCaffrey +14.00",
+   "leftProgress": 0.7432,
+   "rightProgress": 0.5769,
+   "leftWinProb": 0.3837,
+   "leftRemaining": 24.0,
+   "rightRemaining": 36.35
+  },
+  {
+   "at": "2026-09-20T23:40:00Z",
+   "left": 53.6,
+   "right": 59.5,
+   "note": "G. Kittle +7.30 \u00b7 B. Purdy +6.00",
+   "leftProgress": 0.8063,
+   "rightProgress": 0.7564,
+   "leftWinProb": 0.2589,
+   "leftRemaining": 18.0,
+   "rightRemaining": 20.78
+  },
+  {
+   "at": "2026-09-22T01:00:00Z",
+   "left": 62.2,
+   "right": 59.5,
+   "note": "C. Lamb +8.60",
+   "leftProgress": 0.8649,
+   "rightProgress": 0.8718,
+   "leftWinProb": 0.6625,
+   "leftRemaining": 12.5,
+   "rightRemaining": 10.83
+  },
+  {
+   "at": "2026-09-22T02:30:00Z",
+   "left": 62.2,
+   "right": 71.4,
+   "note": "T. Pollard +11.90",
+   "leftProgress": 0.9459,
+   "rightProgress": 0.9487,
+   "leftWinProb": 0.0977,
+   "leftRemaining": 5.0,
+   "rightRemaining": 4.33
+  },
+  {
+   "at": "2026-09-22T03:15:00Z",
+   "left": 68.4,
+   "right": 71.4,
+   "note": "C. Lamb +6.20",
+   "leftProgress": 0.9865,
+   "rightProgress": 0.9872,
+   "leftWinProb": 0.1947,
+   "leftRemaining": 1.25,
+   "rightRemaining": 1.08
+  }
+ ]
+}
