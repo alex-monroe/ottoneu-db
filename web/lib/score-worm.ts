@@ -49,9 +49,11 @@ export interface ScoreSnapshot {
 
 /**
  * Where a game's worm comes from: `plays` once the week has been rebuilt from
- * play-by-play, `scrapes` (the live snapshots) before that.
+ * nflverse play-by-play; `live` while it is being drawn play by play during the
+ * week (scripts/live_score_worm.py, ESPN's feed for NFL games nflverse has not
+ * published yet); `scrapes` (the lineup-scrape snapshots) when neither exists.
  */
-export type WormSource = "plays" | "scrapes";
+export type WormSource = "plays" | "live" | "scrapes";
 
 /** A game's stored score history and which table it came from. */
 export interface ScoreHistory {
@@ -232,6 +234,8 @@ export function dayTicks(points: WormPoint[]): { index: number; label: string }[
 
 const SOURCE_NOTE: Record<WormSource, string> = {
   plays: "One point per scoring play, rebuilt from NFL play-by-play.",
+  live:
+    "One point per scoring play, live from ESPN's play-by-play; each NFL game is redrawn from nflverse once it is published, and the week is checked against Ottoneu's finals when it ends.",
   scrapes:
     "One point per score update, read during game windows; rebuilt play by play once the week's games are final.",
 };
@@ -336,7 +340,12 @@ const WIN_NOTE =
  * "Pre-game: Alpha 58%. Beta won after falling to 12% (Sun 4:30 PM)." — the
  * kickoff odds and the eventual winner's low point, its comeback.
  */
-export function winSummary(points: WormPoint[], leftName: string, rightName: string): string {
+export function winSummary(
+  points: WormPoint[],
+  leftName: string,
+  rightName: string,
+  live = false,
+): string {
   const first = points[0];
   const last = points[points.length - 1];
   const parts: string[] = [];
@@ -348,7 +357,10 @@ export function winSummary(points: WormPoint[], leftName: string, rightName: str
         : `Pre-game: ${rightName} ${100 - leftPregame}%`,
     );
   }
-  if (Math.abs(last.margin) >= 0.005) {
+  if (live && last.winPct != null) {
+    const leftNow = Math.round(last.winPct);
+    parts.push(leftNow >= 50 ? `Now: ${leftName} ${leftNow}%` : `Now: ${rightName} ${100 - leftNow}%`);
+  } else if (Math.abs(last.margin) >= 0.005) {
     const leftWon = last.margin > 0;
     const winner = leftWon ? leftName : rightName;
     let low = points[0];
@@ -403,7 +415,7 @@ export function wormChart(
       ? { points: minutesPoints, summary: wormSummary(minutesPoints, leftName, rightName, "minutes") }
       : null,
     win: points.every((p) => p.winPct != null)
-      ? { summary: winSummary(points, leftName, rightName) }
+      ? { summary: winSummary(points, leftName, rightName, source === "live") }
       : null,
   };
 }

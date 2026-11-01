@@ -252,6 +252,13 @@ describe("win probability", () => {
     expect(winSummary(points, "Alpha", "Beta")).toMatch(/^Pre-game: Alpha 70%\. Alpha was favoured throughout\./);
   });
 
+  it("gives the current odds, not a winner, while the week is live", () => {
+    const live = COMEBACK.slice(0, -1);
+    const chart = wormChart(live, "Alpha", "Beta", "live")!;
+    expect(chart.win!.summary).toMatch(/^Pre-game: Alpha 60%\. Now: Beta 95%\. Win probability blends/);
+    expect(chart.summary).toMatch(/live from ESPN's play-by-play/);
+  });
+
   it("is offered only when every point has a win probability", () => {
     expect(wormChart(COMEBACK, "Alpha", "Beta", "plays")!.win).not.toBeNull();
     expect(wormChart(WEEK, "Alpha", "Beta")!.win).toBeNull();

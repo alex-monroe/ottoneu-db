@@ -418,22 +418,36 @@ def main() -> None:
         return
 
     supabase = get_supabase_client()
-    games = games_for_week(supabase, args.league_id, args.week)
+    failures, total = scrape_week(supabase, args.league_id, args.week, args.dry_run, args.cookie)
+    if args.dry_run:
+        print("Dry run — not writing to the database.")
+    if failures:
+        print(f"{failures} of {total} games failed.", file=sys.stderr)
+        sys.exit(1)
+
+
+def scrape_week(
+    supabase, league_id: int, week: int | None = None, dry_run: bool = False, cookie: str | None = None,
+) -> tuple[int, int]:
+    """Scrape every box score of one week (default: the live week) → (failures, games).
+
+    Also called each few minutes by scripts/live_score_worm.py.
+    """
+    games = games_for_week(supabase, league_id, week)
     if not games:
         print("No games to scrape — no stored week covers today. Pass --week to backfill.")
-        return
+        return 0, 0
 
-    week = games[0]["week"]
-    print(f"Scraping {len(games)} box scores for week {week}")
+    print(f"Scraping {len(games)} box scores for week {games[0]['week']}")
     scraped_at = datetime.now(timezone.utc).isoformat()
     failures = 0
 
     for index, game in enumerate(games):
         if index:
             time.sleep(REQUEST_DELAY)
-        path = GAME_PATH.format(league_id=args.league_id, game_id=game["game_id"])
+        path = GAME_PATH.format(league_id=league_id, game_id=game["game_id"])
         try:
-            parsed = parse_box_score(fetch_page(path, USER_AGENT, cookie=args.cookie))
+            parsed = parse_box_score(fetch_page(path, USER_AGENT, cookie=cookie))
         except (requests.RequestException, CloudflareBlockedError, GatedPageError,
                 BoxScoreParseError) as exc:
             print(f"  game {game['game_id']}: {exc}", file=sys.stderr)
@@ -441,7 +455,7 @@ def main() -> None:
             continue
 
         player_ids = resolve_player_ids(supabase, [p["ottoneu_id"] for p in parsed["players"]])
-        rows = to_db_rows(parsed, game, player_ids, args.league_id, scraped_at)
+        rows = to_db_rows(parsed, game, player_ids, league_id, scraped_at)
         missing = missing_team_ids(rows)
         if missing:
             print(f"  game {game['game_id']}: no team id for {missing} — skipped", file=sys.stderr)
@@ -449,17 +463,12 @@ def main() -> None:
             continue
 
         print(f"  {game['home_team_name']} vs {game['away_team_name']}: {_summarise(rows)}")
-        if not args.dry_run:
-            replace_game(supabase, args.league_id, game["game_id"], rows)
-            snapshot = score_snapshot(rows, game, args.league_id, scraped_at)
+        if not dry_run:
+            replace_game(supabase, league_id, game["game_id"], rows)
+            snapshot = score_snapshot(rows, game, league_id, scraped_at)
             if snapshot:
                 record_snapshot(supabase, snapshot)
-
-    if args.dry_run:
-        print("Dry run — not writing to the database.")
-    if failures:
-        print(f"{failures} of {len(games)} games failed.", file=sys.stderr)
-        sys.exit(1)
+    return failures, len(games)
 
 
 if __name__ == "__main__":

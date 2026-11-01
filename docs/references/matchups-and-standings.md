@@ -6,12 +6,12 @@ that knows the league has games.
 
 | | |
 |---|---|
-| **Tables** | `league_matchups` (migration 037) · `matchup_lineups` (migration 044) · `matchup_score_snapshots` (migration 053) · `matchup_score_plays` (migration 055) |
-| **Scrapers** | `scripts/scrape_matchups.py` — `just scrape-matchups` · `scripts/scrape_lineups.py` — `just scrape-lineups` · `scripts/rebuild_score_worm.py` — `just rebuild-score-worm` (nflverse play-by-play) |
+| **Tables** | `league_matchups` (migration 037) · `matchup_lineups` (migration 044) · `matchup_score_snapshots` (migration 053) · `matchup_score_plays` (migrations 055–059) · `live_worm_state` (migration 059) |
+| **Scrapers** | `scripts/scrape_matchups.py` — `just scrape-matchups` · `scripts/scrape_lineups.py` — `just scrape-lineups` · `scripts/rebuild_score_worm.py` — `just rebuild-score-worm` (nflverse play-by-play) · `scripts/live_score_worm.py` + `scripts/espn_pbp.py` — `just live-score-worm` (ESPN play-by-play, live) |
 | **Derivation** | `web/lib/standings.ts` + `web/lib/live-matchup.ts` + `web/lib/playoff-odds.ts` + `web/lib/score-worm.ts` (pure) · `web/lib/matchups.ts` + `web/lib/matchup-lineups.ts` + `web/lib/playoff-odds-data.ts` (fetchers) |
 | **Routes** | `/scoreboard` and `/scoreboard/[gameId]` (public) · the homepage league-status section |
 | **MCP tools** | `get_scoreboard` · `get_standings` (incl. playoff odds) |
-| **Workflow** | `.github/workflows/pull-matchups.yml` · `.github/workflows/rebuild-score-worms.yml` |
+| **Workflow** | `.github/workflows/pull-matchups.yml` · `.github/workflows/rebuild-score-worms.yml` · `.github/workflows/live-score-worm.yml` (started by Supabase pg_cron, not GitHub's cron) |
 
 ## The one design decision: standings are derived, not scraped
 
@@ -91,7 +91,10 @@ through the Sunday afternoon and evening windows and the Thursday-, Sunday- and
 Monday-night games. The 5-minute cadence is what gives the *live* score worm
 its resolution, and it is a target, not a guarantee: in October 2026 GitHub
 fired a whole Sunday window (17:00–04:55 UTC) five times, roughly every two
-hours. That is why finished weeks are redrawn from play-by-play (below). There is **no in-season
+hours. That is why the worm no longer depends on this schedule: during games it
+is drawn play by play by a pg_cron-started loop (see
+[the live worm](#the-live-worm-play-by-play-during-the-week)), and finished weeks
+are redrawn from nflverse play-by-play. There is **no in-season
 gate**: the schedule page is public and cheap year-round, and the daily
 off-season run is what catches next season's schedule the day it posts.
 
@@ -273,8 +276,9 @@ viewer's team first, via `flipSnapshots`, and only once the game is past
 
 #### Rebuilt play by play once the week is over
 
-The live snapshots are only as fine as the cron that writes them, which in
-practice is every couple of hours. Once a week's NFL games are over,
+The lineup-scrape snapshots are only as fine as the cron that writes them,
+which in practice is every couple of hours; during the week the live worm
+(below) replaces them. Once a week's NFL games are over,
 `scripts/rebuild_score_worm.py` (`just rebuild-score-worm`, daily in
 `rebuild-score-worms.yml`) redraws it exactly from nflverse play-by-play. It
 scores every play with the league's rules, credits the points to that game's
@@ -311,6 +315,79 @@ names the source.
   replacing each game's rows wholesale.
 
 Every 2026 week from week 1 on has been rebuilt, so the worm has no gap.
+
+#### The live worm: play by play during the week
+
+`scripts/live_score_worm.py` (`just live-score-worm`) draws the live week's
+worm with the same scoring, minutes, win probability and cone code as the
+rebuild, while the games are on. It writes the same `matchup_score_plays` rows,
+so the game page and `/matchup` show the full worm (Clock, Minutes played,
+Win %, and the cone) for games in progress, with no separate chart code.
+
+- **Two feeds, chosen per NFL game.** nflverse is the source of truth: every NFL
+  game it has published (one with an `END GAME` row, usually within a day of
+  the final whistle) comes from nflverse. Every other game that has kicked off
+  comes from ESPN's unlisted core API (`scripts/espn_pbp.py`), which has each
+  play within a minute or so. So Thursday's game switches to nflverse on
+  Friday while Sunday's are still live from ESPN. Each row's `source` column
+  (migration 059) records its feed.
+- **ESPN plays are reshaped into nflverse rows** (`espn_rows`), so
+  `play_points` scores both feeds the same way. ESPN gives each play's
+  participants with a role (passer, rusher, receiver, scorer, kicker, fumbler,
+  patPasser, ...), mapped to gsis ids through the nflverse roster's `espn_id`
+  column (100% of active skill players in 2026). Yardage comes from the play
+  text, because `statYardage` is the net of the whole play. Several traps
+  turned up in testing, and each has a test in `scripts/tests/test_espn_pbp.py`:
+  a two-point try's "is incomplete" or "is sacked" after a caught touchdown;
+  holding downfield (yards stop at the spot of the foul); fumbles (yards stop
+  where the ball was recovered, and "RECOVERED by" in capitals means the
+  defense got it); ESPN naming the pass rusher as the fumbler on a strip sack;
+  and "No Play" penalties on plays of any type.
+- **Accuracy:** scored from ESPN alone, 2026 weeks 5, 6 and 7 match Ottoneu's
+  box scores for 95, 103 and 103 of 107–108 started player-games. The misses
+  are laterals (not modelled), trick plays, and stat corrections ESPN hasn't
+  picked up. Each miss lasts only until nflverse publishes that game.
+- **A week still being played** differs from a rebuilt one in three ways.
+  A game without an `END GAME` row stops its clock at its latest play instead
+  of running to 60 minutes (`GameClock(finished=False)`). NFL games not yet
+  started still count: their starters bring 60 minutes and their whole
+  projection. And there is no closing "Adjustment to Ottoneu's final" row
+  (`adjust=False`), because Ottoneu's live totals are a moving figure too.
+  `rebuilt_weeks` ignores any week that still has an `espn` row, so the daily
+  rebuild redoes it from nflverse alone once it is over.
+- **The worm's last point is the last scoring play.** Between scores, the page's
+  live projection and score are newer than the chart.
+- The footnote says "live from ESPN's play-by-play" (`WormSource` `live`), and
+  the Win % summary gives the current odds instead of a winner.
+
+##### What runs it: pg_cron → a looping GitHub Actions job
+
+GitHub's cron can't drive minute-by-minute updates: on Nov 1, 2026 Pull
+Matchups' Sunday window hadn't fired once by 18:30 UTC. So
+`.github/workflows/live-score-worm.yml` has no schedule. Supabase **pg_cron**
+starts it on time through `workflow_dispatch`, and the job then loops on its own:
+
+- `dispatch_live_worm()` (migration 059) runs every 5 minutes. It POSTs a
+  dispatch (pg_net, with a GitHub token from Supabase Vault named
+  `github_actions_dispatch`) when the next kickoff in `live_worm_state` is less
+  than 15 minutes away or already past, no heartbeat has arrived in 3 minutes,
+  and nothing was dispatched in the last 10. Until the Vault secret exists, it
+  does nothing.
+- `just live-score-worm --loop` makes a pass every 60 seconds: ESPN, then
+  nflverse when a finished game might have landed (at most every 30 minutes),
+  then Ottoneu's box scores (lineups and live points, via
+  `scrape_lineups.scrape_week`) every 5th pass. It rewrites only the games
+  whose rows changed and then revalidates their pages. Each pass writes
+  `heartbeat_at` and `next_kickoff`. It exits when no NFL game of the week is
+  in progress or kicks off within 20 minutes, or after 340 minutes (a GitHub
+  job may run six hours); pg_cron starts the next one. Between Sunday's late
+  games and Sunday night's game it exits and is restarted 15 minutes before
+  kickoff.
+- With no game in sight it sets `next_kickoff` a day out, so off-season and
+  mid-week checks cost one short run a day. The week rolls over on Wednesday
+  (Ottoneu's windows run Wednesday to Tuesday), and that day's run finds
+  Thursday's kickoff.
+- The repo is public, so Actions minutes are free. A full Sunday is two jobs.
 
 #### Minutes played: the worm by lineup minutes, not the clock
 
