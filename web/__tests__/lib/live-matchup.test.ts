@@ -94,6 +94,12 @@ describe("remainingFraction", () => {
     expect(remainingFraction("0-3 SF Q1 2:39 SF25")).toBeCloseTo(47.65 / 60);
   });
 
+  it("reads Ottoneu's fifth quarter as overtime, with nothing left", () => {
+    expect(remainingFraction("43-36 TEN Q5 5:37 TEN35")).toBe(0);
+    expect(remainingFraction("20-20 @KC Q6 2:00")).toBe(0);
+    expect(remainingFraction("OT 3:12")).toBe(0);
+  });
+
   it("falls back to a half when the clock cannot be read", () => {
     expect(remainingFraction("7-10 @LA")).toBe(UNKNOWN_CLOCK_REMAINING);
     expect(remainingFraction(null)).toBe(UNKNOWN_CLOCK_REMAINING);
