@@ -359,6 +359,19 @@ Win %, and the cone) for games in progress, with no separate chart code.
   live projection and score are newer than the chart.
 - The footnote says "live from ESPN's play-by-play" (`WormSource` `live`), and
   the Win % summary gives the current odds instead of a winner.
+- **Open pages refresh themselves.** While the loop's heartbeat in
+  `live_worm_state` is under 3 minutes old (`fetchGamesAreLive`,
+  `web/lib/live-worm.ts`) and the matchup isn't final, `/scoreboard/[gameId]`
+  and `/matchup` render `components/LiveRefresh.tsx`: a "Live" line that calls
+  `router.refresh()` every 60 seconds, pauses while the tab is hidden, and
+  catches up when it's shown again. This is keyed on the heartbeat, not on
+  `league_matchups.status`, because that comes from the slower schedule scrape
+  and can still say `scheduled` while the matchup's starters are playing. For
+  the same reason `/matchup` fetches the worm whatever the status says.
+- **The chosen view is in the URL** (`?worm=minutes` / `?worm=win`; Clock, the
+  default, leaves it out), written with `history.replaceState`. It survives the
+  refresh, a full reload and a shared link. A view the game doesn't have falls
+  back to Clock.
 
 ##### What runs it: pg_cron → a looping GitHub Actions job
 

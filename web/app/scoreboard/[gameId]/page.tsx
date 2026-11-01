@@ -4,6 +4,7 @@ import { LEAGUE_ID } from "@/lib/config";
 import { fetchMatchup } from "@/lib/matchups";
 import { fetchLiveGame, fetchScoreSnapshots } from "@/lib/matchup-lineups";
 import { wormChart } from "@/lib/score-worm";
+import { LIVE_REFRESH_SECONDS, fetchGamesAreLive } from "@/lib/live-worm";
 import { fetchWeeklyAsOf } from "@/lib/weekly-projections";
 import {
   benchOf,
@@ -21,6 +22,7 @@ import PositionBadge from "@/components/PositionBadge";
 import PlayerName from "@/components/PlayerName";
 import TeamName from "@/components/TeamName";
 import ScoreWorm from "@/components/ScoreWorm";
+import LiveRefresh from "@/components/LiveRefresh";
 
 /**
  * One head-to-head game: both actual lineups, slot against slot, with each
@@ -335,12 +337,17 @@ export default async function GamePage({ params }: Props) {
   const game = await load(params);
   if (!game) notFound();
 
-  const [live, asOf, viewerTeam, history] = await Promise.all([
+  const [live, asOf, viewerTeam, history, gamesAreLive] = await Promise.all([
     fetchLiveGame(game.season, game.week, game.game_id),
     fetchWeeklyAsOf(game.season, game.week),
     getViewerTeam(),
     fetchScoreSnapshots(game.game_id),
+    fetchGamesAreLive(),
   ]);
+  // Refresh while NFL games are on and this matchup is still being decided. Not
+  // keyed on game.status alone: it comes from a slower scrape and can still say
+  // "scheduled" with the matchup's starters playing.
+  const refreshing = gamesAreLive && game.status !== "final";
 
   const ottoneuUrl = `https://ottoneu.fangraphs.com/football/${LEAGUE_ID}/game/${game.game_id}`;
   const header = (
@@ -383,6 +390,7 @@ export default async function GamePage({ params }: Props) {
   return (
     <PageShell>
       {header}
+      {refreshing && <LiveRefresh seconds={LIVE_REFRESH_SECONDS} />}
 
       <Scoreboard
         game={game}

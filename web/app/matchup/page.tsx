@@ -5,6 +5,7 @@ import { fetchLineupWeek } from "@/lib/lineup-data";
 import { fetchLeagueStatus } from "@/lib/matchups";
 import { fetchScoreSnapshots } from "@/lib/matchup-lineups";
 import { flipSnapshots, wormChart } from "@/lib/score-worm";
+import { LIVE_REFRESH_SECONDS, fetchGamesAreLive } from "@/lib/live-worm";
 import { sameTeamName, teamHref, toTeamGame } from "@/lib/teams";
 import {
   LINEUP_SLOTS,
@@ -21,6 +22,7 @@ import PageShell, { PageHeader } from "@/components/PageShell";
 import { EmptyState } from "@/components/states";
 import PositionBadge from "@/components/PositionBadge";
 import ScoreWorm from "@/components/ScoreWorm";
+import LiveRefresh from "@/components/LiveRefresh";
 
 export const revalidate = 3600;
 
@@ -223,10 +225,15 @@ export default async function MatchupPage({ searchParams }: Props) {
   }
 
   // The worm of the real game so far, your side first. Nothing to draw before
-  // kickoff, or for a game with no stored score history.
+  // kickoff, or for a game with no stored score history (wormChart needs two
+  // scores). Fetched whatever game.status says: that comes from a slower scrape
+  // and can still read "scheduled" once the live worm has plays.
   const row = status?.matchups.find((m) => m.game_id === game.game_id);
-  const history =
-    game.status !== "scheduled" ? await fetchScoreSnapshots(game.game_id) : null;
+  const [history, gamesAreLive] = await Promise.all([
+    fetchScoreSnapshots(game.game_id),
+    fetchGamesAreLive(),
+  ]);
+  const refreshing = gamesAreLive && game.status !== "final";
   const worm =
     row && history && history.snapshots.length > 0
       ? wormChart(
@@ -299,6 +306,7 @@ export default async function MatchupPage({ searchParams }: Props) {
           { href: "/scoreboard", label: "Scoreboard" },
         ]}
       />
+      {refreshing && <LiveRefresh seconds={LIVE_REFRESH_SECONDS} />}
 
       {/* Projected margin, and the real score once it exists */}
       <div className="rounded-lg border border-line bg-raised px-5 py-4">
