@@ -59,6 +59,8 @@ jobs:
           OTTONEU_COOKIE: ${{ secrets.OTTONEU_COOKIE }}
           REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
           SITE_URL: https://sofa-db.vercel.app
+          # Print each pass as it happens, not when an hours-long job ends.
+          PYTHONUNBUFFERED: "1"
         run: |
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             python scripts/live_score_worm.py --once --dry-run
