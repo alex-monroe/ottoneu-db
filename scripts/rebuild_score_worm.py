@@ -281,11 +281,17 @@ def elapsed_seconds(qtr, quarter_remaining, game_remaining) -> float | None:
 
 
 class GameClock:
-    """One NFL game's elapsed game time against wall-clock time."""
+    """One NFL game's elapsed game time against wall-clock time.
 
-    def __init__(self, times: list[pd.Timestamp], elapsed: list[float]):
+    A game still being played (`finished=False`, the live worm) stops at its
+    latest play rather than jumping to the end; its length is 60 minutes until
+    the clock runs into overtime. A game not yet started has no plays: 0 played.
+    """
+
+    def __init__(self, times: list[pd.Timestamp], elapsed: list[float], finished: bool = True):
         self.times = times
         self.elapsed = elapsed
+        self.finished = finished
         # A game's length is where its clock stopped: 3600, or more after overtime.
         self.length = max(elapsed[-1] if elapsed else 0.0, REGULATION_SECONDS)
 
@@ -294,7 +300,7 @@ class GameClock:
         index = bisect_right(self.times, when) - 1
         if index < 0:
             return 0.0
-        if index == len(self.times) - 1:
+        if index == len(self.times) - 1 and self.finished:
             return self.length
         return self.elapsed[index]
 
@@ -303,9 +309,13 @@ def game_clocks(pbp_week: pd.DataFrame) -> dict[str, GameClock]:
     """nfl game id -> its clock, from every timed play's elapsed seconds.
 
     The elapsed series is made non-decreasing, so a replay review or an
-    out-of-order timeout never moves a lineup backwards.
+    out-of-order timeout never moves a lineup backwards. When the plays carry
+    descriptions, a game without an END GAME row is still being played (see
+    GameClock); without them every game counts as over.
     """
     timed = pbp_week.assign(_at=play_times(pbp_week)).dropna(subset=["_at"])
+    ended = (set(pbp_week.loc[pbp_week["desc"] == "END GAME", "game_id"])
+             if "desc" in pbp_week else set(pbp_week["game_id"]))
     clocks: dict[str, GameClock] = {}
     for game_id, plays in timed.sort_values(["_at", "play_id"]).groupby("game_id", sort=False):
         times, elapsed, high = [], [], 0.0
@@ -317,7 +327,7 @@ def game_clocks(pbp_week: pd.DataFrame) -> dict[str, GameClock]:
             high = max(high, seconds)
             times.append(at)
             elapsed.append(high)
-        clocks[game_id] = GameClock(times, elapsed)
+        clocks[game_id] = GameClock(times, elapsed, finished=game_id in ended)
     return clocks
 
 
@@ -451,6 +461,8 @@ def build_game_plays(
     side_games: dict[str, list[str]] | None = None,
     clocks: dict[str, GameClock] | None = None,
     win_model: WinModel | None = None,
+    sources: dict[str, str] | None = None,
+    adjust: bool = True,
 ) -> list[dict]:
     """One game's `matchup_score_plays` rows (pure).
 
@@ -464,6 +476,10 @@ def build_game_plays(
     without them the progress columns are None. `win_model` (with `clocks`)
     adds the home win probability, and a "Kickoff" row at 0–0 ahead of the
     first score holding the pre-game value; without it that column is None.
+
+    `sources` (nfl game id -> 'nflverse' or 'espn') labels each play's row with
+    the feed it came from. `adjust=False` (a week still being played) never
+    closes the gap to Ottoneu's totals, which are a live figure of their own.
     """
     owner: dict[str, tuple[str, str]] = {}
     official = {"home": 0.0, "away": 0.0}
@@ -495,7 +511,7 @@ def build_game_plays(
             return {"home": 0.0, "away": 0.0}
         return {side: round(v, 2) for side, v in win_model.remaining(clocks, when).items()}
 
-    def emit(at: datetime, note: str, *, finished: bool = False) -> None:
+    def emit(at: datetime, note: str, *, finished: bool = False, source: str | None = None) -> None:
         when = pd.Timestamp(at)
         remaining = projected_remaining(when, finished)
         shares = {
@@ -516,9 +532,10 @@ def build_game_plays(
             "home_win_prob": win_prob(when, shares, finished),
             "home_proj_remaining": remaining["home"],
             "away_proj_remaining": remaining["away"],
+            "source": source,
         })
 
-    for at, _nfl_game, _play_id, points in events:
+    for at, nfl_game, _play_id, points in events:
         credited = [(owner[g], pts) for g, pts in points.items() if g in owner]
         if not credited:
             continue
@@ -528,10 +545,10 @@ def build_game_plays(
         for (side, _name), pts in credited:
             totals[side] += pts
         note = " · ".join(f"{name} {pts:+.2f}" for (_side, name), pts in credited)
-        emit(at.to_pydatetime(), note)
+        emit(at.to_pydatetime(), note, source=(sources or {}).get(nfl_game))
 
     off = any(abs(official[side] - totals[side]) >= _EPSILON for side in totals)
-    if rows and off:
+    if rows and off and adjust:
         totals.update(official)
         last = datetime.fromisoformat(rows[-1]["play_at"])
         emit(last + timedelta(minutes=1), ADJUSTMENT_NOTE, finished=True)
@@ -562,6 +579,56 @@ def player_mismatches(
     return lines
 
 
+def week_game_rows(
+    week_games: list[dict],
+    starters: list[dict],
+    projections: dict[str, float],
+    gsis_of: dict[int, str],
+    pbp_week: pd.DataFrame,
+    weekly_team: dict[str, str],
+    league_id: int,
+    lineup_sd: float = WORM_LINEUP_SD,
+    *,
+    events: list | None = None,
+    sources: dict[str, str] | None = None,
+    scheduled: list[tuple[str, str, str]] | None = None,
+    adjust: bool = True,
+) -> dict[int, list[dict]]:
+    """Every league game of one week: game id -> its `matchup_score_plays` rows.
+
+    `scheduled` lists NFL games with no plays yet, as (nfl game id, home, away):
+    their starters still bring 60 minutes and their whole projection, so a
+    live week's progress and win probability count the games still to come.
+    """
+    events = scoring_events(pbp_week) if events is None else events
+    clocks = game_clocks(pbp_week)
+    games_by_team = team_games(pbp_week)
+    for nfl_game, home, away in scheduled or []:
+        clocks.setdefault(nfl_game, GameClock([], [], finished=False))
+        games_by_team.setdefault(home, nfl_game)
+        games_by_team.setdefault(away, nfl_game)
+
+    by_game: dict[int, list[dict]] = defaultdict(list)
+    for row in starters:
+        by_game[row["game_id"]].append(row)
+    built: dict[int, list[dict]] = {}
+    for game in week_games:
+        side_games: dict[str, list[str]] = {"home": [], "away": []}
+        model = WinModel([], lineup_sd)
+        for row in by_game[game["game_id"]]:
+            nfl_game = starter_game(row, gsis_of.get(row["ottoneu_id"]), weekly_team, games_by_team)
+            if nfl_game:
+                side_games[row["side"]].append(nfl_game)
+            elif row.get("game_state") != "bye":
+                print(f"  game {game['game_id']}: no NFL game for {row['player_name']} ({row['nfl_team']})")
+            model.starters.append((row["side"], nfl_game, projections.get(row.get("player_id"), 0.0)))
+        built[game["game_id"]] = build_game_plays(
+            game, by_game[game["game_id"]], gsis_of, events, league_id,
+            side_games, clocks, model, sources=sources, adjust=adjust,
+        )
+    return built
+
+
 # --- Database ----------------------------------------------------------------
 
 def league_games(supabase, league_id: int) -> list[dict]:
@@ -584,11 +651,12 @@ def league_games(supabase, league_id: int) -> list[dict]:
 
 
 def rebuilt_weeks(supabase, league_id: int, season: int) -> set[int]:
-    rows = fetch_all_rows(
-        supabase, TABLE, "week",
-        filters=[("eq", "league_id", league_id), ("eq", "season", season), ("eq", "seq", 1)],
-    )
-    return {r["week"] for r in rows}
+    """Weeks already rebuilt from nflverse. A week whose rows still include live
+    ESPN plays (scripts/live_score_worm.py) is not: it is rebuilt once over."""
+    filters = [("eq", "league_id", league_id), ("eq", "season", season)]
+    rows = fetch_all_rows(supabase, TABLE, "week", filters=[*filters, ("eq", "seq", 1)])
+    live = fetch_all_rows(supabase, TABLE, "week", filters=[*filters, ("eq", "source", "espn")])
+    return {r["week"] for r in rows} - {r["week"] for r in live}
 
 
 def week_starters(supabase, league_id: int, season: int, week: int) -> list[dict]:
@@ -820,8 +888,6 @@ def main() -> None:
                 gsis_of[row["ottoneu_id"]] = gsis
         pbp_week = pbp[pbp["week"] == week]
         events = scoring_events(pbp_week)
-        clocks = game_clocks(pbp_week)
-        games_by_team = team_games(pbp_week)
         weekly_team = dict(roster.loc[roster["week"] == week, ["gsis_id", "team"]].itertuples(index=False))
 
         mismatches = player_mismatches(starters, gsis_of, events)
@@ -833,18 +899,12 @@ def main() -> None:
         by_game: dict[int, list[dict]] = defaultdict(list)
         for row in starters:
             by_game[row["game_id"]].append(row)
-        for game in (g for g in games if g["week"] == week):
-            side_games: dict[str, list[str]] = {"home": [], "away": []}
-            model = WinModel([], lineup_sd)
-            for row in by_game[game["game_id"]]:
-                nfl_game = starter_game(row, gsis_of.get(row["ottoneu_id"]), weekly_team, games_by_team)
-                if nfl_game:
-                    side_games[row["side"]].append(nfl_game)
-                elif row.get("game_state") != "bye":
-                    print(f"  game {game['game_id']}: no NFL game for {row['player_name']} ({row['nfl_team']})")
-                model.starters.append((row["side"], nfl_game, projections.get(row.get("player_id"), 0.0)))
-            rows = build_game_plays(game, by_game[game["game_id"]], gsis_of, events, args.league_id,
-                                    side_games, clocks, model)
+        week_games = [g for g in games if g["week"] == week]
+        sources = {g: "nflverse" for g in pbp_week["game_id"].unique()}
+        built = week_game_rows(week_games, starters, projections, gsis_of, pbp_week, weekly_team,
+                               args.league_id, lineup_sd, events=events, sources=sources)
+        for game in week_games:
+            rows = built[game["game_id"]]
             adjusted = " (adjusted to Ottoneu's final)" if rows and rows[-1]["note"] == ADJUSTMENT_NOTE else ""
             final = f"{rows[-1]['home_points']:.2f}–{rows[-1]['away_points']:.2f}" if rows else "no plays"
             pregame = f", pre-game home {rows[0]['home_win_prob']:.0%}" if rows and rows[0]["home_win_prob"] is not None else ""

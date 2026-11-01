@@ -737,6 +737,30 @@ export type Database = {
           },
         ]
       }
+      live_worm_state: {
+        Row: {
+          dispatched_at: string | null
+          heartbeat_at: string | null
+          id: number
+          next_kickoff: string | null
+          updated_at: string
+        }
+        Insert: {
+          dispatched_at?: string | null
+          heartbeat_at?: string | null
+          id?: number
+          next_kickoff?: string | null
+          updated_at?: string
+        }
+        Update: {
+          dispatched_at?: string | null
+          heartbeat_at?: string | null
+          id?: number
+          next_kickoff?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       matchup_lineups: {
         Row: {
           created_at: string
@@ -876,6 +900,7 @@ export type Database = {
           play_at: string
           season: number
           seq: number
+          source: string | null
           week: number
         }
         Insert: {
@@ -894,6 +919,7 @@ export type Database = {
           play_at: string
           season: number
           seq: number
+          source?: string | null
           week: number
         }
         Update: {
@@ -912,6 +938,7 @@ export type Database = {
           play_at?: string
           season?: number
           seq?: number
+          source?: string | null
           week?: number
         }
         Relationships: []

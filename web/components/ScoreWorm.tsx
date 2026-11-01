@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Area,
   CartesianGrid,
@@ -52,6 +53,25 @@ const VIEWS: { key: View; label: string }[] = [
   { key: "minutes", label: "Minutes played" },
   { key: "win", label: "Win %" },
 ];
+
+/**
+ * The chosen view lives in the URL (`?worm=win`), so it survives a reload, a
+ * shared link, and the live page's minute-by-minute refresh. Clock, the
+ * default, leaves the URL alone.
+ */
+const VIEW_PARAM = "worm";
+
+function isView(value: string | null): value is View {
+  return VIEWS.some(({ key }) => key === value);
+}
+
+function rememberView(view: View) {
+  const url = new URL(window.location.href);
+  if (view === "clock") url.searchParams.delete(VIEW_PARAM);
+  else url.searchParams.set(VIEW_PARAM, view);
+  // Next.js syncs native replaceState with useSearchParams, no server round trip.
+  window.history.replaceState(window.history.state, "", url);
+}
 
 const PCT_TICKS = [0, 25, 50, 75, 100];
 
@@ -168,8 +188,14 @@ export default function ScoreWorm({
   /** The win-probability view (drawn from `points`); null hides it. */
   win: { summary: string } | null;
 }) {
-  const [view, setView] = useState<View>("clock");
+  const requested = useSearchParams().get(VIEW_PARAM);
+  const [chosen, setChosen] = useState<View>(isView(requested) ? requested : "clock");
   const [hover, setHover] = useState<number | null>(null);
+  const available = VIEWS.filter(
+    ({ key }) => key === "clock" || (key === "minutes" && minutes) || (key === "win" && win),
+  );
+  // A view this game doesn't have (a link from a rebuilt week to a scrape-only one) shows the clock.
+  const view: View = available.some(({ key }) => key === chosen) ? chosen : "clock";
   const byMinutes = view === "minutes" && minutes !== null;
   const byWin = view === "win" && win !== null;
   const minutesCone = useMemo(() => (minutes ? minutesConePoints(minutes.points) : null), [minutes]);
@@ -192,9 +218,6 @@ export default function ScoreWorm({
   }, [points, minutesCone]);
   const cone = coneOn && hover !== null ? coneFrom(conePoints, hover) : [];
   const ranges = coneOn && hover !== null ? finalRanges(conePoints, hover) : null;
-  const available = VIEWS.filter(
-    ({ key }) => key === "clock" || (key === "minutes" && minutes) || (key === "win" && win),
-  );
   const withBands = <T,>(rows: T[]) =>
     rows.map((p, i) => ({
       ...p,
@@ -225,8 +248,9 @@ export default function ScoreWorm({
                   key={key}
                   type="button"
                   onClick={() => {
-                    setView(key);
+                    setChosen(key);
                     setHover(null);
+                    rememberView(key);
                   }}
                   aria-pressed={view === key}
                   className={`whitespace-nowrap px-2.5 py-1 transition-colors ${

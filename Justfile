@@ -378,6 +378,11 @@ scrape-lineups *args:
 rebuild-score-worm *args:
     {{python}} scripts/rebuild_score_worm.py {{args}}
 
+# Keep the live week's score worms current from ESPN + nflverse play-by-play.
+# e.g. just live-score-worm --once --dry-run ; just live-score-worm --loop
+live-score-worm *args:
+    {{python}} scripts/live_score_worm.py {{args}}
+
 # Snapshot the open FA market (active auctions + claimable waivers) into fa_market.
 # Logs in with FANGRAPHS_USERNAME/PASSWORD for waivers; auctions-only without them
 # or with --auctions-only. Also stores recently completed auctions (fa_auction_results).

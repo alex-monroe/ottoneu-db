@@ -111,8 +111,9 @@ export async function fetchLiveGame(
 
 /**
  * One game's score history, oldest first — the data behind the score worm.
- * Once the week has been rebuilt from play-by-play (`matchup_score_plays`)
- * that is every scoring play; before then it is the live lineup scrapes
+ * Whenever `matchup_score_plays` has the game that is every scoring play —
+ * `live` while any row came from ESPN's feed (the week is in progress), `plays`
+ * once the whole week is rebuilt from nflverse; otherwise the lineup scrapes
  * (`matchup_score_snapshots`). Empty when neither is stored or a read fails:
  * the worm is an extra, never a reason for the game page to error.
  */
@@ -121,7 +122,7 @@ export async function fetchScoreSnapshots(gameId: number): Promise<ScoreHistory>
     const plays = await fetchAllRows<Record<string, unknown>>((from, to) =>
       supabase
         .from("matchup_score_plays")
-        .select("play_at, home_points, away_points, note, home_progress, away_progress, home_win_prob, home_proj_remaining, away_proj_remaining")
+        .select("play_at, home_points, away_points, note, home_progress, away_progress, home_win_prob, home_proj_remaining, away_proj_remaining, source")
         .eq("league_id", LEAGUE_ID)
         .eq("game_id", gameId)
         .order("seq")
@@ -130,7 +131,7 @@ export async function fetchScoreSnapshots(gameId: number): Promise<ScoreHistory>
     );
     if (plays.length > 0) {
       return {
-        source: "plays",
+        source: plays.some((row) => row.source === "espn") ? "live" : "plays",
         snapshots: plays.map((row) => ({
           scraped_at: String(row.play_at),
           home_points: Number(row.home_points),

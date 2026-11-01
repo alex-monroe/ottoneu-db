@@ -1,0 +1,69 @@
+name: Live Score Worm
+
+# Keeps the live week's score worms current, play by play, while NFL games are
+# on (scripts/live_score_worm.py): ESPN play-by-play for games in progress,
+# nflverse for games it has published, Ottoneu's box scores for lineups.
+#
+# Not on GitHub's cron: on game days GitHub fires 5-minute schedules every
+# couple of hours at best (Pull Matchups' Sunday window fired 3–6 times in
+# October 2026, and not at all on Nov 1 by 18:30 UTC). Supabase pg_cron starts
+# this job instead (migration 059, dispatch_live_worm, via workflow_dispatch)
+# when a kickoff is within 15 minutes and no loop is running. The job then
+# loops every minute until no game is on or about to start, or until it has
+# run 340 minutes, whichever is first; pg_cron starts the next one.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "One pass, print, write nothing"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# One loop at a time. A second dispatch waits rather than racing on the same rows.
+concurrency:
+  group: live-score-worm
+  cancel-in-progress: false
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          # pandas, and fastparquet (via nfl_data_py) to read nflverse's parquet.
+          pip install -e .
+
+      - name: Create .env
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_SECRET_KEY }}" >> .env
+
+      - name: Live score worm
+        env:
+          OTTONEU_COOKIE: ${{ secrets.OTTONEU_COOKIE }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
+          SITE_URL: https://sofa-db.vercel.app
+          # Print each pass as it happens, not when an hours-long job ends.
+          PYTHONUNBUFFERED: "1"
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            python scripts/live_score_worm.py --once --dry-run
+          else
+            python scripts/live_score_worm.py --loop
+          fi
