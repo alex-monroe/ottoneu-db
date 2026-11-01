@@ -89,14 +89,17 @@ const REGULATION_MINUTES = 60;
 /**
  * Fraction of an in-progress NFL game still to play, read from the game line.
  *
- * Understands a quarter + clock ("Q3 5:12", "3rd 5:12") and halftime. Anything
- * else — overtime, an unfamiliar shape — falls back to {@link UNKNOWN_CLOCK_REMAINING}:
- * half a projection is a better guess than none or all of it.
+ * Understands a quarter + clock ("Q3 5:12", "3rd 5:12") and halftime.
+ * Overtime has nothing of the projection left: Ottoneu writes it as a fifth
+ * quarter ("43-36 TEN Q5 5:37"), so Q5 and beyond count as overtime too.
+ * Anything else — an unfamiliar shape — falls back to
+ * {@link UNKNOWN_CLOCK_REMAINING}: half a projection is a better guess than
+ * none or all of it.
  */
 export function remainingFraction(gameInfo: string | null): number {
   const text = (gameInfo ?? "").toLowerCase();
   if (/\bhalf(time)?\b/.test(text)) return 0.5;
-  if (/\b(ot|overtime)\b/.test(text)) return 0;
+  if (/\b(ot|overtime|q[5-9]|[5-9]th)\b/.test(text)) return 0;
   const match = text.match(/\b(?:q([1-4])|([1-4])(?:st|nd|rd|th))\b\s*(\d{1,2}):(\d{2})/);
   if (!match) return UNKNOWN_CLOCK_REMAINING;
   const quarter = Number(match[1] ?? match[2]);
