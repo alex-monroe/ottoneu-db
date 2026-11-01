@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LEAGUE_ID } from "@/lib/config";
 import type { Matchup } from "@/lib/standings";
 import type { ScoreboardProjection } from "@/lib/live-matchup";
+import type { ShownScore } from "@/lib/live-score";
 import TeamName from "./TeamName";
 
 /**
@@ -66,13 +67,21 @@ function TeamRow({
 export default function ScoreboardCard({
   matchup,
   projection = null,
+  score = null,
 }: {
   matchup: Matchup;
   projection?: ScoreboardProjection | null;
+  /**
+   * The headline score (lib/live-score.ts): ESPN's live total with Ottoneu's
+   * beside it during a live week. Without one, the schedule's stored score.
+   */
+  score?: ShownScore | null;
 }) {
-  const played = matchup.status !== "scheduled";
-  const home = matchup.home_score ?? 0;
-  const away = matchup.away_score ?? 0;
+  // A live ESPN total means the game is under way even if the slower schedule
+  // scrape still calls it scheduled.
+  const played = matchup.status !== "scheduled" || score?.official != null;
+  const home = score?.home ?? matchup.home_score ?? 0;
+  const away = score?.away ?? matchup.away_score ?? 0;
   // A lead in a live game is not a win, so only a final game bolds a winner.
   const decided = matchup.status === "final";
   const typeLabel = TYPE_LABELS[matchup.game_type];
@@ -117,19 +126,27 @@ export default function ScoreboardCard({
         )}
         <TeamRow
           name={matchup.home_team_name}
-          score={matchup.home_score}
+          score={home}
           showScore={played}
           won={decided && home > away}
           projected={showProjection ? projection.home : null}
         />
         <TeamRow
           name={matchup.away_team_name}
-          score={matchup.away_score}
+          score={away}
           showScore={played}
           won={decided && away > home}
           projected={showProjection ? projection.away : null}
         />
       </div>
+      {score?.official && (
+        <p
+          className="mt-1 text-right text-[11px] tabular-nums text-ink-subtle"
+          title="Scores are live from ESPN's play-by-play; this is Ottoneu's own score, the one the league is decided on"
+        >
+          Live · Ottoneu {score.official.home.toFixed(2)} – {score.official.away.toFixed(2)}
+        </p>
+      )}
       <Link
         href={`/scoreboard/${matchup.game_id}`}
         className="mt-2 inline-block text-xs text-accent hover:underline"

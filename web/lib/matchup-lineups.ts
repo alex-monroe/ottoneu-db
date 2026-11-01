@@ -18,6 +18,7 @@ import {
   type LiveGame,
 } from "./live-matchup";
 import type { ScoreHistory } from "./score-worm";
+import type { LiveTotals } from "./live-score";
 
 // One literal so Supabase's generated types can infer the row shape.
 const COLUMNS =
@@ -107,6 +108,60 @@ export async function fetchLiveGame(
   gameId: number,
 ): Promise<LiveGame | null> {
   return (await fetchLiveWeek(season, week)).get(gameId) ?? null;
+}
+
+/**
+ * The worm's latest running total for each of a week's games, keyed by game
+ * id, while the week is live (some play came from ESPN) — the scoreboard's
+ * headline scores (lib/live-score.ts). One row per game rather than every
+ * play, since the scoreboard needs only the end of each worm. Empty for a
+ * week rebuilt from nflverse, or when a read fails: Ottoneu's scores stand in.
+ */
+export async function fetchLiveTotals(
+  season: number,
+  week: number,
+  gameIds: number[],
+): Promise<Map<number, LiveTotals>> {
+  const totals = new Map<number, LiveTotals>();
+  if (gameIds.length === 0) return totals;
+  try {
+    const { data: espn, error } = await supabase
+      .from("matchup_score_plays")
+      .select("game_id")
+      .eq("league_id", LEAGUE_ID)
+      .eq("season", season)
+      .eq("week", week)
+      .eq("source", "espn")
+      .limit(1);
+    if (error) throw error;
+    if (!espn || espn.length === 0) return totals;
+
+    const latest = await Promise.all(
+      gameIds.map((gameId) =>
+        supabase
+          .from("matchup_score_plays")
+          .select("game_id, play_at, home_points, away_points")
+          .eq("league_id", LEAGUE_ID)
+          .eq("game_id", gameId)
+          .order("seq", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ),
+    );
+    for (const { data: row, error: rowError } of latest) {
+      if (rowError) throw rowError;
+      if (!row) continue;
+      totals.set(Number(row.game_id), {
+        home: Number(row.home_points),
+        away: Number(row.away_points),
+        at: String(row.play_at),
+      });
+    }
+    return totals;
+  } catch (error) {
+    console.error("fetchLiveTotals failed:", error);
+    return new Map();
+  }
 }
 
 /**

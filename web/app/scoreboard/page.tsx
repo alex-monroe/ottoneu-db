@@ -2,7 +2,10 @@ import { CalendarDays } from "lucide-react";
 import ScoreboardCard from "@/components/ScoreboardCard";
 import StandingsTable from "@/components/StandingsTable";
 import { fetchLeagueStatus, fetchMatchupSeasons } from "@/lib/matchups";
-import { fetchLiveWeek } from "@/lib/matchup-lineups";
+import { fetchLiveTotals, fetchLiveWeek } from "@/lib/matchup-lineups";
+import { isSettled, officialScores, shownScore, type LiveTotals } from "@/lib/live-score";
+import { LIVE_REFRESH_SECONDS, fetchGamesAreLive } from "@/lib/live-worm";
+import LiveRefresh from "@/components/LiveRefresh";
 import { getPlayoffOdds } from "@/lib/playoff-odds-data";
 import PlayoffOddsNote from "@/components/PlayoffOddsNote";
 import { scoreboardProjection, type LiveGame } from "@/lib/live-matchup";
@@ -80,8 +83,30 @@ export default async function ScoreboardPage({ searchParams }: Props) {
   const slate = status.matchups.filter((m) => m.week === week);
   // Lineups exist only for weeks that were scraped while being played; for
   // any other week this is an empty map and the cards show scores alone.
-  const live: Map<number, LiveGame> =
-    week != null ? await fetchLiveWeek(status.season, week) : new Map();
+  const [live, liveTotals, gamesAreLive]: [Map<number, LiveGame>, Map<number, LiveTotals>, boolean] =
+    week != null
+      ? await Promise.all([
+          fetchLiveWeek(status.season, week),
+          fetchLiveTotals(status.season, week, slate.map((m) => m.game_id)),
+          fetchGamesAreLive(),
+        ])
+      : [new Map(), new Map(), false];
+  // Headline scores: ESPN's live totals while games are on (lib/live-score.ts).
+  const scores = new Map(
+    slate.map((m) => {
+      const game = live.get(m.game_id);
+      return [
+        m.game_id,
+        shownScore({
+          official: officialScores(m, game),
+          live: liveTotals.get(m.game_id),
+          gamesAreLive,
+          settled: isSettled(m.status, game),
+        }),
+      ] as const;
+    }),
+  );
+  const refreshing = gamesAreLive && slate.some((m) => m.status !== "final");
   // Odds are for the season being played; an older season picked from the
   // dropdown shows its final table alone.
   const currentOdds = await getPlayoffOdds();
@@ -120,6 +145,7 @@ export default async function ScoreboardPage({ searchParams }: Props) {
           />
         </header>
       <DataFreshness source="matchups" />
+      {refreshing && <LiveRefresh seconds={LIVE_REFRESH_SECONDS} />}
 
         <section>
           <h2 className="mb-3 flex flex-wrap items-center gap-2 text-sm font-semibold uppercase tracking-wide text-ink-subtle">
@@ -132,18 +158,29 @@ export default async function ScoreboardPage({ searchParams }: Props) {
             )}
           </h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {slate.map((m) => (
-              <ScoreboardCard
-                key={m.game_id}
-                matchup={m}
-                projection={scoreboardProjection(live.get(m.game_id))}
-              />
-            ))}
+            {slate.map((m) => {
+              const score = scores.get(m.game_id) ?? null;
+              const projection = scoreboardProjection(live.get(m.game_id));
+              // Points so far are ESPN's while its score leads the card, so
+              // shift the projection by the gap to keep the two agreeing.
+              const shifted =
+                projection && score?.official
+                  ? {
+                      home: projection.home + score.home - score.official.home,
+                      away: projection.away + score.away - score.official.away,
+                    }
+                  : projection;
+              return (
+                <ScoreboardCard key={m.game_id} matchup={m} projection={shifted} score={score} />
+              );
+            })}
           </div>
           {live.size > 0 && (
             <p className="mt-2 text-xs text-ink-subtle">
               Proj is each lineup&apos;s live projection: points already scored plus the
               original projection of every starter still to play.
+              {[...scores.values()].some((s) => s.official) &&
+                " While NFL games are on, scores are live from ESPN's play-by-play, with Ottoneu's own score — the one the league is decided on — beneath each game."}
             </p>
           )}
         </section>
