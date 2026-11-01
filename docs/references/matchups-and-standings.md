@@ -372,6 +372,18 @@ Win %, and the cone) for games in progress, with no separate chart code.
   default, leaves it out), written with `history.replaceState`. It survives the
   refresh, a full reload and a shared link. A view the game doesn't have falls
   back to Clock.
+- **The headline score is ESPN's, with Ottoneu's beside it** (`web/lib/live-score.ts`).
+  On `/scoreboard`, `/scoreboard/[gameId]` and `/matchup`, each side's score
+  is the end of the live worm, and Ottoneu's own score, the official one, is
+  shown small beneath it ("Ottoneu 44.60"). The live projection is shifted by
+  the gap between the two, so it agrees with the score above it. Ottoneu's
+  score alone takes over once the matchup is final, once the box score has
+  every starter on both sides done (`isSettled`), or once the loop's
+  heartbeat goes stale, because a stopped loop's total would fall behind the
+  still-scraping box score. `/scoreboard` reads only each game's last worm row
+  (`fetchLiveTotals`) and also refreshes itself while games are live. The ESPN
+  total can sit a little below Ottoneu's as well as above it: the two feeds
+  score a play a minute or two apart, and a lateral is not modelled.
 
 ##### What runs it: pg_cron → a looping GitHub Actions job
 

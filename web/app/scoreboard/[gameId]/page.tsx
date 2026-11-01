@@ -5,6 +5,13 @@ import { fetchMatchup } from "@/lib/matchups";
 import { fetchLiveGame, fetchScoreSnapshots } from "@/lib/matchup-lineups";
 import { wormChart } from "@/lib/score-worm";
 import { LIVE_REFRESH_SECONDS, fetchGamesAreLive } from "@/lib/live-worm";
+import {
+  isSettled,
+  liveTotalsOf,
+  officialScores,
+  shownScore,
+  type ShownScore,
+} from "@/lib/live-score";
 import { fetchWeeklyAsOf } from "@/lib/weekly-projections";
 import {
   benchOf,
@@ -233,6 +240,7 @@ function SideSummary({
   name,
   totals,
   score,
+  official,
   align,
   mine,
   noLineup,
@@ -240,6 +248,8 @@ function SideSummary({
   name: string;
   totals: SideTotals;
   score: number;
+  /** Ottoneu's score, when the headline score is ESPN's live one. */
+  official: number | null;
   align: "left" | "right";
   mine: boolean;
   noLineup: boolean;
@@ -250,6 +260,14 @@ function SideSummary({
         <TeamName name={name} mine={mine} />
       </div>
       <div className="mt-1 text-2xl font-bold tabular-nums text-ink sm:text-3xl">{score.toFixed(2)}</div>
+      {official != null && (
+        <div
+          className="text-xs tabular-nums text-ink-subtle"
+          title="Ottoneu's own score, from its latest box score — the one the league is decided on"
+        >
+          Ottoneu {official.toFixed(2)}
+        </div>
+      )}
       <dl className="mt-2 space-y-0.5 text-xs tabular-nums sm:text-sm">
         <div className={`flex gap-2 ${align === "right" ? "justify-end" : ""}`}>
           <dt className="text-ink-subtle">
@@ -275,18 +293,21 @@ function Scoreboard({
   game,
   home,
   away,
+  score,
   viewerTeam,
 }: {
   game: Matchup;
   home: { name: string; totals: SideTotals };
   away: { name: string; totals: SideTotals };
+  score: ShownScore;
   viewerTeam: string | null;
 }) {
-  // The box score's starters are what Ottoneu totals, so their sum is the
-  // score; the stored team total is the fallback before the first scrape.
-  const homeScore = home.totals.starters > 0 ? home.totals.actual : (game.home_score ?? 0);
-  const awayScore = away.totals.starters > 0 ? away.totals.actual : (game.away_score ?? 0);
-  const margin = home.totals.live - away.totals.live;
+  // The live projection is points so far plus what is still to come. With an
+  // ESPN score ahead of Ottoneu's, the points so far are ESPN's: shift each
+  // side's projection by the gap so it agrees with the score above it.
+  const homeLive = home.totals.live + (score.official ? score.home - score.official.home : 0);
+  const awayLive = away.totals.live + (score.official ? score.away - score.official.away : 0);
+  const margin = homeLive - awayLive;
   const final = game.status === "final";
   const leader = margin >= 0 ? home.name : away.name;
 
@@ -295,8 +316,9 @@ function Scoreboard({
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-2 sm:gap-3">
         <SideSummary
           name={home.name}
-          totals={home.totals}
-          score={homeScore}
+          totals={{ ...home.totals, live: homeLive }}
+          score={score.home}
+          official={score.official?.home ?? null}
           align="left"
           mine={sameTeamName(home.name, viewerTeam)}
           noLineup={home.totals.starters === 0}
@@ -322,13 +344,22 @@ function Scoreboard({
         </div>
         <SideSummary
           name={away.name}
-          totals={away.totals}
-          score={awayScore}
+          totals={{ ...away.totals, live: awayLive }}
+          score={score.away}
+          official={score.official?.away ?? null}
           align="right"
           mine={sameTeamName(away.name, viewerTeam)}
           noLineup={away.totals.starters === 0}
         />
       </div>
+      {score.liveAt && (
+        <p className="mt-3 border-t border-line pt-2 text-xs text-ink-subtle">
+          Scores are live from ESPN&apos;s play-by-play (latest scoring play{" "}
+          {new Date(score.liveAt).toLocaleTimeString("en-US", { timeZone: "America/New_York", timeStyle: "short" })}{" "}
+          ET). Ottoneu&apos;s own score, the one the league is decided on, catches up within
+          a few minutes and takes over once every starter&apos;s game is over.
+        </p>
+      )}
     </section>
   );
 }
@@ -386,6 +417,12 @@ export default async function GamePage({ params }: Props) {
   const homeName = live.home.team_name || game.home_team_name;
   const awayName = live.away.team_name || game.away_team_name;
   const worm = wormChart(history.snapshots, homeName, awayName, history.source);
+  const score = shownScore({
+    official: officialScores(game, live),
+    live: liveTotalsOf(history),
+    gamesAreLive,
+    settled: isSettled(game.status, live),
+  });
 
   return (
     <PageShell>
@@ -396,6 +433,7 @@ export default async function GamePage({ params }: Props) {
         game={game}
         home={{ name: homeName, totals: live.home.totals }}
         away={{ name: awayName, totals: live.away.totals }}
+        score={score}
         viewerTeam={viewerTeam}
       />
 

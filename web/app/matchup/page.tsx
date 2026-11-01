@@ -6,6 +6,7 @@ import { fetchLeagueStatus } from "@/lib/matchups";
 import { fetchScoreSnapshots } from "@/lib/matchup-lineups";
 import { flipSnapshots, wormChart } from "@/lib/score-worm";
 import { LIVE_REFRESH_SECONDS, fetchGamesAreLive } from "@/lib/live-worm";
+import { liveTotalsOf, shownScore } from "@/lib/live-score";
 import { sameTeamName, teamHref, toTeamGame } from "@/lib/teams";
 import {
   LINEUP_SLOTS,
@@ -234,6 +235,21 @@ export default async function MatchupPage({ searchParams }: Props) {
     fetchGamesAreLive(),
   ]);
   const refreshing = gamesAreLive && game.status !== "final";
+  // The real score, your side first: ESPN's live total while games are on,
+  // with Ottoneu's beside it (lib/live-score.ts). This page reads no box
+  // score, so the matchup is settled only once Ottoneu calls it final.
+  const homeIsMine = row ? sameTeamName(row.home_team_name, viewerTeam) : true;
+  const liveTotals = liveTotalsOf(history);
+  const actual = shownScore({
+    official: { home: game.score ?? 0, away: game.opponentScore ?? 0 },
+    live: liveTotals && {
+      home: homeIsMine ? liveTotals.home : liveTotals.away,
+      away: homeIsMine ? liveTotals.away : liveTotals.home,
+      at: liveTotals.at,
+    },
+    gamesAreLive,
+    settled: game.status === "final",
+  });
   const worm =
     row && history && history.snapshots.length > 0
       ? wormChart(
@@ -329,14 +345,26 @@ export default async function MatchupPage({ searchParams }: Props) {
         {/* Ottoneu's export reads 0.00 for both sides before kickoff, so a
             scheduled game must not print a score — the same rule ScoreboardCard
             follows. */}
-        {game.status !== "scheduled" &&
+        {actual.official ? (
+          <p className="mt-2 text-sm text-ink-muted">
+            Live so far: {actual.home.toFixed(2)} – {actual.away.toFixed(2)}
+            <span
+              className="ml-2 text-xs text-ink-subtle"
+              title="Live scores come from ESPN's play-by-play; this is Ottoneu's own score, the one the league is decided on"
+            >
+              Ottoneu {actual.official.home.toFixed(2)} – {actual.official.away.toFixed(2)}
+            </span>
+          </p>
+        ) : (
+          game.status !== "scheduled" &&
           game.score != null &&
           game.opponentScore != null && (
             <p className="mt-2 text-sm text-ink-muted">
               Actual so far: {game.score.toFixed(2)} – {game.opponentScore.toFixed(2)}
               {game.statusLabel ? ` (${game.statusLabel})` : ""}
             </p>
-          )}
+          )
+        )}
       </div>
 
       {worm && <ScoreWorm {...worm} />}
