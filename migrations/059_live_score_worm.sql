@@ -41,7 +41,9 @@ INSERT INTO live_worm_state (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 -- Written only with the service key; nothing on the site reads it.
 ALTER TABLE live_worm_state ENABLE ROW LEVEL SECURITY;
 
-CREATE EXTENSION IF NOT EXISTS pg_net;
+-- pg_net's functions live in its own `net` schema; the extension itself goes in
+-- `extensions`, not `public` (the Supabase advisor flags extension_in_public).
+CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
 CREATE EXTENSION IF NOT EXISTS pg_cron;
 
 CREATE OR REPLACE FUNCTION public.dispatch_live_worm()
