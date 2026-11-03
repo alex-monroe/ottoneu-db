@@ -222,6 +222,17 @@ class TestWeekReadiness:
         times = play_times(pbp).dt.strftime("%H:%M").tolist()
         assert times == ["17:00", "17:00", "17:00", "20:00"]
 
+    def test_play_times_read_both_feeds_formats(self):
+        # nflverse writes milliseconds, ESPN does not; a live week mixes them,
+        # and neither feed's plays may drop out whichever comes first.
+        pbp = pd.DataFrame({
+            "game_id": ["nflverse", "espn"],
+            "play_id": [1, 1],
+            "time_of_day": ["2026-10-30T00:15:32.157Z", "2026-11-03T01:17:06Z"],
+        })
+        times = play_times(pbp).dt.strftime("%H:%M:%S").tolist()
+        assert times == ["00:15:32", "01:17:06"]
+
 
 T = pd.Timestamp
 
