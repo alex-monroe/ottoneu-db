@@ -247,9 +247,14 @@ def finished_nfl_weeks(schedule: pd.DataFrame, pbp: pd.DataFrame) -> set[int]:
 
 def play_times(pbp: pd.DataFrame) -> pd.Series:
     """Each play's UTC time. The few untimed rows (timeouts, game ends) take the
-    previous play's time within the game, or the next one's at the very start."""
+    previous play's time within the game, or the next one's at the very start.
+
+    ISO8601 rather than an inferred format: nflverse writes milliseconds
+    ("00:15:32.157Z") and ESPN does not ("01:17:06Z"). Inferred from the first
+    row, one feed's times coerce to NaT and its plays silently drop out of a
+    live week that mixes the two."""
     ordered = pbp.sort_values(["game_id", "play_id"])
-    times = pd.to_datetime(ordered["time_of_day"], utc=True, errors="coerce")
+    times = pd.to_datetime(ordered["time_of_day"], utc=True, errors="coerce", format="ISO8601")
     filled = times.groupby(ordered["game_id"]).transform(lambda s: s.ffill().bfill())
     return filled.reindex(pbp.index)
 
