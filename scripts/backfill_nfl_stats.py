@@ -11,6 +11,7 @@ Usage:
     python scripts/backfill_nfl_stats.py                           # All seasons 2010-2024
     python scripts/backfill_nfl_stats.py --seasons 2022 2023 2024  # Specific seasons
     python scripts/backfill_nfl_stats.py --dry-run                 # Parse only, no DB writes
+    python scripts/backfill_nfl_stats.py --fill-missing-teams --seasons 2018 2019  # Only fill NULL recent_team
 """
 
 from __future__ import annotations
@@ -351,6 +352,141 @@ def create_missing_players(
     return player_lookup
 
 
+def dedup_stat_rows(upsert_rows: list[dict]) -> list[dict]:
+    """Collapse rows that share a (player_id, season) into one row.
+
+    Different display-name variants can normalize to the same player_id. Stats
+    are summed, rate stats averaged, points/ppg recomputed, and recent_team
+    kept from the variant with the most games.
+    """
+    if not upsert_rows:
+        return upsert_rows
+    stat_sum_cols = [
+        "games_played", "passing_yards", "passing_tds", "interceptions",
+        "rushing_yards", "rushing_tds", "rushing_attempts",
+        "receptions", "targets", "receiving_yards", "receiving_tds",
+        "fg_made_0_39", "fg_made_40_49", "fg_made_50_plus", "pat_made",
+        "passing_attempts", "completions", "receiving_air_yards",
+        "offense_snaps", "defense_snaps", "st_snaps", "total_snaps",
+        *EXTRA_KEYS,
+    ]
+    rate_avg_cols = ["target_share", "air_yards_share", "wopr", "racr"]
+    dedup_df = pd.DataFrame(upsert_rows)
+    present_sum = [c for c in stat_sum_cols if c in dedup_df.columns]
+    present_avg = [c for c in rate_avg_cols if c in dedup_df.columns]
+    agg_dict: dict[str, str] = {c: "sum" for c in present_sum}
+    for c in present_avg:
+        agg_dict[c] = "mean"
+    # Carry recent_team through the dedup. Leaving it out of the aggregation
+    # silently dropped it, so every row inserted through here landed with a
+    # NULL team; that broke team usage totals and the vegas team lookup in
+    # the projection features. Keep the team of the variant with the most
+    # games ("last" skips NULLs).
+    if "recent_team" in dedup_df.columns:
+        dedup_df = dedup_df.sort_values("games_played", na_position="first", kind="stable")
+        agg_dict["recent_team"] = "last"
+    dedup_df = dedup_df.groupby(["player_id", "season"], as_index=False).agg(agg_dict)
+    # Recalculate total_points and ppg after summing
+    dedup_df["total_points"] = dedup_df.apply(
+        lambda r: round(calc_half_ppr_points(r.to_dict()), 2), axis=1
+    )
+    # The extras only feed the points — nfl_stats has no columns for them.
+    dedup_df = dedup_df.drop(columns=[c for c in EXTRA_KEYS if c in dedup_df.columns])
+    present_sum = [c for c in present_sum if c not in EXTRA_KEYS]
+    # pandas sum() promotes int columns with NaN to float64 — cast back to int|None
+    for col in present_sum:
+        dedup_df[col] = dedup_df[col].apply(_safe_int)
+    # mean() of all-NaN groups produces NaN — JSON can't encode it.
+    for col in present_avg:
+        dedup_df[col] = dedup_df[col].apply(_safe_float)
+    dedup_df["ppg"] = dedup_df.apply(
+        lambda r: round(r["total_points"] / r["games_played"], 2)
+        if r.get("games_played") else 0.0,
+        axis=1,
+    )
+    upsert_rows = dedup_df.to_dict(orient="records")
+    # Replace any lingering NaN floats (pandas float64 columns can't hold None)
+    # with None so JSON encoding succeeds.
+    for r in upsert_rows:
+        for k, v in list(r.items()):
+            if isinstance(v, float) and math.isnan(v):
+                r[k] = None
+    return upsert_rows
+
+
+def plan_team_fills(
+    processed: pd.DataFrame,
+    name_by_id: dict[str, str],
+    existing: list[dict],
+) -> dict[tuple[int, str], list[str]]:
+    """Group nfl_stats row ids whose recent_team is NULL by the team to set.
+
+    ``processed`` is ``process_stats`` output (one row per display name and
+    season, with ``recent_team``). Each existing row is matched through its own
+    player's name (``name_by_id``: players.id -> name), so two player rows that
+    share a name both get filled. Rows that already carry a team are left alone.
+    Returns ``{(season, team): [row ids]}``.
+    """
+    team_by_key: dict[tuple[str, int], tuple[float, str]] = {}
+    for row in processed.itertuples(index=False):
+        team = getattr(row, "recent_team", None)
+        if not team or pd.isna(team):
+            continue
+        key = (normalize_player_name(str(row.player_display_name)), int(row.season))
+        games = float(getattr(row, "games_played", 0) or 0)
+        # Two name variants can normalize alike; keep the team with more games.
+        if key not in team_by_key or games > team_by_key[key][0]:
+            team_by_key[key] = (games, str(team))
+
+    plan: dict[tuple[int, str], list[str]] = {}
+    for r in existing:
+        if r.get("recent_team"):
+            continue
+        name = name_by_id.get(r["player_id"])
+        if not name:
+            continue
+        match = team_by_key.get((normalize_player_name(name), int(r["season"])))
+        if match:
+            plan.setdefault((int(r["season"]), match[1]), []).append(r["id"])
+    return plan
+
+
+def fill_missing_recent_team(seasons: list[int], dry_run: bool = False) -> None:
+    """Set nfl_stats.recent_team where it is NULL, from nflverse. Touches nothing else."""
+    from scripts.config import fetch_all_rows
+
+    supabase = get_supabase_client()
+    name_by_id = {p["id"]: p["name"] for p in fetch_all_rows(supabase, "players", "id, name")}
+    total = 0
+    for year in seasons:
+        stats = load_stats(year)
+        if stats is None:
+            continue
+        processed = process_stats(stats)
+        existing = fetch_all_rows(
+            supabase, "nfl_stats", "id, player_id, season, recent_team",
+            filters=[("eq", "season", year)],
+        )
+        plan = plan_team_fills(processed, name_by_id, existing)
+        n = sum(len(ids) for ids in plan.values())
+        missing = sum(1 for r in existing if not r.get("recent_team"))
+        print(f"  {year}: {missing} rows missing a team, {n} fillable")
+        total += n
+        if dry_run:
+            continue
+        for (_season, team), ids in plan.items():
+            for i in range(0, len(ids), 200):
+                (
+                    supabase.table("nfl_stats")
+                    .update({"recent_team": team})
+                    .in_("id", ids[i:i + 200])
+                    .is_("recent_team", "null")
+                    .execute()
+                )
+    verb = "Would fill" if dry_run else "Filled"
+    print(f"\n{verb} recent_team on {total} rows.")
+
+
 def backfill_seasons(
     seasons: list[int],
     dry_run: bool = False,
@@ -495,49 +631,8 @@ def backfill_seasons(
     # Deduplicate by (player_id, season): different display name variants can
     # map to the same player_id after normalization. Aggregate by summing stats
     # and recalculating points/ppg, then convert back to list of dicts.
+    upsert_rows = dedup_stat_rows(upsert_rows)
     if upsert_rows:
-        stat_sum_cols = [
-            "games_played", "passing_yards", "passing_tds", "interceptions",
-            "rushing_yards", "rushing_tds", "rushing_attempts",
-            "receptions", "targets", "receiving_yards", "receiving_tds",
-            "fg_made_0_39", "fg_made_40_49", "fg_made_50_plus", "pat_made",
-            "passing_attempts", "completions", "receiving_air_yards",
-            "offense_snaps", "defense_snaps", "st_snaps", "total_snaps",
-            *EXTRA_KEYS,
-        ]
-        rate_avg_cols = ["target_share", "air_yards_share", "wopr", "racr"]
-        dedup_df = pd.DataFrame(upsert_rows)
-        present_sum = [c for c in stat_sum_cols if c in dedup_df.columns]
-        present_avg = [c for c in rate_avg_cols if c in dedup_df.columns]
-        agg_dict: dict[str, str] = {c: "sum" for c in present_sum}
-        for c in present_avg:
-            agg_dict[c] = "mean"
-        dedup_df = dedup_df.groupby(["player_id", "season"], as_index=False).agg(agg_dict)
-        # Recalculate total_points and ppg after summing
-        dedup_df["total_points"] = dedup_df.apply(
-            lambda r: round(calc_half_ppr_points(r.to_dict()), 2), axis=1
-        )
-        # The extras only feed the points — nfl_stats has no columns for them.
-        dedup_df = dedup_df.drop(columns=[c for c in EXTRA_KEYS if c in dedup_df.columns])
-        present_sum = [c for c in present_sum if c not in EXTRA_KEYS]
-        # pandas sum() promotes int columns with NaN to float64 — cast back to int|None
-        for col in present_sum:
-            dedup_df[col] = dedup_df[col].apply(_safe_int)
-        # mean() of all-NaN groups produces NaN — JSON can't encode it.
-        for col in present_avg:
-            dedup_df[col] = dedup_df[col].apply(_safe_float)
-        dedup_df["ppg"] = dedup_df.apply(
-            lambda r: round(r["total_points"] / r["games_played"], 2)
-            if r.get("games_played") else 0.0,
-            axis=1,
-        )
-        upsert_rows = dedup_df.to_dict(orient="records")
-        # Replace any lingering NaN floats (pandas float64 columns can't hold None)
-        # with None so JSON encoding succeeds.
-        for r in upsert_rows:
-            for k, v in list(r.items()):
-                if isinstance(v, float) and math.isnan(v):
-                    r[k] = None
         print(f"  After dedup: {len(upsert_rows)} unique player/season rows")
 
     if dry_run:
@@ -578,7 +673,16 @@ def main():
         "--dry-run", action="store_true",
         help="Parse and process data without writing to the database",
     )
+    parser.add_argument(
+        "--fill-missing-teams", action="store_true",
+        help="Only set recent_team on rows where it is NULL; leave every other column alone",
+    )
     args = parser.parse_args()
+
+    if args.fill_missing_teams:
+        print(f"Filling missing nfl_stats.recent_team for seasons {args.seasons} (dry run: {args.dry_run})")
+        fill_missing_recent_team(args.seasons, dry_run=args.dry_run)
+        return
 
     print(f"NFL Stats Backfill")
     print(f"  Seasons: {args.seasons}")

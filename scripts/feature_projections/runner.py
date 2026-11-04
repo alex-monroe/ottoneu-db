@@ -20,6 +20,7 @@ from scripts.feature_projections.learned_combiner import (
 )
 from scripts.feature_projections.qb_starters import get_all_starter_ids, is_qb_starter
 from scripts.feature_projections.expected_games import build_expected_games
+from scripts.name_utils import normalize_player_name
 
 
 def _ensure_model_in_db(supabase, model_def: ModelDefinition) -> str:
@@ -537,6 +538,13 @@ def _build_context(
         context["team_offense_rating"] = team_data.get("offense_rating", 0.0)
         context["team_usage"] = team_data.get("usage_by_season", {})
 
+    # Every team's per-season usage, so usage_share can divide a season's
+    # volume by the team the player was actually on that season (with
+    # team_history), not by his current team.
+    context["team_usage_by_team"] = {
+        team: data.get("usage_by_season", {}) for team, data in team_aggregates.items()
+    }
+
     # Per-season team history for team_context feature
     team_history = _build_player_team_history(player_id, nfl_stats_all)
     context["team_history"] = team_history
@@ -646,6 +654,19 @@ def _compute_team_aggregates(
             how="left",
         )
         merged["team_for_agg"] = merged["nfl_team"]
+
+    # One human can have two `players` rows (the college→NFL ottoneu_id change),
+    # each carrying the same nfl_stats line. Count each name once per team-season
+    # so team usage totals aren't inflated (NE 2019 summed to 769 rush attempts).
+    if "name" in players_df.columns:
+        names = players_df.set_index("player_id_ref")["name"]
+        merged["_norm_name"] = merged["player_id"].map(names).map(
+            lambda n: normalize_player_name(n) if isinstance(n, str) else None
+        )
+        named = merged[merged["_norm_name"].notna()].drop_duplicates(
+            subset=["_norm_name", "season", "team_for_agg"]
+        )
+        merged = pd.concat([named, merged[merged["_norm_name"].isna()]])
 
     team_aggregates: dict[str, Any] = {}
 
