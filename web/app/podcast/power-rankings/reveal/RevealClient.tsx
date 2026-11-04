@@ -7,6 +7,7 @@ import TeamIcon from "@/components/TeamIcon";
 import type { ConsolidatedRow, TeamRecord } from "@/lib/power-rankings";
 import Movement from "@/components/RankMovement";
 import LastGameResult from "@/components/LastGameResult";
+import SoundboardDiagram from "./SoundboardDiagram";
 
 interface Props {
   week: number;
@@ -44,6 +45,7 @@ function Card({
               <TeamIcon name={row.teamName} size="lg" className="-mt-1 mr-3" />
               {row.teamName}
             </h3>
+            <SoundboardDiagram teamName={row.teamName} />
             <Movement movement={row.movement} />
             {row.spread >= 3 && (
               <span
