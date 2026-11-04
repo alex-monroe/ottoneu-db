@@ -9,7 +9,15 @@ from datetime import datetime, timedelta, timezone
 
 import pandas as pd
 
-from scripts.live_score_worm import fingerprint, keep_going, next_kickoff, pick_sources, week_frame
+from scripts.live_score_worm import (
+    IDLE_RECHECK,
+    fingerprint,
+    keep_going,
+    next_kickoff,
+    pick_sources,
+    state_kickoff,
+    week_frame,
+)
 from scripts.rebuild_score_worm import GameClock, game_clocks, week_game_rows
 
 NOW = datetime(2026, 11, 1, 18, 30, tzinfo=timezone.utc)
@@ -70,6 +78,18 @@ class TestLooping:
                  espn_game("2026_08_PHI_WAS", "pre", kickoff="2026-11-02T01:20Z")]
         assert next_kickoff(games, NOW) == datetime(2026, 11, 1, 21, 25, tzinfo=timezone.utc)
         assert next_kickoff([espn_game("2026_08_CAR_GB", "post")], NOW) is None
+
+    def test_state_kickoff_is_now_while_a_game_is_on(self):
+        # So pg_cron restarts a loop that dies mid-game, not at the next kickoff.
+        games = [espn_game("2026_08_BAL_BUF", "in"),
+                 espn_game("2026_08_KC_DEN", "pre", kickoff="2026-11-01T21:25Z")]
+        assert state_kickoff(games, NOW) == NOW
+
+    def test_state_kickoff_otherwise_is_the_next_kickoff_or_a_day_out(self):
+        later = [espn_game("2026_08_CAR_GB", "post"),
+                 espn_game("2026_08_KC_DEN", "pre", kickoff="2026-11-01T21:25Z")]
+        assert state_kickoff(later, NOW) == datetime(2026, 11, 1, 21, 25, tzinfo=timezone.utc)
+        assert state_kickoff([espn_game("2026_08_CAR_GB", "post")], NOW) == NOW + IDLE_RECHECK
 
     def test_fingerprint_changes_with_the_rows(self):
         assert fingerprint([{"a": 1}]) == fingerprint([{"a": 1}])

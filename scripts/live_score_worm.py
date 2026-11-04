@@ -26,7 +26,7 @@ fires too rarely on game days to drive minute-by-minute updates, so that job is
 started by Supabase pg_cron (migration 059, `dispatch_live_worm`) and then loops
 itself: ESPN every `--interval` seconds, the Ottoneu box scores (lineups, live
 points) every `--lineup-every` passes, nflverse every 30 minutes. It writes a
-heartbeat and the next kickoff to `live_worm_state`, which is how pg_cron knows
+heartbeat and the next kickoff (now, while a game is on) to `live_worm_state`, which is how pg_cron knows
 when to start it and that it is still running. It exits when no NFL game of the
 week is in progress or kicks off within `--lead` minutes, or at `--max-minutes`
 (a GitHub job may run six hours; pg_cron starts the next one).
@@ -110,6 +110,19 @@ def next_kickoff(espn_games: list[dict], now: datetime) -> datetime | None:
     """The earliest kickoff of a game not yet started; None if every game has."""
     times = [_parse_time(g["kickoff"]) for g in espn_games if g["state"] == "pre"]
     return min(times) if times else None
+
+
+def state_kickoff(espn_games: list[dict], now: datetime) -> datetime:
+    """The `next_kickoff` to write for pg_cron: now while a game is on.
+
+    pg_cron only restarts a loop whose heartbeat has gone quiet when this is
+    within 15 minutes, so a game in progress has to read as a kickoff now, or a
+    loop that dies (or reaches --max-minutes) mid-game stays dead until the
+    next game that has not started yet.
+    """
+    if any(g["state"] == "in" for g in espn_games):
+        return now
+    return next_kickoff(espn_games, now) or now + IDLE_RECHECK
 
 
 def keep_going(espn_games: list[dict], now: datetime, lead: timedelta) -> bool:
@@ -283,9 +296,8 @@ def main() -> None:
         passes += 1
 
         if espn_games is not None and not args.dry_run:
-            upcoming = next_kickoff(espn_games, now)
             write_state(supabase, heartbeat_at=now.isoformat(),
-                        next_kickoff=(upcoming or now + IDLE_RECHECK).isoformat())
+                        next_kickoff=state_kickoff(espn_games, now).isoformat())
         if args.once:
             break
         if espn_games is not None and not keep_going(espn_games, now, lead):

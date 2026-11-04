@@ -403,7 +403,10 @@ starts it on time through `workflow_dispatch`, and the job then loops on its own
   then Ottoneu's box scores (lineups and live points, via
   `scrape_lineups.scrape_week`) every 5th pass. It rewrites only the games
   whose rows changed and then revalidates their pages. Each pass writes
-  `heartbeat_at` and `next_kickoff`. It exits when no NFL game of the week is
+  `heartbeat_at` and `next_kickoff`. While a game is in progress
+  `next_kickoff` is the current time, so if the loop dies or times out
+  mid-game, pg_cron restarts it within about 5 minutes instead of waiting for
+  the next game that hasn't started. It exits when no NFL game of the week is
   in progress or kicks off within 20 minutes, or after 340 minutes (a GitHub
   job may run six hours); pg_cron starts the next one. Between Sunday's late
   games and Sunday night's game it exits and is restarted 15 minutes before
