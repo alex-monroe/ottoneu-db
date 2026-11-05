@@ -3,7 +3,12 @@
 import pandas as pd
 import pytest
 
-from scripts.backfill_nfl_stats import calc_half_ppr_points, process_stats
+from scripts.backfill_nfl_stats import (
+    calc_half_ppr_points,
+    dedup_stat_rows,
+    plan_team_fills,
+    process_stats,
+)
 
 
 class TestCalcHalfPPRPoints:
@@ -108,3 +113,65 @@ class TestProcessStatsExtras:
         assert out.loc["A", "two_point_rush_rec"] == 2
         assert out.loc["K", "fg_missed"] == 4
         assert out.loc["K", "pat_missed"] == 2
+
+
+class TestDedupStatRowsKeepsTeam:
+    """recent_team must survive the (player_id, season) dedup (it used to be dropped)."""
+
+    def test_single_row_keeps_team(self):
+        rows = [{"player_id": "p1", "season": 2021, "games_played": 16,
+                 "rushing_attempts": 200, "recent_team": "TB"}]
+        out = dedup_stat_rows(rows)
+        assert out[0]["recent_team"] == "TB"
+
+    def test_merged_variants_keep_team_with_most_games(self):
+        rows = [
+            {"player_id": "p1", "season": 2021, "games_played": 3,
+             "rushing_attempts": 10, "recent_team": "NYJ"},
+            {"player_id": "p1", "season": 2021, "games_played": 12,
+             "rushing_attempts": 150, "recent_team": "NE"},
+        ]
+        out = dedup_stat_rows(rows)
+        assert len(out) == 1
+        assert out[0]["recent_team"] == "NE"
+        assert out[0]["rushing_attempts"] == 160
+
+    def test_missing_team_on_one_variant_does_not_erase_the_other(self):
+        rows = [
+            {"player_id": "p1", "season": 2021, "games_played": 14,
+             "targets": 90, "recent_team": None},
+            {"player_id": "p1", "season": 2021, "games_played": 2,
+             "targets": 5, "recent_team": "KC"},
+        ]
+        assert dedup_stat_rows(rows)[0]["recent_team"] == "KC"
+
+
+class TestPlanTeamFills:
+    """--fill-missing-teams only fills NULL teams, matched through each row's own player."""
+
+    processed = pd.DataFrame([
+        {"player_display_name": "Ronald Jones", "season": 2020, "games_played": 14, "recent_team": "TB"},
+        {"player_display_name": "Josh Allen", "season": 2020, "games_played": 16, "recent_team": "BUF"},
+    ])
+
+    def test_fills_only_null_rows(self):
+        names = {"u1": "Ronald Jones", "u2": "Josh Allen"}
+        existing = [
+            {"id": "r1", "player_id": "u1", "season": 2020, "recent_team": None},
+            {"id": "r2", "player_id": "u2", "season": 2020, "recent_team": "BUF"},
+        ]
+        assert plan_team_fills(self.processed, names, existing) == {(2020, "TB"): ["r1"]}
+
+    def test_duplicate_player_rows_sharing_a_name_both_fill(self):
+        names = {"u1": "Ronald Jones", "u1b": "Ronald Jones II"}
+        existing = [
+            {"id": "r1", "player_id": "u1", "season": 2020, "recent_team": None},
+            {"id": "r3", "player_id": "u1b", "season": 2020, "recent_team": None},
+        ]
+        plan = plan_team_fills(self.processed, names, existing)
+        assert sorted(plan[(2020, "TB")]) == ["r1", "r3"]
+
+    def test_season_mismatch_is_not_filled(self):
+        names = {"u1": "Ronald Jones"}
+        existing = [{"id": "r1", "player_id": "u1", "season": 2019, "recent_team": None}]
+        assert plan_team_fills(self.processed, names, existing) == {}

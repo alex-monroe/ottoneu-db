@@ -67,8 +67,12 @@ def compute_weighted_share(
 
     min_volume = MIN_VOLUME.get(position, 0)
 
-    team_usage = context.get("team_usage")
-    if not team_usage:
+    # Fallback denominator: the player's current team. Used only for a season
+    # whose team is unknown; otherwise the season's own team is used below.
+    team_usage = context.get("team_usage") or {}
+    team_usage_by_team = context.get("team_usage_by_team") or {}
+    team_history = context.get("team_history") or {}
+    if not team_usage and not team_usage_by_team:
         return None
 
     sorted_df = nfl_stats_df.sort_values("season")
@@ -84,7 +88,13 @@ def compute_weighted_share(
         if games < MIN_GAMES or player_val < min_volume:
             continue
 
-        team_val = team_usage.get(season, {}).get(usage_stat, 0)
+        season_team = team_history.get(season)
+        season_usage = (
+            team_usage_by_team.get(season_team, {})
+            if season_team in team_usage_by_team
+            else team_usage
+        )
+        team_val = season_usage.get(season, {}).get(usage_stat, 0)
         if team_val > 0:
             # Per-game share normalized to full-season team total
             player_per_game = player_val / games

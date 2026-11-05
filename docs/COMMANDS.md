@@ -168,6 +168,7 @@ just trade-exchange [--rebuild-outlooks] [--outlooks db|cache] [--output docs/ge
 
 # Backfills / seeds
 just backfill-nfl-stats [--seasons ...] [--dry-run]    # Backfill nfl_stats from nflverse
+just backfill-nfl-stats --fill-missing-teams [--seasons ...] [--dry-run]  # Only set NULL nfl_stats.recent_team
 just backfill-draft-capital [--since YYYY] [--dry-run] # Backfill draft_capital from nflverse draft_picks
 just backfill-vegas [--since YYYY | --current] [--dry-run]  # Backfill team_vegas_lines from nflverse games.csv (--current = projection season only)
 just backfill-depth-charts [--since YYYY] [--until YYYY] [--current] [--dry-run]  # Backfill depth_charts (opening-day depth tier) from nflverse (--current = projection season only)

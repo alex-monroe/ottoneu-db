@@ -1891,6 +1891,62 @@ class TestUsageShareRawFeature:
         # so result should be closer to 120/500 = 0.24 than to 60/500 = 0.12
         assert result > 0.18
 
+    def test_divides_by_the_team_he_played_for_that_season(self):
+        """A player who changed teams is measured against his old team's volume.
+
+        Before the fix, the denominator was always his *current* team, so a
+        2024 season in TB was divided by e.g. KC's 2024 targets.
+        """
+        nfl_df = make_nfl_stats_df([
+            {"season": 2024, "games_played": 17, "targets": 100},
+        ])
+        ctx = {
+            "team_usage": {2024: {"targets": 1000}},  # current team (KC)
+            "team_usage_by_team": {
+                "KC": {2024: {"targets": 1000}},
+                "TB": {2024: {"targets": 500}},
+            },
+            "team_history": {2024: "TB"},
+        }
+        result = self.feature.compute("p1", "WR", pd.DataFrame(), nfl_df, ctx)
+        assert result == pytest.approx(0.20, abs=0.001)
+
+    def test_unknown_season_team_falls_back_to_current_team(self):
+        nfl_df = make_nfl_stats_df([
+            {"season": 2024, "games_played": 17, "targets": 100},
+        ])
+        ctx = {
+            "team_usage": {2024: {"targets": 1000}},
+            "team_usage_by_team": {"TB": {2024: {"targets": 500}}},
+            "team_history": {},
+        }
+        result = self.feature.compute("p1", "WR", pd.DataFrame(), nfl_df, ctx)
+        assert result == pytest.approx(0.10, abs=0.001)
+
+
+class TestTeamAggregates:
+    """_compute_team_aggregates builds the usage-share denominators."""
+
+    def test_duplicate_player_rows_count_once(self):
+        """One human with two `players` rows must not double the team total."""
+        from scripts.feature_projections.runner import _compute_team_aggregates
+
+        nfl = pd.DataFrame([
+            {"player_id": "a1", "season": 2019, "recent_team": "NE", "total_points": 100,
+             "targets": 20, "rushing_attempts": 247},
+            {"player_id": "a2", "season": 2019, "recent_team": "NE", "total_points": 100,
+             "targets": 20, "rushing_attempts": 247},
+            {"player_id": "b1", "season": 2019, "recent_team": "NE", "total_points": 50,
+             "targets": 95, "rushing_attempts": 67},
+        ])
+        players = pd.DataFrame([
+            {"player_id_ref": "a1", "name": "Sony Michel", "nfl_team": "LAR"},
+            {"player_id_ref": "a2", "name": "Sony Michel", "nfl_team": "LAR"},
+            {"player_id_ref": "b1", "name": "James White", "nfl_team": "NE"},
+        ])
+        agg = _compute_team_aggregates(nfl, players)
+        assert agg["NE"]["usage_by_season"][2019] == {"targets": 115.0, "rushing_attempts": 314.0}
+
 
 # ---------------------------------------------------------------------------
 # LearnedCombiner (GH #367)
