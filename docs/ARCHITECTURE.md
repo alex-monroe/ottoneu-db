@@ -43,7 +43,7 @@ Jobs support dependencies, retries (up to 3 attempts), and batch grouping.
 
 ### NFL Stats (separate from Ottoneu data)
 
-`nfl_stats` stores pure NFL statistical data from nflverse-data (2010–present), kept separate from the Ottoneu fantasy data in `player_stats`. Backfilled via `scripts/backfill_nfl_stats.py` or the `Backfill NFL Stats` GitHub Action.
+`nfl_stats` stores pure NFL statistical data from nflverse-data (2010–present), kept separate from the Ottoneu fantasy data in `player_stats`. Backfilled via `scripts/backfill_nfl_stats.py` or the `Backfill NFL Stats` GitHub Action. `nfl_weekly_stats` is its per-game counterpart (one row per player per game, REG + POST), backfilled via `scripts/backfill_nfl_weekly_stats.py`; the `Update NFL Weekly Stats` workflow refreshes both tables for the in-progress season every Tuesday, September to February.
 
 - **`player_stats`** = Ottoneu fantasy data (total_points, ppg, pps, snaps) computed from nflverse by `pull_player_stats`
 - **`nfl_stats`** = Real NFL stats (passing_yards, rushing_tds, snap counts, etc. from nflverse)

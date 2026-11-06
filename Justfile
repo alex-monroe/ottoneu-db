@@ -312,6 +312,10 @@ accuracy-report *args:
 backfill-nfl-stats *args:
     {{python}} scripts/backfill_nfl_stats.py {{args}}
 
+# Backfill weekly NFL stats into nfl_weekly_stats  (e.g. just backfill-nfl-weekly-stats --seasons 2025 ; --seasons 2018-2025 ; --season-type REG|POST|ALL ; --dry-run ; --check-parity [--dry-run] ; --current-season prints the NFL season in progress)
+backfill-nfl-weekly-stats *args:
+    {{python}} scripts/backfill_nfl_weekly_stats.py {{args}}
+
 # Backfill draft capital  (e.g. just backfill-draft-capital --since 2010 ; --dry-run supported)
 backfill-draft-capital *args:
     {{python}} scripts/backfill_draft_capital.py {{args}}

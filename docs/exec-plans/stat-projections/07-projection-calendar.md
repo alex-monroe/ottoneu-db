@@ -67,7 +67,7 @@ ADP, expert projections and season-long player props are **market projections**.
 ## Data ingestion order
 
 1. ✅ `nfl_stats` scoring extras + stat-model inputs (migration 060).
-2. Weekly player stats (`nfl_weekly_stats`, with `game_date`) + `players.gsis_id`, which removes name matching.
+2. ✅ Weekly player stats (`nfl_weekly_stats`, with `game_date`): built (migration 061, `scripts/backfill_nfl_weekly_stats.py`, refreshed Tuesdays by `update-nfl-weekly-stats.yml`); **pending: apply migration 061 and run the historical backfill**. `gsis_id` is stored on each row. Still open: `players.gsis_id`, which removes name matching.
 3. Team-season (and team-week) volume from play-by-play: dropbacks, pass attempts, carries, plays.
 4. `rosters_weekly` + dated trades/transactions, for team as of a date.
 5. Vintage storage: `projection_vintages`, `vintage_id`, append-only history, and the published-season pointer.
