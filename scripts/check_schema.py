@@ -210,9 +210,11 @@ def diff_schema(
 def fetch_db_schema(url: str = None, key: str = None) -> Dict[str, Set[str]]:
     """Introspect the live DB via the PostgREST OpenAPI spec (read-only GET)."""
     if url is None or key is None:
-        from dotenv import load_dotenv
+        from dotenv import find_dotenv, load_dotenv
 
-        load_dotenv(PROJECT_ROOT / ".env")
+        # Search upward like scripts/config.py, so a worktree (no .env of its
+        # own) finds the main checkout's.
+        load_dotenv(PROJECT_ROOT / ".env") or load_dotenv(find_dotenv(usecwd=True))
     url = url or os.getenv("SUPABASE_URL")
     key = key or os.getenv("SUPABASE_KEY")
     if not url or not key:

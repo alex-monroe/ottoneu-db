@@ -105,6 +105,10 @@ Ottoneu fantasy data only: `games_played`, `snaps`, `ppg`, `pps`, `h1_snaps`, `h
 
 Core stat columns: `games_played`, `passing_yards`, `passing_tds`, `interceptions`, `passing_attempts`, `completions`, `rushing_yards`, `rushing_tds`, `rushing_attempts`, `receptions`, `targets`, `receiving_yards`, `receiving_tds`, `fg_made_0_39`, `fg_made_40_49`, `fg_made_50_plus`, `pat_made`, `total_points`, `ppg`, `offense_snaps`, `defense_snaps`, `st_snaps`, `total_snaps`, `recent_team`. `recent_team` is the player's team that season (team with most games for a traded player); team usage totals in the projection features are summed from it, so a NULL silently shrinks a team's denominator.
 
+Scoring extras (migration 060): `fumbles_lost`, `two_point_pass`, `two_point_rush_rec`, `fg_missed`, `pat_missed` (config `SCORING_EXTRAS`; misses include blocked kicks). Stored so `scripts/scoring.py` `score_stats(row)` reproduces the row's `total_points` — before 060 they were computed for the points and then dropped.
+
+Stat-model inputs (migration 060, nflverse `stats_player` season totals, summed across a traded player's stints): `sacks_suffered`, `sack_yards_lost`, `passing_air_yards`, `passing_yards_after_catch`, `passing_first_downs`, `passing_epa`, `rushing_first_downs`, `rushing_epa`, `receiving_yards_after_catch`, `receiving_first_downs`, `receiving_epa`, `fg_att`, `pat_att`. EPA columns are `real`; the rest integers. NULL until `scripts/backfill_nfl_stats.py` re-runs the season. For the stat-level projection redesign ([docs/exec-plans/stat-projections/00-synthesis.md](../exec-plans/stat-projections/00-synthesis.md)).
+
 Advanced receiving (added in migration 022, populated for 2018+ via nflverse `stats_player`): `target_share`, `air_yards_share`, `wopr` (Weighted Opportunity Rating), `racr` (Receiver Air Conversion Ratio), `receiving_air_yards`.
 
 ## Schema Files

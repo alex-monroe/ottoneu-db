@@ -115,6 +115,50 @@ class TestProcessStatsExtras:
         assert out.loc["K", "pat_missed"] == 2
 
 
+    def test_stat_model_inputs_sum_across_teams(self):
+        """Sacks, YAC, first downs and EPA are season totals: a traded player's stints add up."""
+        raw = pd.DataFrame([
+            {"player_display_name": "Q", "season": 2024, "games": 8, "sacks_suffered": 10,
+             "passing_yards_after_catch": 500, "passing_first_downs": 40, "passing_epa": 12.5},
+            {"player_display_name": "Q", "season": 2024, "games": 9, "sacks_suffered": 15,
+             "passing_yards_after_catch": 700, "passing_first_downs": 55, "passing_epa": -3.25},
+        ])
+        out = process_stats(raw).set_index("player_display_name")
+        assert out.loc["Q", "sacks_suffered"] == 25
+        assert out.loc["Q", "passing_yards_after_catch"] == 1200
+        assert out.loc["Q", "passing_first_downs"] == 95
+        assert out.loc["Q", "passing_epa"] == pytest.approx(9.25)
+
+
+class TestDedupStatRowsStoresStatColumns:
+    """Since migration 060 the extras and stat-model inputs are stored, not dropped."""
+
+    def test_extras_are_kept_and_rescore_to_total_points(self):
+        rows = [
+            {"player_id": "p1", "season": 2024, "games_played": 10, "rushing_yards": 500,
+             "fumbles_lost": 2, "two_point_rush_rec": 1},
+            {"player_id": "p1", "season": 2024, "games_played": 5, "rushing_yards": 100,
+             "fumbles_lost": 1, "two_point_rush_rec": 0},
+        ]
+        out = dedup_stat_rows(rows)[0]
+        assert out["fumbles_lost"] == 3
+        assert out["two_point_rush_rec"] == 1
+        # Stored row re-scores to its own total_points.
+        assert calc_half_ppr_points(out) == pytest.approx(out["total_points"])
+
+    def test_epa_stays_fractional_and_counts_stay_int(self):
+        rows = [
+            {"player_id": "p1", "season": 2024, "games_played": 10, "receiving_epa": 4.75,
+             "receiving_first_downs": 20},
+            {"player_id": "p1", "season": 2024, "games_played": 5, "receiving_epa": 1.5,
+             "receiving_first_downs": 6},
+        ]
+        out = dedup_stat_rows(rows)[0]
+        assert out["receiving_epa"] == pytest.approx(6.25)
+        assert out["receiving_first_downs"] == 26
+        assert isinstance(out["receiving_first_downs"], int)
+
+
 class TestDedupStatRowsKeepsTeam:
     """recent_team must survive the (player_id, season) dedup (it used to be dropped)."""
 
