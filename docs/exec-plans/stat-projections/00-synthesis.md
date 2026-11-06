@@ -7,6 +7,7 @@ Inputs (same folder):
 - [03-weight-space.md](03-weight-space.md): weight-space programming, weight-space learning and merging, and the Bayesian weight-space view
 - [04-internal-audit.md](04-internal-audit.md): data inventory, harness integration, lessons from 40+ experiments, baselines
 - [05](05-information-calendar-external.md) / [06](06-vintages-and-internal-calendar.md) / [07](07-projection-calendar.md): information calendar, vintages, as-of data audit
+- [08-stability-study.md](08-stability-study.md): our own YoY / split-half reliability, fitted EB pseudo-counts per stat, lag weights, team-share carry-over (sets Stage A parameters)
 
 Each report tags claims as verified, from memory, or opinion. This synthesis inherits those caveats.
 
@@ -107,7 +108,7 @@ Weight-space programming: "Sparks of Weight-Space Programming" (Takehi, Teoh, Zh
 
 - **Extras columns:** done in migration 060 (fumbles lost, 2-pt conversions, FG/PAT misses, plus sacks, air yards vs YAC, first downs, EPA). Backfill after merge.
 - **Team-season volume table:** pass attempts, rush attempts, plays and dropbacks per team-season from nflverse play-by-play. Required for share coherence.
-- **Own stability study:** split-half and YoY reliability per stat per position from our data, plus target-share carry-over for players who change teams. This fills gaps that public research leaves (01 §8) and directly sets the shrinkage priors.
+- **Own stability study (done 2026-11-06, see [08](08-stability-study.md)):** split-half and YoY reliability per stat per position from our data, plus target-share carry-over for players who change teams. This fills gaps that public research leaves (01 §8) and directly sets the shrinkage priors.
 - Optional: weekly game logs (nflverse weekly; reachable but not persisted) for split-half reliability and in-season use. Routes run is unavailable from current sources.
 - Refresh `docs/generated/projection-holdout-eval-rolling.md`, which is a stale June/v31 snapshot, before quoting per-position v44 numbers.
 
