@@ -350,12 +350,14 @@ def create_missing_players(
             continue
 
         existing_ottoneu_ids.add(synthetic_id)
+        gsis_val = nflverse_id if (isinstance(nflverse_id, str) and nflverse_id.startswith("00-")) else None
         new_players.append({
             "ottoneu_id": synthetic_id,
             "name": name,
             "position": position,
             "nfl_team": team,
             "is_college": False,
+            "gsis_id": gsis_val,
         })
 
     if reused:

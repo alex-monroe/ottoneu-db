@@ -96,6 +96,16 @@ jobs:
           fi
           python scripts/backfill_nfl_weekly_stats.py $ARGS
 
+      - name: Refresh nfl_team_volume (team season & weekly totals)
+        env:
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          ARGS="--seasons ${{ steps.season.outputs.seasons }}"
+          if [ "$INPUT_DRY_RUN" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          python scripts/backfill_nfl_team_volume.py $ARGS
+
       # Push the fresh rows to the site now rather than on each page's
       # revalidate timer. Skips quietly until REVALIDATE_SECRET is set.
       - name: Revalidate site
