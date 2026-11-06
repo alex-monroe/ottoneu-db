@@ -232,7 +232,7 @@ export default function ProjectionAccuracyClient({
               id="model-select"
               value={selectedModelId || ""}
               onChange={(e) => handleModelChange(e.target.value)}
-              className="text-sm border border-line-strong rounded-lg px-3 py-2 bg-raised text-ink"
+              className="text-base sm:text-sm border border-line-strong rounded-lg px-3 py-2 bg-raised text-ink"
             >
               <option value="">Default (Legacy)</option>
               {models.map((m) => (
@@ -267,7 +267,7 @@ export default function ProjectionAccuracyClient({
                   id="compare-select"
                   value={compareModelId || ""}
                   onChange={(e) => handleCompareChange(e.target.value)}
-                  className="text-sm border border-purple-300 dark:border-purple-700 rounded-lg px-3 py-2 bg-raised text-ink"
+                  className="text-base sm:text-sm border border-purple-300 dark:border-purple-700 rounded-lg px-3 py-2 bg-raised text-ink"
                 >
                   <option value="">Select compare model…</option>
                   {compareOptions.map((m) => (

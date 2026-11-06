@@ -336,7 +336,7 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
               <select
                 value={speed}
                 onChange={(e) => setSpeed(e.target.value as SpeedKey)}
-                className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300"
+                className="rounded-md border border-slate-300 bg-white px-2 py-1 text-base sm:text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300"
               >
                 {SPEED_KEYS.map((k) => (
                   <option key={k} value={k}>
@@ -387,9 +387,9 @@ export default function MockDraftClient({ teams: seeds, faPool, season }: Props)
         ))}
       </div>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-[1.15fr_1fr]">
+      <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
         {/* left: auction */}
-        <div>
+        <div className="min-w-0">
           {mode === "live" && s.sold && (
             <SoldCard
               name={s.sold.player.name}

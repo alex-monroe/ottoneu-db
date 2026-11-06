@@ -208,7 +208,7 @@ export default function RevealClient({
             onChange={(e) =>
               router.push(`/podcast/power-rankings/reveal?week=${e.target.value}`)
             }
-            className="rounded border border-line-strong bg-raised px-2 py-1 text-sm text-ink"
+            className="rounded border border-line-strong bg-raised px-2 py-1 text-base sm:text-sm text-ink"
           >
             {weeks.map((w) => (
               <option key={w} value={w}>

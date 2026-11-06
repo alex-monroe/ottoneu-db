@@ -16,7 +16,7 @@ export default function WeekPicker({ week, weeks }: { week: number; weeks: numbe
         id="pickem-week"
         value={week}
         onChange={(e) => router.push(`/pickem?week=${e.target.value}`)}
-        className="mt-1 rounded border border-line-strong bg-raised px-2 py-1.5 text-sm text-ink"
+        className="mt-1 rounded border border-line-strong bg-raised px-2 py-1.5 text-base sm:text-sm text-ink"
       >
         {weeks.map((w) => (
           <option key={w} value={w}>

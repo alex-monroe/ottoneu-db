@@ -102,3 +102,94 @@ describe("page shell", () => {
     expect(offenders.map((p) => path.relative(WEB, p))).toEqual([]);
   });
 });
+
+describe("mobile form ergonomics (iOS auto-zoom)", () => {
+  // iOS Safari forcibly zooms the viewport whenever an editable control
+  // computes below 16px on focus. `globals.css` sets a 1rem floor in `@layer
+  // base` below `sm` for controls that inherit font size from a parent, and
+  // any control carrying an explicit `text-xs` / `text-sm` utility must pair it
+  // with `text-base` (e.g. `text-base sm:text-sm`) so `@layer utilities` never
+  // drops mobile controls below 16px.
+  const tsxFiles = ["app", "components"].flatMap((dir) =>
+    fs
+      .readdirSync(path.join(WEB, dir), { recursive: true, encoding: "utf8" })
+      .filter((f) => typeof f === "string" && f.endsWith(".tsx"))
+      .map((f) => path.join(WEB, dir, f)),
+  );
+
+  it("sets a 1rem mobile floor for editable controls in globals.css", () => {
+    const css = fs.readFileSync(path.join(WEB, "app", "globals.css"), "utf8");
+    expect(css).toMatch(/@layer\s+base[\s\S]*max-width:\s*639px[\s\S]*font-size:\s*1rem/);
+  });
+
+  it("never sets unprefixed text-xs or text-sm on editable form controls without a >=16px base", () => {
+    const offenders: string[] = [];
+
+    for (const file of tsxFiles) {
+      const src = fs.readFileSync(file, "utf8");
+      const rel = path.relative(WEB, file);
+
+      // Resolve simple `const fooClass = "..."` string variables in the same file
+      // so shared class constants (`selectClass`, `inputClass`) are checked too.
+      const classVars = new Map<string, string>();
+      for (const m of src.matchAll(/const\s+(\w*Class\w*)\s*=\s*((?:"[^"]*"\s*\+?\s*)+);/g)) {
+        const val = Array.from(m[2].matchAll(/"([^"]*)"/g))
+          .map((s) => s[1])
+          .join("");
+        classVars.set(m[1], val);
+      }
+
+      let pos = 0;
+      while (true) {
+        const m = /<(input|select|textarea)\b/.exec(src.slice(pos));
+        if (!m) break;
+        const start = pos + m.index;
+        let i = start + m[0].length;
+        let depth = 0;
+        let quote: string | null = null;
+        while (i < src.length) {
+          const ch = src[i];
+          if (quote) {
+            if (ch === "\\") {
+              i += 2;
+              continue;
+            }
+            if (ch === quote) quote = null;
+          } else if (ch === '"' || ch === "'" || ch === "`") {
+            quote = ch;
+          } else if (ch === "{") {
+            depth += 1;
+          } else if (ch === "}") {
+            depth = Math.max(0, depth - 1);
+          } else if (ch === ">" && depth === 0) {
+            break;
+          }
+          i += 1;
+        }
+        const tag = src.slice(start, i + 1);
+        pos = i + 1;
+
+        if (/type=["'](checkbox|radio|range|file|hidden|color)["']/.test(tag) || /\bhidden\b/.test(tag)) {
+          continue;
+        }
+
+        let cls = tag;
+        const varMatch = /className=\{(\w+)\}/.exec(tag);
+        if (varMatch && classVars.has(varMatch[1])) {
+          cls += ` "${classVars.get(varMatch[1])}"`;
+        }
+
+        const hasSmallUnprefixed = /(?<![:\w-])text-(xs|sm)\b/.test(cls);
+        const hasBaseFloor = /(?<![:\w-])text-(base|lg|xl|2xl)\b/.test(cls);
+        if (hasSmallUnprefixed && !hasBaseFloor) {
+          const line = src.slice(0, start).split("\n").length;
+          offenders.push(
+            `${rel}:${line} (<${m[1]}> uses text-xs/text-sm without text-base — use "text-base sm:text-sm" to avoid iOS Safari auto-zoom)`,
+          );
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+});

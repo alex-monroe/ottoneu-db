@@ -397,9 +397,9 @@ export default function SnakeDraftClient({ pool: injected }: Props = {}) {
         )}
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* board */}
-        <div className="lg:col-span-2">
+        <div className="min-w-0 lg:col-span-2">
           {done ? (
             <ResultsTable scores={scores} userSlot={draft.settings.slot} />
           ) : (
@@ -417,7 +417,7 @@ export default function SnakeDraftClient({ pool: injected }: Props = {}) {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search players…"
-                  className="ml-auto w-48 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                  className="ml-auto w-48 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-base sm:text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                 />
               </div>
               <div className="mt-2 overflow-x-auto rounded-lg border border-line">

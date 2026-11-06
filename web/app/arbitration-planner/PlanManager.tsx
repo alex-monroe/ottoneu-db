@@ -70,7 +70,7 @@ export default function PlanManager({
         <select
           value={activePlanId ?? ""}
           onChange={(e) => e.target.value && onSelectPlan(e.target.value)}
-          className="rounded border border-line-strong bg-white dark:bg-slate-800 text-ink px-3 py-1.5 text-sm min-w-[200px]"
+          className="rounded border border-line-strong bg-white dark:bg-slate-800 text-ink px-3 py-1.5 text-base sm:text-sm min-w-[200px]"
         >
           <option value="">Select a plan...</option>
           {plans.map((p) => (
@@ -159,7 +159,7 @@ export default function PlanManager({
                   ? "New name..."
                   : "Copy name..."
             }
-            className="rounded border border-line-strong bg-white dark:bg-slate-800 text-ink px-3 py-1.5 text-sm flex-1"
+            className="rounded border border-line-strong bg-white dark:bg-slate-800 text-ink px-3 py-1.5 text-base sm:text-sm flex-1"
             autoFocus
           />
           <button

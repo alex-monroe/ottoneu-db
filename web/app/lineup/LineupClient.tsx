@@ -209,7 +209,7 @@ export default function LineupClient({
         </header>
 
         {/* Controls */}
-        <div className="bg-sunken rounded-lg p-5 border border-line flex flex-wrap items-end gap-6">
+        <div className="bg-sunken rounded-lg p-4 sm:p-5 border border-line flex flex-wrap items-end gap-4 sm:gap-6">
           {weeks.length > 0 && week != null && (
             <div className="flex flex-col gap-1">
               <label
@@ -222,7 +222,7 @@ export default function LineupClient({
                 id="week-select"
                 value={week}
                 onChange={(e) => changeWeek(Number(e.target.value))}
-                className="rounded-md border border-line-strong bg-raised px-3 py-2 text-sm text-ink"
+                className="rounded-md border border-line-strong bg-raised px-3 py-2 text-base sm:text-sm text-ink"
               >
                 {weeks.map((w) => (
                   <option key={w} value={w}>
@@ -233,7 +233,7 @@ export default function LineupClient({
             </div>
           )}
 
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-1 min-w-[11rem] sm:flex-initial flex-col gap-1">
             <label
               htmlFor="team-select"
               className="text-sm font-medium text-ink-muted"
@@ -244,7 +244,7 @@ export default function LineupClient({
               id="team-select"
               value={teamName}
               onChange={(e) => changeTeam(e.target.value)}
-              className="rounded-md border border-line-strong bg-raised px-3 py-2 text-sm text-ink"
+              className="w-full rounded-md border border-line-strong bg-raised px-3 py-2 text-base sm:text-sm text-ink"
             >
               {teams.map((t) => (
                 <option key={t.team_name} value={t.team_name}>
@@ -303,18 +303,18 @@ export default function LineupClient({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
             <button
               type="button"
               onClick={optimize}
-              className="px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+              className="flex-1 sm:flex-initial px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
             >
               Optimize
             </button>
             <button
               type="button"
               onClick={clear}
-              className="px-4 py-2 text-sm font-medium rounded-md border border-line-strong text-ink-muted hover:bg-sunken transition-colors"
+              className="flex-1 sm:flex-initial px-4 py-2 text-sm font-medium rounded-md border border-line-strong text-ink-muted hover:bg-sunken transition-colors"
             >
               Clear
             </button>
@@ -322,7 +322,7 @@ export default function LineupClient({
         </div>
 
         {/* Total */}
-        <div className="rounded-lg border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/40 px-5 py-4 flex items-baseline justify-between">
+        <div className="rounded-lg border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/40 px-4 sm:px-5 py-4 flex items-baseline justify-between gap-3">
           <span className="text-sm font-medium text-blue-900 dark:text-blue-200">
             Projected lineup total ({metricLabel})
           </span>
@@ -353,17 +353,25 @@ export default function LineupClient({
               return (
                 <div
                   key={slot.id}
-                  className="flex items-center gap-3 px-4 py-2.5 bg-raised"
+                  className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 bg-raised"
                 >
-                  <span className="w-24 shrink-0 text-xs font-semibold uppercase tracking-wide text-ink-subtle">
-                    {slot.label}
+                  <span className="w-12 sm:w-24 shrink-0 text-xs font-semibold uppercase tracking-wide text-ink-subtle">
+                    {slot.id === "SUPERFLEX" ? (
+                      <>
+                        <span className="sm:hidden">SFLEX</span>
+                        <span className="hidden sm:inline">{slot.label}</span>
+                      </>
+                    ) : (
+                      slot.label
+                    )}
                   </span>
                   <select
+                    aria-label={`${slot.label} starter`}
                     value={selectedId ?? ""}
                     onChange={(e) =>
                       assign(slot.id, e.target.value || null)
                     }
-                    className="flex-1 min-w-0 rounded-md border border-line-strong bg-raised px-2 py-1.5 text-sm text-ink"
+                    className="flex-1 min-w-0 rounded-md border border-line-strong bg-raised px-2 py-1.5 text-base sm:text-sm text-ink"
                   >
                     <option value="">— empty —</option>
                     {options.map((p) => (
@@ -378,11 +386,13 @@ export default function LineupClient({
                     ))}
                   </select>
                   {/* An <option> cannot hold the chip, so the chosen starter's
-                      tag sits beside the dropdown; the options carry it as text. */}
-                  <span className="w-20 shrink-0">
+                      tag sits beside the dropdown on sm+; on phones the option
+                      text already carries `rankSuffix` and the 80px reservation
+                      would crush the <select>. */}
+                  <span className="hidden sm:inline-flex sm:w-20 shrink-0">
                     {selected && <PlayerRankTag ottoneuId={selected.ottoneu_id} />}
                   </span>
-                  <span className="w-14 shrink-0 text-right text-sm font-semibold tabular-nums text-ink">
+                  <span className="w-12 sm:w-14 shrink-0 text-right text-sm font-semibold tabular-nums text-ink">
                     {selected ? scoreLabel(selected, metric) : "—"}
                   </span>
                 </div>
@@ -437,6 +447,29 @@ export default function LineupClient({
             </div>
           )}
         </section>
+
+        {/* Sticky mobile projected total — keeps the running score and Optimize
+            action visible in the thumb zone while swapping slots down the page. */}
+        <div
+          data-testid="mobile-lineup-total"
+          className="sm:hidden sticky bottom-0 z-20 -mx-4 border-t border-blue-200 dark:border-blue-900 bg-raised/95 backdrop-blur px-4 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] flex items-center justify-between gap-3 shadow-lg"
+        >
+          <div className="min-w-0">
+            <p className="truncate text-xs text-ink-subtle">
+              Projected total · {metricLabel}
+            </p>
+            <p className="text-xl font-bold tabular-nums text-blue-700 dark:text-blue-300">
+              {fmt(total)}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={optimize}
+            className="shrink-0 px-3.5 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+          >
+            Optimize
+          </button>
+        </div>
     </PageShell>
   );
 }

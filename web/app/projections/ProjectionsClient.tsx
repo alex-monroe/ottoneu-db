@@ -141,7 +141,7 @@ export default function ProjectionsClient({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search players…"
-            className="w-48 rounded-md border border-line-strong bg-raised py-1.5 pl-8 pr-3 text-sm text-ink placeholder:text-ink-subtle focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-48 rounded-md border border-line-strong bg-raised py-1.5 pl-8 pr-3 text-base sm:text-sm text-ink placeholder:text-ink-subtle focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>
         <label className="inline-flex items-center gap-1.5 text-sm text-ink-muted cursor-pointer select-none">

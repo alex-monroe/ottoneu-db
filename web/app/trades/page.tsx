@@ -300,7 +300,7 @@ export default async function TradesPage({ searchParams }: Props) {
           </>
         }
       >
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="overflow-x-auto rounded-lg border border-line">
             <table className="min-w-full text-sm">
               <thead className="bg-sunken">
