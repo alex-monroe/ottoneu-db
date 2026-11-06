@@ -118,3 +118,25 @@ def test_aggregate_pbp_team_volume():
     assert s["pass_attempts"] == w["pass_attempts"]
     assert s["rush_attempts"] == w["rush_attempts"]
     assert s["dropbacks"] == w["dropbacks"]
+
+
+def test_upsert_on_conflict_parameters():
+    from unittest.mock import MagicMock
+    from scripts.backfill_nfl_team_volume import (
+        TEAM_SEASON_UPSERT_CONFLICT,
+        TEAM_WEEKLY_UPSERT_CONFLICT,
+        backfill_nfl_team_volume,
+    )
+
+    assert TEAM_WEEKLY_UPSERT_CONFLICT == "team,season,week,season_type"
+    assert TEAM_SEASON_UPSERT_CONFLICT == "team,season,season_type"
+
+    mock_sb = MagicMock()
+    mock_table = MagicMock()
+    mock_sb.table.return_value = mock_table
+    mock_table.upsert.return_value = mock_table
+    mock_table.execute.return_value = MagicMock(data=[])
+
+    # Test with empty seasons list so no remote fetching occurs
+    res = backfill_nfl_team_volume(mock_sb, seasons=[], dry_run=False)
+    assert res == {"weekly": 0, "season": 0}

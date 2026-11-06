@@ -45,6 +45,8 @@ _PBP_URL = (
 
 TEAM_SEASON_TABLE = "nfl_team_volume"
 TEAM_WEEKLY_TABLE = "nfl_team_weekly_volume"
+TEAM_SEASON_UPSERT_CONFLICT = "team,season,season_type"
+TEAM_WEEKLY_UPSERT_CONFLICT = "team,season,week,season_type"
 BATCH_SIZE = 500
 SEASON_TYPES = ("REG", "POST")
 
@@ -279,13 +281,17 @@ def backfill_nfl_team_volume(
             # Batch upsert weekly rows
             for i in range(0, len(weekly_rows), BATCH_SIZE):
                 chunk = weekly_rows[i : i + BATCH_SIZE]
-                supabase.table(TEAM_WEEKLY_TABLE).upsert(chunk).execute()
+                supabase.table(TEAM_WEEKLY_TABLE).upsert(
+                    chunk, on_conflict=TEAM_WEEKLY_UPSERT_CONFLICT
+                ).execute()
 
         if not dry_run and season_rows:
             # Batch upsert season rows
             for i in range(0, len(season_rows), BATCH_SIZE):
                 chunk = season_rows[i : i + BATCH_SIZE]
-                supabase.table(TEAM_SEASON_TABLE).upsert(chunk).execute()
+                supabase.table(TEAM_SEASON_TABLE).upsert(
+                    chunk, on_conflict=TEAM_SEASON_UPSERT_CONFLICT
+                ).execute()
 
     print("\nBackfill Summary:")
     print(f"  Total weekly rows processed: {total_weekly}")
