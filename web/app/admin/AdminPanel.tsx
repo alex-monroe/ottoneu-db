@@ -213,7 +213,7 @@ export default function AdminPanel({ users, currentUserId, leagueTeams }: AdminP
               aria-label="Reset link"
               value={resetLink.url}
               onFocus={(e) => e.target.select()}
-              className="flex-1 min-w-0 rounded-md border border-line-strong px-3 py-1.5 text-sm font-mono bg-sunken text-ink"
+              className="flex-1 min-w-0 rounded-md border border-line-strong px-3 py-1.5 text-base sm:text-sm font-mono bg-sunken text-ink"
             />
             <button
               onClick={handleCopyResetLink}
@@ -284,7 +284,7 @@ export default function AdminPanel({ users, currentUserId, leagueTeams }: AdminP
                     value={u.team_name ?? ""}
                     disabled={savingTeamId === u.id}
                     onChange={(e) => handleSetTeam(u.id, e.target.value)}
-                    className="rounded border border-line-strong bg-raised px-2 py-1 text-sm text-ink disabled:opacity-50"
+                    className="rounded border border-line-strong bg-raised px-2 py-1 text-base sm:text-sm text-ink disabled:opacity-50"
                   >
                     <option value="">— none —</option>
                     {/* A team that no longer holds a roster still shows, so an
@@ -376,7 +376,7 @@ export default function AdminPanel({ users, currentUserId, leagueTeams }: AdminP
               required
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
-              className="rounded-md border border-line-strong px-3 py-1.5 text-sm bg-raised text-ink focus:outline-none focus:ring-accent focus:border-blue-500"
+              className="rounded-md border border-line-strong px-3 py-1.5 text-base sm:text-sm bg-raised text-ink focus:outline-none focus:ring-accent focus:border-blue-500"
               placeholder="user@example.com"
             />
           </div>
@@ -391,7 +391,7 @@ export default function AdminPanel({ users, currentUserId, leagueTeams }: AdminP
               minLength={6}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="rounded-md border border-line-strong px-3 py-1.5 text-sm bg-raised text-ink focus:outline-none focus:ring-accent focus:border-blue-500"
+              className="rounded-md border border-line-strong px-3 py-1.5 text-base sm:text-sm bg-raised text-ink focus:outline-none focus:ring-accent focus:border-blue-500"
               placeholder="Min 6 characters"
             />
           </div>

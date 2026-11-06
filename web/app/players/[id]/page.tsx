@@ -125,11 +125,11 @@ export default async function PlayerCardPage({
 
                 {/* ===== Header Card ===== */}
                 <div className="rounded-xl border border-line overflow-hidden">
-                    <div className="p-6 sm:p-8" style={{ borderTop: `4px solid ${posColor}` }}>
+                    <div className="p-4 sm:p-6 lg:p-8" style={{ borderTop: `4px solid ${posColor}` }}>
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div>
-                                <div className="flex items-center gap-3">
-                                    <h1 className="text-3xl font-bold text-ink">
+                            <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                                    <h1 className="text-2xl sm:text-3xl font-bold text-ink">
                                         {player.name}
                                     </h1>
                                     <PositionBadge position={player.position} rank={currentRank} />
@@ -151,7 +151,7 @@ export default async function PlayerCardPage({
                                 )}
                             </div>
 
-                            <div className="flex items-center gap-6">
+                            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
                                 {projection && (
                                     <div className="text-center">
                                         <p className="text-3xl font-bold text-accent font-mono">

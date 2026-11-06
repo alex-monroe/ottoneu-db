@@ -36,6 +36,8 @@ export default function StandingsTable({
   const oddsByTeam = new Map((odds?.teams ?? []).map((t) => [t.team_id, t]));
   const showSignal = !compact && !!odds?.signal_active;
 
+  const cellPad = compact ? "px-2 sm:px-3 py-2" : "px-3 py-2";
+
   return (
     // The compact variant lives in one column of the homepage's `lg:grid-cols-3`
     // — about 352px inside `max-w-6xl` — so a 420px floor gave the standings
@@ -45,13 +47,13 @@ export default function StandingsTable({
       <table className={`w-full border-collapse ${compact ? "" : "min-w-[420px]"}`}>
         <thead className="bg-sunken">
           <tr>
-            <Th>#</Th>
-            <Th>Team</Th>
-            <Th right>Record</Th>
-            <Th right>PF</Th>
+            <Th compact={compact}>#</Th>
+            <Th compact={compact}>Team</Th>
+            <Th right compact={compact}>Record</Th>
+            <Th right compact={compact}>PF</Th>
             {!compact && <Th right>PA</Th>}
             {!compact && <Th right>Streak</Th>}
-            {odds && <Th right>Playoffs</Th>}
+            {odds && <Th right compact={compact}>Playoffs</Th>}
             {odds && !compact && <Th right>#1 seed</Th>}
             {odds && !compact && <Th right>Exp. W</Th>}
             {showSignal && <Th right>Deadline</Th>}
@@ -71,10 +73,14 @@ export default function StandingsTable({
                   cutLine ? "border-b-2 border-b-phase" : ""
                 } ${isMine ? "bg-blue-50/60 dark:bg-blue-950/20" : ""}`}
               >
-                <td className="px-3 py-2 text-sm tabular-nums text-ink-subtle">
+                <td className={`${cellPad} text-sm tabular-nums text-ink-subtle`}>
                   {row.rank}
                 </td>
-                <td className="px-3 py-2 text-sm text-ink">
+                <td
+                  className={`${cellPad} text-sm text-ink ${
+                    compact ? "max-w-[130px] sm:max-w-none truncate" : ""
+                  }`}
+                >
                   <TeamName name={row.team_name} mine={isMine} />
                   {row.clinched && (
                     <span className="ml-2 text-[11px] font-semibold uppercase text-positive">
@@ -87,10 +93,10 @@ export default function StandingsTable({
                     </span>
                   )}
                 </td>
-                <td className="px-3 py-2 text-right text-sm tabular-nums text-ink-muted">
+                <td className={`${cellPad} text-right text-sm tabular-nums text-ink-muted whitespace-nowrap`}>
                   {formatRecord(row)}
                 </td>
-                <td className="px-3 py-2 text-right text-sm tabular-nums text-ink-muted">
+                <td className={`${cellPad} text-right text-sm tabular-nums text-ink-muted`}>
                   {row.points_for.toFixed(2)}
                 </td>
                 {!compact && (
@@ -104,7 +110,7 @@ export default function StandingsTable({
                   </td>
                 )}
                 {odds && (
-                  <td className="px-3 py-2 text-right text-sm font-medium tabular-nums text-ink">
+                  <td className={`${cellPad} text-right text-sm font-medium tabular-nums text-ink`}>
                     {o ? formatOdds(o.playoff_odds) : "—"}
                   </td>
                 )}

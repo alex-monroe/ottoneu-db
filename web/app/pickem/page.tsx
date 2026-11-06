@@ -99,11 +99,11 @@ function LockedGames({
 }) {
   const byGame = new Map(splits.map((s) => [s.gameId, s]));
   return (
-    <ul className="grid gap-3 md:grid-cols-2">
+    <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
       {games.map((game) => {
         const split = byGame.get(game.game_id);
         return (
-          <li key={game.game_id} className="rounded-lg border border-line bg-raised p-3">
+          <li key={game.game_id} className="min-w-0 rounded-lg border border-line bg-raised p-3">
             <p className="mb-2 text-xs text-ink-subtle">{scoreLine(game)}</p>
             <div className="grid grid-cols-2 gap-3">
               <SidePickers

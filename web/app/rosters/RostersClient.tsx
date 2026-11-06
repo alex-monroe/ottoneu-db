@@ -83,7 +83,7 @@ export default function RostersClient({
                   id="roster-season"
                   value={season}
                   onChange={(e) => router.push(`/rosters?season=${e.target.value}`)}
-                  className="px-3 py-1.5 text-sm rounded-md border border-line-strong bg-white dark:bg-slate-800 text-ink focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="px-3 py-1.5 text-base sm:text-sm rounded-md border border-line-strong bg-white dark:bg-slate-800 text-ink focus:outline-none focus:ring-2 focus:ring-accent"
                 >
                   {seasons.map((s) => (
                     <option key={s} value={s}>
@@ -106,7 +106,7 @@ export default function RostersClient({
                   max={max}
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="px-3 py-1.5 text-sm rounded-md border border-line-strong bg-white dark:bg-slate-800 text-ink focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="px-3 py-1.5 text-base sm:text-sm rounded-md border border-line-strong bg-white dark:bg-slate-800 text-ink focus:outline-none focus:ring-2 focus:ring-accent"
                 />
               </div>
             </div>

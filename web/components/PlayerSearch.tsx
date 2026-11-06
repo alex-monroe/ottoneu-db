@@ -91,7 +91,7 @@ export default function PlayerSearch({ players }: PlayerSearchProps) {
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         aria-label="Search players"
-                        className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-line-strong bg-raised text-ink placeholder:text-ink-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent text-sm"
+                        className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-line-strong bg-raised text-ink placeholder:text-ink-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent text-base sm:text-sm"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
                         {!query ? (

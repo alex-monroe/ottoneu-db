@@ -240,7 +240,7 @@ export default function BallotEditor({
             id="week"
             value={week}
             onChange={(e) => router.push(`/podcast/power-rankings?week=${e.target.value}`)}
-            className="mt-1 rounded border border-line-strong bg-raised px-2 py-1.5 text-sm text-ink"
+            className="mt-1 rounded border border-line-strong bg-raised px-2 py-1.5 text-base sm:text-sm text-ink"
           >
             {weeks.map((w) => (
               <option key={w} value={w}>
@@ -361,7 +361,7 @@ export default function BallotEditor({
                     onChange={(e) => setNoteIn(setNotes, team, e.target.value)}
                     placeholder="Note to read out when this slot is revealed (optional)"
                     aria-label={`On-air note for ${team}`}
-                    className="w-full rounded border border-line bg-page px-2 py-1 text-sm text-ink placeholder:text-ink-subtle focus:border-blue-500 focus:outline-none"
+                    className="w-full rounded border border-line bg-page px-2 py-1 text-base sm:text-sm text-ink placeholder:text-ink-subtle focus:border-blue-500 focus:outline-none"
                   />
                   <button
                     onClick={() => toggleRowNotes(team)}
@@ -384,7 +384,7 @@ export default function BallotEditor({
                     onChange={(e) => setNoteIn(setPrepNotes, team, e.target.value)}
                     placeholder={`Working notes on ${team} — private to you, never revealed`}
                     aria-label={`Working notes for ${team}`}
-                    className="mt-1.5 w-full resize-y rounded border border-dashed border-line bg-sunken px-2 py-1.5 text-sm text-ink placeholder:text-ink-subtle focus:border-blue-500 focus:outline-none"
+                    className="mt-1.5 w-full resize-y rounded border border-dashed border-line bg-sunken px-2 py-1.5 text-base sm:text-sm text-ink placeholder:text-ink-subtle focus:border-blue-500 focus:outline-none"
                   />
                 )}
               </div>

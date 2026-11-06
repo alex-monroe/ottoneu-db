@@ -21,7 +21,7 @@ export default function WeekFilters({ currentWeek, weeks, currentPosition }: Pro
   };
 
   const selectClass =
-    "px-3 py-1.5 rounded-md text-sm font-medium border border-line-strong bg-raised text-ink focus:outline-none focus:ring-2 focus:ring-accent";
+    "px-3 py-1.5 rounded-md text-base sm:text-sm font-medium border border-line-strong bg-raised text-ink focus:outline-none focus:ring-2 focus:ring-accent";
 
   return (
     <div className="flex flex-wrap items-center gap-4">

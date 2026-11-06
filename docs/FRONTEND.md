@@ -97,6 +97,11 @@ It owns the ground, responsive padding, the content measure and vertical rhythm.
 `__tests__/components/design-system.test.ts` fails the build if a page
 re-implements the shell or reintroduces sub-AA caption colours.
 
+**Mobile ergonomics & overflow invariants:**
+- **16px floor on editable controls (iOS auto-zoom):** iOS Safari forcibly zooms the viewport whenever an `<input>`, `<select>`, or `<textarea>` computes below `16px` on focus. `globals.css` sets a `1rem` floor below `sm` (`max-width: 639px`) in `@layer base` so controls never inherit `14px`/`12px` from a parent container, and any control setting an explicit small text utility must pair it with `text-base` (e.g. `text-base sm:text-sm`). `__tests__/components/design-system.test.ts` enforces both.
+- **Explicit single-column CSS Grids (`grid-cols-1` + `min-w-0`):** Multi-column responsive grids (`lg:grid-cols-3`, `sm:grid-cols-2`) must include `grid-cols-1` at the base breakpoint and `min-w-0` on wrappers holding tables or truncated text; bare `grid` leaves implicit track minimums at `auto`, allowing wide children (`StandingsTable`, `overflow-x-auto`) to expand the document beyond `375px`.
+- **Collapsed header chrome (`Navigation.tsx` + `GlobalPlayerSearch.tsx`):** Below `xl`, the bar renders a `The SOFA` home link beside the hamburger toggle. Below `sm`, global search collapses to a `Search` trigger button that opens a full-width `h-14` header search overlay with a `×` clear button and `Cancel` dismissal rather than expanding inline into the hamburger.
+
 ## Reusable Components
 
 | Component | Purpose |

@@ -56,14 +56,14 @@ function RosterPicker({
   partner: string;
 }) {
   return (
-    <div className="rounded-lg border border-line bg-raised">
+    <div className="min-w-0 rounded-lg border border-line bg-raised">
       <div className="border-b border-line p-3">
         <label className="block text-xs font-medium uppercase tracking-wide text-ink-subtle">
           {label}
           <select
             value={team}
             onChange={(e) => onTeam(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-line bg-sunken px-2 py-1.5 text-sm font-semibold normal-case tracking-normal text-ink"
+            className="mt-1 block w-full rounded-md border border-line bg-sunken px-2 py-1.5 text-base sm:text-sm font-semibold normal-case tracking-normal text-ink"
           >
             {teams.map((t) => (
               <option key={t} value={t}>
@@ -114,7 +114,7 @@ function RosterPicker({
               value={loan || ""}
               placeholder="0"
               onChange={(e) => onLoan(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
-              className="w-16 rounded-md border border-line bg-sunken px-2 py-1 text-right tabular-nums text-ink"
+              className="w-16 rounded-md border border-line bg-sunken px-2 py-1 text-right text-base sm:text-sm tabular-nums text-ink"
             />
           </span>
         </label>
@@ -226,7 +226,7 @@ export default function TradeBuilderClient({ context, initial, replayTradeId, vi
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <RosterPicker
           label="Team A sends"
           team={trade.teamA}

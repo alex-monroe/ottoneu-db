@@ -141,7 +141,7 @@ export default function PickSheet({
                 onChange={(e) => setDraftName(e.target.value)}
                 maxLength={MAX_NAME_LENGTH}
                 placeholder="e.g. Couch Coach"
-                className="mt-1 w-64 max-w-full rounded border border-line-strong bg-raised px-2 py-1.5 text-sm text-ink"
+                className="mt-1 w-64 max-w-full rounded border border-line-strong bg-raised px-2 py-1.5 text-base sm:text-sm text-ink"
               />
             </div>
             <button

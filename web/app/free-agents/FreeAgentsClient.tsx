@@ -189,7 +189,7 @@ export default function FreeAgentsClient({
             id="fa-sort"
             value={sortKey}
             onChange={(e) => setSortKey(e.target.value as SortKey)}
-            className="rounded-md border border-line-strong bg-raised px-3 py-2 text-sm text-ink"
+            className="rounded-md border border-line-strong bg-raised px-3 py-2 text-base sm:text-sm text-ink"
           >
             {(Object.keys(SORT_LABELS) as SortKey[])
               .filter((k) => k !== "weekly_points" || week != null)

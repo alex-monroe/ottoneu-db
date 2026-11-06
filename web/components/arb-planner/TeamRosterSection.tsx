@@ -202,7 +202,7 @@ export default function TeamRosterSection<T extends ArbPlannerPlayer>({
                           );
                           onAllocationChange(p.player_id, val);
                         }}
-                        className="w-14 text-center rounded border border-line-strong bg-white dark:bg-slate-800 text-ink px-1 py-1 text-sm"
+                        className="w-14 text-center rounded border border-line-strong bg-white dark:bg-slate-800 text-ink px-1 py-1 text-base sm:text-sm"
                         aria-label={`Allocation for ${p.name}`}
                       />
                     </td>

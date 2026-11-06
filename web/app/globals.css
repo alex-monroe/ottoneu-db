@@ -123,6 +123,21 @@ body {
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* iOS Safari forcibly zooms the viewport whenever an editable control computes
+   below 16px on focus, and leaves the page zoomed afterward. Setting a 1rem
+   floor below `sm` in `@layer base` catches controls that inherit `text-sm` or
+   `text-xs` from a parent container, while explicit control classes pair
+   `text-base sm:text-sm` so desktop density is unchanged. */
+@layer base {
+  @media (max-width: 639px) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]),
+    select,
+    textarea {
+      font-size: 1rem;
+    }
+  }
+}
+
 /* One focus treatment for the whole app. The codebase had 36 `focus:ring-*`
    (which fires on mouse clicks too) against 8 `focus-visible:ring-*`; this makes
    the keyboard-only behaviour the default so call sites don't have to. */

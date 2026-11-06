@@ -253,9 +253,9 @@ export default async function Home() {
                 Full scoreboard &amp; playoff picture →
               </Link>
             </h2>
-            <div className="grid gap-4 lg:grid-cols-3">
-              <div className="lg:col-span-2">
-                <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <div className="min-w-0 lg:col-span-2">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {league.matchups
                     .filter((m) => m.week === league.week)
                     .map((m) => (
@@ -267,7 +267,7 @@ export default async function Home() {
                     ))}
                 </div>
               </div>
-              <div>
+              <div className="min-w-0">
                 <StandingsTable
                   playoffs={league.playoffs}
                   compact
@@ -286,7 +286,7 @@ export default async function Home() {
               <span className="h-1.5 w-1.5 rounded-full bg-phase" aria-hidden="true" />
               Featured now
             </h2>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {featured.map(({ item, href }) => (
                 <HubCard key={href} item={item} href={href} />
               ))}
@@ -321,7 +321,7 @@ export default async function Home() {
                     : `Sign in to access ${group.label.toLowerCase()} tools.`}
                 </Link>
               ) : cards.length === 0 ? null : (
-                <div className={`grid gap-3 sm:grid-cols-2 ${cards.length > 2 ? "lg:grid-cols-3" : ""}`}>
+                <div className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${cards.length > 2 ? "lg:grid-cols-3" : ""}`}>
                   {cards.map((item) => (
                     <HubCard key={item.href} item={item} muted={group.muted} />
                   ))}

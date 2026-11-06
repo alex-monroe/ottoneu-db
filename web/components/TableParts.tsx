@@ -15,15 +15,17 @@ export function Th({
   children,
   right,
   explain,
+  compact = false,
 }: {
   children: React.ReactNode;
   right?: boolean;
   /** Glossary term to hang a "?" off, same contract as `Column.explain`. */
   explain?: GlossaryTerm;
+  compact?: boolean;
 }) {
   return (
     <th
-      className={`px-3 py-2 text-xs font-semibold uppercase tracking-wide text-ink-subtle ${
+      className={`${compact ? "px-2 sm:px-3" : "px-3"} py-2 text-xs font-semibold uppercase tracking-wide text-ink-subtle ${
         right ? "text-right" : "text-left"
       }`}
     >

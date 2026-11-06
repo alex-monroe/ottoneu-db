@@ -16,7 +16,7 @@ interface Props {
 }
 
 const selectClass =
-  "px-3 py-1.5 rounded-md text-sm font-medium border border-line-strong " +
+  "px-3 py-1.5 rounded-md text-base sm:text-sm font-medium border border-line-strong " +
   "bg-raised text-ink focus:outline-none focus:ring-2 focus:ring-accent";
 
 export default function WeekPicker({

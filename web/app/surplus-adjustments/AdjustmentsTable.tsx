@@ -327,7 +327,7 @@ export default function AdjustmentsTable({
         <select
           value={filterTeam}
           onChange={(e) => setFilterTeam(e.target.value)}
-          className="px-2 py-1.5 text-xs rounded border border-line-strong bg-white dark:bg-slate-800 text-ink-muted"
+          className="px-2 py-1.5 text-base sm:text-xs rounded border border-line-strong bg-white dark:bg-slate-800 text-ink-muted"
         >
           <option value="ALL">All Teams</option>
           {allTeams.map((t) => (
@@ -522,7 +522,7 @@ export default function AdjustmentsTable({
                         const val = parseFloat(e.target.value);
                         if (!isNaN(val)) updateFromPpg(player, val);
                       }}
-                      className="w-20 px-2 py-1 text-sm border border-line-strong rounded bg-white dark:bg-slate-800 text-ink focus:ring-1 focus:ring-accent text-right"
+                      className="w-20 px-2 py-1 text-base sm:text-sm border border-line-strong rounded bg-white dark:bg-slate-800 text-ink focus:ring-1 focus:ring-accent text-right"
                       step="0.1"
                     />
                   </td>
@@ -538,7 +538,7 @@ export default function AdjustmentsTable({
                         const val = parseInt(e.target.value);
                         if (!isNaN(val)) updateFromSurplus(player, val);
                       }}
-                      className="w-20 px-2 py-1 text-sm border border-line-strong rounded bg-white dark:bg-slate-800 text-ink focus:ring-1 focus:ring-accent text-right"
+                      className="w-20 px-2 py-1 text-base sm:text-sm border border-line-strong rounded bg-white dark:bg-slate-800 text-ink focus:ring-1 focus:ring-accent text-right"
                       step="1"
                     />
                   </td>
@@ -548,7 +548,7 @@ export default function AdjustmentsTable({
                       value={adj.notes}
                       onChange={(e) => updateNotes(player.player_id, e.target.value)}
                       placeholder="e.g. injury recovery"
-                      className="w-44 px-2 py-1 text-xs border border-line-strong rounded bg-white dark:bg-slate-800 text-ink focus:ring-1 focus:ring-accent"
+                      className="w-44 px-2 py-1 text-base sm:text-xs border border-line-strong rounded bg-white dark:bg-slate-800 text-ink focus:ring-1 focus:ring-accent"
                     />
                   </td>
                 </tr>

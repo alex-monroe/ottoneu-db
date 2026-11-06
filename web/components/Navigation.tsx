@@ -68,7 +68,7 @@ function NavDropdown({
   const dropdownId = `nav-dropdown-${label.toLowerCase().replace(/\s+/g, '-')}`;
 
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
+    function handleClickOutside(e: PointerEvent | MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false);
       }
@@ -76,10 +76,10 @@ function NavDropdown({
     function handleEscape(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
     }
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("pointerdown", handleClickOutside);
     document.addEventListener("keydown", handleEscape);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("pointerdown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
     };
   }, []);
@@ -178,7 +178,7 @@ export default function Navigation({
   // Dismiss the collapsed menu on outside click or Escape.
   useEffect(() => {
     if (!mobileOpen) return;
-    function onOutside(e: MouseEvent) {
+    function onOutside(e: PointerEvent | MouseEvent) {
       if (navRef.current && !navRef.current.contains(e.target as Node)) {
         setMobileOpen(false);
       }
@@ -186,10 +186,10 @@ export default function Navigation({
     function onEscape(e: KeyboardEvent) {
       if (e.key === "Escape") setMobileOpen(false);
     }
-    document.addEventListener("mousedown", onOutside);
+    document.addEventListener("pointerdown", onOutside);
     document.addEventListener("keydown", onEscape);
     return () => {
-      document.removeEventListener("mousedown", onOutside);
+      document.removeEventListener("pointerdown", onOutside);
       document.removeEventListener("keydown", onEscape);
     };
   }, [mobileOpen]);
@@ -221,7 +221,7 @@ export default function Navigation({
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 gap-2">
           <div className="flex items-center gap-1 min-w-0">
-            {/* Hamburger toggle — shown when the inline bar is hidden (< 2xl) */}
+            {/* Hamburger toggle — shown when the inline bar is hidden (< xl) */}
             <button
               onClick={() => setMobileOpen((o) => !o)}
               aria-expanded={mobileOpen}
@@ -231,6 +231,17 @@ export default function Navigation({
             >
               {mobileOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
             </button>
+
+            {/* Brand home link when the inline bar is collapsed, so visitors
+                landing from a deep link always see where they are and have a
+                one-tap path back to the hub. */}
+            <Link
+              href={HOME_LINK.href}
+              onClick={() => setMobileOpen(false)}
+              className={`${collapsedHiddenClass} px-1.5 py-1 rounded-md text-sm font-semibold tracking-tight text-ink hover:text-accent transition-colors whitespace-nowrap`}
+            >
+              The SOFA
+            </Link>
 
             {/* Inline navigation — one breakpoint regardless of auth */}
             <div className={inlineWrapperClass}>
@@ -301,7 +312,7 @@ export default function Navigation({
       {mobileOpen && (
         <div
           id="mobile-nav"
-          className={`${collapsedHiddenClass} absolute left-2 sm:left-4 top-full mt-1 z-50 w-72 max-w-[calc(100vw-1rem)] rounded-lg border border-line bg-raised shadow-xl py-1.5 px-1.5 space-y-0.5 max-h-[calc(100vh-4rem)] overflow-y-auto`}
+          className={`${collapsedHiddenClass} absolute left-2 sm:left-4 top-full mt-1 z-50 w-72 max-w-[calc(100vw-1rem)] rounded-lg border border-line bg-raised shadow-xl py-1.5 px-1.5 space-y-0.5 max-h-[calc(100dvh-4rem)] overflow-y-auto`}
         >
           <Link
             href={HOME_LINK.href}

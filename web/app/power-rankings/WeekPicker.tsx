@@ -22,7 +22,7 @@ export default function WeekPicker({ week, weeks }: Props) {
         id="community-week"
         value={week}
         onChange={(e) => router.push(`/power-rankings?week=${e.target.value}`)}
-        className="mt-1 rounded border border-line-strong bg-raised px-2 py-1.5 text-sm text-ink"
+        className="mt-1 rounded border border-line-strong bg-raised px-2 py-1.5 text-base sm:text-sm text-ink"
       >
         {weeks.map((w) => (
           <option key={w.week} value={w.week}>
