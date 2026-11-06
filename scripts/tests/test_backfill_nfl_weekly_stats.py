@@ -248,6 +248,39 @@ class TestParity:
         assert {"passing_yards", "targets", "pat_made"} <= set(PARITY_COLS)
 
 
+class TestUpsertStamp:
+
+    def test_every_row_gets_the_same_updated_at(self):
+        from scripts.backfill_nfl_weekly_stats import stamp_updated_at
+
+        rows = [_wrow(week=1), _wrow(week=2)]
+        out = stamp_updated_at(rows)
+        stamps = {r["updated_at"] for r in out}
+        assert len(stamps) == 1
+        assert pd.Timestamp(stamps.pop()).tz is not None
+        assert "updated_at" not in rows[0]
+
+    def test_upsert_sends_stamped_rows(self):
+        from scripts.backfill_nfl_weekly_stats import upsert_rows
+
+        sent = []
+
+        class _Q:
+            def upsert(self, batch, on_conflict):
+                sent.extend(batch)
+                return self
+
+            def execute(self):
+                return None
+
+        class _SB:
+            def table(self, _name):
+                return _Q()
+
+        upsert_rows(_SB(), [_wrow(week=1), _wrow(week=2)])
+        assert len(sent) == 2 and all(r["updated_at"] for r in sent)
+
+
 class TestSeasonLogic:
 
     @pytest.mark.parametrize("today,expected", [

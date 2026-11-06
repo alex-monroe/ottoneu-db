@@ -492,7 +492,18 @@ def build_rows_for_season(
     return rows, info
 
 
+def stamp_updated_at(rows: list[dict], now: str | None = None) -> list[dict]:
+    """Set one shared ``updated_at`` on every row (new dicts; inputs untouched).
+
+    The table has no updated_at trigger, so an upsert that omits the column
+    leaves the insert time in place forever.
+    """
+    stamp = now or pd.Timestamp.now(tz="UTC").isoformat()
+    return [{**r, "updated_at": stamp} for r in rows]
+
+
 def upsert_rows(supabase, rows: list[dict]) -> None:
+    rows = stamp_updated_at(rows)
     for i in range(0, len(rows), BATCH_SIZE):
         supabase.table(TABLE).upsert(rows[i:i + BATCH_SIZE], on_conflict=UPSERT_CONFLICT).execute()
         if (i // BATCH_SIZE) % 10 == 0:
