@@ -6,7 +6,7 @@ Date: 2026-11-05. Combines [05](05-information-calendar-external.md) (NFL calend
 
 Legend:
 - **Value:** expected accuracy gain. H/M/L are reasoned priors from 05 §3. Little dated public evidence exists, so the vintage harness will *measure* these (see "Making the value column empirical").
-- **Data:** ✅ in the DB, 🔧 ingestion needed, ⛔ out of scope (market projections; see the note at the end).
+- **Data:** ✅ in the DB, 🔧 ingestion needed, 📈 market input (in scope since 2026-11-05; see "Market inputs" below).
 - Dates: [V] = announced, [T] = typical window or derived from 2026, (est) = estimated from the 2026 `league_calendar` row.
 
 ## Timeline: 2026-11-05 → Week 1 of 2027
@@ -29,7 +29,7 @@ Legend:
 | Apr 29 - May 1 [V] | **NFL Draft** (Washington D.C.) | Rookie draft capital and landing spot; vacated roles become clear | Rookie prior, role | **H** for RB rookies, M for WR/TE/QB | V3 | Cut decisions | ✅ `draft_capital` (refresh after the draft) |
 | **May 1** | Post-draft | — | — | — | **V3** | — | |
 | about May 14 [T] | 2027 schedule release | Opponents, byes, per-game lines later | Team volume (small) | L-M | V4 | — | 🔧 nflverse schedules |
-| May - Jul | Season-long player props, ADP | Market per-player priors | Volume, efficiency | M-H | — | — | ⛔ |
+| Feb 1+ / May - Aug | Best-ball ADP (from about Feb), expert projections, season-long player props (from about May) | Market per-player priors | Volume, efficiency, role | M-H, sharpening toward August | V1 (ADP) → V4/V4b (props, expert) | Arbitration (ADP), keeper deadline, auction | 📈 🔧 dated snapshots |
 | Late May - mid Jun [T] | OTAs, minicamp | First-team reps, early injuries | Role, availability | L-M, hype-prone | V4 | — | — |
 | **Jun 15** | Schedule + updated win totals | — | — | — | **V4** | — | |
 | Late Jul [T] | Training camp opens | Starter battles, injuries | Role, availability | Injuries M, hype L | V4b | **Keeper deadline Jul 31** | 🔧 dated depth charts (nflverse snapshots, 2025+) |
@@ -60,9 +60,17 @@ Backtest feasibility (06 §5):
 
 **Start archiving now:** depth-chart snapshots, win totals and roster moves with the date we saw them. Most historical snapshots don't exist anywhere, and each week we don't archive is lost.
 
-## Out of scope (pending the owner's decision)
+## Market inputs (in scope, owner decision 2026-11-05)
 
-ADP, expert projections and season-long player props are **market projections**. Earlier project direction scoped projection work to internal techniques, with no FantasyPros blending or market projections. They are listed for completeness and excluded from the plan. Team win totals are already used as team-level context (`team_vegas_lines`) and stay in.
+ADP, expert projections (e.g. FantasyPros) and season-long player props are **in scope**. The earlier "internal techniques only" rule was about timing: projections were needed before that data existed. With vintages, both needs are met:
+- **Every vintage still produces an internal-only projection.** V0 (now) and early V1 have no market data for the coming season.
+- **Market inputs join from the vintage at which they first exist:**
+  - ADP: from about Feb, so V1/V2.
+  - Expert projections and player props: from about May-Jun, so V4/V4b.
+  - Each is blended (or used as a prior) and gated on the vintage harness like any other input.
+- **Leakage:** backtests may only use market data snapshotted *on or before* the vintage date. Historical ADP/props snapshots are scarce, so start a dated archiving job for each source as soon as it's chosen. Until a source has enough dated history to backtest, it can feed live projections only as a clearly labelled, ungated blend.
+- **Win totals:** team win totals are already team-level context (`team_vegas_lines`). Note the 2016-2025 values are back-calculated and leak (see above).
+- **Prior plan:** [market-projections.md](../market-projections.md) has the earlier deferred design.
 
 ## Data ingestion order
 
@@ -72,4 +80,4 @@ ADP, expert projections and season-long player props are **market projections**.
 4. `rosters_weekly` + dated trades/transactions, for team as of a date.
 5. Vintage storage: `projection_vintages`, `vintage_id`, append-only history, and the published-season pointer.
 6. A spike on historical preseason win totals; coach change dates.
-7. Weekly archiving job for depth charts, win totals and roster moves.
+7. Weekly archiving job for depth charts, win totals, roster moves, **ADP, expert projections and player props** (dated snapshots).
