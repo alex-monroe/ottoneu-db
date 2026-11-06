@@ -1,0 +1,105 @@
+name: Update NFL Weekly Stats
+
+# Keeps the in-progress season's NFL stats current:
+#   1. nfl_stats (season totals) -- `scripts/backfill_nfl_stats.py --seasons <season>`.
+#      The table has no rows for an in-progress season until something runs this.
+#   2. nfl_weekly_stats (one row per player per game) --
+#      `scripts/backfill_nfl_weekly_stats.py --seasons <season>`.
+# The weekly rows feed the in-season projection vintage (V0) and split-half
+# reliability studies (docs/exec-plans/stat-projections/06 and 07).
+#
+# The season is derived from the date by `current_nfl_season` (January and
+# February still belong to the previous year's season), never hardcoded.
+# Idempotent: both scripts upsert, so a re-run only refreshes rows.
+
+on:
+  schedule:
+    # Tuesdays 10:00 UTC (~5-6am ET), September-February only. The NFL week
+    # flips Tuesday 00:00 ET (scripts/nfl_week.py) and nflverse republishes the
+    # stats files after Monday night, so Tuesday morning is the first moment a
+    # full week is available. Outside those months the season is over.
+    - cron: "0 10 * 9-12,1-2 2"
+
+  workflow_dispatch:
+    inputs:
+      seasons:
+        description: "Season year(s), space-separated (e.g. '2024 2025'). Blank = the current NFL season."
+        required: false
+        default: ""
+        type: string
+      dry_run:
+        description: "Dry run (parse data without writing to DB)"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install supabase python-dotenv pandas numpy pyarrow tzdata
+          # Install this repo as a package so `import scripts.*` resolves
+          pip install -e . --no-deps
+
+      - name: Create .env
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_SECRET_KEY }}" >> .env
+
+      - name: Resolve target season
+        id: season
+        env:
+          INPUT_SEASONS: ${{ inputs.seasons }}
+        run: |
+          if [ -n "$INPUT_SEASONS" ]; then
+            echo "seasons=$INPUT_SEASONS" >> "$GITHUB_OUTPUT"
+          else
+            echo "seasons=$(python scripts/backfill_nfl_weekly_stats.py --current-season)" >> "$GITHUB_OUTPUT"
+          fi
+
+      # nfl_stats first: it also creates players rows for new NFL players, which
+      # the weekly step then matches by name.
+      - name: Refresh nfl_stats (season totals)
+        env:
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          ARGS="--seasons ${{ steps.season.outputs.seasons }}"
+          if [ "$INPUT_DRY_RUN" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          python scripts/backfill_nfl_stats.py $ARGS
+
+      - name: Refresh nfl_weekly_stats
+        env:
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          ARGS="--seasons ${{ steps.season.outputs.seasons }}"
+          if [ "$INPUT_DRY_RUN" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          python scripts/backfill_nfl_weekly_stats.py $ARGS
+
+      # Push the fresh rows to the site now rather than on each page's
+      # revalidate timer. Skips quietly until REVALIDATE_SECRET is set.
+      - name: Revalidate site
+        if: inputs.dry_run != true
+        uses: ./.github/actions/revalidate-site
+        with:
+          secret: ${{ secrets.REVALIDATE_SECRET }}

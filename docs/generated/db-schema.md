@@ -22,6 +22,7 @@ The Supabase project (`OttoneuDB`, ref `rbinbcwinchphipvcfqk`) is **shared with 
 | `players` | Player metadata (includes `birth_date`, `is_college`) | `ottoneu_id` |
 | `player_stats` | Ottoneu fantasy season records (FK -> `players`) | `(player_id, season)` |
 | `nfl_stats` | Pure NFL stats from nflverse-data, 2010-present (FK -> `players`) | `(player_id, season)` |
+| `nfl_weekly_stats` | Per-game NFL stats (REG + POST) from nflverse, same stat columns as `nfl_stats` plus `game_date`, `opponent_team`, `gsis_id` and per-game offense snaps (FK -> `players`; migration 061) | `(player_id, season, week, season_type)` |
 | `league_prices` | Current salaries (FK -> `players`) | `(player_id, league_id)` |
 | `transactions` | Event log of all roster moves (adds, cuts, trades, auctions) | -- |
 | `trades` | One row per Ottoneu trade from the public `/trade_history` page, scraped by `scripts/scrape_trade_history.py`. Columns: `trade_id` (Ottoneu's), `season`, `accepted_at` / `processed_at` (site clock, `timestamp without time zone`; `processed_at` is the *scheduled* time while pending), `status` (`pending`/`processed`/`removed` — removed = vetoed or withdrawn, the page does not say which), `status_label` (verbatim), `offered_by_team_id/_name`, `offered_to_team_id/_name`, `approve_votes`, `veto_votes`. Coverage starts September 2025; older trades exist only as `transactions` `move` rows. Migration 049. RLS with an anon SELECT policy. See [trades.md](../references/trades.md) | `(league_id, trade_id)` |
@@ -111,6 +112,10 @@ Stat-model inputs (migration 060, nflverse `stats_player` season totals, summed 
 
 Advanced receiving (added in migration 022, populated for 2018+ via nflverse `stats_player`): `target_share`, `air_yards_share`, `wopr` (Weighted Opportunity Rating), `racr` (Receiver Air Conversion Ratio), `receiving_air_yards`.
 
+### `nfl_weekly_stats` columns
+
+One row per player per game (migration 061), written by `scripts/backfill_nfl_weekly_stats.py`. Identity: `player_id` (FK -> `players`), `gsis_id` (the nflverse `player_id`, kept so a future `players.gsis_id` can retire name matching), `season`, `week`, `season_type` (`REG`/`POST`), `game_id`, `game_date`, `team`, `opponent_team`. Stat columns carry the **same names and types as `nfl_stats`** (core counting stats, the migration-060 scoring extras and stat-model inputs, and the `target_share`/`air_yards_share`/`wopr`/`racr` rates), so summing a player's REG rows reproduces their `nfl_stats` season row (`just backfill-nfl-weekly-stats --check-parity`). Also `offense_snaps` and `offense_pct` (nflverse snap counts, per game) and `total_points` (Ottoneu points via `scripts/scoring.py`). Rates are per game, not additive. Defensive players are not loaded.
+
 ## Schema Files
 
 - **Migrations (source of intent):** `migrations/` — numbered `NNN_snake_case.sql` files. See [migrations/README.md](../../migrations/README.md) for naming and the apply-via-MCP workflow. Linted offline by `just check-migrations`.
@@ -122,7 +127,7 @@ Advanced receiving (added in migration 022, populated for 2018+ via nflverse `st
 
 All public tables have RLS enabled. Server-side code uses the Supabase **service key** (Python via `scripts.config.get_supabase_client()`, Next.js writes via `web/lib/supabase.supabaseAdmin`) which bypasses RLS. The anon key is restricted to read-only access on a curated set of public reference data.
 
-**Tables with an anon SELECT policy** (web reads via the anon client): `players`, `player_stats`, `nfl_stats`, `league_prices`, `transactions`, `surplus_adjustments`, `player_projections`, `projection_models`, `model_projections`, `backtest_results`, `arbitration_progress`, `arbitration_progress_teams`, `arbitration_allocation_details`, `team_vegas_lines`, `draft_sharks_values`, `league_calendar`, `depth_charts`, `weekly_projections`, `league_matchups`, `matchup_lineups`, `matchup_score_plays`, `matchup_score_snapshots`, `trades`, `trade_assets`, `fa_market`, `fa_auction_results`, `keeper_outlook`.
+**Tables with an anon SELECT policy** (web reads via the anon client): `players`, `player_stats`, `nfl_stats`, `nfl_weekly_stats`, `league_prices`, `transactions`, `surplus_adjustments`, `player_projections`, `projection_models`, `model_projections`, `backtest_results`, `arbitration_progress`, `arbitration_progress_teams`, `arbitration_allocation_details`, `team_vegas_lines`, `draft_sharks_values`, `league_calendar`, `depth_charts`, `weekly_projections`, `league_matchups`, `matchup_lineups`, `matchup_score_plays`, `matchup_score_snapshots`, `trades`, `trade_assets`, `fa_market`, `fa_auction_results`, `keeper_outlook`.
 
 **Tables with no anon policy** (server-only, anon fully blocked): `users`, `arbitration_plans`, `arbitration_plan_allocations`, `scraper_jobs`, `draft_capital`, `team_coaching`, `red_zone_usage`, `ngs_passing`, `player_contracts`, `oauth_clients`, `oauth_authorization_codes`, `oauth_refresh_tokens`, `password_reset_tokens`, `power_ranking_ballots`, `power_ranking_entries`, `power_ranking_publications`, `pickem_picks`, `pickem_players`, `team_icons`, `discord_posts`, `live_worm_state`.
 
@@ -132,6 +137,7 @@ When adding a new table, decide upfront: does the web frontend read from it via 
 
 - `player_stats.player_id` -> `players.id`
 - `nfl_stats.player_id` -> `players.id`
+- `nfl_weekly_stats.player_id` -> `players.id`
 - `league_prices.player_id` -> `players.id`
 - `trade_assets.(league_id, trade_id)` -> `trades.(league_id, trade_id)`
 - `trade_assets.player_id` -> `players.id`

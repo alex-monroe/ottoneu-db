@@ -1164,6 +1164,185 @@ export type Database = {
           },
         ]
       }
+      nfl_weekly_stats: {
+        Row: {
+          air_yards_share: number | null
+          completions: number | null
+          created_at: string
+          fg_att: number | null
+          fg_made_0_39: number | null
+          fg_made_40_49: number | null
+          fg_made_50_plus: number | null
+          fg_missed: number | null
+          fumbles_lost: number | null
+          game_date: string | null
+          game_id: string | null
+          gsis_id: string | null
+          id: string
+          interceptions: number | null
+          offense_pct: number | null
+          offense_snaps: number | null
+          opponent_team: string | null
+          passing_air_yards: number | null
+          passing_attempts: number | null
+          passing_epa: number | null
+          passing_first_downs: number | null
+          passing_tds: number | null
+          passing_yards: number | null
+          passing_yards_after_catch: number | null
+          pat_att: number | null
+          pat_made: number | null
+          pat_missed: number | null
+          player_id: string
+          racr: number | null
+          receiving_air_yards: number | null
+          receiving_epa: number | null
+          receiving_first_downs: number | null
+          receiving_tds: number | null
+          receiving_yards: number | null
+          receiving_yards_after_catch: number | null
+          receptions: number | null
+          rushing_attempts: number | null
+          rushing_epa: number | null
+          rushing_first_downs: number | null
+          rushing_tds: number | null
+          rushing_yards: number | null
+          sack_yards_lost: number | null
+          sacks_suffered: number | null
+          season: number
+          season_type: string
+          target_share: number | null
+          targets: number | null
+          team: string | null
+          total_points: number | null
+          two_point_pass: number | null
+          two_point_rush_rec: number | null
+          updated_at: string
+          week: number
+          wopr: number | null
+        }
+        Insert: {
+          air_yards_share?: number | null
+          completions?: number | null
+          created_at?: string
+          fg_att?: number | null
+          fg_made_0_39?: number | null
+          fg_made_40_49?: number | null
+          fg_made_50_plus?: number | null
+          fg_missed?: number | null
+          fumbles_lost?: number | null
+          game_date?: string | null
+          game_id?: string | null
+          gsis_id?: string | null
+          id?: string
+          interceptions?: number | null
+          offense_pct?: number | null
+          offense_snaps?: number | null
+          opponent_team?: string | null
+          passing_air_yards?: number | null
+          passing_attempts?: number | null
+          passing_epa?: number | null
+          passing_first_downs?: number | null
+          passing_tds?: number | null
+          passing_yards?: number | null
+          passing_yards_after_catch?: number | null
+          pat_att?: number | null
+          pat_made?: number | null
+          pat_missed?: number | null
+          player_id: string
+          racr?: number | null
+          receiving_air_yards?: number | null
+          receiving_epa?: number | null
+          receiving_first_downs?: number | null
+          receiving_tds?: number | null
+          receiving_yards?: number | null
+          receiving_yards_after_catch?: number | null
+          receptions?: number | null
+          rushing_attempts?: number | null
+          rushing_epa?: number | null
+          rushing_first_downs?: number | null
+          rushing_tds?: number | null
+          rushing_yards?: number | null
+          sack_yards_lost?: number | null
+          sacks_suffered?: number | null
+          season: number
+          season_type: string
+          target_share?: number | null
+          targets?: number | null
+          team?: string | null
+          total_points?: number | null
+          two_point_pass?: number | null
+          two_point_rush_rec?: number | null
+          updated_at?: string
+          week: number
+          wopr?: number | null
+        }
+        Update: {
+          air_yards_share?: number | null
+          completions?: number | null
+          created_at?: string
+          fg_att?: number | null
+          fg_made_0_39?: number | null
+          fg_made_40_49?: number | null
+          fg_made_50_plus?: number | null
+          fg_missed?: number | null
+          fumbles_lost?: number | null
+          game_date?: string | null
+          game_id?: string | null
+          gsis_id?: string | null
+          id?: string
+          interceptions?: number | null
+          offense_pct?: number | null
+          offense_snaps?: number | null
+          opponent_team?: string | null
+          passing_air_yards?: number | null
+          passing_attempts?: number | null
+          passing_epa?: number | null
+          passing_first_downs?: number | null
+          passing_tds?: number | null
+          passing_yards?: number | null
+          passing_yards_after_catch?: number | null
+          pat_att?: number | null
+          pat_made?: number | null
+          pat_missed?: number | null
+          player_id?: string
+          racr?: number | null
+          receiving_air_yards?: number | null
+          receiving_epa?: number | null
+          receiving_first_downs?: number | null
+          receiving_tds?: number | null
+          receiving_yards?: number | null
+          receiving_yards_after_catch?: number | null
+          receptions?: number | null
+          rushing_attempts?: number | null
+          rushing_epa?: number | null
+          rushing_first_downs?: number | null
+          rushing_tds?: number | null
+          rushing_yards?: number | null
+          sack_yards_lost?: number | null
+          sacks_suffered?: number | null
+          season?: number
+          season_type?: string
+          target_share?: number | null
+          targets?: number | null
+          team?: string | null
+          total_points?: number | null
+          two_point_pass?: number | null
+          two_point_rush_rec?: number | null
+          updated_at?: string
+          week?: number
+          wopr?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfl_weekly_stats_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       password_reset_tokens: {
         Row: {
           consumed_at: string | null

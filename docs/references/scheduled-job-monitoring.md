@@ -80,7 +80,7 @@ day three.
 **Workflow recency (GitHub API, CI only).** Each workflow in
 `WORKFLOW_MAX_AGE_DAYS` must have a *successful* run within its limit (2 days for
 daily jobs, 9 for weekly). Only workflows whose cron fires all year are listed;
-`pull-player-stats` and `offseason-data-refresh` are seasonal and legitimately
+`pull-player-stats`, `update-nfl-weekly-stats` and `offseason-data-refresh` are seasonal and legitimately
 idle for months. Locally the check is skipped unless `GITHUB_TOKEN` and
 `GITHUB_REPOSITORY` are set.
 

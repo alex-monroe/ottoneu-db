@@ -173,26 +173,37 @@ def build_ottoneu_id_set(supabase) -> set[int]:
 
 # --- Core Logic ---
 
+# nflverse stats_player column -> nfl_stats column. Shared by the season and
+# weekly files (scripts/backfill_nfl_weekly_stats.py).
+NFLVERSE_STAT_RENAMES: dict[str, str] = {
+    "passing_interceptions": "interceptions",
+    "carries": "rushing_attempts",
+    "games": "games_played",
+    "attempts": "passing_attempts",
+}
+
+
+def add_fg_buckets(df: pd.DataFrame) -> pd.DataFrame:
+    """Add fg_made_0_39 / fg_made_50_plus, summed from nflverse's finer buckets (in place)."""
+    fg_sub = ["fg_made_0_19", "fg_made_20_29", "fg_made_30_39"]
+    fg_50_plus = ["fg_made_50_59", "fg_made_60_"]
+    present_sub = [c for c in fg_sub if c in df.columns]
+    present_50 = [c for c in fg_50_plus if c in df.columns]
+    if present_sub:
+        df["fg_made_0_39"] = df[present_sub].sum(axis=1)
+    if present_50:
+        df["fg_made_50_plus"] = df[present_50].sum(axis=1)
+    return df
+
+
 def process_stats(combined: pd.DataFrame) -> pd.DataFrame:
     """Process raw nflverse stats DataFrame into aggregated per-player/season rows."""
     # Build fg_made_0_39 from sub-ranges, and fg_made_50_plus from 50-59 + 60+
-    fg_sub = ["fg_made_0_19", "fg_made_20_29", "fg_made_30_39"]
-    fg_50_plus = ["fg_made_50_59", "fg_made_60_"]
-    present_sub = [c for c in fg_sub if c in combined.columns]
-    present_50 = [c for c in fg_50_plus if c in combined.columns]
-    if present_sub:
-        combined["fg_made_0_39"] = combined[present_sub].sum(axis=1)
-    if present_50:
-        combined["fg_made_50_plus"] = combined[present_50].sum(axis=1)
+    add_fg_buckets(combined)
     add_nflverse_extras(combined)
 
     # Normalize column names
-    combined = combined.rename(columns={
-        "passing_interceptions": "interceptions",
-        "carries": "rushing_attempts",
-        "games": "games_played",
-        "attempts": "passing_attempts",
-    })
+    combined = combined.rename(columns=NFLVERSE_STAT_RENAMES)
 
     # Aggregate stat columns for players who appear multiple times per season
     # (mid-season trades produce one row per team)

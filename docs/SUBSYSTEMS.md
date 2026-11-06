@@ -47,10 +47,10 @@ is league-specific.
 
 | | |
 |---|---|
-| **Tables** | `nfl_stats` (real NFL stats) · `player_stats` (the same seasons re-scored under Ottoneu rules) · `depth_charts` · `draft_capital` · `player_contracts` · `red_zone_usage` · `ngs_passing` · `team_vegas_lines` · `team_coaching` · `scraper_jobs` (job queue) |
-| **Ingestion** | `scripts/backfill_nfl_stats.py` · `backfill_depth_charts.py` · `backfill_draft_capital.py` · `backfill_ngs_passing.py` · `backfill_red_zone.py` · `backfill_team_coaching.py` · `backfill_vegas_lines.py` · `seed_preseason_win_totals.py` |
+| **Tables** | `nfl_stats` (real NFL stats) · `nfl_weekly_stats` (the same, per game) · `player_stats` (the same seasons re-scored under Ottoneu rules) · `depth_charts` · `draft_capital` · `player_contracts` · `red_zone_usage` · `ngs_passing` · `team_vegas_lines` · `team_coaching` · `scraper_jobs` (job queue) |
+| **Ingestion** | `scripts/backfill_nfl_stats.py` · `backfill_nfl_weekly_stats.py` · `backfill_depth_charts.py` · `backfill_draft_capital.py` · `backfill_ngs_passing.py` · `backfill_red_zone.py` · `backfill_team_coaching.py` · `backfill_vegas_lines.py` · `seed_preseason_win_totals.py` |
 | **Queue** | `scripts/enqueue.py` → `scripts/worker.py` → `scripts/tasks/` (`pull_nfl_stats`, `pull_player_stats`) |
-| **Commands** | `just backfill-nfl-stats` · `just backfill-depth-charts` · `just backfill-draft-capital` · `just backfill-ngs` · `just backfill-red-zone` · `just backfill-vegas` · `just seed-win-totals` · `just coverage-report` |
+| **Commands** | `just backfill-nfl-stats` · `just backfill-nfl-weekly-stats` · `just backfill-depth-charts` · `just backfill-draft-capital` · `just backfill-ngs` · `just backfill-red-zone` · `just backfill-vegas` · `just seed-win-totals` · `just coverage-report` |
 | **Routes** | `/vegas-lines` · `/depth-charts` (both exist to spot-check the data feeding specific model features) |
 | **Docs** | [ARCHITECTURE.md](ARCHITECTURE.md#data-pipeline) · [generated/db-schema.md](generated/db-schema.md) · [GLOSSARY.md](GLOSSARY.md#2-nfl-advanced-stats) |
 
