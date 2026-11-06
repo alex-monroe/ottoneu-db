@@ -75,8 +75,8 @@ ADP, expert projections (e.g. FantasyPros) and season-long player props are **in
 ## Data ingestion order
 
 1. ✅ `nfl_stats` scoring extras + stat-model inputs (migration 060).
-2. ✅ Weekly player stats (`nfl_weekly_stats`, with `game_date`): built (migration 061, `scripts/backfill_nfl_weekly_stats.py`, refreshed Tuesdays by `update-nfl-weekly-stats.yml`); **pending: apply migration 061 and run the historical backfill**. `gsis_id` is stored on each row. Still open: `players.gsis_id`, which removes name matching.
-3. Team-season (and team-week) volume from play-by-play: dropbacks, pass attempts, carries, plays.
+2. ✅ Weekly player stats (`nfl_weekly_stats`, with `game_date`): migration 061, `scripts/backfill_nfl_weekly_stats.py`, backfilled 2010–2026 with parity OK; `players.gsis_id` added in migration 062 and backfilled via `scripts/backfill_players_gsis_id.py` (2,899/3,154 resolved).
+3. ✅ Team-season and team-week volume from play-by-play: `nfl_team_volume` and `nfl_team_weekly_volume` (migration 063, `scripts/backfill_nfl_team_volume.py`), backfilled 2010–2026 (748 season rows, 8,968 weekly rows). Refreshed Tuesdays by `update-nfl-weekly-stats.yml`.
 4. `rosters_weekly` + dated trades/transactions, for team as of a date.
 5. Vintage storage: `projection_vintages`, `vintage_id`, append-only history, and the published-season pointer.
 6. A spike on historical preseason win totals; coach change dates.

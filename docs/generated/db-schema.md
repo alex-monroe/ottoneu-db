@@ -19,10 +19,12 @@ The Supabase project (`OttoneuDB`, ref `rbinbcwinchphipvcfqk`) is **shared with 
 | Table | Purpose | Unique Constraint |
 |-------|---------|-------------------|
 | `users` | User accounts with email/password auth. Three independent role flags: `is_admin`, `has_projections_access`, and `is_podcaster` (migration 040 — the podcast production tools under `/podcast`; see [podcast-tools.md](../references/podcast-tools.md)). `team_name` binds the account to an Ottoneu team (migration 039). `password_reset_requested_at` (migration 047) is set by `/forgot-password` and cleared when the password is reset — it puts the account in the `/admin` queue, since there is no mail infrastructure. | `email` |
-| `players` | Player metadata (includes `birth_date`, `is_college`) | `ottoneu_id` |
+| `players` | Player metadata (includes `birth_date`, `is_college`, `gsis_id`) | `ottoneu_id` |
 | `player_stats` | Ottoneu fantasy season records (FK -> `players`) | `(player_id, season)` |
 | `nfl_stats` | Pure NFL stats from nflverse-data, 2010-present (FK -> `players`) | `(player_id, season)` |
 | `nfl_weekly_stats` | Per-game NFL stats (REG + POST) from nflverse, same stat columns as `nfl_stats` plus `game_date`, `opponent_team`, `gsis_id` and per-game offense snaps (FK -> `players`; migration 061) | `(player_id, season, week, season_type)` |
+| `nfl_team_volume` | Per-team-season offensive volume totals from nflverse play-by-play (plays, pass attempts, rush attempts, dropbacks, sacks, neutral-situation volume; migration 063) | `(team, season, season_type)` |
+| `nfl_team_weekly_volume` | Per-team-game offensive volume totals from nflverse play-by-play with `game_date` and `opponent_team` (migration 063) | `(team, season, week, season_type)` |
 | `league_prices` | Current salaries (FK -> `players`) | `(player_id, league_id)` |
 | `transactions` | Event log of all roster moves (adds, cuts, trades, auctions) | -- |
 | `trades` | One row per Ottoneu trade from the public `/trade_history` page, scraped by `scripts/scrape_trade_history.py`. Columns: `trade_id` (Ottoneu's), `season`, `accepted_at` / `processed_at` (site clock, `timestamp without time zone`; `processed_at` is the *scheduled* time while pending), `status` (`pending`/`processed`/`removed` — removed = vetoed or withdrawn, the page does not say which), `status_label` (verbatim), `offered_by_team_id/_name`, `offered_to_team_id/_name`, `approve_votes`, `veto_votes`. Coverage starts September 2025; older trades exist only as `transactions` `move` rows. Migration 049. RLS with an anon SELECT policy. See [trades.md](../references/trades.md) | `(league_id, trade_id)` |

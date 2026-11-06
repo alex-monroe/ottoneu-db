@@ -1343,6 +1343,141 @@ export type Database = {
           },
         ]
       }
+      nfl_team_volume: {
+        Row: {
+          created_at: string
+          dropbacks: number
+          games: number
+          id: string
+          neutral_dropbacks: number
+          neutral_pass_attempts: number
+          neutral_plays: number
+          neutral_rush_attempts: number
+          pass_attempts: number
+          passing_yards: number
+          plays: number
+          rush_attempts: number
+          rushing_yards: number
+          sacks: number
+          season: number
+          season_type: string
+          team: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dropbacks?: number
+          games?: number
+          id?: string
+          neutral_dropbacks?: number
+          neutral_pass_attempts?: number
+          neutral_plays?: number
+          neutral_rush_attempts?: number
+          pass_attempts?: number
+          passing_yards?: number
+          plays?: number
+          rush_attempts?: number
+          rushing_yards?: number
+          sacks?: number
+          season: number
+          season_type?: string
+          team: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dropbacks?: number
+          games?: number
+          id?: string
+          neutral_dropbacks?: number
+          neutral_pass_attempts?: number
+          neutral_plays?: number
+          neutral_rush_attempts?: number
+          pass_attempts?: number
+          passing_yards?: number
+          plays?: number
+          rush_attempts?: number
+          rushing_yards?: number
+          sacks?: number
+          season?: number
+          season_type?: string
+          team?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      nfl_team_weekly_volume: {
+        Row: {
+          created_at: string
+          dropbacks: number
+          game_date: string | null
+          game_id: string | null
+          id: string
+          neutral_dropbacks: number
+          neutral_pass_attempts: number
+          neutral_plays: number
+          neutral_rush_attempts: number
+          opponent_team: string | null
+          pass_attempts: number
+          passing_yards: number
+          plays: number
+          rush_attempts: number
+          rushing_yards: number
+          sacks: number
+          season: number
+          season_type: string
+          team: string
+          updated_at: string
+          week: number
+        }
+        Insert: {
+          created_at?: string
+          dropbacks?: number
+          game_date?: string | null
+          game_id?: string | null
+          id?: string
+          neutral_dropbacks?: number
+          neutral_pass_attempts?: number
+          neutral_plays?: number
+          neutral_rush_attempts?: number
+          opponent_team?: string | null
+          pass_attempts?: number
+          passing_yards?: number
+          plays?: number
+          rush_attempts?: number
+          rushing_yards?: number
+          sacks?: number
+          season: number
+          season_type?: string
+          team: string
+          updated_at?: string
+          week: number
+        }
+        Update: {
+          created_at?: string
+          dropbacks?: number
+          game_date?: string | null
+          game_id?: string | null
+          id?: string
+          neutral_dropbacks?: number
+          neutral_pass_attempts?: number
+          neutral_plays?: number
+          neutral_rush_attempts?: number
+          opponent_team?: string | null
+          pass_attempts?: number
+          passing_yards?: number
+          plays?: number
+          rush_attempts?: number
+          rushing_yards?: number
+          sacks?: number
+          season?: number
+          season_type?: string
+          team?: string
+          updated_at?: string
+          week?: number
+        }
+        Relationships: []
+      }
       password_reset_tokens: {
         Row: {
           consumed_at: string | null
@@ -1612,6 +1747,7 @@ export type Database = {
         Row: {
           birth_date: string | null
           created_at: string
+          gsis_id: string | null
           id: string
           is_college: boolean
           name: string
@@ -1623,6 +1759,7 @@ export type Database = {
         Insert: {
           birth_date?: string | null
           created_at?: string
+          gsis_id?: string | null
           id?: string
           is_college?: boolean
           name: string
@@ -1634,6 +1771,7 @@ export type Database = {
         Update: {
           birth_date?: string | null
           created_at?: string
+          gsis_id?: string | null
           id?: string
           is_college?: boolean
           name?: string

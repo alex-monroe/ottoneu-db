@@ -172,6 +172,8 @@ just backfill-nfl-stats --fill-missing-teams [--seasons ...] [--dry-run]  # Only
 just backfill-nfl-weekly-stats [--seasons 2025 | 2018-2025] [--season-type REG|POST|ALL] [--dry-run]  # Per-game nflverse stats into nfl_weekly_stats (needs migration 061)
 just backfill-nfl-weekly-stats --check-parity [--seasons ...] [--dry-run]  # SUM(weekly REG) vs nfl_stats; exits 1 over tolerance. With --dry-run compares the freshly built nflverse frame instead of the table
 just backfill-nfl-weekly-stats --current-season        # Print the NFL season in progress (Jan-Feb = previous year)
+just backfill-players-gsis-id [--dry-run]              # Backfill players.gsis_id from nfl_weekly_stats and nflverse registry (migration 062)
+just backfill-nfl-team-volume [--seasons ...] [--season-type REG|POST|ALL] [--dry-run]  # Backfill team volume into nfl_team_volume & nfl_team_weekly_volume from PBP (migration 063)
 just backfill-draft-capital [--since YYYY] [--dry-run] # Backfill draft_capital from nflverse draft_picks
 just backfill-vegas [--since YYYY | --current] [--dry-run]  # Backfill team_vegas_lines from nflverse games.csv (--current = projection season only)
 just backfill-depth-charts [--since YYYY] [--until YYYY] [--current] [--dry-run]  # Backfill depth_charts (opening-day depth tier) from nflverse (--current = projection season only)

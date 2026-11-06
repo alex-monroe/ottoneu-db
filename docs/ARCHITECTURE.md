@@ -43,10 +43,12 @@ Jobs support dependencies, retries (up to 3 attempts), and batch grouping.
 
 ### NFL Stats (separate from Ottoneu data)
 
-`nfl_stats` stores pure NFL statistical data from nflverse-data (2010–present), kept separate from the Ottoneu fantasy data in `player_stats`. Backfilled via `scripts/backfill_nfl_stats.py` or the `Backfill NFL Stats` GitHub Action. `nfl_weekly_stats` is its per-game counterpart (one row per player per game, REG + POST), backfilled via `scripts/backfill_nfl_weekly_stats.py`; the `Update NFL Weekly Stats` workflow refreshes both tables for the in-progress season every Tuesday, September to February.
+`nfl_stats` stores pure NFL statistical data from nflverse-data (2010–present), kept separate from the Ottoneu fantasy data in `player_stats`. Backfilled via `scripts/backfill_nfl_stats.py` or the `Backfill NFL Stats` GitHub Action. `nfl_weekly_stats` is its per-game counterpart (one row per player per game, REG + POST), backfilled via `scripts/backfill_nfl_weekly_stats.py`. `players.gsis_id` stores the canonical nflverse player ID for disambiguation without name matching. `nfl_team_volume` and `nfl_team_weekly_volume` store offensive opportunity volume (attempts, carries, dropbacks, plays, neutral volume) from play-by-play. The `Update NFL Weekly Stats` workflow refreshes these tables for the in-progress season every Tuesday, September to February.
 
 - **`player_stats`** = Ottoneu fantasy data (total_points, ppg, pps, snaps) computed from nflverse by `pull_player_stats`
 - **`nfl_stats`** = Real NFL stats (passing_yards, rushing_tds, snap counts, etc. from nflverse)
+- **`nfl_team_volume`** = Team offensive volume totals from play-by-play (season totals)
+- **`nfl_team_weekly_volume`** = Team offensive volume logs per game from play-by-play
 
 ### Draft Sharks Auction Values (separate weekly scrape)
 

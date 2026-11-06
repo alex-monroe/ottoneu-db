@@ -316,6 +316,14 @@ backfill-nfl-stats *args:
 backfill-nfl-weekly-stats *args:
     {{python}} scripts/backfill_nfl_weekly_stats.py {{args}}
 
+# Backfill players.gsis_id from nfl_weekly_stats and nflverse registry  (e.g. just backfill-players-gsis-id --dry-run)
+backfill-players-gsis-id *args:
+    {{python}} scripts/backfill_players_gsis_id.py {{args}}
+
+# Backfill team offensive volume from nflverse PBP  (e.g. just backfill-nfl-team-volume --seasons 2025 ; --seasons 2010-2026 ; --dry-run)
+backfill-nfl-team-volume *args:
+    {{python}} scripts/backfill_nfl_team_volume.py {{args}}
+
 # Backfill draft capital  (e.g. just backfill-draft-capital --since 2010 ; --dry-run supported)
 backfill-draft-capital *args:
     {{python}} scripts/backfill_draft_capital.py {{args}}

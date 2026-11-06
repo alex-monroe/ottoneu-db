@@ -48,6 +48,9 @@ Player discovery / new-id adoption is handled by `reconcile_roster.py` via
   export → `reconcile_roster.py --apply --infer-transactions`.
 - **`scrape-player-cards.yml`** — daily 06:40 UTC + `workflow_dispatch`: run
   `scrape_player_cards.py --apply` over every DB player id.
+- **`update-nfl-weekly-stats.yml`** — Tuesdays 10:00 UTC (Sep–Feb) + `workflow_dispatch`:
+  refreshes in-season `nfl_stats` (season totals), `nfl_weekly_stats` (player game logs),
+  and `nfl_team_volume` / `nfl_team_weekly_volume` (team offensive volume from play-by-play).
 - The nflverse batch (`enqueue.py batch` + `worker.py`) runs browser-free.
 
 ## Cloudflare (important, counter-intuitive)
