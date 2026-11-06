@@ -6,6 +6,7 @@ Inputs (same folder):
 - [02-methodology.md](02-methodology.md): Marcel and sports-projection lineage, hierarchical Bayes, likelihoods, coherence, probabilistic scoring, tooling
 - [03-weight-space.md](03-weight-space.md): weight-space programming, weight-space learning and merging, and the Bayesian weight-space view
 - [04-internal-audit.md](04-internal-audit.md): data inventory, harness integration, lessons from 40+ experiments, baselines
+- [05](05-information-calendar-external.md) / [06](06-vintages-and-internal-calendar.md) / [07](07-projection-calendar.md): information calendar, vintages, as-of data audit
 
 Each report tags claims as verified, from memory, or opinion. This synthesis inherits those caveats.
 
@@ -104,11 +105,24 @@ Weight-space programming: "Sparks of Weight-Space Programming" (Takehi, Teoh, Zh
 
 ## 7. Data work needed first
 
-- **Extras columns:** fumbles lost, 2-pt conversions, FG/PAT attempts and misses by distance. Add them to `nfl_stats` (migration + TS types + backfill), or measure the gap.
+- **Extras columns:** done in migration 060 (fumbles lost, 2-pt conversions, FG/PAT misses, plus sacks, air yards vs YAC, first downs, EPA). Backfill after merge.
 - **Team-season volume table:** pass attempts, rush attempts, plays and dropbacks per team-season from nflverse play-by-play. Required for share coherence.
 - **Own stability study:** split-half and YoY reliability per stat per position from our data, plus target-share carry-over for players who change teams. This fills gaps that public research leaves (01 §8) and directly sets the shrinkage priors.
 - Optional: weekly game logs (nflverse weekly; reachable but not persisted) for split-half reliability and in-season use. Routes run is unavailable from current sources.
 - Refresh `docs/generated/projection-holdout-eval-rolling.md`, which is a stale June/v31 snapshot, before quoting per-position v44 numbers.
+
+## 7b. Vintages: publish early, improve progressively
+
+Owner requirement (2026-11-05): publish 2027 projections now and refresh them as information lands. The model is therefore **vintage-aware**: a projection of season T at date D uses only what was known by D. Canonical vintages:
+- V0: in-season of T-1, weekly
+- V1: Feb 15
+- V2: Mar 31 (post-FA)
+- V3: May 1 (post-draft)
+- V4: Jun 15
+- V4b: Aug 15 (camp; before the keeper deadline and auction)
+- V5: Sep 8
+
+The harness scores each vintage, and the deltas between adjacent vintages measure the value of each information window. Full calendar, data needs and storage design: [07-projection-calendar.md](07-projection-calendar.md).
 
 ## 8. Integration plan (keeps the downstream site unchanged)
 
