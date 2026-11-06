@@ -294,7 +294,8 @@ def check_antigravity_setup() -> Result:
     try:
         (group,) = hooks.get("repo-guard", {}).get("PreToolUse", [])
         hook_cmd = group["hooks"][0]["command"]
-        hook_script = agents_dir / hook_cmd.split()[-1]
+        hook_target = hook_cmd.split()[-1]
+        hook_script = PROJECT_ROOT / hook_target if (PROJECT_ROOT / hook_target).exists() else agents_dir / hook_target
         if not hook_script.exists():
             return (FAIL, title, f"guard hook script {hook_script} missing", f"Ensure {hook_script} exists")
     except Exception as exc:
