@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 hooks/guard.py",
+            "command": "python3 .agents/hooks/guard.py",
             "timeout": 10
           }
         ]

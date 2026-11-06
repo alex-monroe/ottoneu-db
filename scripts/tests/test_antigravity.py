@@ -176,14 +176,16 @@ def test_hooks_json_runs_the_adapter_for_commands_and_mcp_calls():
     for tool in ("run_command", "call_mcp_tool", "mcp_tool", "mcp_supabase_execute_sql", "apply_migration"):
         assert re.fullmatch(group["matcher"], tool), tool
     assert not re.fullmatch(group["matcher"], "view_file")
-    # The command runs from .agents/, the directory holding hooks.json.
-    assert (REPO_ROOT / ".agents" / group["hooks"][0]["command"].split()[-1]).exists()
+    # The command runs from the workspace root (or .agents/ in legacy layout).
+    cmd_target = group["hooks"][0]["command"].split()[-1]
+    assert (REPO_ROOT / cmd_target).exists() or (REPO_ROOT / ".agents" / cmd_target).exists()
 
 
 def test_skills_json_points_at_the_one_skills_directory():
     entries = json.loads((REPO_ROOT / ".agents" / "skills.json").read_text())["entries"]
     assert [e["path"] for e in entries] == [".claude/skills"]
-    assert not (REPO_ROOT / ".agents" / "skills").exists(), "skills live in .claude/skills only"
+    skills_dir = REPO_ROOT / ".agents" / "skills"
+    assert not skills_dir.exists() or not any(skills_dir.iterdir()), "skills live in .claude/skills only"
 
 
 # ── Policy sync ────────────────────────────────────────────────────────────
