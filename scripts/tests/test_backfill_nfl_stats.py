@@ -4,7 +4,9 @@ import pandas as pd
 import pytest
 
 from scripts.backfill_nfl_stats import (
+    _generate_synthetic_ottoneu_id,
     calc_half_ppr_points,
+    create_missing_players,
     dedup_stat_rows,
     plan_team_fills,
     process_stats,
@@ -219,3 +221,65 @@ class TestPlanTeamFills:
         names = {"u1": "Ronald Jones"}
         existing = [{"id": "r1", "player_id": "u1", "season": 2019, "recent_team": None}]
         assert plan_team_fills(self.processed, names, existing) == {}
+
+
+class _FakeQuery:
+    def __init__(self, client, table):
+        self.client, self.table, self.ids = client, table, None
+
+    def select(self, _cols):
+        return self
+
+    def in_(self, _col, ids):
+        self.ids = ids
+        return self
+
+    def upsert(self, rows, on_conflict=None):
+        self.client.upserts.extend(rows)
+        self.rows = rows
+        return self
+
+    def execute(self):
+        class R:
+            pass
+        r = R()
+        if self.ids is not None:
+            r.data = [p for p in self.client.players if p["ottoneu_id"] in self.ids]
+        else:
+            r.data = [dict(row, id=f"new-{i}") for i, row in enumerate(self.rows)]
+        return r
+
+
+class _FakeSupabase:
+    def __init__(self, players):
+        self.players, self.upserts = players, []
+
+    def table(self, name):
+        return _FakeQuery(self, name)
+
+
+class TestCreateMissingPlayersReusesCollidingId:
+    """A taken synthetic id means the player already exists: reuse it, never insert a copy."""
+
+    def _frames(self, name, gsis):
+        stats = pd.DataFrame([{"player_display_name": name, "position": "QB"}])
+        rosters = {2025: pd.DataFrame([{"player_name": name, "position": "QB", "team": "ATL",
+                                        "player_id": gsis}])}
+        return stats, rosters
+
+    def test_existing_row_is_reused_not_duplicated(self):
+        oid = _generate_synthetic_ottoneu_id("00-0026143")
+        client = _FakeSupabase([{"id": "existing-uuid", "ottoneu_id": oid}])
+        stats, rosters = self._frames("Matt Ryan", "00-0026143")
+        # Name lookup missed the existing row (the 2026-02 failure mode).
+        lookup = create_missing_players(stats, rosters, {}, {oid}, client)
+        assert client.upserts == []
+        assert next(iter(lookup.values())) == "existing-uuid"
+
+    def test_new_player_still_created(self):
+        client = _FakeSupabase([])
+        stats, rosters = self._frames("New Guy", "00-0099999")
+        lookup = create_missing_players(stats, rosters, {}, set(), client)
+        assert len(client.upserts) == 1
+        assert client.upserts[0]["ottoneu_id"] == _generate_synthetic_ottoneu_id("00-0099999")
+        assert len(lookup) == 1

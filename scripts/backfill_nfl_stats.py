@@ -315,6 +315,8 @@ def create_missing_players(
                 stats_position_info[norm] = pos
 
     new_players: list[dict] = []
+    # norm name -> ottoneu_id of a row that already exists for this player
+    reused: dict[str, int] = {}
     for name in missing_names:
         norm = normalize_player_name(name)
         info = roster_info.get(norm, {})
@@ -327,9 +329,14 @@ def create_missing_players(
             continue
 
         synthetic_id = _generate_synthetic_ottoneu_id(nflverse_id if nflverse_id else name)
-        # Handle collision (extremely unlikely but be safe)
-        while synthetic_id in existing_ottoneu_ids:
-            synthetic_id -= 1
+        # The id is derived from the nflverse id, so finding it already taken
+        # means this player already has a row that the name lookup missed.
+        # Reuse that row. Decrementing to a free id (as this code once did)
+        # inserted a second copy of the player; 693 such pairs were merged on
+        # 2026-11-05 (scripts/merge_synthetic_id_duplicates.sql).
+        if synthetic_id in existing_ottoneu_ids:
+            reused[norm] = synthetic_id
+            continue
 
         existing_ottoneu_ids.add(synthetic_id)
         new_players.append({
@@ -339,6 +346,21 @@ def create_missing_players(
             "nfl_team": team,
             "is_college": False,
         })
+
+    if reused:
+        # Read-only, so it runs in a dry run too: point the names at the rows.
+        by_ottoneu_id: dict[int, str] = {}
+        ids = sorted(set(reused.values()))
+        for i in range(0, len(ids), 200):
+            res = (
+                supabase.table("players").select("id, ottoneu_id")
+                .in_("ottoneu_id", ids[i:i + 200]).execute()
+            )
+            by_ottoneu_id.update({r["ottoneu_id"]: r["id"] for r in res.data or []})
+        for norm, oid in reused.items():
+            if oid in by_ottoneu_id:
+                player_lookup[norm] = by_ottoneu_id[oid]
+        print(f"  Reused {len(reused)} existing player rows the name lookup missed.")
 
     if dry_run:
         print(f"  [DRY RUN] Would create {len(new_players)} new player rows.")
@@ -662,6 +684,11 @@ def backfill_seasons(
 
     # Phase 4: Upsert to nfl_stats
     print(f"\n=== Phase 4: Upserting {len(upsert_rows)} rows to nfl_stats ===")
+    # nfl_stats has no updated_at trigger, so stamp it here; otherwise it keeps
+    # the insert time forever and "most recently written" can't be told apart.
+    written_at = pd.Timestamp.now(tz="UTC").isoformat()
+    for r in upsert_rows:
+        r["updated_at"] = written_at
     batch_size = 200
     for i in range(0, len(upsert_rows), batch_size):
         batch = upsert_rows[i:i + batch_size]
