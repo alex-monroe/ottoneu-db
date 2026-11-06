@@ -46,6 +46,19 @@ _ROSTERS_URL = (
     "rosters/roster_{year}.parquet"
 )
 
+# Inputs for the stat-level projection model (docs/exec-plans/stat-projections/),
+# stored as nflverse names them. All are season totals, so a traded player's
+# stints are summed. Sacks turn pass attempts into dropbacks; air yards vs
+# yards-after-catch and first downs split efficiency into its parts.
+STAT_MODEL_INT_COLS: tuple[str, ...] = (
+    "sacks_suffered", "sack_yards_lost",
+    "passing_air_yards", "passing_yards_after_catch", "passing_first_downs",
+    "rushing_first_downs",
+    "receiving_yards_after_catch", "receiving_first_downs",
+    "fg_att", "pat_att",
+)
+STAT_MODEL_FLOAT_COLS: tuple[str, ...] = ("passing_epa", "rushing_epa", "receiving_epa")
+
 
 # --- Fantasy Point Calculation ---
 
@@ -53,8 +66,8 @@ def calc_half_ppr_points(row: dict) -> float:
     """Calculate Ottoneu fantasy points from raw stats (the league's full scoring).
 
     The SCORING_EXTRAS stats (fumbles lost, two-point conversions, missed kicks)
-    count when the row carries them. nfl_stats has no columns for them, so they
-    ride along only until the points are computed and are dropped before upsert.
+    count when the row carries them; nfl_stats stores them (migration 060), so
+    ``score_stats`` on a stored row reproduces its ``total_points``.
     """
     return score_stats(row)
 
@@ -189,7 +202,7 @@ def process_stats(combined: pd.DataFrame) -> pd.DataFrame:
         "receptions", "targets", "receiving_yards", "receiving_tds",
         "fg_made_0_39", "fg_made_40_49", "fg_made_50_plus", "pat_made",
         "passing_attempts", "completions", "receiving_air_yards",
-        *EXTRA_KEYS,
+        *EXTRA_KEYS, *STAT_MODEL_INT_COLS, *STAT_MODEL_FLOAT_COLS,
     ]
     agg_cols = {c: "sum" for c in stat_cols if c in combined.columns}
 
@@ -368,7 +381,7 @@ def dedup_stat_rows(upsert_rows: list[dict]) -> list[dict]:
         "fg_made_0_39", "fg_made_40_49", "fg_made_50_plus", "pat_made",
         "passing_attempts", "completions", "receiving_air_yards",
         "offense_snaps", "defense_snaps", "st_snaps", "total_snaps",
-        *EXTRA_KEYS,
+        *EXTRA_KEYS, *STAT_MODEL_INT_COLS, *STAT_MODEL_FLOAT_COLS,
     ]
     rate_avg_cols = ["target_share", "air_yards_share", "wopr", "racr"]
     dedup_df = pd.DataFrame(upsert_rows)
@@ -390,12 +403,11 @@ def dedup_stat_rows(upsert_rows: list[dict]) -> list[dict]:
     dedup_df["total_points"] = dedup_df.apply(
         lambda r: round(calc_half_ppr_points(r.to_dict()), 2), axis=1
     )
-    # The extras only feed the points — nfl_stats has no columns for them.
-    dedup_df = dedup_df.drop(columns=[c for c in EXTRA_KEYS if c in dedup_df.columns])
-    present_sum = [c for c in present_sum if c not in EXTRA_KEYS]
     # pandas sum() promotes int columns with NaN to float64 — cast back to int|None
+    # (the EPA totals are genuinely fractional, so they stay floats).
     for col in present_sum:
-        dedup_df[col] = dedup_df[col].apply(_safe_int)
+        cast = _safe_float if col in STAT_MODEL_FLOAT_COLS else _safe_int
+        dedup_df[col] = dedup_df[col].apply(cast)
     # mean() of all-NaN groups produces NaN — JSON can't encode it.
     for col in present_avg:
         dedup_df[col] = dedup_df[col].apply(_safe_float)
@@ -597,6 +609,8 @@ def backfill_seasons(
             "wopr": _safe_float(getattr(row, "wopr", None)),
             "racr": _safe_float(getattr(row, "racr", None)),
             **{key: _safe_int(getattr(row, key, None)) for key in EXTRA_KEYS},
+            **{key: _safe_int(getattr(row, key, None)) for key in STAT_MODEL_INT_COLS},
+            **{key: _safe_float(getattr(row, key, None)) for key in STAT_MODEL_FLOAT_COLS},
         }
 
         # Preserve recent_team for historical team tracking

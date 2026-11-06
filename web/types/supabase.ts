@@ -997,34 +997,52 @@ export type Database = {
           completions: number | null
           created_at: string
           defense_snaps: number | null
+          fg_att: number | null
           fg_made_0_39: number | null
           fg_made_40_49: number | null
           fg_made_50_plus: number | null
+          fg_missed: number | null
+          fumbles_lost: number | null
           games_played: number | null
           id: string
           interceptions: number | null
           offense_snaps: number | null
+          passing_air_yards: number | null
           passing_attempts: number | null
+          passing_epa: number | null
+          passing_first_downs: number | null
           passing_tds: number | null
           passing_yards: number | null
+          passing_yards_after_catch: number | null
+          pat_att: number | null
           pat_made: number | null
+          pat_missed: number | null
           player_id: string
           ppg: number | null
           racr: number | null
           receiving_air_yards: number | null
+          receiving_epa: number | null
+          receiving_first_downs: number | null
           receiving_tds: number | null
           receiving_yards: number | null
+          receiving_yards_after_catch: number | null
           recent_team: string | null
           receptions: number | null
           rushing_attempts: number | null
+          rushing_epa: number | null
+          rushing_first_downs: number | null
           rushing_tds: number | null
           rushing_yards: number | null
+          sack_yards_lost: number | null
+          sacks_suffered: number | null
           season: number
           st_snaps: number | null
           target_share: number | null
           targets: number | null
           total_points: number | null
           total_snaps: number | null
+          two_point_pass: number | null
+          two_point_rush_rec: number | null
           updated_at: string
           wopr: number | null
         }
@@ -1033,34 +1051,52 @@ export type Database = {
           completions?: number | null
           created_at?: string
           defense_snaps?: number | null
+          fg_att?: number | null
           fg_made_0_39?: number | null
           fg_made_40_49?: number | null
           fg_made_50_plus?: number | null
+          fg_missed?: number | null
+          fumbles_lost?: number | null
           games_played?: number | null
           id?: string
           interceptions?: number | null
           offense_snaps?: number | null
+          passing_air_yards?: number | null
           passing_attempts?: number | null
+          passing_epa?: number | null
+          passing_first_downs?: number | null
           passing_tds?: number | null
           passing_yards?: number | null
+          passing_yards_after_catch?: number | null
+          pat_att?: number | null
           pat_made?: number | null
+          pat_missed?: number | null
           player_id: string
           ppg?: number | null
           racr?: number | null
           receiving_air_yards?: number | null
+          receiving_epa?: number | null
+          receiving_first_downs?: number | null
           receiving_tds?: number | null
           receiving_yards?: number | null
+          receiving_yards_after_catch?: number | null
           recent_team?: string | null
           receptions?: number | null
           rushing_attempts?: number | null
+          rushing_epa?: number | null
+          rushing_first_downs?: number | null
           rushing_tds?: number | null
           rushing_yards?: number | null
+          sack_yards_lost?: number | null
+          sacks_suffered?: number | null
           season: number
           st_snaps?: number | null
           target_share?: number | null
           targets?: number | null
           total_points?: number | null
           total_snaps?: number | null
+          two_point_pass?: number | null
+          two_point_rush_rec?: number | null
           updated_at?: string
           wopr?: number | null
         }
@@ -1069,34 +1105,52 @@ export type Database = {
           completions?: number | null
           created_at?: string
           defense_snaps?: number | null
+          fg_att?: number | null
           fg_made_0_39?: number | null
           fg_made_40_49?: number | null
           fg_made_50_plus?: number | null
+          fg_missed?: number | null
+          fumbles_lost?: number | null
           games_played?: number | null
           id?: string
           interceptions?: number | null
           offense_snaps?: number | null
+          passing_air_yards?: number | null
           passing_attempts?: number | null
+          passing_epa?: number | null
+          passing_first_downs?: number | null
           passing_tds?: number | null
           passing_yards?: number | null
+          passing_yards_after_catch?: number | null
+          pat_att?: number | null
           pat_made?: number | null
+          pat_missed?: number | null
           player_id?: string
           ppg?: number | null
           racr?: number | null
           receiving_air_yards?: number | null
+          receiving_epa?: number | null
+          receiving_first_downs?: number | null
           receiving_tds?: number | null
           receiving_yards?: number | null
+          receiving_yards_after_catch?: number | null
           recent_team?: string | null
           receptions?: number | null
           rushing_attempts?: number | null
+          rushing_epa?: number | null
+          rushing_first_downs?: number | null
           rushing_tds?: number | null
           rushing_yards?: number | null
+          sack_yards_lost?: number | null
+          sacks_suffered?: number | null
           season?: number
           st_snaps?: number | null
           target_share?: number | null
           targets?: number | null
           total_points?: number | null
           total_snaps?: number | null
+          two_point_pass?: number | null
+          two_point_rush_rec?: number | null
           updated_at?: string
           wopr?: number | null
         }
