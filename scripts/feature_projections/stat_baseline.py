@@ -103,6 +103,12 @@ STAT_MODEL_CONFIGS: dict[str, StatModelConfig] = {
     "stat_a03_role_prior": StatModelConfig(
         name="stat_a03_role_prior", age_adjust=True, role_prior_kinds=("volume",)
     ),
+    # Stage A, iteration 04: a03 + the same role-dependent prior mean for rates.
+    "stat_a04_role_prior_rates": StatModelConfig(
+        name="stat_a04_role_prior_rates",
+        age_adjust=True,
+        role_prior_kinds=("volume", "rate"),
+    ),
 }
 
 # The config the module-level defaults below describe (tests, ad-hoc use).

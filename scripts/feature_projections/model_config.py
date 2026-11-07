@@ -1277,6 +1277,19 @@ MODELS: dict[str, ModelDefinition] = {
         ),
         features=["stat_model"],
     ),
+    "stat_a04_role_prior_rates": ModelDefinition(
+        name="stat_a04_role_prior_rates",
+        status="baseline",
+        version=1,
+        description=(
+            "Stat model, Stage A iteration 04 (parent stat_a03_role_prior; ledger: "
+            "docs/exec-plans/stat-projections/09-stat-model-ledger.md): a03 with the "
+            "role-dependent prior mean extended to the per-opportunity rates, so "
+            "part-timers' efficiency rates (yards per attempt, TD rate, ...) shrink "
+            "toward what low-volume players do rather than a starter-weighted mean."
+        ),
+        features=["stat_model"],
+    ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
         status="external",
