@@ -87,6 +87,11 @@ class StatModelConfig:
     age_adjust: bool = False
     age_center: float = 27.0
     age_clip: tuple[float, float] = (21.0, 36.0)
+    # stat_a03+: role-dependent prior mean. For the listed stat kinds the
+    # shrinkage target is μ · (a + b·log1p(den_w)) instead of μ, where den_w is
+    # the player's recency-weighted opportunity count (games for volume stats),
+    # with (a, b) fitted in-fold on next-season rates. () = flat position mean.
+    role_prior_kinds: tuple[str, ...] = ()
 
 
 STAT_MODEL_CONFIGS: dict[str, StatModelConfig] = {
@@ -94,6 +99,10 @@ STAT_MODEL_CONFIGS: dict[str, StatModelConfig] = {
     "stat_a01_marcel": StatModelConfig(name="stat_a01_marcel"),
     # Stage A, iteration 02: a01 + in-fold quadratic age curve per (position, stat).
     "stat_a02_age": StatModelConfig(name="stat_a02_age", age_adjust=True),
+    # Stage A, iteration 03: a02 + role-dependent prior mean for per-game volume.
+    "stat_a03_role_prior": StatModelConfig(
+        name="stat_a03_role_prior", age_adjust=True, role_prior_kinds=("volume",)
+    ),
 }
 
 # The config the module-level defaults below describe (tests, ad-hoc use).
@@ -236,8 +245,48 @@ def _prior_mean(
     return float(window[spec.num].sum()) / den if den > 0 else None
 
 
-def _shrunk(num_w: np.ndarray, den_w: np.ndarray, k: float, mu: float) -> np.ndarray:
+def _shrunk(num_w: np.ndarray, den_w: np.ndarray, k: float, mu) -> np.ndarray:
+    """(num_w + k·μ) / (den_w + k); μ may be a scalar or a per-player array."""
     return (num_w + k * mu) / (den_w + k)
+
+
+# Bounds on the role-prior ratio a + b·log1p(den_w), against extrapolation.
+ROLE_RATIO_CLIP = (0.05, 3.0)
+
+
+def role_ratio(den_w: np.ndarray, coef: tuple[float, float]) -> np.ndarray:
+    """Prior-mean multiplier a + b·log1p(den_w), clipped."""
+    d = np.log1p(np.maximum(np.asarray(den_w, dtype=float), 0.0))
+    return np.clip(coef[0] + coef[1] * d, *ROLE_RATIO_CLIP)
+
+
+def fit_role_prior(pairs: dict[str, np.ndarray]) -> tuple[float, float]:
+    """(a, b) for y/μ ≈ a + b·log1p(den_w) by opportunity-weighted least squares.
+
+    The prior mean becomes μ·(a + b·log1p(den_w)): what players with that much
+    history did next season, relative to the season's position mean. Falls back
+    to (1, 0), the flat mean, when the fit is degenerate.
+    """
+    ok = pairs["mu"] > 0
+    if ok.sum() < MIN_FIT_PAIRS:
+        return (1.0, 0.0)
+    x = np.log1p(pairs["den"][ok])
+    r = pairs["y"][ok] / pairs["mu"][ok]
+    sw = np.sqrt(pairs["wt"][ok])
+    design = np.column_stack([np.ones_like(x), x])
+    coef, *_ = np.linalg.lstsq(design * sw[:, None], r * sw, rcond=None)
+    if not np.all(np.isfinite(coef)):
+        return (1.0, 0.0)
+    return (float(coef[0]), float(coef[1]))
+
+
+def _prior_vector(
+    pairs_or_den: np.ndarray, mu, key: tuple[str, str], params_role: dict
+) -> np.ndarray:
+    """Per-player prior mean: μ, times the role ratio when the stat has one."""
+    if key in params_role:
+        return mu * role_ratio(pairs_or_den, params_role[key])
+    return mu
 
 
 def _training_pairs(
@@ -288,8 +337,12 @@ def fit_k(
     return _best_k(pairs, cfg)
 
 
-def _best_k(pairs: dict[str, np.ndarray], cfg: StatModelConfig) -> float:
+def _best_k(
+    pairs: dict[str, np.ndarray], cfg: StatModelConfig, role: tuple[float, float] | None = None
+) -> float:
     num, den, y, wt, mu = (pairs[k] for k in ("num", "den", "y", "wt", "mu"))
+    if role is not None:
+        mu = mu * role_ratio(den, role)
     losses = [float(np.sum(wt * (_shrunk(num, den, k, mu) - y) ** 2)) for k in cfg.k_grid]
     return float(cfg.k_grid[int(np.argmin(losses))])
 
@@ -306,7 +359,10 @@ def age_multiplier(age: np.ndarray, coef: tuple[float, float], cfg: StatModelCon
 
 
 def fit_age_curve(
-    pairs: dict[str, np.ndarray], k: float, cfg: StatModelConfig
+    pairs: dict[str, np.ndarray],
+    k: float,
+    cfg: StatModelConfig,
+    role: tuple[float, float] | None = None,
 ) -> tuple[float, float]:
     """(b1, b2) for y ≈ pred·(1 + b1·x + b2·x²) by opportunity-weighted least squares.
 
@@ -314,7 +370,8 @@ def fit_age_curve(
     known age are left out. Linear in (b1, b2): (y − pred) = pred·x·b1 + pred·x²·b2.
     Returns (0, 0) (no adjustment) when the system is degenerate.
     """
-    pred = _shrunk(pairs["num"], pairs["den"], k, pairs["mu"])
+    mu = pairs["mu"] if role is None else pairs["mu"] * role_ratio(pairs["den"], role)
+    pred = _shrunk(pairs["num"], pairs["den"], k, mu)
     ok = ~np.isnan(pairs["age"]) & np.isfinite(pred)
     if ok.sum() < MIN_FIT_PAIRS:
         return (0.0, 0.0)
@@ -338,6 +395,8 @@ class FoldParams:
     config: StatModelConfig = DEFAULT_CONFIG
     # (b1, b2) of the age curve per (position, stat); empty unless cfg.age_adjust.
     age: dict[tuple[str, str], tuple[float, float]] = field(default_factory=dict)
+    # (a, b) of the role-dependent prior mean; empty unless cfg.role_prior_kinds.
+    role: dict[tuple[str, str], tuple[float, float]] = field(default_factory=dict)
 
 
 def fit_fold(
@@ -348,6 +407,7 @@ def fit_fold(
     ks: dict[tuple[str, str], float] = {}
     mus: dict[tuple[str, str], float] = {}
     ages: dict[tuple[str, str], tuple[float, float]] = {}
+    roles: dict[tuple[str, str], tuple[float, float]] = {}
     for position, chain in CHAINS.items():
         pos_rows = train[train["position"] == position]
         for spec in chain:
@@ -357,10 +417,13 @@ def fit_fold(
             key = (position, spec.name)
             mus[key] = mu
             pairs = _training_pairs(pos_rows, spec, target, cfg)
-            ks[key] = FALLBACK_K[spec.kind] if pairs is None else _best_k(pairs, cfg)
+            role = None
+            if pairs is not None and spec.kind in cfg.role_prior_kinds:
+                role = roles[key] = fit_role_prior(pairs)
+            ks[key] = FALLBACK_K[spec.kind] if pairs is None else _best_k(pairs, cfg, role)
             if cfg.age_adjust and pairs is not None:
-                ages[key] = fit_age_curve(pairs, ks[key], cfg)
-    return FoldParams(target, ks, mus, cfg, ages)
+                ages[key] = fit_age_curve(pairs, ks[key], cfg, role)
+    return FoldParams(target, ks, mus, cfg, ages, roles)
 
 
 def project_rates(
@@ -400,9 +463,10 @@ def project_rates(
                 vals = np.full(len(players), mu)
             else:
                 k = params.k[key] * k_scale
+                prior = _prior_vector(den_w, mu, key, params.role)
                 with np.errstate(invalid="ignore", divide="ignore"):
-                    vals = _shrunk(num_w, den_w, k, mu)
-                vals = np.where(den_w + k > 0, vals, mu)
+                    vals = _shrunk(num_w, den_w, k, prior)
+                vals = np.where(den_w + k > 0, vals, prior)
                 if target_age is not None and key in params.age:
                     vals = vals * age_multiplier(target_age, params.age[key], cfg)
             out[spec.name] = vals

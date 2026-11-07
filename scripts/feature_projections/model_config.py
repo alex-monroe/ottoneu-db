@@ -1262,6 +1262,21 @@ MODELS: dict[str, ModelDefinition] = {
         ),
         features=["stat_model"],
     ),
+    "stat_a03_role_prior": ModelDefinition(
+        name="stat_a03_role_prior",
+        status="baseline",
+        version=1,
+        description=(
+            "Stat model, Stage A iteration 03 (parent stat_a02_age; ledger: "
+            "docs/exec-plans/stat-projections/09-stat-model-ledger.md): a02 with a "
+            "role-dependent shrinkage target for the per-game volume stats — the "
+            "prior mean is the position mean × (a + b·log1p(weighted games in the "
+            "history window)), (a, b) fitted in-fold on next-season rates, so "
+            "part-time players shrink toward what part-timers do rather than a "
+            "starter-heavy average. Rates keep the flat position mean."
+        ),
+        features=["stat_model"],
+    ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
         status="external",
