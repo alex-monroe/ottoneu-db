@@ -159,6 +159,70 @@ class TestFrozenConfigs:
             sb.get_stat_config("stat_z99_nope")
 
 
+def _aging_population(seed=0, n_players=120, first=2010, last=2021, decline=0.04):
+    """WRs whose true targets/game fall by `decline` per year past age 27."""
+    rng = np.random.default_rng(seed)
+    rows, positions, births = [], {}, {}
+    for i in range(n_players):
+        pid = f"wr{i}"
+        positions[pid] = "WR"
+        birth_year = int(rng.integers(first - 33, first - 21))
+        births[pid] = f"{birth_year}-03-01"
+        talent = 6.0 + rng.normal(0, 1.0)
+        for s in range(first, last + 1):
+            age = s - birth_year
+            tpg = max(talent * (1 - decline * max(age - 27, 0)) + rng.normal(0, 0.3), 0.1)
+            rows.append(_row(pid, s, targets=round(tpg * 16), receptions=round(tpg * 10),
+                             receiving_yards=round(tpg * 120)))
+    return sb.prepare_seasons(pd.DataFrame(rows), positions, births), positions
+
+
+class TestAgeAdjustment:
+    def test_age_column_from_birth_dates(self):
+        df = sb.prepare_seasons(pd.DataFrame([_row("a", 2020), _row("b", 2020)]),
+                                {"a": "WR", "b": "WR"}, {"a": "1995-09-01"})
+        ages = dict(zip(df["player_id"], df["age"]))
+        assert ages["a"] == pytest.approx(25.0, abs=0.01)
+        assert np.isnan(ages["b"])
+
+    def test_a01_ignores_ages(self):
+        seasons, _ = _aging_population()
+        no_age = seasons.assign(age=np.nan)
+        a01 = sb.get_stat_config("stat_a01_marcel")
+        assert sb.project_season(seasons, 2021, cfg=a01) == pytest.approx(
+            sb.project_season(no_age, 2021, cfg=a01))
+
+    def test_fitted_curve_recovers_decline(self):
+        seasons, _ = _aging_population(decline=0.05)
+        a02 = sb.get_stat_config("stat_a02_age")
+        params = sb.fit_fold(seasons, 2021, a02)
+        coef = params.age[("WR", "targets_pg")]
+        young, old = sb.age_multiplier(np.array([24.0, 33.0]), coef, a02)
+        assert old < 0.92 < young + 0.1
+        assert old < young
+
+    def test_a02_beats_a01_on_aging_data(self):
+        seasons, _ = _aging_population(decline=0.05, last=2021, seed=2)
+        actual = seasons[seasons["season"] == 2021].set_index("player_id")
+        truth = actual["targets"] / actual["games"]
+        err = {}
+        for name in ("stat_a01_marcel", "stat_a02_age"):
+            cfg = sb.get_stat_config(name)
+            rates = sb.project_rates(seasons, sb.fit_fold(seasons, 2021, cfg)).set_index("player_id")
+            common = truth.index.intersection(rates.index)
+            err[name] = float((rates.loc[common, "targets_pg"] - truth[common]).abs().mean())
+        assert err["stat_a02_age"] < err["stat_a01_marcel"]
+
+    def test_unknown_age_gets_no_adjustment(self):
+        cfg = sb.get_stat_config("stat_a02_age")
+        m = sb.age_multiplier(np.array([np.nan, 35.0]), (-0.05, -0.01), cfg)
+        assert m[0] == 1.0 and m[1] < 1.0
+
+    def test_multiplier_is_clipped(self):
+        cfg = sb.get_stat_config("stat_a02_age")
+        assert sb.age_multiplier(np.array([36.0]), (-1.0, 0.0), cfg)[0] == sb.AGE_MULT_CLIP[0]
+
+
 class TestStatEval:
     def test_eval_produces_all_comparators_and_ppg_rows(self):
         seasons, _ = _wr_population(noise=1.0, seed=5)

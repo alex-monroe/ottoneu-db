@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Backfill `players.gsis_id` from nfl_weekly_stats and nflverse registry.
+"""Backfill `players.gsis_id` (and `players.nflverse_birth_date`) from nfl_weekly_stats and nflverse registry.
 
 The `players.gsis_id` column provides a canonical nflverse player identifier
 (e.g. '00-0033873'), replacing fragile name-based matching for NFL stats and
@@ -148,6 +148,24 @@ def resolve_players_gsis_id(
     return mapping, stats
 
 
+def resolve_nflverse_birth_dates(
+    gsis_by_player: dict[str, str], nflverse_players: pd.DataFrame
+) -> dict[str, str]:
+    """player id → nflverse registry birth date (ISO), for players with a gsis_id.
+
+    Players whose gsis_id is missing from the registry, or whose registry row has
+    no birth date, are left out. Feeds ``players.nflverse_birth_date`` (migration
+    064), which only the stat_* models read; ``players.birth_date`` is untouched.
+    """
+    registry = nflverse_players.dropna(subset=["gsis_id", "birth_date"])
+    by_gsis = {
+        str(g): str(pd.Timestamp(b).date())
+        for g, b in zip(registry["gsis_id"], registry["birth_date"])
+        if str(b).strip()
+    }
+    return {pid: by_gsis[g] for pid, g in gsis_by_player.items() if g and g in by_gsis}
+
+
 def backfill_players_gsis_id(
     supabase,
     dry_run: bool = False,
@@ -158,7 +176,7 @@ def backfill_players_gsis_id(
     players = fetch_all_rows(
         supabase,
         "players",
-        "id, name, position, nfl_team, birth_date, ottoneu_id, gsis_id",
+        "id, name, position, nfl_team, birth_date, ottoneu_id, gsis_id, is_college, nflverse_birth_date",
     )
     print(f"  Loaded {len(players)} players.")
 
@@ -184,9 +202,20 @@ def backfill_players_gsis_id(
     print(f"  Total resolved:                    {len(mapping)} ({len(mapping) / stats['total_players']:.1%})")
     print(f"  Unmatched (college/unrostered):    {stats['unmatched']}")
 
-    # Identify players that actually need an update
+    # Final gsis_id per player (new resolution wins), then registry birth dates.
     existing_map = {p["id"]: p.get("gsis_id") for p in players}
+    final_gsis = {**{k: v for k, v in existing_map.items() if v}, **mapping}
+    birth_dates = resolve_nflverse_birth_dates(final_gsis, nflverse_players)
+    existing_bd = {p["id"]: p.get("nflverse_birth_date") for p in players}
+    print(f"  nflverse birth dates resolved:     {len(birth_dates)}")
+
     players_dict = {p["id"]: p for p in players}
+    changed = {
+        pid for pid in players_dict
+        if (pid in mapping and existing_map.get(pid) != mapping[pid])
+        or (pid in birth_dates and existing_bd.get(pid) != birth_dates[pid])
+    }
+    # Upsert carries the NOT NULL columns so a conflict-update never trips them.
     updates_needed = [
         {
             "id": pid,
@@ -196,12 +225,12 @@ def backfill_players_gsis_id(
             "nfl_team": players_dict[pid].get("nfl_team"),
             "birth_date": players_dict[pid].get("birth_date"),
             "is_college": players_dict[pid].get("is_college", False),
-            "gsis_id": gid,
+            "gsis_id": final_gsis.get(pid),
+            "nflverse_birth_date": birth_dates.get(pid, existing_bd.get(pid)),
         }
-        for pid, gid in mapping.items()
-        if existing_map.get(pid) != gid
+        for pid in sorted(changed)
     ]
-    print(f"\n  Players requiring gsis_id update: {len(updates_needed)}")
+    print(f"\n  Players requiring gsis_id / nflverse_birth_date update: {len(updates_needed)}")
 
     if dry_run:
         print("Dry run requested — skipping database writes.")
