@@ -273,6 +273,17 @@ class TestRolePrior:
             err[name] = float((rates.loc[part, "targets_pg"] - truth[part]).abs().mean())
         assert err["stat_a03_role_prior"] < err["stat_a02_age"]
 
+    def test_a04_extends_role_prior_to_rates(self):
+        seasons = _role_population()
+        cfg = sb.get_stat_config("stat_a04_role_prior_rates")
+        assert cfg.role_prior_kinds == ("volume", "rate")
+        params = sb.fit_fold(seasons, 2021, cfg)
+        kinds = {next(s for s in sb.CHAINS["WR"] if s.name == n).kind for (_, n) in params.role}
+        assert kinds == {"volume", "rate"}
+
+    def test_a03_config_unchanged_by_a04(self):
+        assert sb.get_stat_config("stat_a03_role_prior").role_prior_kinds == ("volume",)
+
     def test_earlier_configs_have_no_role_prior(self):
         seasons = _role_population()
         for name in ("stat_a01_marcel", "stat_a02_age"):
