@@ -223,6 +223,62 @@ class TestAgeAdjustment:
         assert sb.age_multiplier(np.array([36.0]), (-1.0, 0.0), cfg)[0] == sb.AGE_MULT_CLIP[0]
 
 
+def _role_population(seed=0, n_players=150, first=2010, last=2021):
+    """WRs where part-timers (few games) also see fewer targets per game."""
+    rng = np.random.default_rng(seed)
+    rows, positions = [], {}
+    for i in range(n_players):
+        pid = f"wr{i}"
+        positions[pid] = "WR"
+        starter = i % 3 != 0
+        talent = (7.0 if starter else 2.0) + rng.normal(0, 1.0)
+        for s in range(first, last + 1):
+            games = int(rng.integers(13, 18)) if starter else int(rng.integers(1, 6))
+            # Persistent talent plus per-game noise, averaged over the season.
+            tpg = max(talent + rng.normal(0, 2.0 / np.sqrt(games)), 0.1)
+            rows.append(_row(pid, s, games_played=games, targets=round(tpg * games),
+                             receptions=round(tpg * games * 0.6),
+                             receiving_yards=round(tpg * games * 7.5)))
+    return sb.prepare_seasons(pd.DataFrame(rows), positions)
+
+
+class TestRolePrior:
+    def test_role_ratio_grows_with_history_and_is_clipped(self):
+        r = sb.role_ratio(np.array([0.0, 4.0, 16.0, 1e9]), (0.2, 0.3))
+        assert r[0] < r[1] < r[2]
+        assert r[3] == sb.ROLE_RATIO_CLIP[1]
+
+    def test_fit_recovers_part_timer_gap(self):
+        seasons = _role_population()
+        params = sb.fit_fold(seasons, 2021, sb.get_stat_config("stat_a03_role_prior"))
+        coef = params.role[("WR", "targets_pg")]
+        low, high = sb.role_ratio(np.array([3.0, 16.0]), coef)
+        assert low < 0.7 < high
+
+    def test_only_volume_stats_get_a_role_prior(self):
+        seasons = _role_population()
+        params = sb.fit_fold(seasons, 2021, sb.get_stat_config("stat_a03_role_prior"))
+        kinds = {next(s for s in sb.CHAINS["WR"] if s.name == n).kind for (_, n) in params.role}
+        assert kinds == {"volume"}
+
+    def test_a03_beats_a02_on_part_timers(self):
+        seasons = _role_population(seed=4)
+        actual = seasons[seasons["season"] == 2021].set_index("player_id")
+        truth = actual["targets"] / actual["games"]
+        part = [p for p in truth.index if int(p[2:]) % 3 == 0]
+        err = {}
+        for name in ("stat_a02_age", "stat_a03_role_prior"):
+            cfg = sb.get_stat_config(name)
+            rates = sb.project_rates(seasons, sb.fit_fold(seasons, 2021, cfg)).set_index("player_id")
+            err[name] = float((rates.loc[part, "targets_pg"] - truth[part]).abs().mean())
+        assert err["stat_a03_role_prior"] < err["stat_a02_age"]
+
+    def test_earlier_configs_have_no_role_prior(self):
+        seasons = _role_population()
+        for name in ("stat_a01_marcel", "stat_a02_age"):
+            assert sb.fit_fold(seasons, 2021, sb.get_stat_config(name)).role == {}
+
+
 class TestStatEval:
     def test_eval_produces_all_comparators_and_ppg_rows(self):
         seasons, _ = _wr_population(noise=1.0, seed=5)
