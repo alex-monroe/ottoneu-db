@@ -626,8 +626,8 @@ def _build_context(
         context["is_qb_starter"] = is_starter
         context["qb_starters"] = qb_starters
 
-    # Stage A stat-baseline projections for the target season (stat-projection
-    # redesign); fitted once per season over the whole population.
+    # Stat-model (stat_*) projections for the target season; fitted once per
+    # season over the whole population.
     if stat_baseline_ppg is not None:
         context["stat_baseline_ppg"] = stat_baseline_ppg
 
@@ -803,16 +803,19 @@ def run_model(
     expected_games = build_expected_games(games_stats, pos_map, seasons, "history")
     print(f"Expected-games (history) estimates: {len(expected_games)} (player, season)")
 
-    # Stage A stat baseline: needs every nfl_stats season since MIN_DATA_SEASON
-    # (k is fitted on all seasons before each target), not just the 3-season
-    # window below. Loaded once; each target season filters to seasons < target.
+    # Stat-level models (stat_*): need every nfl_stats season since
+    # MIN_DATA_SEASON (k is fitted on all seasons before each target), not just
+    # the 3-season window below. Loaded once; each target season filters to
+    # seasons < target. The model's frozen StatModelConfig picks the iteration.
     stat_seasons = None
-    if "stat_marcel_baseline" in all_feature_names:
+    stat_config = None
+    if "stat_model" in all_feature_names:
+        stat_config = stat_baseline.get_stat_config(model_name)
         stat_rows = fetch_multi_season_nfl_stats(
             list(range(stat_baseline.MIN_DATA_SEASON, max(seasons)))
         )
         stat_seasons = stat_baseline.prepare_seasons(stat_rows, pos_map)
-        print(f"Stage A stat baseline: {len(stat_seasons)} player-seasons loaded")
+        print(f"Stat model {stat_config.name}: {len(stat_seasons)} player-seasons loaded")
 
     total_records = 0
 
@@ -861,7 +864,9 @@ def run_model(
         stat_baseline_ppg = None
         if stat_seasons is not None:
             stat_baseline_ppg = stat_baseline.project_season(
-                stat_seasons[stat_seasons["season"] < target_season], target_season
+                stat_seasons[stat_seasons["season"] < target_season],
+                target_season,
+                cfg=stat_config,
             )
 
         # Generate projections for each player

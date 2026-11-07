@@ -1,6 +1,6 @@
-# Stage A per-stat eval (eval seasons 2019, 2020, 2021, 2022, 2023, 2024)
+# Per-stat eval: stat_a01_marcel (eval seasons 2019, 2020, 2021, 2022, 2023, 2024)
 
-Opportunity-weighted MAE and bias (pred − actual); Spearman ρ over players at or above the median opportunity count. `model` = stat_marcel_v1 (Stage A), `naive` = prior-season rate, `pos_mean` = position pooled rate. Lower MAE wins; **bold** marks the best MAE. Each season is fitted on the seasons before it only.
+Opportunity-weighted MAE and bias (pred − actual); Spearman ρ over players at or above the median opportunity count. `model` = stat_a01_marcel, `naive` = prior-season rate, `pos_mean` = position pooled rate. Lower MAE wins; **bold** marks the best MAE. Each season is fitted on the seasons before it only.
 
 | Pos | Stat | n | MAE model | MAE naive | MAE pos_mean | bias model | ρ model | ρ naive |
 |---|---|---|---|---|---|---|---|---|

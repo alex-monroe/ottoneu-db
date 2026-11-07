@@ -237,8 +237,8 @@ train model seasons="2021,2022,2023,2024,2025":
 holdout-eval *args:
     {{python}} scripts/feature_projections/holdout_eval.py {{args}}
 
-# Per-stat held-out eval of the Stage A stat baseline vs naive prior-season rate and position mean
-#   e.g. just stat-eval --eval-seasons 2019-2024 --out docs/generated/stat-eval.md
+# Per-stat held-out eval of a stat_* model vs its parent, naive prior-season rate and position mean
+#   e.g. just stat-eval --model stat_a02_age --parent stat_a01_marcel  (protocol: docs/exec-plans/stat-projections/09-stat-model-ledger.md)
 stat-eval *args:
     {{python}} -m scripts.feature_projections.stat_eval {{args}}
 

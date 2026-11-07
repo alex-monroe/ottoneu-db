@@ -1231,13 +1231,13 @@ MODELS: dict[str, ModelDefinition] = {
         ),
         features=["position_mean"],
     ),
-    "stat_marcel_v1": ModelDefinition(
-        name="stat_marcel_v1",
+    "stat_a01_marcel": ModelDefinition(
+        name="stat_a01_marcel",
         status="baseline",
         version=1,
         description=(
-            "Stage A of the stat-level redesign (docs/exec-plans/stat-projections/"
-            "00-synthesis.md §4, parameters from 08-stability-study.md): projects "
+            "Stat model, Stage A iteration 01 (ledger: docs/exec-plans/stat-projections/"
+            "09-stat-model-ledger.md; parameters from 08-stability-study.md): projects "
             "each player's per-game stat line (volume per game × per-opportunity "
             "rates) from the last 3 seasons of nfl_stats — volume weighted "
             ".65/.20/.15, rates .45/.32/.23 — shrinks every stat toward its "
@@ -1246,7 +1246,7 @@ MODELS: dict[str, ModelDefinition] = {
             "line into PPG. Kickers shrink ppg directly. No covariates, age curve "
             "or team context: the floor every later stat-model stage must beat."
         ),
-        features=["stat_marcel_baseline"],
+        features=["stat_model"],
     ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",

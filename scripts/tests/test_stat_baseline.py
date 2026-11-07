@@ -122,15 +122,61 @@ class TestScoring:
         assert sb.projected_ppg("K", {"ppg": 8.25}) == 8.25
 
 
+class TestFrozenConfigs:
+    """Iterations are frozen configs: an existing stat_* model must never change.
+
+    If one of these fails, you changed what an existing config does. Revert that
+    and add the behaviour as a new config field (default = old behaviour) used by
+    a new stat_<stage><NN>_<slug> model instead (09-stat-model-ledger.md).
+    """
+
+    def test_a01_config_is_pinned(self):
+        cfg = sb.get_stat_config("stat_a01_marcel")
+        assert cfg.volume_weights == pytest.approx((1.0, 0.20 / 0.65, 0.15 / 0.65))
+        assert cfg.rate_weights == pytest.approx((1.0, 0.32 / 0.45, 0.23 / 0.45))
+        assert cfg.history_seasons == 3
+        assert len(cfg.k_grid) == 91 and cfg.k_grid[0] == 0.0
+
+    def test_a01_projection_is_pinned(self):
+        seasons, _ = _wr_population(noise=1.0, seed=11, last=2021)
+        cfg = sb.get_stat_config("stat_a01_marcel")
+        proj = sb.project_season(seasons, 2021, cfg=cfg)
+        assert proj["wr0"] == pytest.approx(6.399076, abs=1e-6)
+        assert proj["wr7"] == pytest.approx(5.253275, abs=1e-6)
+        assert sum(proj.values()) == pytest.approx(383.976854, abs=1e-5)
+
+    def test_every_stat_model_has_a_config(self):
+        from scripts.feature_projections.model_config import MODELS
+
+        stat_models = [m for m, d in MODELS.items() if "stat_model" in d.features]
+        assert stat_models, "expected at least one stat_* model"
+        for name in stat_models:
+            assert name.startswith("stat_"), name
+            assert sb.get_stat_config(name).name == name
+
+    def test_unknown_model_raises(self):
+        with pytest.raises(KeyError):
+            sb.get_stat_config("stat_z99_nope")
+
+
 class TestStatEval:
     def test_eval_produces_all_comparators_and_ppg_rows(self):
         seasons, _ = _wr_population(noise=1.0, seed=5)
         long = se.eval_season(seasons, 2020)
         summary = se.summarise(long)
-        assert set(summary["comparator"]) == set(se.COMPARATORS)
+        assert set(summary["comparator"]) == set(se.BASE_COMPARATORS)
         assert {"targets_pg", "ppg"} <= set(summary["stat"])
         md = se.render(summary, [2020])
         assert "| WR | targets_pg |" in md and "| WR | ppg |" in md
+
+    def test_parent_comparator(self):
+        seasons, _ = _wr_population(noise=1.0, seed=5)
+        cfg = sb.get_stat_config("stat_a01_marcel")
+        long = se.eval_season(seasons, 2020, cfg, parent_cfg=cfg)
+        summary = se.summarise(long)
+        assert "parent" in set(summary["comparator"])
+        md = se.render(summary, [2020], "stat_a01_marcel", parent="stat_a01_marcel")
+        assert "MAE parent" in md
 
     def test_parse_seasons(self):
         assert se._parse_seasons("2019-2021,2024") == [2019, 2020, 2021, 2024]

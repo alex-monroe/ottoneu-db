@@ -1,9 +1,11 @@
-"""Per-stat held-out eval for the Stage A stat baseline (stat-projection redesign).
+"""Per-stat held-out eval for the stat-level models (``stat_*``).
 
-For each eval season ``t`` it fits Stage A on seasons before ``t`` only, projects
-every stat of every player with history, and compares against the season-``t``
-actuals per (position, stat), alongside two comparators:
+For each eval season ``t`` it fits the model's frozen ``StatModelConfig`` on
+seasons before ``t`` only, projects every stat of every player with history, and
+compares against the season-``t`` actuals per (position, stat), alongside:
 
+- ``parent`` (with ``--parent``): another ``stat_*`` model, normally the one this
+  iteration was branched from (09-stat-model-ledger.md);
 - ``naive``: the player's prior-season rate, no weighting or shrinkage;
 - ``pos_mean``: the position's pooled rate (the shrinkage target itself).
 
@@ -17,16 +19,17 @@ Metrics per (position, stat), pooled over the eval seasons:
 
 Plus a ``ppg`` row: scored projected PPG vs actual ``total_points / games``.
 Population: players with ≥ MIN_GAMES games in the eval season and at least one
-season in the three before it (rookies have no Stage A projection).
+season in the three before it (rookies have no stat-model projection).
 
 This is a diagnostic (00-synthesis §6 item 2). The PPG gate is still
-``just holdout-eval`` + ``just significance``. Per the confirmation discipline
-(#594), iterate on seasons before 2025 and look at 2025 once.
+``just holdout-eval`` + ``just significance``. The iteration window stops at 2024;
+2025 is the confirmation window (09-stat-model-ledger.md).
 
 Usage::
 
-    just stat-eval                       # eval seasons 2019-2024
-    just stat-eval --eval-seasons 2021-2024 --out docs/generated/stat-eval.md
+    just stat-eval                                         # stat_a01_marcel, 2019-2024
+    just stat-eval --model stat_a02_age --parent stat_a01_marcel
+    just stat-eval --eval-seasons 2019-2024 --out docs/generated/stat-eval.md
 """
 
 from __future__ import annotations
@@ -42,7 +45,8 @@ from scripts.config import MIN_GAMES, fetch_all_rows, get_supabase_client
 from scripts.analysis_utils import fetch_multi_season_nfl_stats
 from scripts.feature_projections import stat_baseline as sb
 
-COMPARATORS = ("model", "naive", "pos_mean")
+DEFAULT_MODEL = "stat_a01_marcel"
+BASE_COMPARATORS = ("model", "naive", "pos_mean")
 
 
 def _parse_seasons(spec: str) -> list[int]:
@@ -77,15 +81,22 @@ def _naive_rates(seasons: pd.DataFrame, params: sb.FoldParams) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 
 
-def eval_season(seasons: pd.DataFrame, target: int) -> pd.DataFrame:
+def eval_season(
+    seasons: pd.DataFrame,
+    target: int,
+    cfg: sb.StatModelConfig = sb.DEFAULT_CONFIG,
+    parent_cfg: Optional[sb.StatModelConfig] = None,
+) -> pd.DataFrame:
     """Long frame of (comparator, position, stat, player, pred, actual, weight) for one season."""
     train = seasons[seasons["season"] < target]
-    params = sb.fit_fold(train, target)
+    params = sb.fit_fold(train, target, cfg)
     preds = {
         "model": sb.project_rates(train, params, k_scale=1.0),
-        "pos_mean": sb.project_rates(train, params, k_scale=None),
         "naive": _naive_rates(train, params),
+        "pos_mean": sb.project_rates(train, params, k_scale=None),
     }
+    if parent_cfg is not None:
+        preds["parent"] = sb.project_rates(train, sb.fit_fold(train, target, parent_cfg))
     actual = seasons[(seasons["season"] == target) & (seasons["games"] >= MIN_GAMES)]
     # Score only players every comparator projects (naive needs a prior-season row).
     common = set(actual["player_id"])
@@ -134,32 +145,43 @@ def summarise(long: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(recs)
 
 
-def render(summary: pd.DataFrame, eval_seasons: list[int]) -> str:
-    """Markdown: one row per (position, stat), the three comparators side by side."""
+def render(
+    summary: pd.DataFrame,
+    eval_seasons: list[int],
+    model: str = DEFAULT_MODEL,
+    parent: Optional[str] = None,
+) -> str:
+    """Markdown: one row per (position, stat), the comparators side by side."""
+    comps = ["model"] + (["parent"] if parent else []) + ["naive", "pos_mean"]
+    labels = {"model": "model", "parent": "parent", "naive": "naive", "pos_mean": "pos_mean"}
+    parent_txt = f", `parent` = {parent}" if parent else ""
     lines = [
-        f"# Stage A per-stat eval (eval seasons {', '.join(map(str, eval_seasons))})",
+        f"# Per-stat eval: {model} (eval seasons {', '.join(map(str, eval_seasons))})",
         "",
         "Opportunity-weighted MAE and bias (pred − actual); Spearman ρ over players at or "
-        "above the median opportunity count. `model` = stat_marcel_v1 (Stage A), "
+        f"above the median opportunity count. `model` = {model}{parent_txt}, "
         "`naive` = prior-season rate, `pos_mean` = position pooled rate. Lower MAE wins; "
         "**bold** marks the best MAE. Each season is fitted on the seasons before it only.",
         "",
-        "| Pos | Stat | n | MAE model | MAE naive | MAE pos_mean | bias model | ρ model | ρ naive |",
-        "|---|---|---|---|---|---|---|---|---|",
+        "| Pos | Stat | n | " + " | ".join(f"MAE {labels[c]}" for c in comps)
+        + " | bias model | ρ model | ρ " + ("parent" if parent else "naive") + " |",
+        "|" + "---|" * (3 + len(comps) + 3),
     ]
+    rho_other = "parent" if parent else "naive"
     order = sb.stat_names() + [(p, "ppg") for p in sb.CHAINS if p != "K"]
     piv = summary.set_index(["position", "stat", "comparator"])
+    fmt_rho = lambda v: "" if v is None or pd.isna(v) else f"{v:.3f}"  # noqa: E731
     for position, stat in order:
         if (position, stat, "model") not in piv.index:
             continue
-        m = {c: piv.loc[(position, stat, c)] for c in COMPARATORS if (position, stat, c) in piv.index}
+        m = {c: piv.loc[(position, stat, c)] for c in comps if (position, stat, c) in piv.index}
         best = min(m, key=lambda c: m[c]["mae"])
-        mae = {c: (f"**{m[c]['mae']:.4g}**" if c == best else f"{m[c]['mae']:.4g}") for c in m}
-        fmt_rho = lambda v: "" if v is None or pd.isna(v) else f"{v:.3f}"  # noqa: E731
+        mae = [(f"**{m[c]['mae']:.4g}**" if c == best else f"{m[c]['mae']:.4g}") if c in m else ""
+               for c in comps]
+        other = m[rho_other]["rho"] if rho_other in m else None
         lines.append(
-            f"| {position} | {stat} | {int(m['model']['n'])} | {mae.get('model', '')} | "
-            f"{mae.get('naive', '')} | {mae.get('pos_mean', '')} | {m['model']['bias']:+.4g} | "
-            f"{fmt_rho(m['model']['rho'])} | {fmt_rho(m.get('naive', {}).get('rho') if 'naive' in m else None)} |"
+            f"| {position} | {stat} | {int(m['model']['n'])} | " + " | ".join(mae)
+            + f" | {m['model']['bias']:+.4g} | {fmt_rho(m['model']['rho'])} | {fmt_rho(other)} |"
         )
     return "\n".join(lines) + "\n"
 
@@ -174,15 +196,20 @@ def load_seasons(last_season: int) -> pd.DataFrame:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser.add_argument("--model", default=DEFAULT_MODEL, help="stat_* model to evaluate")
+    parser.add_argument("--parent", help="stat_* model to compare against (its ledger parent)")
     parser.add_argument("--eval-seasons", default="2019-2024",
                         help="Comma list and/or ranges, e.g. 2019-2024 or 2023,2024")
     parser.add_argument("--out", help="Also write the markdown table to this path")
     args = parser.parse_args()
 
+    cfg = sb.get_stat_config(args.model)
+    parent_cfg = sb.get_stat_config(args.parent) if args.parent else None
     eval_seasons = _parse_seasons(args.eval_seasons)
     seasons = load_seasons(max(eval_seasons))
-    long = pd.concat([eval_season(seasons, t) for t in eval_seasons], ignore_index=True)
-    md = render(summarise(long), eval_seasons)
+    long = pd.concat([eval_season(seasons, t, cfg, parent_cfg) for t in eval_seasons],
+                     ignore_index=True)
+    md = render(summarise(long), eval_seasons, args.model, args.parent)
     print(md)
     if args.out:
         with open(args.out, "w") as fh:

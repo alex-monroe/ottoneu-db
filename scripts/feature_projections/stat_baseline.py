@@ -13,9 +13,9 @@ shrunk estimate:
 - ``num``/``den`` are season totals: e.g. passing yards / passing attempts for
   ``ypa``, or rushing attempts / games for the per-game volume ``rush_att_pg``.
 - ``w`` are recency weights normalised so the most recent season is 1.0, so
-  ``den_w`` is in "most-recent-season-equivalent" opportunities. Volume and
-  ppg use [.65, .20, .15]; per-opportunity rates use flatter Marcel-like
-  [.45, .32, .23] (08 §3.2).
+  ``den_w`` is in "most-recent-season-equivalent" opportunities. In
+  ``stat_a01_marcel`` volume and ppg use [.65, .20, .15] and per-opportunity
+  rates use flatter Marcel-like [.45, .32, .23] (08 §3.2).
 - ``μ`` is the position's opportunity-pooled rate over the same three seasons
   (tracks era drift: league-wide rates move, the prior moves with them).
 - ``k`` is the pseudo-count, **fitted per (position, stat) inside each fold** by
@@ -30,11 +30,19 @@ the same machinery on ppg directly.
 
 Everything here is pure (DataFrames in, dicts out) so the runner, the per-stat
 eval (``stat_eval.py``) and the tests share one implementation.
+
+**Iterations are frozen configs** (naming and iteration protocol:
+docs/exec-plans/stat-projections/09-stat-model-ledger.md). Every ``stat_*`` model
+in ``model_config.py`` has a ``StatModelConfig`` in ``STAT_MODEL_CONFIGS``. A new
+idea is a new config field whose default reproduces the old behaviour, so
+earlier models keep projecting byte-for-byte (pinned by
+``scripts/tests/test_stat_baseline.py``). Never change what an existing config
+does; add a new ``stat_<stage><NN>_<slug>`` instead.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Iterable, Optional
 
 import numpy as np
@@ -45,11 +53,6 @@ from scripts.scoring import score_stats
 # First season of usable nfl_stats; earlier seasons are not loaded.
 MIN_DATA_SEASON = 2010
 
-# Recency weights for lags 1..3, normalised to lag 1 = 1.0 (08 §3.2).
-VOLUME_WEIGHTS: tuple[float, ...] = (1.0, 0.20 / 0.65, 0.15 / 0.65)
-RATE_WEIGHTS: tuple[float, ...] = (1.0, 0.32 / 0.45, 0.23 / 0.45)
-HISTORY_SEASONS = 3
-
 # Candidate pseudo-counts for the in-fold grid search. Spans "no shrinkage" to
 # "effectively the prior mean" for every opportunity unit used (games ≈ 1–17,
 # attempts/targets up to several hundred per season).
@@ -58,6 +61,43 @@ K_GRID: np.ndarray = np.concatenate([[0.0], np.geomspace(0.05, 1e5, 90)])
 # Minimum training pairs to fit k; below this the stat falls back to FALLBACK_K.
 MIN_FIT_PAIRS = 30
 FALLBACK_K = {"volume": 3.0, "rate": 200.0}
+
+
+@dataclass(frozen=True)
+class StatModelConfig:
+    """Every tunable choice of one stat-model iteration.
+
+    Recency weights are for lags 1..3, normalised to lag 1 = 1.0. Add new
+    behaviour as a new field whose default reproduces the existing configs.
+    """
+
+    name: str
+    volume_weights: tuple[float, ...] = (1.0, 0.20 / 0.65, 0.15 / 0.65)
+    rate_weights: tuple[float, ...] = (1.0, 0.32 / 0.45, 0.23 / 0.45)
+    history_seasons: int = 3
+    k_grid: tuple[float, ...] = field(default_factory=lambda: tuple(K_GRID))
+
+
+STAT_MODEL_CONFIGS: dict[str, StatModelConfig] = {
+    # Stage A, iteration 01: recency-weighted per-stat shrinkage, k fitted in-fold.
+    "stat_a01_marcel": StatModelConfig(name="stat_a01_marcel"),
+}
+
+# The config the module-level defaults below describe (tests, ad-hoc use).
+DEFAULT_CONFIG = STAT_MODEL_CONFIGS["stat_a01_marcel"]
+VOLUME_WEIGHTS = DEFAULT_CONFIG.volume_weights
+RATE_WEIGHTS = DEFAULT_CONFIG.rate_weights
+HISTORY_SEASONS = DEFAULT_CONFIG.history_seasons
+
+
+def get_stat_config(model_name: str) -> StatModelConfig:
+    """The frozen config for a ``stat_*`` model; KeyError names the known ones."""
+    try:
+        return STAT_MODEL_CONFIGS[model_name]
+    except KeyError:
+        raise KeyError(
+            f"No StatModelConfig for {model_name!r}; known: {sorted(STAT_MODEL_CONFIGS)}"
+        ) from None
 
 
 @dataclass(frozen=True)
@@ -140,16 +180,16 @@ def prepare_seasons(nfl_stats: pd.DataFrame, positions: dict[str, str]) -> pd.Da
     return df[["player_id", "season", "position", "games", "touches", *_RAW_COLS]].reset_index(drop=True)
 
 
-def _weights(spec: StatSpec) -> tuple[float, ...]:
-    return VOLUME_WEIGHTS if spec.kind == "volume" else RATE_WEIGHTS
+def _weights(spec: StatSpec, cfg: StatModelConfig) -> tuple[float, ...]:
+    return cfg.volume_weights if spec.kind == "volume" else cfg.rate_weights
 
 
 def _history_totals(
-    seasons: pd.DataFrame, spec: StatSpec, target: int
+    seasons: pd.DataFrame, spec: StatSpec, target: int, cfg: StatModelConfig = DEFAULT_CONFIG
 ) -> pd.DataFrame:
-    """Per player: recency-weighted num/den over lags 1..3 before ``target``."""
-    w = _weights(spec)
-    window = seasons[(seasons["season"] < target) & (seasons["season"] >= target - HISTORY_SEASONS)]
+    """Per player: recency-weighted num/den over the lags before ``target``."""
+    w = _weights(spec, cfg)
+    window = seasons[(seasons["season"] < target) & (seasons["season"] >= target - cfg.history_seasons)]
     if window.empty:
         return pd.DataFrame(columns=["player_id", "num_w", "den_w"])
     lag_w = (target - window["season"]).map(lambda lag: w[lag - 1])
@@ -161,9 +201,11 @@ def _history_totals(
     return out.groupby("player_id", as_index=False)[["num_w", "den_w"]].sum()
 
 
-def _prior_mean(seasons: pd.DataFrame, spec: StatSpec, target: int) -> Optional[float]:
-    """Position's opportunity-pooled rate over the three seasons before ``target``."""
-    window = seasons[(seasons["season"] < target) & (seasons["season"] >= target - HISTORY_SEASONS)]
+def _prior_mean(
+    seasons: pd.DataFrame, spec: StatSpec, target: int, cfg: StatModelConfig = DEFAULT_CONFIG
+) -> Optional[float]:
+    """Position's opportunity-pooled rate over the history window before ``target``."""
+    window = seasons[(seasons["season"] < target) & (seasons["season"] >= target - cfg.history_seasons)]
     den = float(window[spec.den].sum())
     return float(window[spec.num].sum()) / den if den > 0 else None
 
@@ -172,7 +214,9 @@ def _shrunk(num_w: np.ndarray, den_w: np.ndarray, k: float, mu: float) -> np.nda
     return (num_w + k * mu) / (den_w + k)
 
 
-def fit_k(seasons: pd.DataFrame, spec: StatSpec, target: int) -> float:
+def fit_k(
+    seasons: pd.DataFrame, spec: StatSpec, target: int, cfg: StatModelConfig = DEFAULT_CONFIG
+) -> float:
     """Pseudo-count minimising next-season weighted squared error, seasons < target only.
 
     Training pairs: for every season ``s`` with ``MIN_DATA_SEASON < s < target``,
@@ -182,10 +226,10 @@ def fit_k(seasons: pd.DataFrame, spec: StatSpec, target: int) -> float:
     """
     nums, dens, ys, wts, mus = [], [], [], [], []
     for s in range(MIN_DATA_SEASON + 1, target):
-        mu = _prior_mean(seasons, spec, s)
+        mu = _prior_mean(seasons, spec, s, cfg)
         if mu is None:
             continue
-        hist = _history_totals(seasons, spec, s)
+        hist = _history_totals(seasons, spec, s, cfg)
         hist = hist[hist["den_w"] > 0]
         actual = seasons[(seasons["season"] == s) & (seasons[spec.den] > 0)]
         pairs = hist.merge(actual[["player_id", spec.num, spec.den]], on="player_id")
@@ -199,8 +243,8 @@ def fit_k(seasons: pd.DataFrame, spec: StatSpec, target: int) -> float:
     if not nums or sum(len(a) for a in nums) < MIN_FIT_PAIRS:
         return FALLBACK_K[spec.kind]
     num, den, y, wt, mu = (np.concatenate(a) for a in (nums, dens, ys, wts, mus))
-    losses = [float(np.sum(wt * (_shrunk(num, den, k, mu) - y) ** 2)) for k in K_GRID]
-    return float(K_GRID[int(np.argmin(losses))])
+    losses = [float(np.sum(wt * (_shrunk(num, den, k, mu) - y) ** 2)) for k in cfg.k_grid]
+    return float(cfg.k_grid[int(np.argmin(losses))])
 
 
 @dataclass
@@ -210,9 +254,12 @@ class FoldParams:
     target_season: int
     k: dict[tuple[str, str], float]
     mu: dict[tuple[str, str], float]
+    config: StatModelConfig = DEFAULT_CONFIG
 
 
-def fit_fold(seasons: pd.DataFrame, target: int) -> FoldParams:
+def fit_fold(
+    seasons: pd.DataFrame, target: int, cfg: StatModelConfig = DEFAULT_CONFIG
+) -> FoldParams:
     """Fit k and μ for every (position, stat), using only seasons before ``target``."""
     train = seasons[seasons["season"] < target]
     ks: dict[tuple[str, str], float] = {}
@@ -220,12 +267,12 @@ def fit_fold(seasons: pd.DataFrame, target: int) -> FoldParams:
     for position, chain in CHAINS.items():
         pos_rows = train[train["position"] == position]
         for spec in chain:
-            mu = _prior_mean(pos_rows, spec, target)
+            mu = _prior_mean(pos_rows, spec, target, cfg)
             if mu is None:
                 continue
             mus[(position, spec.name)] = mu
-            ks[(position, spec.name)] = fit_k(pos_rows, spec, target)
-    return FoldParams(target, ks, mus)
+            ks[(position, spec.name)] = fit_k(pos_rows, spec, target, cfg)
+    return FoldParams(target, ks, mus, cfg)
 
 
 def project_rates(
@@ -239,10 +286,11 @@ def project_rates(
     no-shrinkage and position-mean comparators.
     """
     target = params.target_season
+    cfg = params.config
     frames = []
     for position, chain in CHAINS.items():
         pos_rows = seasons[(seasons["position"] == position) & (seasons["season"] < target)]
-        players = pos_rows[pos_rows["season"] >= target - HISTORY_SEASONS]["player_id"].unique()
+        players = pos_rows[pos_rows["season"] >= target - cfg.history_seasons]["player_id"].unique()
         if len(players) == 0:
             continue
         out = pd.DataFrame({"player_id": players, "position": position})
@@ -251,7 +299,7 @@ def project_rates(
             if key not in params.mu:
                 continue
             mu = params.mu[key]
-            hist = _history_totals(pos_rows, spec, target).set_index("player_id")
+            hist = _history_totals(pos_rows, spec, target, cfg).set_index("player_id")
             num_w = hist["num_w"].reindex(players).fillna(0.0).to_numpy(float)
             den_w = hist["den_w"].reindex(players).fillna(0.0).to_numpy(float)
             if k_scale is None:
@@ -302,10 +350,13 @@ def projected_ppg(position: str, r: dict) -> float:
 
 
 def project_season(
-    seasons: pd.DataFrame, target: int, params: FoldParams | None = None
+    seasons: pd.DataFrame,
+    target: int,
+    params: FoldParams | None = None,
+    cfg: StatModelConfig = DEFAULT_CONFIG,
 ) -> dict[str, float]:
-    """player_id → Stage A projected PPG for ``target`` (fits the fold if not given)."""
-    params = params or fit_fold(seasons, target)
+    """player_id → projected PPG for ``target`` (fits the fold with ``cfg`` if not given)."""
+    params = params or fit_fold(seasons, target, cfg)
     rates = project_rates(seasons, params)
     return {
         row["player_id"]: projected_ppg(row["position"], row)

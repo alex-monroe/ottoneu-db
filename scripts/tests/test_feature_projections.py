@@ -43,7 +43,7 @@ from scripts.feature_projections.features.team_qb_quality import (
 )
 from scripts.feature_projections.features.naive_prior_ppg import NaivePriorSeasonPPGFeature
 from scripts.feature_projections.features.position_mean import PositionMeanFeature
-from scripts.feature_projections.features.stat_marcel import StatMarcelBaselineFeature
+from scripts.feature_projections.features.stat_model import StatModelFeature
 from scripts.feature_projections.features.coaching_change import (
     CoachingChangeFeature,
     CoachTenureFeature,
@@ -2861,15 +2861,15 @@ class TestNaivePriorSeasonPPGFeature:
         assert self.feature.compute("p1", "RB", df, pd.DataFrame(), {}) == 9.5
 
 
-class TestStatMarcelBaselineFeature:
-    """Stage A stat baseline: a lookup into the runner's per-season projection map."""
+class TestStatModelFeature:
+    """Stat models: a lookup into the runner's per-season projection map."""
 
     def setup_method(self):
-        self.feature = StatMarcelBaselineFeature()
+        self.feature = StatModelFeature()
 
     def test_is_base(self):
         assert self.feature.is_base is True
-        assert self.feature.name == "stat_marcel_baseline"
+        assert self.feature.name == "stat_model"
 
     def test_returns_player_projection_from_context(self):
         ctx = {"stat_baseline_ppg": {"p1": 12.5, "p2": 3.0}}
