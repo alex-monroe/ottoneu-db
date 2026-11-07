@@ -43,6 +43,7 @@ from scripts.feature_projections.features.team_qb_quality import (
 )
 from scripts.feature_projections.features.naive_prior_ppg import NaivePriorSeasonPPGFeature
 from scripts.feature_projections.features.position_mean import PositionMeanFeature
+from scripts.feature_projections.features.stat_model import StatModelFeature
 from scripts.feature_projections.features.coaching_change import (
     CoachingChangeFeature,
     CoachTenureFeature,
@@ -2858,6 +2859,28 @@ class TestNaivePriorSeasonPPGFeature:
     def test_single_season(self):
         df = make_history_df([{"player_id": "p1", "season": 2024, "ppg": 9.5, "games_played": 10}])
         assert self.feature.compute("p1", "RB", df, pd.DataFrame(), {}) == 9.5
+
+
+class TestStatModelFeature:
+    """Stat models: a lookup into the runner's per-season projection map."""
+
+    def setup_method(self):
+        self.feature = StatModelFeature()
+
+    def test_is_base(self):
+        assert self.feature.is_base is True
+        assert self.feature.name == "stat_model"
+
+    def test_returns_player_projection_from_context(self):
+        ctx = {"stat_baseline_ppg": {"p1": 12.5, "p2": 3.0}}
+        assert self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) == 12.5
+
+    def test_player_missing_from_map_returns_none(self):
+        ctx = {"stat_baseline_ppg": {"p2": 3.0}}
+        assert self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(), ctx) is None
+
+    def test_no_map_returns_none(self):
+        assert self.feature.compute("p1", "WR", pd.DataFrame(), pd.DataFrame(), {}) is None
 
 
 class TestPositionMeanFeature:

@@ -72,6 +72,7 @@ from scripts.feature_projections.features.team_qb_quality import (
 )
 from scripts.feature_projections.features.naive_prior_ppg import NaivePriorSeasonPPGFeature
 from scripts.feature_projections.features.position_mean import PositionMeanFeature
+from scripts.feature_projections.features.stat_model import StatModelFeature
 from scripts.feature_projections.features.coaching_change import (
     CoachingChangeFeature,
     CoachTenureFeature,
@@ -121,6 +122,7 @@ FEATURE_REGISTRY: dict[str, type] = {
     "qb_pass_volume_raw": QBPassVolumeRawFeature,
     "naive_prior_ppg": NaivePriorSeasonPPGFeature,
     "position_mean": PositionMeanFeature,
+    "stat_model": StatModelFeature,
     "coaching_change_raw": CoachingChangeFeature,
     "coach_tenure_raw": CoachTenureFeature,
 }

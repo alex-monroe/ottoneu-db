@@ -72,6 +72,14 @@ point-estimate delta.
 8. **In the PR description**, lead with the held-out + significance result; the
    in-sample accuracy table, if included, must be labelled "in-sample diagnostic".
 
+**Stat-level models (`stat_<stage><NN>_<slug>`)** follow their own two-window
+protocol before they reach this gate: iterate against the *parent* on the
+2023–2024 folds (`just project … 2023,2024`, `just stat-eval --model … --parent …`),
+log every variant in
+[docs/exec-plans/stat-projections/09-stat-model-ledger.md](../../../docs/exec-plans/stat-projections/09-stat-model-ledger.md),
+and run the full gate above only once per promotion candidate. Each new variant
+is a new frozen `StatModelConfig`; never change an existing one.
+
 **Confirmation discipline (#594):** iterate against the rolling folds; the final
 window (2025, then 2026 actuals) is confirmation-only — one look per experiment.
 Promotion requires a *significant* held-out win over the active model.

@@ -20,6 +20,7 @@ from scripts.feature_projections.learned_combiner import (
 )
 from scripts.feature_projections.qb_starters import get_all_starter_ids, is_qb_starter
 from scripts.feature_projections.expected_games import build_expected_games
+from scripts.feature_projections import stat_baseline
 from scripts.name_utils import normalize_player_name
 
 
@@ -518,6 +519,7 @@ def _build_context(
     pooling_k: dict[str, float] | None = None,
     red_zone: dict[tuple[str, int], dict[str, int]] | None = None,
     ngs_passing: dict[tuple[str, int], dict[str, float]] | None = None,
+    stat_baseline_ppg: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     """Build the context dict for a player's feature computation."""
     context: dict[str, Any] = {"target_season": target_season}
@@ -623,6 +625,11 @@ def _build_context(
         )
         context["is_qb_starter"] = is_starter
         context["qb_starters"] = qb_starters
+
+    # Stat-model (stat_*) projections for the target season; fitted once per
+    # season over the whole population.
+    if stat_baseline_ppg is not None:
+        context["stat_baseline_ppg"] = stat_baseline_ppg
 
     return context
 
@@ -796,6 +803,20 @@ def run_model(
     expected_games = build_expected_games(games_stats, pos_map, seasons, "history")
     print(f"Expected-games (history) estimates: {len(expected_games)} (player, season)")
 
+    # Stat-level models (stat_*): need every nfl_stats season since
+    # MIN_DATA_SEASON (k is fitted on all seasons before each target), not just
+    # the 3-season window below. Loaded once; each target season filters to
+    # seasons < target. The model's frozen StatModelConfig picks the iteration.
+    stat_seasons = None
+    stat_config = None
+    if "stat_model" in all_feature_names:
+        stat_config = stat_baseline.get_stat_config(model_name)
+        stat_rows = fetch_multi_season_nfl_stats(
+            list(range(stat_baseline.MIN_DATA_SEASON, max(seasons)))
+        )
+        stat_seasons = stat_baseline.prepare_seasons(stat_rows, pos_map)
+        print(f"Stat model {stat_config.name}: {len(stat_seasons)} player-seasons loaded")
+
     total_records = 0
 
     for target_season in seasons:
@@ -840,6 +861,14 @@ def run_model(
             historical_seasons + [target_season], players_df
         )
 
+        stat_baseline_ppg = None
+        if stat_seasons is not None:
+            stat_baseline_ppg = stat_baseline.project_season(
+                stat_seasons[stat_seasons["season"] < target_season],
+                target_season,
+                cfg=stat_config,
+            )
+
         # Generate projections for each player
         records = []
         for player_id, player_history in history_df.groupby("player_id"):
@@ -872,6 +901,7 @@ def run_model(
                 pooling_k=pooling_k,
                 red_zone=red_zone_lookup,
                 ngs_passing=ngs_passing_lookup,
+                stat_baseline_ppg=stat_baseline_ppg,
             )
 
             # Resolve position-specific features. For residual models, the

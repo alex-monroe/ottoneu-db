@@ -7,6 +7,7 @@ Inputs (same folder):
 - [03-weight-space.md](03-weight-space.md): weight-space programming, weight-space learning and merging, and the Bayesian weight-space view
 - [04-internal-audit.md](04-internal-audit.md): data inventory, harness integration, lessons from 40+ experiments, baselines
 - [05](05-information-calendar-external.md) / [06](06-vintages-and-internal-calendar.md) / [07](07-projection-calendar.md): information calendar, vintages, as-of data audit
+- [09-stat-model-ledger.md](09-stat-model-ledger.md): stat-model naming (`stat_<stage><NN>_<slug>`), iteration protocol, and the ledger of every variant
 - [08-stability-study.md](08-stability-study.md): our own YoY / split-half reliability, fitted EB pseudo-counts per stat, lag weights, team-share carry-over (sets Stage A parameters)
 
 Each report tags claims as verified, from memory, or opinion. This synthesis inherits those caveats.
@@ -136,4 +137,7 @@ The harness scores each vintage, and the deltas between adjacent vintages measur
 
 1. **Data:** a team-season volume table + extras-column decision + scoring-parity test + stability study notebook/report.
 2. **Stage A:** a Marcel-plus stat baseline + per-stat eval diagnostic, run through the rolling harness vs naive and v44.
+   - **Status (2026-11-06):** built as `stat_a01_marcel` (`scripts/feature_projections/stat_baseline.py`; per-stat eval `just stat-eval` → [stat-eval.md](../../generated/stat-eval.md)). Per stat, it beats or ties the prior-season rate and the position mean nearly everywhere (2019–2024 folds). **PPG gate (rolling 2023–25): significant loss to v44.** Pooled MAE 2.388 vs 2.152 (Δ +0.216, CI [+0.139, +0.292]), and WR ρ is also significantly worse (−0.031). QB/RB/TE ordering is not separable. Its MAE edge over naive prior-season PPG (−0.054) is not significant. It wins at K (1.34 vs 1.60).
+   - **Diagnosis:** on the gate population (Ottoneu `player_stats` players) Stage A over-projects: QB +1.69, WR +0.90, RB +0.65, TE +0.46 PPG. A per-position level fix would cut pooled MAE to ~2.24 (in-sample upper bound), so about two-thirds of the gap is calibration. Likely cause: no age adjustment, on a fantasy-relevant, veteran-heavy population. Next: an in-fold age adjustment per stat (`stat_a02_age`), iterated on the 2023–2024 folds only (2025 has had its one look).
+   - **Naming, iteration protocol and the record of every stat-model variant:** [09-stat-model-ledger.md](09-stat-model-ledger.md). Stat models are `stat_<stage><NN>_<slug>`, separate from the `vNN_` PPG lineage.
 3. **Games-played wiring**, then Stage B.

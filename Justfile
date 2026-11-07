@@ -237,6 +237,11 @@ train model seasons="2021,2022,2023,2024,2025":
 holdout-eval *args:
     {{python}} scripts/feature_projections/holdout_eval.py {{args}}
 
+# Per-stat held-out eval of a stat_* model vs its parent, naive prior-season rate and position mean
+#   e.g. just stat-eval --model stat_a02_age --parent stat_a01_marcel  (protocol: docs/exec-plans/stat-projections/09-stat-model-ledger.md)
+stat-eval *args:
+    {{python}} -m scripts.feature_projections.stat_eval {{args}}
+
 # Keeper outlook (option value) backtest: leakage-free rolling origin, prior vs shrunk vs point
 #   e.g. just keeper-backtest --as-of-week 12 0 --confirm --output docs/generated/keeper-value-backtest.md
 keeper-backtest *args:
