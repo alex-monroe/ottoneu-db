@@ -1752,6 +1752,7 @@ export type Database = {
           is_college: boolean
           name: string
           nfl_team: string | null
+          nflverse_birth_date: string | null
           ottoneu_id: number
           position: string | null
           updated_at: string
@@ -1764,6 +1765,7 @@ export type Database = {
           is_college?: boolean
           name: string
           nfl_team?: string | null
+          nflverse_birth_date?: string | null
           ottoneu_id: number
           position?: string | null
           updated_at?: string
@@ -1776,6 +1778,7 @@ export type Database = {
           is_college?: boolean
           name?: string
           nfl_team?: string | null
+          nflverse_birth_date?: string | null
           ottoneu_id?: number
           position?: string | null
           updated_at?: string

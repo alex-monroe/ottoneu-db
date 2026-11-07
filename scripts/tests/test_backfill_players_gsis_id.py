@@ -97,3 +97,15 @@ def test_unmatched_college_player(sample_registry: pd.DataFrame):
     mapping, stats = resolve_players_gsis_id(players, weekly_rows, sample_registry)
     assert "p_college" not in mapping
     assert stats["unmatched"] == 1
+
+
+def test_resolve_nflverse_birth_dates_joins_on_gsis_id():
+    from scripts.backfill_players_gsis_id import resolve_nflverse_birth_dates
+
+    registry = pd.DataFrame([
+        {"gsis_id": "00-1", "birth_date": "1995-09-17"},
+        {"gsis_id": "00-2", "birth_date": None},
+    ])
+    out = resolve_nflverse_birth_dates({"p1": "00-1", "p2": "00-2", "p3": "00-9"}, registry)
+    # p2 has no registry birth date, p3's gsis_id is not in the registry.
+    assert out == {"p1": "1995-09-17"}

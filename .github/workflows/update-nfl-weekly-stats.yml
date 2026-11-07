@@ -106,6 +106,18 @@ jobs:
           fi
           python scripts/backfill_nfl_team_volume.py $ARGS
 
+      # Runs after the stats refreshes so players they just created get a
+      # gsis_id and an nflverse_birth_date (ages for the stat_* models).
+      - name: Refresh players.gsis_id and nflverse_birth_date
+        env:
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          ARGS=""
+          if [ "$INPUT_DRY_RUN" = "true" ]; then
+            ARGS="--dry-run"
+          fi
+          python scripts/backfill_players_gsis_id.py $ARGS
+
       # Push the fresh rows to the site now rather than on each page's
       # revalidate timer. Skips quietly until REVALIDATE_SECRET is set.
       - name: Revalidate site

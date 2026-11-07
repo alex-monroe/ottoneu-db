@@ -1248,6 +1248,20 @@ MODELS: dict[str, ModelDefinition] = {
         ),
         features=["stat_model"],
     ),
+    "stat_a02_age": ModelDefinition(
+        name="stat_a02_age",
+        status="baseline",
+        version=1,
+        description=(
+            "Stat model, Stage A iteration 02 (parent stat_a01_marcel; ledger: "
+            "docs/exec-plans/stat-projections/09-stat-model-ledger.md): a01 plus an "
+            "age curve per (position, stat) — each shrunk stat is multiplied by "
+            "1 + b1·x + b2·x², x = clipped age − 27 in the target season, with "
+            "(b1, b2) fitted on a01's residuals over seasons before the target. "
+            "Ages from players.nflverse_birth_date (migration 064)."
+        ),
+        features=["stat_model"],
+    ),
     "external_fantasypros_v1": ModelDefinition(
         name="external_fantasypros_v1",
         status="external",

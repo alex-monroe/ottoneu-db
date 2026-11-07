@@ -58,6 +58,11 @@ MIN_DATA_SEASON = 2010
 # attempts/targets up to several hundred per season).
 K_GRID: np.ndarray = np.concatenate([[0.0], np.geomspace(0.05, 1e5, 90)])
 
+# Season ages are measured on this date (month, day): roughly Week 1.
+AGE_REFERENCE = (9, 1)
+# Clip on the fitted age multiplier, against a wild quadratic at a thin edge.
+AGE_MULT_CLIP = (0.5, 1.5)
+
 # Minimum training pairs to fit k; below this the stat falls back to FALLBACK_K.
 MIN_FIT_PAIRS = 30
 FALLBACK_K = {"volume": 3.0, "rate": 200.0}
@@ -76,11 +81,19 @@ class StatModelConfig:
     rate_weights: tuple[float, ...] = (1.0, 0.32 / 0.45, 0.23 / 0.45)
     history_seasons: int = 3
     k_grid: tuple[float, ...] = field(default_factory=lambda: tuple(K_GRID))
+    # stat_a02+: multiply each shrunk stat by an age curve 1 + b1·x + b2·x²,
+    # x = clip(age, age_clip) − age_center, with (b1, b2) fitted per (position,
+    # stat) on the residuals of the shrunk prediction, seasons < target only.
+    age_adjust: bool = False
+    age_center: float = 27.0
+    age_clip: tuple[float, float] = (21.0, 36.0)
 
 
 STAT_MODEL_CONFIGS: dict[str, StatModelConfig] = {
     # Stage A, iteration 01: recency-weighted per-stat shrinkage, k fitted in-fold.
     "stat_a01_marcel": StatModelConfig(name="stat_a01_marcel"),
+    # Stage A, iteration 02: a01 + in-fold quadratic age curve per (position, stat).
+    "stat_a02_age": StatModelConfig(name="stat_a02_age", age_adjust=True),
 }
 
 # The config the module-level defaults below describe (tests, ad-hoc use).
@@ -160,11 +173,17 @@ _RAW_COLS = [
 ]
 
 
-def prepare_seasons(nfl_stats: pd.DataFrame, positions: dict[str, str]) -> pd.DataFrame:
+def prepare_seasons(
+    nfl_stats: pd.DataFrame,
+    positions: dict[str, str],
+    birth_dates: dict[str, object] | None = None,
+) -> pd.DataFrame:
     """Season-total frame keyed by (player_id, season) with position and derived columns.
 
-    ``nfl_stats`` is raw ``nfl_stats`` rows; ``positions`` maps player_id → position.
-    Rows with no games, or a position outside ``CHAINS``, are dropped.
+    ``nfl_stats`` is raw ``nfl_stats`` rows; ``positions`` maps player_id → position;
+    ``birth_dates`` (optional) maps player_id → birth date, giving an ``age`` column
+    (years on Sep 1 of the season; NaN when unknown). Rows with no games, or a
+    position outside ``CHAINS``, are dropped.
     """
     df = nfl_stats.copy()
     df["player_id"] = df["player_id"].astype(str)
@@ -177,7 +196,14 @@ def prepare_seasons(nfl_stats: pd.DataFrame, positions: dict[str, str]) -> pd.Da
     df["touches"] = df["rushing_attempts"] + df["receptions"]
     df = df[df["games"] > 0].dropna(subset=["season"])
     df["season"] = df["season"].astype(int)
-    return df[["player_id", "season", "position", "games", "touches", *_RAW_COLS]].reset_index(drop=True)
+    df["age"] = np.nan
+    if birth_dates:
+        born = pd.to_datetime(df["player_id"].map(birth_dates), errors="coerce")
+        ref = pd.to_datetime(
+            {"year": df["season"], "month": AGE_REFERENCE[0], "day": AGE_REFERENCE[1]}
+        )
+        df["age"] = (ref - born).dt.days / 365.25
+    return df[["player_id", "season", "position", "games", "touches", "age", *_RAW_COLS]].reset_index(drop=True)
 
 
 def _weights(spec: StatSpec, cfg: StatModelConfig) -> tuple[float, ...]:
@@ -214,17 +240,17 @@ def _shrunk(num_w: np.ndarray, den_w: np.ndarray, k: float, mu: float) -> np.nda
     return (num_w + k * mu) / (den_w + k)
 
 
-def fit_k(
-    seasons: pd.DataFrame, spec: StatSpec, target: int, cfg: StatModelConfig = DEFAULT_CONFIG
-) -> float:
-    """Pseudo-count minimising next-season weighted squared error, seasons < target only.
+def _training_pairs(
+    seasons: pd.DataFrame, spec: StatSpec, target: int, cfg: StatModelConfig
+) -> Optional[dict[str, np.ndarray]]:
+    """Leakage-free (history → next season) pairs for one stat, seasons < target only.
 
-    Training pairs: for every season ``s`` with ``MIN_DATA_SEASON < s < target``,
-    predict each player's season-``s`` rate from their seasons ``s-3..s-1``. The
-    loss is weighted by the season-``s`` opportunity count, the natural weight
-    for a rate whose sampling variance shrinks as 1/n.
+    For every season ``s`` with ``MIN_DATA_SEASON < s < target``: each player's
+    recency-weighted history over ``s-3..s-1`` (``num``, ``den``), the prior mean
+    ``mu``, the actual season-``s`` rate ``y``, its opportunity count ``wt`` and the
+    player's ``age`` in season ``s``. ``None`` when there are too few pairs.
     """
-    nums, dens, ys, wts, mus = [], [], [], [], []
+    nums, dens, ys, wts, mus, ages = [], [], [], [], [], []
     for s in range(MIN_DATA_SEASON + 1, target):
         mu = _prior_mean(seasons, spec, s, cfg)
         if mu is None:
@@ -232,7 +258,7 @@ def fit_k(
         hist = _history_totals(seasons, spec, s, cfg)
         hist = hist[hist["den_w"] > 0]
         actual = seasons[(seasons["season"] == s) & (seasons[spec.den] > 0)]
-        pairs = hist.merge(actual[["player_id", spec.num, spec.den]], on="player_id")
+        pairs = hist.merge(actual[["player_id", spec.num, spec.den, "age"]], on="player_id")
         if pairs.empty:
             continue
         nums.append(pairs["num_w"].to_numpy(float))
@@ -240,11 +266,66 @@ def fit_k(
         ys.append((pairs[spec.num] / pairs[spec.den]).to_numpy(float))
         wts.append(pairs[spec.den].to_numpy(float))
         mus.append(np.full(len(pairs), mu))
+        ages.append(pairs["age"].to_numpy(float))
     if not nums or sum(len(a) for a in nums) < MIN_FIT_PAIRS:
+        return None
+    keys = ("num", "den", "y", "wt", "mu", "age")
+    return {k: np.concatenate(a) for k, a in zip(keys, (nums, dens, ys, wts, mus, ages))}
+
+
+def fit_k(
+    seasons: pd.DataFrame, spec: StatSpec, target: int, cfg: StatModelConfig = DEFAULT_CONFIG
+) -> float:
+    """Pseudo-count minimising next-season weighted squared error, seasons < target only.
+
+    Training pairs come from ``_training_pairs``. The loss is weighted by the
+    season-``s`` opportunity count, the natural weight for a rate whose sampling
+    variance shrinks as 1/n.
+    """
+    pairs = _training_pairs(seasons, spec, target, cfg)
+    if pairs is None:
         return FALLBACK_K[spec.kind]
-    num, den, y, wt, mu = (np.concatenate(a) for a in (nums, dens, ys, wts, mus))
+    return _best_k(pairs, cfg)
+
+
+def _best_k(pairs: dict[str, np.ndarray], cfg: StatModelConfig) -> float:
+    num, den, y, wt, mu = (pairs[k] for k in ("num", "den", "y", "wt", "mu"))
     losses = [float(np.sum(wt * (_shrunk(num, den, k, mu) - y) ** 2)) for k in cfg.k_grid]
     return float(cfg.k_grid[int(np.argmin(losses))])
+
+
+def _age_x(age: np.ndarray, cfg: StatModelConfig) -> np.ndarray:
+    return np.clip(age, *cfg.age_clip) - cfg.age_center
+
+
+def age_multiplier(age: np.ndarray, coef: tuple[float, float], cfg: StatModelConfig) -> np.ndarray:
+    """1 + b1·x + b2·x², clipped; 1.0 where age is unknown."""
+    x = _age_x(np.asarray(age, dtype=float), cfg)
+    m = np.clip(1.0 + coef[0] * x + coef[1] * x**2, *AGE_MULT_CLIP)
+    return np.where(np.isnan(x), 1.0, m)
+
+
+def fit_age_curve(
+    pairs: dict[str, np.ndarray], k: float, cfg: StatModelConfig
+) -> tuple[float, float]:
+    """(b1, b2) for y ≈ pred·(1 + b1·x + b2·x²) by opportunity-weighted least squares.
+
+    ``pred`` is the shrunk prediction with the fold's fitted ``k``; pairs with no
+    known age are left out. Linear in (b1, b2): (y − pred) = pred·x·b1 + pred·x²·b2.
+    Returns (0, 0) (no adjustment) when the system is degenerate.
+    """
+    pred = _shrunk(pairs["num"], pairs["den"], k, pairs["mu"])
+    ok = ~np.isnan(pairs["age"]) & np.isfinite(pred)
+    if ok.sum() < MIN_FIT_PAIRS:
+        return (0.0, 0.0)
+    x = _age_x(pairs["age"][ok], cfg)
+    p, y, w = pred[ok], pairs["y"][ok], pairs["wt"][ok]
+    design = np.column_stack([p * x, p * x**2])
+    sw = np.sqrt(w)
+    coef, *_ = np.linalg.lstsq(design * sw[:, None], (y - p) * sw, rcond=None)
+    if not np.all(np.isfinite(coef)):
+        return (0.0, 0.0)
+    return (float(coef[0]), float(coef[1]))
 
 
 @dataclass
@@ -255,6 +336,8 @@ class FoldParams:
     k: dict[tuple[str, str], float]
     mu: dict[tuple[str, str], float]
     config: StatModelConfig = DEFAULT_CONFIG
+    # (b1, b2) of the age curve per (position, stat); empty unless cfg.age_adjust.
+    age: dict[tuple[str, str], tuple[float, float]] = field(default_factory=dict)
 
 
 def fit_fold(
@@ -264,15 +347,20 @@ def fit_fold(
     train = seasons[seasons["season"] < target]
     ks: dict[tuple[str, str], float] = {}
     mus: dict[tuple[str, str], float] = {}
+    ages: dict[tuple[str, str], tuple[float, float]] = {}
     for position, chain in CHAINS.items():
         pos_rows = train[train["position"] == position]
         for spec in chain:
             mu = _prior_mean(pos_rows, spec, target, cfg)
             if mu is None:
                 continue
-            mus[(position, spec.name)] = mu
-            ks[(position, spec.name)] = fit_k(pos_rows, spec, target, cfg)
-    return FoldParams(target, ks, mus, cfg)
+            key = (position, spec.name)
+            mus[key] = mu
+            pairs = _training_pairs(pos_rows, spec, target, cfg)
+            ks[key] = FALLBACK_K[spec.kind] if pairs is None else _best_k(pairs, cfg)
+            if cfg.age_adjust and pairs is not None:
+                ages[key] = fit_age_curve(pairs, ks[key], cfg)
+    return FoldParams(target, ks, mus, cfg, ages)
 
 
 def project_rates(
@@ -283,7 +371,9 @@ def project_rates(
     Returns one row per (player_id, position) with a column per stat name.
     ``k_scale`` multiplies every fitted k (1.0 = the model; 0 = raw weighted rate;
     ``None`` = the prior mean itself), which the per-stat eval uses for its
-    no-shrinkage and position-mean comparators.
+    no-shrinkage and position-mean comparators. When the fold has an age curve
+    (``cfg.age_adjust``), shrunk rates are multiplied by it at the player's age in
+    the target season; the position-mean comparator is left unadjusted.
     """
     target = params.target_season
     cfg = params.config
@@ -294,6 +384,10 @@ def project_rates(
         if len(players) == 0:
             continue
         out = pd.DataFrame({"player_id": players, "position": position})
+        target_age = None
+        if params.age:
+            last = pos_rows.sort_values("season").groupby("player_id").tail(1).set_index("player_id")
+            target_age = (last["age"] + (target - last["season"])).reindex(players).to_numpy(float)
         for spec in chain:
             key = (position, spec.name)
             if key not in params.mu:
@@ -309,6 +403,8 @@ def project_rates(
                 with np.errstate(invalid="ignore", divide="ignore"):
                     vals = _shrunk(num_w, den_w, k, mu)
                 vals = np.where(den_w + k > 0, vals, mu)
+                if target_age is not None and key in params.age:
+                    vals = vals * age_multiplier(target_age, params.age[key], cfg)
             out[spec.name] = vals
         frames.append(out)
     if not frames:

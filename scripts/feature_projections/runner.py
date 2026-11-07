@@ -766,7 +766,9 @@ def run_model(
 
 
     # Fetch players table
-    players_data = fetch_all_rows(supabase, "players", "id, name, position, nfl_team, birth_date, is_college")
+    players_data = fetch_all_rows(
+        supabase, "players", "id, name, position, nfl_team, birth_date, is_college, nflverse_birth_date"
+    )
     players_df = pd.DataFrame(players_data)
     players_df = players_df.rename(columns={"id": "player_id_ref"})
 
@@ -814,7 +816,8 @@ def run_model(
         stat_rows = fetch_multi_season_nfl_stats(
             list(range(stat_baseline.MIN_DATA_SEASON, max(seasons)))
         )
-        stat_seasons = stat_baseline.prepare_seasons(stat_rows, pos_map)
+        birth_map = dict(zip(players_df["player_id_ref"], players_df["nflverse_birth_date"]))
+        stat_seasons = stat_baseline.prepare_seasons(stat_rows, pos_map, birth_map)
         print(f"Stat model {stat_config.name}: {len(stat_seasons)} player-seasons loaded")
 
     total_records = 0

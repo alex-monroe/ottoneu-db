@@ -188,10 +188,11 @@ def render(
 
 def load_seasons(last_season: int) -> pd.DataFrame:
     supabase = get_supabase_client()
-    players = fetch_all_rows(supabase, "players", "id, position")
+    players = fetch_all_rows(supabase, "players", "id, position, nflverse_birth_date")
     positions = {str(p["id"]): p["position"] for p in players}
+    births = {str(p["id"]): p.get("nflverse_birth_date") for p in players}
     rows = fetch_multi_season_nfl_stats(list(range(sb.MIN_DATA_SEASON, last_season + 1)))
-    return sb.prepare_seasons(rows, positions)
+    return sb.prepare_seasons(rows, positions, births)
 
 
 def main() -> None:
