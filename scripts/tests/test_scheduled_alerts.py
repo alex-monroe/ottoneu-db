@@ -112,3 +112,12 @@ def test_recency_limits_name_real_scheduled_workflows():
         f"WORKFLOW_MAX_AGE_DAYS in scripts/check_data_freshness.py names {sorted(unknown)}, "
         "which are not scheduled workflow files in .github/workflows/."
     )
+
+
+def test_nfl_weekly_stats_workflow_installs_requests():
+    """backfill_players_gsis_id.py imports scripts.keeper_value.nflverse, which needs
+    `requests`; the workflow installs deps by hand with `--no-deps`, so it must list it
+    (run 42866956614 failed with ModuleNotFoundError)."""
+    text = (WORKFLOWS / "update-nfl-weekly-stats.yml").read_text()
+    installs = [l for l in text.splitlines() if l.strip().startswith("pip install ") and "--no-deps" not in l]
+    assert any(re.search(r"\brequests\b", l) for l in installs)
