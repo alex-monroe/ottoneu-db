@@ -17,6 +17,7 @@ import {
   isCompleteBallot,
   lastGames,
   movementLabel,
+  resolveRankingWeek,
   submittedOnly,
   type Ballot,
 } from "@/lib/power-rankings";
@@ -385,5 +386,28 @@ describe("lastGames", () => {
 
   it("is empty in week 1", () => {
     expect(lastGames(MATCHUPS, 1)).toEqual({});
+  });
+});
+
+describe("resolveRankingWeek", () => {
+  it("defaults to the upcoming week", () => {
+    expect(resolveRankingWeek(10, undefined, false)).toEqual({ week: 10, maxWeek: 10 });
+    expect(resolveRankingWeek(10, undefined, true)).toEqual({ week: 10, maxWeek: 11 });
+  });
+
+  it("clamps a future week unless the page opts into next week", () => {
+    expect(resolveRankingWeek(10, 11, false).week).toBe(10);
+    expect(resolveRankingWeek(10, 11, true).week).toBe(11);
+    // Only one week ahead, never two.
+    expect(resolveRankingWeek(10, 12, true).week).toBe(10);
+  });
+
+  it("still allows past weeks", () => {
+    expect(resolveRankingWeek(10, 3, true).week).toBe(3);
+  });
+
+  it("never opens a week past the regular season, or out of season", () => {
+    expect(resolveRankingWeek(18, 19, true)).toEqual({ week: 18, maxWeek: 18 });
+    expect(resolveRankingWeek(null, 2, true)).toEqual({ week: 1, maxWeek: 1 });
   });
 });
