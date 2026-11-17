@@ -63,7 +63,7 @@
 
 import { cache } from "react";
 import { fetchAllRows, getSupabaseAdmin } from "./supabase";
-import { LEAGUE_ID } from "./config";
+import { LEAGUE_ID, NFL_REGULAR_SEASON_WEEKS } from "./config";
 import { getDisplayWeeks } from "./nfl-week";
 import { getLeagueStatus } from "./matchups";
 import { getLeagueSeason } from "./season";
@@ -599,6 +599,31 @@ export interface PowerRankingContext {
 }
 
 /**
+ * Which week a power-ranking page shows, and the highest week it may switch to.
+ *
+ * Pure; see {@link fetchPowerRankingContext}. `upcoming` is the display week
+ * (null out of season). The default is always the upcoming week; `allowNextWeek`
+ * only widens what an explicit request may reach, by one week, and only in
+ * season (past Week 18 there is no next slate to open early).
+ */
+export function resolveRankingWeek(
+  upcoming: number | null,
+  requestedWeek: number | undefined,
+  allowNextWeek: boolean,
+): { week: number; maxWeek: number } {
+  const latestWeek = Math.max(upcoming ?? 1, 1);
+  const maxWeek =
+    allowNextWeek && upcoming != null
+      ? Math.min(latestWeek + 1, NFL_REGULAR_SEASON_WEEKS)
+      : latestWeek;
+  const week =
+    requestedWeek && requestedWeek >= 1 && requestedWeek <= maxWeek
+      ? requestedWeek
+      : latestWeek;
+  return { week, maxWeek };
+}
+
+/**
  * Resolve the week being ranked and everything both podcast pages need about
  * the league.
  *
@@ -606,9 +631,16 @@ export interface PowerRankingContext {
  * "pre week 3" is what you record on the Tuesday that week 3 opens, which is
  * exactly the boundary `nfl-week.ts` flips on. Out of season there is no
  * upcoming week and it falls back to 1.
+ *
+ * `allowNextWeek` (host pages only) lets an explicit `requestedWeek` reach one
+ * week past the upcoming slate, so the hosts can open next week's ballot before
+ * the Tuesday flip when they record early — e.g. on Monday night, with the
+ * Monday-nighter's result still pending. The default week does not move, and
+ * listener-facing pages never pass it.
  */
 export async function fetchPowerRankingContext(
   requestedWeek?: number,
+  { allowNextWeek = false }: { allowNextWeek?: boolean } = {},
 ): Promise<PowerRankingContext> {
   const [display, league, leagueSeason, allTeams] = await Promise.all([
     getDisplayWeeks(),
@@ -618,11 +650,7 @@ export async function fetchPowerRankingContext(
   ]);
 
   const season = display.season ?? league?.season ?? leagueSeason;
-  const latestWeek = Math.max(display.upcoming ?? 1, 1);
-  const week =
-    requestedWeek && requestedWeek >= 1 && requestedWeek <= latestWeek
-      ? requestedWeek
-      : latestWeek;
+  const { week, maxWeek } = resolveRankingWeek(display.upcoming, requestedWeek, allowNextWeek);
 
   const standings = league?.standings ?? [];
   // Only the league's own season: ranking an old season's week against this
@@ -648,7 +676,7 @@ export async function fetchPowerRankingContext(
   return {
     season,
     week,
-    weeks: Array.from({ length: latestWeek }, (_, i) => i + 1),
+    weeks: Array.from({ length: maxWeek }, (_, i) => i + 1),
     teams: teams.length > 0 ? teams : allTeams,
     records,
   };

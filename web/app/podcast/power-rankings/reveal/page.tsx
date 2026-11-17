@@ -28,6 +28,7 @@ export default async function PowerRankingRevealPage({ searchParams }: Props) {
   const requested = weekParam ? Number.parseInt(weekParam, 10) : undefined;
   const ctx = await fetchPowerRankingContext(
     Number.isFinite(requested) ? requested : undefined,
+    { allowNextWeek: true },
   );
   const rankings = await fetchWeekRankings(ctx.season, ctx.week, ctx.teams);
 

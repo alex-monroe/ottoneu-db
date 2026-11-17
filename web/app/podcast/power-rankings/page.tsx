@@ -28,6 +28,7 @@ export default async function PowerRankingBallotPage({ searchParams }: Props) {
   const requested = weekParam ? Number.parseInt(weekParam, 10) : undefined;
   const ctx = await fetchPowerRankingContext(
     Number.isFinite(requested) ? requested : undefined,
+    { allowNextWeek: true },
   );
 
   // The snapshots cost a roster reconstruction, which is the same work
