@@ -1,0 +1,10 @@
+[Unit]
+Description=Check every minute whether the live score worm should run
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+AccuracySec=5s
+Unit=ottoneu-live-worm.service
+
+[Install]
+WantedBy=timers.target
