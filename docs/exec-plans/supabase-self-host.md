@@ -2,7 +2,7 @@
 
 **Status:** Proposed (2026-11-22). Nothing is built yet. Phase 0 has D1 (one
 project) and D2 (cost: $25/month hosted) decided, with recommendations for the
-rest, and D3 (`db.rosterloom.com`); D4 still needs a check in the fantasy-pulse repo.
+rest, D3 (`db.rosterloom.com`, A record added) and D4 (no direct Postgres).
 
 **Goal:** move the shared Supabase database off the hosted platform onto the
 droplet (`sofa-db-server`, 138.68.230.37, SFO2, Ubuntu 24.04, user `deploy`). It
@@ -62,14 +62,12 @@ stays untouched as the rollback until the new one has run cleanly for two weeks.
   - The API is then `https://db.rosterloom.com`, and Caddy gets its certificate
     automatically.
   - The site and the apex are unaffected.
-- **D4. Does fantasy-pulse connect to Postgres directly?** It has
-  `POSTGRES_URL` / `POSTGRES_PRISMA_URL`.
-  - If its code uses them (Prisma, `pg`, Drizzle), the stack needs Supavisor
-    and a TLS-protected Postgres port open to Vercel. That is a bigger exposure
-    and ~200 MB more RAM.
-  - If it only uses supabase-js, skip Supavisor.
-
-  Check in the fantasy-pulse repo.
+- **D4. Does fantasy-pulse connect to Postgres directly? Decided: don't
+  support it.** fantasy-pulse is due for a rewrite, so the stack has no
+  Supavisor and no public Postgres port. If its current code uses
+  `POSTGRES_URL` / `POSTGRES_PRISMA_URL` (Prisma, `pg`, Drizzle), those paths
+  break at cutover until the rewrite moves them to supabase-js or the REST API.
+  Its sign-in (GoTrue) and its `fp_*` RPCs over REST keep working.
 - **D5. Droplet size. Recommended: stay at 2 GB.** Cost is the reason to
   self-host, and 4 GB ($24/month) would make the move about break-even. The
   stripped-down stack (Phase 1) needs ~0.4 GB, the jobs ~0.3 GB at their peak,
@@ -102,8 +100,8 @@ stays untouched as the rollback until the new one has run cleanly for two weeks.
    Copy `docker/` to `/opt/supabase` and follow the Postgres 17 guide. Pin every
    image tag. Keep the upstream `docker-compose.yml` unchanged and put all
    changes in `docker-compose.override.yml`, so upgrades are a diff.
-2. **Run only the stripped-down core: `db`, `rest`, `auth` and `kong`.** Add
-   `supavisor` only if D4 says so.
+2. **Run only the stripped-down core: `db`, `rest`, `auth` and `kong`.** No `supavisor`
+   (D4).
    - That is Postgres, the REST API both apps and the scrapers use, sign-in for
      fantasy-pulse, and the gateway that checks API keys.
    - `meta` (postgres-meta) isn't needed: `supabase gen types --db-url` runs
