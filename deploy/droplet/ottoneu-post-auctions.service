@@ -1,8 +1,7 @@
 # Post Auctions on the droplet: scrape the public auctions page, then post what
 # opened or closed to the league's #auctions channel. Started every five minutes
-# by ottoneu-post-auctions.timer; GitHub's post-auctions.yml stays on an hourly
-# fallback schedule. Overlapping runs never post twice: discord_posts is claimed
-# before each send.
+# by ottoneu-post-auctions.timer. Overlapping runs never post twice:
+# discord_posts is claimed before each send.
 [Unit]
 Description=Ottoneu FA auctions to Discord
 After=network-online.target
@@ -16,7 +15,8 @@ Environment=PYTHONUNBUFFERED=1
 # The league #auctions channel, not the general one the other feed posts use.
 Environment=DISCORD_CHANNEL_ID=1409590042422149211
 Environment=SITE_URL=https://sofa-db.vercel.app
-ExecStart=/home/deploy/ottoneu-db/deploy/droplet/post-auctions.sh
+# run-checked.sh reports each run to Healthchecks (check `post-auctions`).
+ExecStart=/home/deploy/ottoneu-db/deploy/droplet/run-checked.sh post-auctions /home/deploy/ottoneu-db/deploy/droplet/post-auctions.sh
 TimeoutStartSec=8min
 Nice=5
 MemoryMax=600M

@@ -7,13 +7,11 @@ name: Post Auctions
 # writes fa_market / fa_auction_results, and the discord_posts log remembers
 # what has been said (docs/references/discord-feed.md).
 #
-# The DigitalOcean droplet runs these same steps every five minutes
-# (deploy/droplet/post-auctions.sh), because GitHub started the old ten-minute
-# schedule far too late to announce an auction promptly. This hourly schedule is
-# the fallback if the droplet is down. Overlapping runs never post twice:
-# discord_posts is claimed before each send. Each run is one plain-HTTP page
-# load (no login, no browser) plus one per newly closed auction — the logged-in,
-# every-three-hours Scrape FA Market run still owns the waiver rows and auction ids.
+# The DigitalOcean droplet runs these steps every five minutes
+# (deploy/droplet/post-auctions.sh, a systemd timer), because GitHub started the
+# old ten-minute schedule far too late. This workflow has no schedule now; it is
+# kept for one-off manual runs (dry run, or the cut-over seed). Each run is one
+# plain-HTTP page load (no login, no browser) plus one per newly closed auction.
 
 on:
   workflow_dispatch:
@@ -26,9 +24,6 @@ on:
         description: "Record what is due as posted without sending (one-time cut-over from the old bot)"
         type: boolean
         default: false
-
-  schedule:
-    - cron: "7 * * * *"
 
 permissions:
   contents: read

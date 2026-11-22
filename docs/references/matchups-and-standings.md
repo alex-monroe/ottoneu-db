@@ -11,7 +11,7 @@ that knows the league has games.
 | **Derivation** | `web/lib/standings.ts` + `web/lib/live-matchup.ts` + `web/lib/playoff-odds.ts` + `web/lib/score-worm.ts` (pure) · `web/lib/matchups.ts` + `web/lib/matchup-lineups.ts` + `web/lib/playoff-odds-data.ts` (fetchers) |
 | **Routes** | `/scoreboard` and `/scoreboard/[gameId]` (public) · the homepage league-status section |
 | **MCP tools** | `get_scoreboard` · `get_standings` (incl. playoff odds) |
-| **Workflow** | `.github/workflows/pull-matchups.yml` · `.github/workflows/rebuild-score-worms.yml` · `.github/workflows/live-score-worm.yml` (started by Supabase pg_cron, not GitHub's cron) |
+| **Workflow** | `.github/workflows/pull-matchups.yml` · `.github/workflows/rebuild-score-worms.yml` · `deploy/droplet/ottoneu-live-worm.*` (a systemd timer on the DigitalOcean droplet; `.github/workflows/live-score-worm.yml` is manual only) |
 
 ## The one design decision: standings are derived, not scraped
 
@@ -385,19 +385,20 @@ Win %, and the cone) for games in progress, with no separate chart code.
   total can sit a little below Ottoneu's as well as above it: the two feeds
   score a play a minute or two apart, and a lateral is not modelled.
 
-##### What runs it: pg_cron → a looping GitHub Actions job
+##### What runs it: a timer on the droplet → a looping job
 
 GitHub's cron can't drive minute-by-minute updates: on Nov 1, 2026 Pull
-Matchups' Sunday window hadn't fired once by 18:30 UTC. So
-`.github/workflows/live-score-worm.yml` has no schedule. Supabase **pg_cron**
-starts it on time through `workflow_dispatch`, and the job then loops on its own:
+Matchups' Sunday window hadn't fired once by 18:30 UTC. Supabase pg_cron
+dispatched `.github/workflows/live-score-worm.yml` instead (migration 059)
+until the worm moved to the DigitalOcean droplet; migration 065 unscheduled
+that, and the workflow is manual only now.
 
-- `dispatch_live_worm()` (migration 059) runs every 5 minutes. It POSTs a
-  dispatch (pg_net, with a GitHub token from Supabase Vault named
-  `github_actions_dispatch`) when the next kickoff in `live_worm_state` is less
+- A systemd timer on the droplet starts
+  `live_score_worm.py --loop --if-due` every minute (`deploy/droplet/`).
+  `--if-due` exits at once unless the next kickoff in `live_worm_state` is less
   than 15 minutes away or already past, no heartbeat has arrived in 3 minutes,
-  and nothing was dispatched in the last 10. Until the Vault secret exists, it
-  does nothing.
+  and no GitHub dispatch is pending (the test `dispatch_live_worm()` made).
+  Each run reports to Healthchecks.io (check `live-worm`).
 - `just live-score-worm --loop` makes a pass every 60 seconds: ESPN, then
   nflverse when a finished game might have landed (at most every 30 minutes),
   then Ottoneu's box scores (lineups and live points, via
@@ -405,17 +406,17 @@ starts it on time through `workflow_dispatch`, and the job then loops on its own
   whose rows changed and then revalidates their pages. Each pass writes
   `heartbeat_at` and `next_kickoff`. While a game is in progress
   `next_kickoff` is the current time, so if the loop dies or times out
-  mid-game, pg_cron restarts it within about 5 minutes instead of waiting for
-  the next game that hasn't started. It exits when no NFL game of the week is
-  in progress or kicks off within 20 minutes, or after 340 minutes (a GitHub
-  job may run six hours); pg_cron starts the next one. Between Sunday's late
+  mid-game, the timer restarts it within about 3 minutes instead of waiting
+  for the next game that hasn't started. It exits when no NFL game of the week
+  is in progress or kicks off within 20 minutes, or after 340 minutes; the
+  timer starts the next one. It exits non-zero after 10 failed passes or 3
+  failed box-score scrapes in a row, so the health check alerts. Between Sunday's late
   games and Sunday night's game it exits and is restarted 15 minutes before
   kickoff.
 - With no game in sight it sets `next_kickoff` a day out, so off-season and
-  mid-week checks cost one short run a day. The week rolls over on Wednesday
+  mid-week runs exit at once. The week rolls over on Wednesday
   (Ottoneu's windows run Wednesday to Tuesday), and that day's run finds
   Thursday's kickoff.
-- The repo is public, so Actions minutes are free. A full Sunday is two jobs.
 
 #### Minutes played: the worm by lineup minutes, not the clock
 

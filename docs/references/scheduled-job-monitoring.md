@@ -51,7 +51,7 @@ Manual dispatch passes `--force`. `scrape-fa-market.yml` has the same shape, gat
 `test_local_actions_run_after_an_ungated_checkout` enforces it.
 
 The Discord feed jobs (`post-moves-digest.yml` and `post-pickem.yml`, both
-paused to manual runs for now, `post-auctions.yml`, and the `post-discord` job in `scrape-trade-history.yml`)
+paused to manual runs for now, and the `post-discord` job in `scrape-trade-history.yml`)
 follow the same rule: out of
 season or on a quiet day they log why and exit 0. Each one logs what it posts in
 `discord_posts`, so a retried or overlapping run never posts twice

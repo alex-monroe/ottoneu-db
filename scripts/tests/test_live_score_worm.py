@@ -11,6 +11,7 @@ import pandas as pd
 
 from scripts.live_score_worm import (
     IDLE_RECHECK,
+    FailureStreaks,
     fingerprint,
     is_due,
     keep_going,
@@ -105,6 +106,28 @@ def state(minutes_ago_heartbeat=None, minutes_ago_dispatch=None, kickoff_in=None
             "heartbeat_at": at(None if minutes_ago_heartbeat is None else -minutes_ago_heartbeat),
             "dispatched_at": at(None if minutes_ago_dispatch is None else -minutes_ago_dispatch),
             "next_kickoff": at(kickoff_in)}
+
+
+class TestFailureStreaks:
+    """A loop that keeps failing must exit non-zero so the health check alerts."""
+
+    def test_exhausted_only_after_limit_failures_in_a_row(self):
+        s = FailureStreaks({"pass": 3, "lineup scrape": 2})
+        for _ in range(2):
+            s.record("pass", False)
+        assert s.exhausted() is None
+        s.record("pass", False)
+        assert s.exhausted() == "pass"
+
+    def test_a_success_resets_that_step_only(self):
+        s = FailureStreaks({"pass": 2, "lineup scrape": 2})
+        s.record("pass", False)
+        s.record("lineup scrape", False)
+        s.record("pass", True)
+        s.record("pass", False)
+        assert s.exhausted() is None
+        s.record("lineup scrape", False)
+        assert s.exhausted() == "lineup scrape"
 
 
 class TestIfDue:

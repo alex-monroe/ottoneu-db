@@ -10,7 +10,7 @@ long each window has left, and what the viewer should do about each one.
 | Login | `scripts/fangraphs_login.py` (shared with the arbitration scrape) |
 | Schedule | `.github/workflows/scrape-fa-market.yml` — every 3 hours, gated to the `in_season` phase by `scripts/fa_market_gate.py` |
 | Table | `fa_market` (migration 051) — a snapshot, one row per player on the market; `fa_auction_results` (migration 054) — completed auctions |
-| Discord | `.github/workflows/post-auctions.yml` — every 10 minutes, `--auctions-only`, then posts openings and results ([discord-feed.md](discord-feed.md#fa-auctions)) |
+| Discord | `deploy/droplet/post-auctions.sh` on the DigitalOcean droplet — every 5 minutes, `--auctions-only`, then posts openings and results ([discord-feed.md](discord-feed.md#fa-auctions)) |
 | Pricing | `web/lib/fa-market.ts` (pure) · `web/lib/fa-market-data.ts` (read) |
 | UI | `web/app/free-agents/FaMarketBoard.tsx`, wired in `web/app/free-agents/page.tsx` |
 

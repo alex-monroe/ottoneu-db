@@ -21,15 +21,19 @@ rebuilt until none is 'espn' — once it is over, the daily
 scripts/rebuild_score_worm.py run rebuilds it from nflverse alone and closes any
 gap to Ottoneu's final.
 
-`--loop` is what .github/workflows/live-score-worm.yml runs. GitHub's own cron
-fires too rarely on game days to drive minute-by-minute updates, so that job is
-started by Supabase pg_cron (migration 059, `dispatch_live_worm`) and then loops
-itself: ESPN every `--interval` seconds, the Ottoneu box scores (lineups, live
+`--loop --if-due` is what the DigitalOcean droplet runs: a systemd timer starts
+it every minute (deploy/droplet/ottoneu-live-worm.*), and `--if-due` exits at
+once unless a kickoff is within 15 minutes or a game is on, and no other loop is
+running. (GitHub's cron fired too rarely on game days; Supabase pg_cron
+dispatched .github/workflows/live-score-worm.yml until migration 065.) A loop
+passes ESPN every `--interval` seconds, the Ottoneu box scores (lineups, live
 points) every `--lineup-every` passes, nflverse every 30 minutes. It writes a
-heartbeat and the next kickoff (now, while a game is on) to `live_worm_state`, which is how pg_cron knows
-when to start it and that it is still running. It exits when no NFL game of the
-week is in progress or kicks off within `--lead` minutes, or at `--max-minutes`
-(a GitHub job may run six hours; pg_cron starts the next one).
+heartbeat and the next kickoff (now, while a game is on) to `live_worm_state`,
+which is how `--if-due` knows when to start one and that one is running. It
+exits when no NFL game of the week is in progress or kicks off within `--lead`
+minutes, or at `--max-minutes`, and exits non-zero after MAX_FAILED_PASSES
+failed passes or MAX_FAILED_LINEUPS failed box-score scrapes in a row, so the
+droplet's health check alerts. The timer starts the next loop.
 """
 
 from __future__ import annotations
@@ -53,12 +57,31 @@ from scripts.scrape_lineups import games_for_week, scrape_week
 
 STATE_TABLE = "live_worm_state"
 NFLVERSE_REFRESH = timedelta(minutes=30)
-# With no game in sight, look again in a day (pg_cron reads this as the next kickoff).
+# With no game in sight, look again in a day (--if-due reads this as the next kickoff).
 IDLE_RECHECK = timedelta(days=1)
-# `--if-due` uses pg_cron's own windows (migration 059), so the two schedulers agree.
+# `--if-due`'s windows, the ones pg_cron's dispatch_live_worm used (migration 059).
 DUE_WITHIN = timedelta(minutes=15)
 HEARTBEAT_FRESH = timedelta(minutes=3)
 DISPATCH_PENDING = timedelta(minutes=10)
+# A loop that keeps failing exits non-zero, so the droplet's health check alerts
+# (deploy/droplet/run-checked.sh); the timer starts a fresh loop a minute later.
+MAX_FAILED_PASSES = 10   # ten minutes of failed ESPN/nflverse passes
+MAX_FAILED_LINEUPS = 3   # fifteen minutes of failed Ottoneu box-score scrapes
+
+
+class FailureStreaks:
+    """Consecutive failures per step; a success resets that step's count."""
+
+    def __init__(self, limits: dict[str, int]):
+        self.limits = limits
+        self.counts = {step: 0 for step in limits}
+
+    def record(self, step: str, ok: bool) -> None:
+        self.counts[step] = 0 if ok else self.counts[step] + 1
+
+    def exhausted(self) -> str | None:
+        """The first step that has failed its limit times in a row, if any."""
+        return next((s for s, n in self.counts.items() if n >= self.limits[s]), None)
 
 
 # --- Feeds -------------------------------------------------------------------
@@ -117,9 +140,9 @@ def next_kickoff(espn_games: list[dict], now: datetime) -> datetime | None:
 
 
 def state_kickoff(espn_games: list[dict], now: datetime) -> datetime:
-    """The `next_kickoff` to write for pg_cron: now while a game is on.
+    """The `next_kickoff` to write for `--if-due`: now while a game is on.
 
-    pg_cron only restarts a loop whose heartbeat has gone quiet when this is
+    `--if-due` only restarts a loop whose heartbeat has gone quiet when this is
     within 15 minutes, so a game in progress has to read as a kickoff now, or a
     loop that dies (or reaches --max-minutes) mid-game stays dead until the
     next game that has not started yet.
@@ -140,7 +163,7 @@ def keep_going(espn_games: list[dict], now: datetime, lead: timedelta) -> bool:
 def is_due(state: dict | None, now: datetime) -> bool:
     """Whether a scheduler firing every minute should start a loop now.
 
-    The same test pg_cron's `dispatch_live_worm` makes: no other loop running
+    The test pg_cron's `dispatch_live_worm` made (migration 059): no other loop running
     (no heartbeat in the last 3 minutes, no GitHub dispatch in the last 10) and
     the next kickoff within 15 minutes or past. With no state, run once to learn it.
     """
@@ -298,11 +321,11 @@ def main() -> None:
     parser.add_argument("--lead", type=int, default=20,
                         help="Keep looping when a game kicks off within this many minutes (default 20).")
     parser.add_argument("--max-minutes", type=int, default=340,
-                        help="Stop after this long; pg_cron starts the next job (default 340).")
+                        help="Stop after this long; the timer starts the next loop (default 340).")
     parser.add_argument("--dry-run", action="store_true", help="Build and print without writing.")
     parser.add_argument("--if-due", action="store_true",
-                        help="Exit at once unless pg_cron's start test passes (a kickoff within 15 "
-                             "minutes, no other loop running) — for a scheduler that fires every minute.")
+                        help="Exit at once unless a kickoff is within 15 minutes or a game is on, "
+                             "and no other loop is running — for a timer that fires every minute.")
     args = parser.parse_args()
 
     supabase = get_supabase_client()
@@ -312,21 +335,34 @@ def main() -> None:
     started = datetime.now(timezone.utc)
     lead = timedelta(minutes=args.lead)
     passes = 0
+    streaks = FailureStreaks({"pass": MAX_FAILED_PASSES, "lineup scrape": MAX_FAILED_LINEUPS})
     while True:
         now = datetime.now(timezone.utc)
         if args.loop and passes % args.lineup_every == 0 and not args.dry_run:
             try:
                 scrape_week(supabase, args.league_id)
+                streaks.record("lineup scrape", True)
             except Exception as exc:  # noqa: BLE001 — stale lineups beat a dead loop
                 print(f"  lineup scrape failed: {exc}", file=sys.stderr)
+                streaks.record("lineup scrape", False)
         try:
             espn_games = live.run_pass(now)
+            streaks.record("pass", True)
         except Exception as exc:  # noqa: BLE001 — a feed blip; try again next pass
             if args.once:
                 raise
             print(f"  pass failed: {exc}", file=sys.stderr)
             espn_games = None
+            streaks.record("pass", False)
         passes += 1
+
+        failing = streaks.exhausted()
+        if failing:
+            print(f"Every {failing} failed {streaks.counts[failing]} times in a row — giving up so "
+                  "the health check alerts; the timer starts a fresh loop.", file=sys.stderr)
+            if not args.dry_run:
+                write_state(supabase, heartbeat_at=None)
+            sys.exit(1)
 
         if espn_games is not None and not args.dry_run:
             write_state(supabase, heartbeat_at=now.isoformat(),
@@ -337,7 +373,7 @@ def main() -> None:
             print("No NFL game on or about to start — done.")
             break
         if now - started >= timedelta(minutes=args.max_minutes):
-            print(f"Reached {args.max_minutes} minutes — pg_cron will start the next job.")
+            print(f"Reached {args.max_minutes} minutes — the timer starts the next loop.")
             break
         time.sleep(max(0.0, args.interval - (datetime.now(timezone.utc) - now).total_seconds()))
 
