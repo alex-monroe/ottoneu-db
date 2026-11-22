@@ -15,21 +15,39 @@ GitHub Actions stays the fallback with no changes: while the droplet's loop
 writes heartbeats to `live_worm_state`, pg_cron never dispatches the workflow.
 If the droplet is down, pg_cron dispatches it within about 5 minutes.
 
+## Post Auctions
+
+`ottoneu-post-auctions.timer` runs `post-auctions.sh` every five minutes: the
+same two steps as `.github/workflows/post-auctions.yml` (scrape the public
+auctions page, then post what opened or closed to #auctions). That workflow
+stays on an hourly schedule as the fallback. Overlapping runs never post twice,
+because `discord_posts` is claimed before each send. The script takes
+`/run/lock/ottoneu-fa-market.lock`, which any other droplet job that rewrites
+`fa_market` must take too.
+
 ## Install or update
 
 ```bash
-cd ~/ottoneu-db && git pull && venv/bin/pip install -q -e .
-sudo cp deploy/droplet/ottoneu-live-worm.* /etc/systemd/system/
+cd ~/ottoneu-db && git pull && venv/bin/pip install -q -e . && (cd web && npm ci --no-audit --no-fund)
+sudo cp deploy/droplet/ottoneu-*.service deploy/droplet/ottoneu-*.timer /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now ottoneu-live-worm.timer
+sudo systemctl enable --now ottoneu-live-worm.timer ottoneu-post-auctions.timer
 ```
 
-Secrets live in `~/ottoneu-db/.env` (mode 600, gitignored): `SUPABASE_URL`,
-`SUPABASE_KEY` (the secret key), `OTTONEU_COOKIE`, `REVALIDATE_SECRET`.
+Node 22 comes from NodeSource's apt repo. Secrets, all mode 600 and gitignored:
+
+- `~/ottoneu-db/.env`: `SUPABASE_URL`, `SUPABASE_KEY` (the secret key),
+  `REVALIDATE_SECRET`, and optionally `OTTONEU_COOKIE`.
+- `~/ottoneu-db/web/.env.local`: `NEXT_PUBLIC_SUPABASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY` and `SUPABASE_SECRET_KEY` (both the secret
+  key, as in the workflow), and `DISCORD_TOKEN`.
 
 ## Watch it
 
 ```bash
-systemctl list-timers ottoneu-live-worm.timer
+systemctl list-timers 'ottoneu-*'
 journalctl -u ottoneu-live-worm -f
+journalctl -u ottoneu-post-auctions -f
 ```
+
+Droplet failures do not alert yet; the GitHub fallbacks' failures still do.
