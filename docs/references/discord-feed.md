@@ -24,7 +24,7 @@ lines to restore.
 | Daily moves digest | `web/scripts/post-moves-digest.ts` | **paused** — manual dispatch only | `moves_digest` / `YYYY-MM-DD` |
 | Pick'em results | `web/scripts/post-pickem.ts --results` | **paused** — manual dispatch only | `pickem_results` / `<season>-w<week>` |
 | Pick'em reminder | `web/scripts/post-pickem.ts --reminder` | **paused** — manual dispatch only | `pickem_reminder` / `<season>-w<week>` |
-| FA auction opened | `web/scripts/post-auctions.ts` | every 5 minutes, all year (droplet; GitHub hourly as fallback) | `auction_started` / `<player_key>@<first_seen_at>` |
+| FA auction opened | `web/scripts/post-auctions.ts` | every 5 minutes, all year (DigitalOcean droplet) | `auction_started` / `<player_key>@<first_seen_at>` |
 | FA auction closed | same | same | `auction_finished` / Ottoneu auction id |
 | Power rankings, vote reminder | `post-power-rankings.ts`, `post-vote-reminder.ts` | **paused** — manual dispatch only | not logged (see podcast-tools.md) |
 
@@ -183,9 +183,10 @@ succeeds.
 The job runs every five minutes, all year, from the DigitalOcean droplet
 (`deploy/droplet/post-auctions.sh`, a systemd timer; see
 [deploy/droplet/README.md](../../deploy/droplet/README.md)). GitHub started the
-old ten-minute `post-auctions.yml` schedule far too late, so that workflow now
-runs hourly as a fallback for when the droplet is down. The two can overlap
-safely: `discord_posts` is claimed before each send. It replaced a standalone
+old ten-minute `post-auctions.yml` schedule far too late, so that workflow has
+no schedule now and is kept for manual runs (a dry run, or the seed below). A
+manual run overlapping the droplet's is safe: `discord_posts` is claimed before
+each send. It replaced a standalone
 bot hosted on Railway (`alex-monroe/ottoneu-discord-auction-bot`, a
 `discord.py` process polling every five minutes) that kept what it had announced
 in memory, and so forgot everything on each restart. Each run here starts cold:
@@ -244,10 +245,10 @@ Events carry no user id or team. They count engagement and nothing else.
   is skipped except for a dry run. The rest point at the general channel,
   `1396549904234709044`.
   `SITE_URL` sets the links' origin.
-- **Monitoring:** `Post Auctions` is on the `alert-scheduled-failure.yml`
-  list (the paused jobs come off it while they have no schedule), which covers
-  its hourly GitHub fallback runs. The droplet's runs log to
-  `journalctl -u ottoneu-post-auctions` and do not alert yet. The trade posts run inside `Scrape Trade
+- **Monitoring:** the droplet's runs report to Healthchecks.io (check
+  `post-auctions`), which alerts on a failed run or one that is late
+  ([deploy/droplet/README.md](../../deploy/droplet/README.md#alerts)). Their
+  logs are in `journalctl -u ottoneu-post-auctions`. The trade posts run inside `Scrape Trade
   History`, so a failed post fails that run and alerts under its name.
 - **Changing what a post says** is a `web/lib/discord-feed.ts` edit plus its
   test. **Adding a post type** means extending the `post_type` CHECK in a new

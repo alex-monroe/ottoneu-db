@@ -4,13 +4,13 @@ name: Live Score Worm
 # on (scripts/live_score_worm.py): ESPN play-by-play for games in progress,
 # nflverse for games it has published, Ottoneu's box scores for lineups.
 #
-# Not on GitHub's cron: on game days GitHub fires 5-minute schedules every
-# couple of hours at best (Pull Matchups' Sunday window fired 3–6 times in
-# October 2026, and not at all on Nov 1 by 18:30 UTC). Supabase pg_cron starts
-# this job instead (migration 059, dispatch_live_worm, via workflow_dispatch)
-# when a kickoff is within 15 minutes and no loop is running. The job then
-# loops every minute until no game is on or about to start, or until it has
-# run 340 minutes, whichever is first; pg_cron starts the next one.
+# Manual runs only. The worm runs on the DigitalOcean droplet: a systemd timer
+# starts `live_score_worm.py --loop --if-due` every minute (deploy/droplet/).
+# On game days GitHub fired 5-minute schedules every couple of hours at best, and
+# pg_cron's dispatch of this workflow (migration 059) was unscheduled in 065.
+# Use it for a one-off dry run, or a loop while the droplet is down. A loop here
+# runs without --if-due, so make sure the droplet's loop is not running first, or
+# two loops write the same rows.
 
 on:
   workflow_dispatch:

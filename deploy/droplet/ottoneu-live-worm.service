@@ -1,6 +1,6 @@
 # Live score worm on the droplet: loops every minute while NFL games are on.
 # Started every minute by ottoneu-live-worm.timer; --if-due exits at once unless
-# pg_cron's own start test passes, so this and the GitHub fallback never overlap.
+# a kickoff is within 15 minutes or a game is on and no other loop is running.
 # A run in progress is never started twice (Type=oneshot + timer).
 [Unit]
 Description=Ottoneu live score worm
@@ -16,7 +16,8 @@ Environment=PYTHONUNBUFFERED=1
 Environment=SITE_URL=https://sofa-db.vercel.app
 # Secrets (SUPABASE_URL, SUPABASE_KEY, OTTONEU_COOKIE, REVALIDATE_SECRET) come
 # from /home/deploy/ottoneu-db/.env via load_dotenv() in scripts/config.py.
-ExecStart=/home/deploy/ottoneu-db/venv/bin/python scripts/live_score_worm.py --loop --if-due
+# run-checked.sh reports each run to Healthchecks (check `live-worm`).
+ExecStart=/home/deploy/ottoneu-db/deploy/droplet/run-checked.sh live-worm /home/deploy/ottoneu-db/venv/bin/python scripts/live_score_worm.py --loop --if-due
 # A loop runs up to --max-minutes (340); oneshot's default 90 s timeout would kill it.
 TimeoutStartSec=6h
 Nice=5
