@@ -6,9 +6,8 @@ long each window has left, and what the viewer should do about each one.
 
 | Piece | Where |
 |---|---|
-| Scraper | `scripts/scrape_fa_market.py` (`just scrape-fa-market [--dry-run]`) |
-| Login | `scripts/fangraphs_login.py` (shared with the arbitration scrape) |
-| Schedule | `.github/workflows/scrape-fa-market.yml` — every 3 hours, gated to the `in_season` phase by `scripts/fa_market_gate.py` |
+| Auctions | `scripts/scrape_fa_market.py` (`just scrape-fa-market [--dry-run]`): the public `/auctions` page, run by the droplet's Post Auctions job every 5 minutes (below) |
+| Waivers | `scripts/infer_fa_waivers.py` (`just infer-fa-waivers [--dry-run]`): inferred from the public roster CSV; `deploy/droplet/fa-waivers.sh` every 10 minutes, gated to the `in_season` phase by `scripts/fa_market_gate.py` |
 | Table | `fa_market` (migration 051) — a snapshot, one row per player on the market; `fa_auction_results` (migration 054) — completed auctions |
 | Discord | `deploy/droplet/post-auctions.sh` on the DigitalOcean droplet — every 5 minutes, `--auctions-only`, then posts openings and results ([discord-feed.md](discord-feed.md#fa-auctions)) |
 | Pricing | `web/lib/fa-market.ts` (pure) · `web/lib/fa-market-data.ts` (read) |
@@ -22,11 +21,38 @@ long each window has left, and what the viewer should do about each one.
 | `/football/{league}/waivers` | **Login-gated** (anonymous requests 307 to the league home) | Waiver claims: player, salary, cut time. Logged in, each row carries the claim id. | The team that cut him |
 | `/football/{league}/auctions/<id>` (checked 2026-10-21) | **Public**, once closed; linked from the "Completed Auctions" table on `/auctions` (which also prints the price and the ending time) | Who started it, when it ended, every bid with its team, highest first | Anything while the auction is open |
 
-So the scrape logs in when `FANGRAPHS_USERNAME` / `FANGRAPHS_PASSWORD` are set and
-reads both pages in one Playwright session. Without them it reads the public auctions
-page over plain HTTP (`scripts/ottoneu_http.py`, honest User-Agent) and leaves the
-waiver rows alone. The board says "nominated by" nowhere because no page says it while the auction is open;
+Nothing here logs in. Auctions come from the public page over plain HTTP
+(`scripts/ottoneu_http.py`, honest User-Agent). Waivers are inferred from the public roster
+CSV (next section). The waivers page itself is no longer read: until November 2026 a
+logged-in Playwright scrape on GitHub read it, but the FanGraphs login
+(`blogs.fangraphs.com/wp-login.php`) answers the droplet's DigitalOcean IP with a
+Cloudflare challenge whatever the client. The auction and claim ids that only logged-in
+pages show (`fa_market.market_id`) were never read by anything, so they went too. The board says "nominated by" nowhere because no page says it while the auction is open;
 the closed auction's page does, which is what the Discord result post uses.
+
+## Waivers from the roster CSV (`infer_fa_waivers.py`)
+
+A waiver follows from the public `/football/{league}/csv/rosters` export
+(`reconcile_roster.parse_roster_csv`). A player on a roster at the last poll and on none
+now was cut. He is on waivers for `WAIVER_CLAIM_HOURS` (24), and a claim pays the salary
+he was cut at, his salary in the last poll. He leaves when he is on a roster again
+(claimed, or added once the window closed) or when the window ends. The droplet polls
+every ten minutes and diffs against the previous poll, kept as a JSON snapshot in
+`.cache/fa-waivers/roster-snapshot.json` on the droplet.
+
+- **The cut time is a bound.** The cut happened between two polls. The row takes the
+  earlier poll's time, so the board's claim deadline is never later than the real one,
+  and at worst it is ten minutes early.
+- **A trade is not a cut:** the player is still on a roster.
+- **A cut and a claim inside one poll** never show, because he was claimable for less
+  than ten minutes.
+- **Guards.** A snapshot over an hour old (droplet down, or the off-season gate kept the
+  job idle) is only re-baselined. A CSV below `reconcile_roster`'s row/team floor fails
+  the run and keeps the old snapshot. More than 12 players leaving rosters in one poll
+  (a season rollover, say) re-baselines without inferring anything.
+
+The job writes only `kind='waiver'` rows, incrementally (insert new cuts, delete the
+finished ones), and revalidates `/free-agents` when anything changed.
 
 ## Completed auctions and the Discord feed
 
@@ -49,23 +75,25 @@ Discord post adds a line saying the tiebreak decided it.
 `fa_market.first_seen_at` is the first scrape that listed a row, carried over by every later
 scrape (`carry_over`), so `(player_key, first_seen_at)` names an open auction for its whole
 life. That is the key of its "auction started" Discord post, because the public page prints
-no auction id. `carry_over` also keeps a logged-in scrape's `market_id` when a public
-scrape cannot see it. Both workflows share the `scrape-fa-market` concurrency group so two
-runs never race on `first_seen_at`.
+no auction id. Only the droplet's five-minute Post Auctions run writes auction rows on a
+schedule, so it is the only writer of `first_seen_at`. The waivers job never touches
+auction rows. It still takes the same `flock /run/lock/ottoneu-fa-market.lock`, so no two
+droplet jobs read and write `fa_market` at once.
 
 **FanGraphs login change (October 2026).** `wp-login.php` was re-skinned: the stock
 `#wp-submit` button is still in the form but hidden, and the visible "Sign In" button is
 `input.fg-login-submit`. The old click on `#wp-submit` timed out, so
-`fangraphs_login.py` now clicks whichever `name=wp-submit` input is visible. The
-arbitration scrape uses the same function.
+`fangraphs_login.py` now clicks whichever `name=wp-submit` input is visible. Only the
+arbitration scrape logs in now.
 
 ## Times
 
 - **Auctions** print a countdown, so `ends_at = scraped_at + countdown` — an absolute
   instant, no zone to guess.
-- **Waivers** print the cut time on Ottoneu's site clock. It is stored verbatim as
-  `cut_at_local` (the `trades` convention), and the claim deadline is that wall time read
-  as US Eastern (`nfl_week.LEAGUE_TZ`) plus `WAIVER_CLAIM_HOURS` (config.json, 24).
+- **Waivers** take the cut time from the poll that last saw the player rostered (see
+  above). It is stored on Ottoneu's site clock as `cut_at_local` (the `trades`
+  convention), and the claim deadline is that wall time read as US Eastern
+  (`nfl_week.LEAGUE_TZ`) plus `WAIVER_CLAIM_HOURS` (config.json, 24).
 
 The board counts down client-side from `ends_at`, because the page is cached for up to an
 hour and a server-rendered "2h left" would be stale.

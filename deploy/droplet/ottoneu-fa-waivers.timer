@@ -1,0 +1,11 @@
+[Unit]
+Description=Infer FA waivers from the roster CSV every ten minutes
+
+[Timer]
+# Offset from post-auctions' five-minute marks; the shared lock serializes them anyway.
+OnCalendar=*:2/10
+AccuracySec=10s
+Unit=ottoneu-fa-waivers.service
+
+[Install]
+WantedBy=timers.target

@@ -1,9 +1,10 @@
 """Log a Playwright page in to FanGraphs, for the Ottoneu pages that need a session.
 
 Most Ottoneu pages are public and read over plain HTTP (`scripts/ottoneu_http.py`).
-A few are only shown to logged-in league members — the arbitration page and the
-waiver-claims page — and those go through a real browser login here, using the
-FANGRAPHS_USERNAME / FANGRAPHS_PASSWORD env vars.
+A few are only shown to logged-in league members, like the arbitration page, and
+those go through a real browser login here, using the FANGRAPHS_USERNAME /
+FANGRAPHS_PASSWORD env vars. (The waivers page used to as well; the FA waivers are
+now inferred from the public roster CSV, scripts/infer_fa_waivers.py.)
 
 ## The login page has two submit buttons (October 2026)
 

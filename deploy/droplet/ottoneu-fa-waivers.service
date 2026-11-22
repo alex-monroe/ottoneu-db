@@ -1,0 +1,21 @@
+# FA waivers on the droplet: diff the public roster CSV against the last poll to
+# find who was cut (and so is on waivers for 24 hours), and write fa_market's
+# waiver rows for the /free-agents board. Started every ten minutes by
+# ottoneu-fa-waivers.timer; in season only (scripts/fa_market_gate.py). Takes
+# /run/lock/ottoneu-fa-market.lock like ottoneu-post-auctions.
+[Unit]
+Description=Ottoneu FA waivers from the roster CSV
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=deploy
+WorkingDirectory=/home/deploy/ottoneu-db
+Environment=PYTHONUNBUFFERED=1
+Environment=SITE_URL=https://sofa-db.vercel.app
+# run-checked.sh reports each run to Healthchecks (check `fa-waivers`).
+ExecStart=/home/deploy/ottoneu-db/deploy/droplet/run-checked.sh fa-waivers /home/deploy/ottoneu-db/deploy/droplet/fa-waivers.sh
+TimeoutStartSec=5min
+Nice=5
+MemoryMax=300M

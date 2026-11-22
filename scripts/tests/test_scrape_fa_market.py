@@ -1,9 +1,9 @@
 """Tests for the FA market scraper (scripts/scrape_fa_market.py) and its gate.
 
 Pure parsing over saved markup — no network. The rows are lifted from League
-309's /auctions and /waivers pages on 2026-10-17, trimmed to what the parser
+309's /auctions page on 2026-10-17, trimmed to what the parser
 reads: a college player, an injured NFL player with a news icon and a game line,
-and (logged in) the bid box / claim checkbox that carries Ottoneu's ids.
+and (logged in) the bid box that carries Ottoneu's auction id.
 """
 
 from datetime import date, datetime, timedelta, timezone
@@ -18,9 +18,7 @@ from scripts.scrape_fa_market import (
     parse_auction_page,
     parse_auctions,
     parse_completed_auctions,
-    parse_cut_time,
     parse_duration,
-    parse_waivers,
     results_to_fetch,
     standings_order,
     to_db_rows,
@@ -60,29 +58,6 @@ def _auctions_page(logged_in: bool) -> str:
     """
 
 
-WAIVERS_PAGE = f"""
-<main><header class="page-header"><h1>
-            Waiver Claims
-          </h1><h4>You have <span class="green">$9</span> and 0 roster spot(s) available</h4></header>
-<section><form class="form" method="POST"><table>
-  <thead><tr><th>Player</th><th>Salary</th><th>Cut Date</th><th>Claim?</th></tr></thead>
-  <tbody>
-    <tr><td><a href="{BASE}/player_card/nfl/13211">Tyrone Tracy</a> <span class="smaller">NYG RB</span></td>
-      <td> $3 </td><td> October 16, 2026 11:54 PM </td>
-      <td><input name="claim[393882]" type="checkbox" value="yes"></td></tr>
-    <tr><td><a href="{BASE}/player_card/nfl/7184">Courtland Sutton</a> <span class="smaller">DEN WR</span>
-      <a class="recent-news" title="Rotowire.com: Remains quiet" href="{BASE}/player_card/nfl/7184"><i></i></a></td>
-      <td> $11 </td><td> October 17, 2026 1:54 AM </td>
-      <td><input name="claim[393894]" type="checkbox" value="yes"></td></tr>
-    <tr><td colspan="4"><input name="submit" type="submit" value="Update Claims"></td></tr>
-  </tbody></table></form></section>
-<section><header><h1>Completed Claims</h1></header><table><tbody>
-  <tr><td><a href="{BASE}/player_card/nfl/15274">Carson Beck</a> <span class="smaller">ARI QB</span></td>
-  <td><a href="{BASE}/team/2540">The Triple Helix</a></td></tr>
-</tbody></table></section></main>
-"""
-
-
 class TestParseDuration:
     def test_hours_minutes_seconds(self):
         assert parse_duration("1 hours 30 minutes 6 seconds") == timedelta(hours=1, minutes=30, seconds=6)
@@ -117,24 +92,14 @@ class TestParseAuctions:
         assert parse_auctions("<main><h1>Log in</h1></main>", NOW) == []
 
 
-class TestParseWaivers:
-    def test_rows(self):
-        tracy, sutton = parse_waivers(WAIVERS_PAGE)
-        assert (tracy.player_name, tracy.salary, tracy.market_id) == ("Tyrone Tracy", 3, 393882)
-        assert (sutton.nfl_team, sutton.position, sutton.salary) == ("DEN", "WR", 11)
-        assert tracy.cut_at_local == "2026-10-16T23:54:00"
-
+class TestClaimDeadline:
     def test_claim_window_is_24h_after_cut_on_eastern_clock(self):
-        tracy = parse_waivers(WAIVERS_PAGE)[0]
         # 11:54 PM EDT (UTC-4) on Oct 16, plus 24 hours.
-        assert tracy.ends_at == "2026-10-18T03:54:00+00:00"
+        assert claim_deadline(datetime(2026, 10, 16, 23, 54)).isoformat() == "2026-10-18T03:54:00+00:00"
 
     def test_claim_deadline_across_dst(self):
         # November 2 2026 is after the fall-back: EST is UTC-5.
         assert claim_deadline(datetime(2026, 11, 2, 9, 0)) == datetime(2026, 11, 3, 14, 0, tzinfo=timezone.utc)
-
-    def test_bad_date_skips_row(self):
-        assert parse_cut_time("yesterday") is None
 
 
 class TestToDbRows:
@@ -163,6 +128,14 @@ class TestGate:
         monkeypatch.setenv("GITHUB_OUTPUT", str(out))
         assert gate_main(["--force"], today=date(2026, 3, 1)) == 0
         assert out.read_text() == "due=true\n"
+
+    def test_exit_code_signals_not_due(self, monkeypatch):
+        from scripts import fa_market_gate
+        monkeypatch.delenv("GITHUB_OUTPUT", raising=False)
+        monkeypatch.setattr(fa_market_gate, "_resolve_context", lambda today: {"phase": "pre_draft"})
+        assert gate_main(["--exit-code"]) == 3
+        assert gate_main([]) == 0
+        assert gate_main(["--exit-code", "--force"]) == 0
 
 
 # League 309's /auctions/65780 on 2026-10-21, trimmed: a team-link table with

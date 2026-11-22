@@ -22,7 +22,6 @@ on:
       - "Rebuild Score Worms"
       - "Scrape Arbitration Progress"
       - "Scrape Draft Sharks Auction Values"
-      - "Scrape FA Market"
       - "Scrape League Calendar"
       - "Scrape Player Cards"
       - "Scrape Trade History"

@@ -24,6 +24,18 @@ is claimed before each send, so a manual workflow run overlapping it never posts
 twice. The script takes `/run/lock/ottoneu-fa-market.lock`, which any other
 droplet job that rewrites `fa_market` must take too.
 
+## FA waivers
+
+`ottoneu-fa-waivers.timer` runs `fa-waivers.sh` every ten minutes (at :02, :12,
+and so on). In season only (`python -m scripts.fa_market_gate --exit-code`), it
+runs `scripts/infer_fa_waivers.py`. That diffs the public roster CSV against the
+last poll (a snapshot in `.cache/fa-waivers/`) to find who was cut, and so who is
+on waivers for 24 hours, then writes `fa_market`'s waiver rows and revalidates
+`/free-agents`. No FanGraphs login: from this IP, FanGraphs' login page is behind
+a Cloudflare challenge. It takes `/run/lock/ottoneu-fa-market.lock` like Post
+Auctions. There is no GitHub workflow for it. Try it with
+`deploy/droplet/fa-waivers.sh --force --dry-run`.
+
 ## Alerts
 
 Every unit runs its job through `run-checked.sh <check> <command>`, which pings
@@ -36,6 +48,7 @@ shows up. A check is created on its first ping; set its schedule then:
 | Check | Period | Grace | Why |
 |---|---|---|---|
 | `post-auctions` | 5 min | 10 min | runs every five minutes, all year |
+| `fa-waivers` | 10 min | 30 min | runs every ten minutes, all year (exits at once off-season) |
 | `live-worm` | 1 min | 6 h | runs every minute, but a loop may run 340 minutes before it reports |
 
 Without `HC_PING_KEY` in `.env` the jobs still run, unreported. DigitalOcean
@@ -47,7 +60,7 @@ Monitoring alert policies cover the machine itself (memory, disk, CPU).
 cd ~/ottoneu-db && git pull && venv/bin/pip install -q -e . && (cd web && npm ci --no-audit --no-fund)
 sudo cp deploy/droplet/ottoneu-*.service deploy/droplet/ottoneu-*.timer /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now ottoneu-live-worm.timer ottoneu-post-auctions.timer
+sudo systemctl enable --now ottoneu-live-worm.timer ottoneu-post-auctions.timer ottoneu-fa-waivers.timer
 ```
 
 Node 22 comes from NodeSource's apt repo. Secrets, all mode 600 and gitignored:
@@ -64,4 +77,5 @@ Node 22 comes from NodeSource's apt repo. Secrets, all mode 600 and gitignored:
 systemctl list-timers 'ottoneu-*'
 journalctl -u ottoneu-live-worm -f
 journalctl -u ottoneu-post-auctions -f
+journalctl -u ottoneu-fa-waivers -f
 ```
