@@ -1,7 +1,8 @@
 # Plan: self-host Supabase on the DigitalOcean droplet
 
-**Status:** Proposed (2026-11-22). Nothing is built yet. Phase 0 has decisions
-that need answers before Phase 1 starts.
+**Status:** Proposed (2026-11-22). Nothing is built yet. Phase 0 has D1 (one
+project) and D2 (cost: $25/month hosted) decided, with recommendations for the
+rest; D4 still needs a check in the fantasy-pulse repo.
 
 **Goal:** move the shared Supabase database off the hosted platform onto the
 droplet (`sofa-db-server`, 138.68.230.37, SFO2, Ubuntu 24.04, user `deploy`). It
@@ -38,25 +39,28 @@ stays untouched as the rollback until the new one has run cleanly for two weeks.
 
 ## Phase 0: decisions (needed before Phase 1)
 
-- **D1. One project or two?** fantasy-pulse's Supabase variables come from Vercel
-  Marketplace store `store_X2c3…`, and sofa-db's integration variables from
-  `store_Tv4p…`. Two stores usually means two Supabase projects. Yet the
-  `fp_*` tables and fantasy-pulse's auth users are in *this* database. Check in
-  Vercel → Storage, or compare the host in each project's `SUPABASE_URL`, which
-  projects exist and which one each app really uses. If there is a second
-  project, it is out of scope here.
-- **D2. Why self-host, and what does hosted cost?** The project is billed
-  through the Vercel Marketplace. On the free tier, self-hosting saves no money.
-  Its gains would be compute (Micro is 1 GB shared), no free-tier pause and no
-  platform quotas. The price is owning backups, upgrades and security. Write the
-  reason down. It decides how much risk the cutover can carry.
-- **D3. API hostname.** Vercel and GitHub reach the API over HTTPS, so it needs a
-  name with a certificate. Options:
-  - a subdomain of a domain you own, such as `db.<yourdomain>`, pointed at
-    138.68.230.37 (**recommended**);
-  - a new domain (~$12/year);
-  - a wildcard-IP name such as `138-68-230-37.sslip.io`. It costs nothing and
-    works with Let's Encrypt, but it depends on a third-party DNS service.
+- **D1. One project or two? Decided: one.** Migrate the one project that holds
+  sofa-db's tables and fantasy-pulse's `fp_*` tables and users. The two Vercel
+  Marketplace stores (`store_X2c3…` for fantasy-pulse, `store_Tv4p…` for
+  sofa-db) still need a check at cutover, in Vercel → Storage: confirm both
+  apps' `SUPABASE_URL` point at this project. If a second, unused project turns
+  up, it is not migrated. Check it isn't adding to the bill.
+- **D2. Why self-host? Decided: cost.** Hosted Supabase costs **$25/month**,
+  the Pro plan billed through Vercel. The self-hosted cost is the droplet (now
+  $12 + $2.40 backups), a domain (~$1/month) and off-droplet backup storage.
+  Savings depend on staying at 2 GB (see D5). Owning backups, upgrades and
+  security is the price.
+- **D3. API hostname. Recommended: a cheap domain from Porkbun.** Vercel and
+  GitHub reach the API over HTTPS, so it needs a name with a certificate.
+  - Buy a domain at Porkbun: a `.com` is ~$11/year, and some other endings are
+    a few dollars.
+  - In Porkbun's DNS, add an **A record**: `db` → `138.68.230.37`.
+  - The API is then `https://db.<yourdomain>`, and Caddy gets its certificate
+    automatically.
+  - The same domain is reused for fantasy-pulse's email (D6). That's why it
+    beats the free alternative, a wildcard-IP name such as
+    `138-68-230-37.sslip.io`. That works for HTTPS but can't send email and
+    depends on a third-party DNS service.
 - **D4. Does fantasy-pulse connect to Postgres directly?** It has
   `POSTGRES_URL` / `POSTGRES_PRISMA_URL`.
   - If its code uses them (Prisma, `pg`, Drizzle), the stack needs Supavisor
@@ -65,16 +69,28 @@ stays untouched as the rollback until the new one has run cleanly for two weeks.
   - If it only uses supabase-js, skip Supavisor.
 
   Check in the fantasy-pulse repo.
-- **D5. Droplet size.** The trimmed stack needs ~0.5 GB, the jobs ~0.3 GB, plus
-  Postgres cache. 2 GB works but has little headroom.
-  - **Recommendation:** resize to 4 GB / 2 vCPU ($24/month) before Phase 2.
-    Use "CPU and RAM only" so the resize can be undone.
-  - Then decide by memory use over the first week, using the DigitalOcean
-    memory alert already set up.
-- **D6. Email for GoTrue.** fantasy-pulse's sign-up and password-reset emails
-  use Supabase's mailer today. Self-hosted GoTrue needs SMTP settings
-  (`SMTP_*`): Resend, Postmark, or SES. Also needed: `SITE_URL` and the
-  redirect allow-list for fantasy-pulse's domain.
+- **D5. Droplet size. Recommended: stay at 2 GB.** Cost is the reason to
+  self-host, and 4 GB ($24/month) would make the move about break-even. The
+  stripped-down stack (Phase 1) needs ~0.4 GB, the jobs ~0.3 GB at their peak,
+  and the whole database (195 MB) fits in Postgres's cache. The droplet now uses
+  ~0.45 GB of 1.9 GB, with 2 GB of swap behind it.
+  - Measure in Phase 2.
+  - Resize to 4 GB ("CPU and RAM only", undoable) only if memory sits above
+    ~75% or the DigitalOcean memory alert fires.
+- **D6. Email for fantasy-pulse's sign-up and password reset. Recommended:
+  Resend's free tier** (3,000 emails/month, 100/day; 9 users need a handful).
+  Porkbun is a domain registrar. It provides the domain the email is sent
+  *from*, not the sending service.
+  - Create a Resend account and add the D3 domain; Resend shows 3 DNS records
+    (SPF, DKIM, return path).
+  - Add those records in Porkbun.
+  - Put Resend's SMTP host, port, user and API key in GoTrue's `SMTP_*`
+    settings, with a sender like `no-reply@<yourdomain>`.
+  - Also set `SITE_URL` and the redirect allow-list to fantasy-pulse's URL.
+  - Check in the Supabase dashboard (Authentication → Emails) whether
+    fantasy-pulse uses confirmation emails at all. If it only needs password
+    reset, the setup is the same, but nothing breaks at sign-up if email is
+    briefly down.
 
 ## Phase 1: stand up the stack (no data, no traffic)
 
@@ -82,9 +98,13 @@ stays untouched as the rollback until the new one has run cleanly for two weeks.
    Copy `docker/` to `/opt/supabase` and follow the Postgres 17 guide. Pin every
    image tag. Keep the upstream `docker-compose.yml` unchanged and put all
    changes in `docker-compose.override.yml`, so upgrades are a diff.
-2. **Run only:** `db`, `rest`, `auth`, `kong`, and `meta` (postgres-meta, for
-   type generation). Add `supavisor` only if D4 says so.
-   - Start them by name: `docker compose up -d db rest auth kong meta`.
+2. **Run only the stripped-down core: `db`, `rest`, `auth` and `kong`.** Add
+   `supavisor` only if D4 says so.
+   - That is Postgres, the REST API both apps and the scrapers use, sign-in for
+     fantasy-pulse, and the gateway that checks API keys.
+   - `meta` (postgres-meta) isn't needed: `supabase gen types --db-url` runs
+     its own copy when generating types.
+   - Start them by name: `docker compose up -d db rest auth kong`.
    - The upstream services' `depends_on: analytics` blocks must be dropped in
      the override, or Compose refuses to start.
    - Leave out `studio`, `storage`, `realtime`, `functions`, `imgproxy`,
@@ -212,7 +232,7 @@ is a normal PR.
 - **Nightly logical backup.**
   - `ottoneu-db-backup.timer` at 04:30 UTC runs `run-checked.sh db-backup`.
   - It dumps with `pg_dump -Fc` from inside the `db` container, encrypts with
-    `age`, and uploads to **DigitalOcean Spaces** (~$5/month) or Backblaze B2.
+    `age`, and uploads to **Backblaze B2**. At ~1 GB stored that is cents a month, against DigitalOcean Spaces' $5 minimum.
   - Keep 14 dailies and 8 weeklies. A dump compresses to ~30–50 MB.
   - A failed or missing backup alerts through Healthchecks: period 1 day,
     grace 2 h.
@@ -286,16 +306,16 @@ league Discord if fantasy-pulse users will notice the forced sign-in.
 - **Keep the hosted project for 14 days** after cutover with no consumers
   pointed at it. Then pause it if it is a free project, or remove it.
   **Removing a Marketplace store in Vercel deletes the Supabase project and its
-  backups.** Take one last dump to Spaces first, and only remove it once that
+  backups.** Take one last dump to B2 first, and only remove it once that
   dump has restored cleanly.
 
 ## Risks
 
 | Risk | Mitigation |
 |---|---|
-| Droplet out of memory: Postgres killed, site down | Resize to 4 GB (D5); DigitalOcean memory alert at 90%; `MemoryMax` on the job units |
+| Droplet out of memory: Postgres killed, site down | Stripped-down stack, 2 GB swap, resize to 4 GB if Phase 2 shows the need (D5); DigitalOcean memory alert at 90%; `MemoryMax` on the job units |
 | Droplet lost or disk corrupt | Nightly encrypted dumps off-droplet + monthly restore drill; weekly droplet backups; RPO about 24 h (add WAL archiving with `wal-g` only if that's too much) |
-| API exposed on the internet | Only Kong behind Caddy TLS is public; Postgres and postgres-meta are bound to localhost; RLS policies come over unchanged; the secret key never reaches the browser (already true) |
+| API exposed on the internet | Only Kong behind Caddy TLS is public; Postgres is bound to localhost; RLS policies come over unchanged; the secret key never reaches the browser (already true) |
 | Forgotten upgrades | Monthly changelog check; pinned tags make each upgrade a reviewable diff |
 | Agent workflow breaks (no MCP) | Phase 3 lands before cutover |
 | fantasy-pulse breaks | D1, D4, D6 answered first; rehearsed sign-in on its preview; its owner switches its variables |
