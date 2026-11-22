@@ -62,6 +62,19 @@ ssh -N -L 5432:127.0.0.1:5432 deploy@138.68.230.37
 psql "postgres://postgres:<POSTGRES_PASSWORD>@127.0.0.1:5432/postgres"
 ```
 
+## Copy hosted's data in
+
+```bash
+~/ottoneu-db/deploy/supabase/restore-from-hosted.sh ~/supabase-migration/<name> --reset
+```
+
+This dumps hosted (using `HOSTED_DB_URL` from `~/supabase-migration/hosted.env`,
+mode 600), resets the self-hosted database, restores in one transaction,
+copies the migration history, and compares [`counts.sql`](counts.sql) on both
+sides. It takes ~2 minutes. `--reset` **wipes the self-hosted database**; while
+it holds only a rehearsal copy, that's the point. After cutover, never run it
+against the live self-hosted database.
+
 ## Check it
 
 `ottoneu-supabase-health.timer` ([deploy/droplet/](../droplet/README.md))
