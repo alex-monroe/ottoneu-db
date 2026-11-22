@@ -2,7 +2,7 @@
 
 **Status:** Proposed (2026-11-22). Nothing is built yet. Phase 0 has D1 (one
 project) and D2 (cost: $25/month hosted) decided, with recommendations for the
-rest; D4 still needs a check in the fantasy-pulse repo.
+rest, and D3 (`db.rosterloom.com`); D4 still needs a check in the fantasy-pulse repo.
 
 **Goal:** move the shared Supabase database off the hosted platform onto the
 droplet (`sofa-db-server`, 138.68.230.37, SFO2, Ubuntu 24.04, user `deploy`). It
@@ -47,20 +47,21 @@ stays untouched as the rollback until the new one has run cleanly for two weeks.
   up, it is not migrated. Check it isn't adding to the bill.
 - **D2. Why self-host? Decided: cost.** Hosted Supabase costs **$25/month**,
   the Pro plan billed through Vercel. The self-hosted cost is the droplet (now
-  $12 + $2.40 backups), a domain (~$1/month) and off-droplet backup storage.
+  $12 + $2.40 backups) and off-droplet backup storage (cents). The domain is
+  one you already own (D3).
   Savings depend on staying at 2 GB (see D5). Owning backups, upgrades and
   security is the price.
-- **D3. API hostname. Recommended: a cheap domain from Porkbun.** Vercel and
-  GitHub reach the API over HTTPS, so it needs a name with a certificate.
-  - Buy a domain at Porkbun: a `.com` is ~$11/year, and some other endings are
-    a few dollars.
-  - In Porkbun's DNS, add an **A record**: `db` → `138.68.230.37`.
-  - The API is then `https://db.<yourdomain>`, and Caddy gets its certificate
+- **D3. API hostname. Decided: `db.rosterloom.com`.** It reuses the domain
+  fantasy-pulse already runs on. Vercel and GitHub reach the API over HTTPS, so
+  it needs a name with a certificate.
+  - rosterloom.com's DNS is at Porkbun (`*.ns.porkbun.com`). The apex points at
+    Vercel, and mail is Porkbun forwarding with its SPF record.
+  - `db`, `api` and `send` are all unused (checked 2026-11-22).
+  - In Porkbun → DNS, add an **A record**: host `db`, answer `138.68.230.37`,
+    TTL 600.
+  - The API is then `https://db.rosterloom.com`, and Caddy gets its certificate
     automatically.
-  - The same domain is reused for fantasy-pulse's email (D6). That's why it
-    beats the free alternative, a wildcard-IP name such as
-    `138-68-230-37.sslip.io`. That works for HTTPS but can't send email and
-    depends on a third-party DNS service.
+  - The site and the apex are unaffected.
 - **D4. Does fantasy-pulse connect to Postgres directly?** It has
   `POSTGRES_URL` / `POSTGRES_PRISMA_URL`.
   - If its code uses them (Prisma, `pg`, Drizzle), the stack needs Supavisor
@@ -78,19 +79,22 @@ stays untouched as the rollback until the new one has run cleanly for two weeks.
   - Resize to 4 GB ("CPU and RAM only", undoable) only if memory sits above
     ~75% or the DigitalOcean memory alert fires.
 - **D6. Email for fantasy-pulse's sign-up and password reset. Recommended:
-  Resend's free tier** (3,000 emails/month, 100/day; 9 users need a handful).
-  Porkbun is a domain registrar. It provides the domain the email is sent
-  *from*, not the sending service.
-  - Create a Resend account and add the D3 domain; Resend shows 3 DNS records
-    (SPF, DKIM, return path).
-  - Add those records in Porkbun.
+  Resend's free tier, sending from `rosterloom.com`** (3,000 emails/month,
+  100/day; 9 users need a handful). Porkbun stays the registrar and DNS host;
+  it doesn't send app email.
+  - Create a Resend account and add `rosterloom.com`.
+  - Resend's records go on the `send` subdomain (MX + SPF) and
+    `resend._domainkey` (DKIM). Neither name is in use.
+  - Add them in Porkbun next to the existing records. The root MX (Porkbun
+    forwarding) and root SPF stay as they are, so any mail you receive at
+    rosterloom.com keeps working.
   - Put Resend's SMTP host, port, user and API key in GoTrue's `SMTP_*`
-    settings, with a sender like `no-reply@<yourdomain>`.
+    settings, with a sender like `no-reply@rosterloom.com`.
   - Also set `SITE_URL` and the redirect allow-list to fantasy-pulse's URL.
-  - Check in the Supabase dashboard (Authentication → Emails) whether
-    fantasy-pulse uses confirmation emails at all. If it only needs password
-    reset, the setup is the same, but nothing breaks at sign-up if email is
-    briefly down.
+  - Optionally, add a DMARC record (`_dmarc`, `v=DMARC1; p=none;`), which the
+    domain lacks today. It helps deliverability.
+  - Check in the Supabase dashboard (Authentication → Emails) which emails
+    fantasy-pulse actually sends; the setup is the same either way.
 
 ## Phase 1: stand up the stack (no data, no traffic)
 
