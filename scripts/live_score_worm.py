@@ -55,6 +55,10 @@ STATE_TABLE = "live_worm_state"
 NFLVERSE_REFRESH = timedelta(minutes=30)
 # With no game in sight, look again in a day (pg_cron reads this as the next kickoff).
 IDLE_RECHECK = timedelta(days=1)
+# `--if-due` uses pg_cron's own windows (migration 059), so the two schedulers agree.
+DUE_WITHIN = timedelta(minutes=15)
+HEARTBEAT_FRESH = timedelta(minutes=3)
+DISPATCH_PENDING = timedelta(minutes=10)
 
 
 # --- Feeds -------------------------------------------------------------------
@@ -131,6 +135,30 @@ def keep_going(espn_games: list[dict], now: datetime, lead: timedelta) -> bool:
         return True
     upcoming = next_kickoff(espn_games, now)
     return upcoming is not None and upcoming - now <= lead
+
+
+def is_due(state: dict | None, now: datetime) -> bool:
+    """Whether a scheduler firing every minute should start a loop now.
+
+    The same test pg_cron's `dispatch_live_worm` makes: no other loop running
+    (no heartbeat in the last 3 minutes, no GitHub dispatch in the last 10) and
+    the next kickoff within 15 minutes or past. With no state, run once to learn it.
+    """
+    if not state:
+        return True
+    heartbeat, dispatched, kickoff = (
+        _parse_time(state[k]) if state.get(k) else None
+        for k in ("heartbeat_at", "dispatched_at", "next_kickoff"))
+    if heartbeat and heartbeat > now - HEARTBEAT_FRESH:
+        return False
+    if dispatched and dispatched > now - DISPATCH_PENDING:
+        return False
+    return kickoff is None or kickoff <= now + DUE_WITHIN
+
+
+def read_state(supabase) -> dict | None:
+    rows = supabase.table(STATE_TABLE).select("*").eq("id", 1).execute().data
+    return rows[0] if rows else None
 
 
 def _parse_time(value: str) -> datetime:
@@ -272,9 +300,14 @@ def main() -> None:
     parser.add_argument("--max-minutes", type=int, default=340,
                         help="Stop after this long; pg_cron starts the next job (default 340).")
     parser.add_argument("--dry-run", action="store_true", help="Build and print without writing.")
+    parser.add_argument("--if-due", action="store_true",
+                        help="Exit at once unless pg_cron's start test passes (a kickoff within 15 "
+                             "minutes, no other loop running) — for a scheduler that fires every minute.")
     args = parser.parse_args()
 
     supabase = get_supabase_client()
+    if args.if_due and not is_due(read_state(supabase), datetime.now(timezone.utc)):
+        return
     live = LiveWorm(supabase, args.league_id, args.dry_run)
     started = datetime.now(timezone.utc)
     lead = timedelta(minutes=args.lead)

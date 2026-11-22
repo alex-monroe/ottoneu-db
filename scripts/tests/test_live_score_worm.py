@@ -12,6 +12,7 @@ import pandas as pd
 from scripts.live_score_worm import (
     IDLE_RECHECK,
     fingerprint,
+    is_due,
     keep_going,
     next_kickoff,
     pick_sources,
@@ -94,6 +95,43 @@ class TestLooping:
     def test_fingerprint_changes_with_the_rows(self):
         assert fingerprint([{"a": 1}]) == fingerprint([{"a": 1}])
         assert fingerprint([{"a": 1}]) != fingerprint([{"a": 2}])
+
+
+def state(minutes_ago_heartbeat=None, minutes_ago_dispatch=None, kickoff_in=None):
+    """A live_worm_state row as Supabase returns it, times relative to NOW."""
+    def at(delta):
+        return None if delta is None else (NOW + timedelta(minutes=delta)).isoformat()
+    return {"id": 1,
+            "heartbeat_at": at(None if minutes_ago_heartbeat is None else -minutes_ago_heartbeat),
+            "dispatched_at": at(None if minutes_ago_dispatch is None else -minutes_ago_dispatch),
+            "next_kickoff": at(kickoff_in)}
+
+
+class TestIfDue:
+    """`--if-due` must make pg_cron's start decision (migration 059), so the
+    droplet timer and the GitHub fallback never run two loops at once."""
+
+    def test_due_when_a_kickoff_is_within_15_minutes_or_past(self):
+        assert is_due(state(kickoff_in=14), NOW)
+        assert is_due(state(kickoff_in=-30), NOW)  # a game on: the loop writes now
+        assert not is_due(state(kickoff_in=16), NOW)
+
+    def test_not_due_while_another_loop_has_a_fresh_heartbeat(self):
+        assert not is_due(state(minutes_ago_heartbeat=1, kickoff_in=0), NOW)
+        assert is_due(state(minutes_ago_heartbeat=4, kickoff_in=0), NOW)  # that loop died
+
+    def test_not_due_while_a_github_dispatch_is_starting(self):
+        assert not is_due(state(minutes_ago_dispatch=5, kickoff_in=0), NOW)
+        assert is_due(state(minutes_ago_dispatch=11, kickoff_in=0), NOW)
+
+    def test_due_with_no_state_or_no_kickoff_known(self):
+        assert is_due(None, NOW)
+        assert is_due(state(), NOW)
+
+    def test_reads_supabase_timestamp_format(self):
+        row = {"heartbeat_at": None, "dispatched_at": "2026-11-01 17:00:00.1+00",
+               "next_kickoff": "2026-11-01T18:40:00.349816+00:00"}
+        assert is_due(row, NOW)
 
 
 class TestGamesInProgress:
