@@ -1,0 +1,11 @@
+[Unit]
+Description=Scrape the FA market (auctions + waivers) every three hours
+
+[Timer]
+# :41 like the old GitHub schedule, clear of post-auctions' five-minute marks.
+OnCalendar=*-*-* 00/3:41:00
+AccuracySec=30s
+Unit=ottoneu-scrape-fa-market.service
+
+[Install]
+WantedBy=timers.target

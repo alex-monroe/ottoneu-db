@@ -25,19 +25,36 @@ because `discord_posts` is claimed before each send. The script takes
 `/run/lock/ottoneu-fa-market.lock`, which any other droplet job that rewrites
 `fa_market` must take too.
 
+## Scrape FA Market
+
+`ottoneu-scrape-fa-market.timer` runs `scrape-fa-market.sh` every three hours at
+:41: the same steps as `.github/workflows/scrape-fa-market.yml`. The in-season
+gate (`python -m scripts.fa_market_gate --exit-code`) makes off-season runs a
+no-op; then it logs in to FanGraphs over plain HTTP (no browser), snapshots open
+auctions and claimable waivers into `fa_market`, and revalidates `/free-agents`.
+It takes the same `/run/lock/ottoneu-fa-market.lock` as Post Auctions, so the
+two never write `fa_market.first_seen_at` (each auction's Discord key) at once.
+The workflow drops to a once-a-day fallback schedule. That run and the hourly
+Post Auctions fallback cannot share the droplet's lock, but both are rare.
+
+Run it by hand with `deploy/droplet/scrape-fa-market.sh --force --dry-run`
+(`--force` skips the in-season gate).
+
 ## Install or update
 
 ```bash
 cd ~/ottoneu-db && git pull && venv/bin/pip install -q -e . && (cd web && npm ci --no-audit --no-fund)
 sudo cp deploy/droplet/ottoneu-*.service deploy/droplet/ottoneu-*.timer /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now ottoneu-live-worm.timer ottoneu-post-auctions.timer
+sudo systemctl enable --now ottoneu-live-worm.timer ottoneu-post-auctions.timer ottoneu-scrape-fa-market.timer
 ```
 
 Node 22 comes from NodeSource's apt repo. Secrets, all mode 600 and gitignored:
 
 - `~/ottoneu-db/.env`: `SUPABASE_URL`, `SUPABASE_KEY` (the secret key),
-  `REVALIDATE_SECRET`, and optionally `OTTONEU_COOKIE`.
+  `REVALIDATE_SECRET`, `FANGRAPHS_USERNAME` / `FANGRAPHS_PASSWORD` (the FA market
+  scrape's waivers login; without them it reads only the public auctions), and
+  optionally `OTTONEU_COOKIE`.
 - `~/ottoneu-db/web/.env.local`: `NEXT_PUBLIC_SUPABASE_URL`,
   `NEXT_PUBLIC_SUPABASE_ANON_KEY` and `SUPABASE_SECRET_KEY` (both the secret
   key, as in the workflow), and `DISCORD_TOKEN`.
@@ -48,6 +65,7 @@ Node 22 comes from NodeSource's apt repo. Secrets, all mode 600 and gitignored:
 systemctl list-timers 'ottoneu-*'
 journalctl -u ottoneu-live-worm -f
 journalctl -u ottoneu-post-auctions -f
+journalctl -u ottoneu-scrape-fa-market -f
 ```
 
 Droplet failures do not alert yet; the GitHub fallbacks' failures still do.

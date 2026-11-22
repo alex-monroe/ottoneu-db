@@ -23,7 +23,8 @@ long each window has left, and what the viewer should do about each one.
 | `/football/{league}/auctions/<id>` (checked 2026-10-21) | **Public**, once closed; linked from the "Completed Auctions" table on `/auctions` (which also prints the price and the ending time) | Who started it, when it ended, every bid with its team, highest first | Anything while the auction is open |
 
 So the scrape logs in when `FANGRAPHS_USERNAME` / `FANGRAPHS_PASSWORD` are set and
-reads both pages in one Playwright session. Without them it reads the public auctions
+reads both pages in one plain-HTTP `requests.Session` (`fangraphs_login.login_session`:
+a stock WordPress form post, no browser, same honest User-Agent). Without them it reads the public auctions
 page over plain HTTP (`scripts/ottoneu_http.py`, honest User-Agent) and leaves the
 waiver rows alone. The board says "nominated by" nowhere because no page says it while the auction is open;
 the closed auction's page does, which is what the Discord result post uses.
@@ -50,14 +51,21 @@ Discord post adds a line saying the tiebreak decided it.
 scrape (`carry_over`), so `(player_key, first_seen_at)` names an open auction for its whole
 life. That is the key of its "auction started" Discord post, because the public page prints
 no auction id. `carry_over` also keeps a logged-in scrape's `market_id` when a public
-scrape cannot see it. Both workflows share the `scrape-fa-market` concurrency group so two
-runs never race on `first_seen_at`.
+scrape cannot see it. Two runs must never write `first_seen_at` at once. On the droplet
+(`deploy/droplet/`), the five-minute Post Auctions job and the three-hourly logged-in scrape
+both take `flock /run/lock/ottoneu-fa-market.lock`. On GitHub, the two fallback workflows
+(Post Auctions hourly, Scrape FA Market daily) share the `scrape-fa-market` concurrency
+group. A GitHub fallback run cannot see the droplet's lock, so a new auction listed at the
+moment both write could still be posted twice. That needs a rare fallback run to overlap,
+which is the reason the logged-in scrape moved to the droplet.
 
 **FanGraphs login change (October 2026).** `wp-login.php` was re-skinned: the stock
 `#wp-submit` button is still in the form but hidden, and the visible "Sign In" button is
 `input.fg-login-submit`. The old click on `#wp-submit` timed out, so
 `fangraphs_login.py` now clicks whichever `name=wp-submit` input is visible. The
-arbitration scrape uses the same function.
+arbitration scrape still uses that Playwright login. The FA market scrape moved to the
+plain-HTTP `login_session` in November 2026, which posts one `wp-submit` value with
+the form's hidden fields, so the hidden button does not matter there.
 
 ## Times
 

@@ -27,7 +27,8 @@ Two Ottoneu pages, two different access rules (checked 2026-10-17):
                                 whatever order the page lists the tied bids in.
 
 So the scrape logs in when FANGRAPHS_USERNAME / FANGRAPHS_PASSWORD are set
-(`scripts/fangraphs_login.py`) and reads both pages in one browser session.
+(`scripts/fangraphs_login.login_session`, a plain-HTTP WordPress login — no
+browser) and reads both pages in one `requests.Session`.
 Without credentials — or with `--auctions-only`, which the every-few-minutes
 Discord job uses — it reads the public auctions page over plain HTTP and leaves
 the waiver rows alone, so a missing secret degrades to half a board rather than
@@ -63,7 +64,6 @@ scrape hits (#752).
 from __future__ import annotations
 
 import argparse
-import asyncio
 import re
 import sys
 from dataclasses import asdict, dataclass, field
@@ -72,7 +72,7 @@ from datetime import date, datetime, timedelta, timezone
 from bs4 import BeautifulSoup
 
 from scripts.config import LEAGUE_ID, WAIVER_CLAIM_HOURS, get_supabase_client
-from scripts.fangraphs_login import have_credentials, login_to_fangraphs, save_debug_screenshot
+from scripts.fangraphs_login import have_credentials, login_session
 from scripts.nfl_week import LEAGUE_TZ
 from scripts.ottoneu_http import BASE_URL, fetch_page
 
@@ -84,12 +84,6 @@ WAIVERS_PATH = "/football/{league_id}/waivers"
 USER_AGENT = (
     "ottoneu-db-fa-market/1.0 "
     "(personal research tool; github.com/alex-monroe/ottoneu-db)"
-)
-# Playwright's login needs a browser UA (see scrape_arbitration_progress.py); the
-# plain-HTTP path above must NOT use one (see ottoneu_http.py).
-BROWSER_UA = (
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 )
 
 CARD_HREF_RE = re.compile(r"/player_card/(nfl|college)/(\d+)")
@@ -491,29 +485,16 @@ def fetch_auction_page(league_id: int, auction_id: int) -> str:
     return fetch_page(AUCTION_PATH.format(league_id=league_id, auction_id=auction_id), USER_AGENT)
 
 
-async def fetch_logged_in(league_id: int) -> tuple[str, str]:
-    """(auctions_html, waivers_html) from one logged-in browser session."""
-    from playwright.async_api import async_playwright
+def fetch_logged_in(league_id: int) -> tuple[str, str]:
+    """(auctions_html, waivers_html) from one logged-in HTTP session.
 
-    waivers_url = BASE_URL + WAIVERS_PATH.format(league_id=league_id)
-    auctions_url = BASE_URL + AUCTIONS_PATH.format(league_id=league_id)
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await (await browser.new_context(user_agent=BROWSER_UA)).new_page()
-        try:
-            await login_to_fangraphs(page, waivers_url)
-            if "/waivers" not in page.url:
-                await page.goto(waivers_url, timeout=60000)
-            if "/waivers" not in page.url:
-                await save_debug_screenshot(page, "fa-market-waivers")
-                raise RuntimeError(f"Waivers page redirected to {page.url} — not logged in?")
-            await page.wait_for_selector("table", state="attached", timeout=30000)
-            waivers_html = await page.content()
-            await page.goto(auctions_url, timeout=60000)
-            await page.wait_for_selector("table", state="attached", timeout=30000)
-            auctions_html = await page.content()
-        finally:
-            await browser.close()
+    A waivers page that still redirects after the login raises GatedPageError
+    (`fetch_page`): the session did not take.
+    """
+    waivers_path = WAIVERS_PATH.format(league_id=league_id)
+    session = login_session(BASE_URL + waivers_path, USER_AGENT)
+    waivers_html = fetch_page(waivers_path, USER_AGENT, session=session)
+    auctions_html = fetch_page(AUCTIONS_PATH.format(league_id=league_id), USER_AGENT, session=session)
     return auctions_html, waivers_html
 
 
@@ -626,7 +607,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.waivers_file:
             waivers_html = open(args.waivers_file, encoding="utf-8").read()
     elif have_credentials() and not args.auctions_only:
-        auctions_html, waivers_html = asyncio.run(fetch_logged_in(LEAGUE_ID))
+        auctions_html, waivers_html = fetch_logged_in(LEAGUE_ID)
     else:
         if not args.auctions_only:
             print("FANGRAPHS_USERNAME/PASSWORD not set: reading public auctions only; "

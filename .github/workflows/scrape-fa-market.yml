@@ -4,7 +4,15 @@ name: Scrape FA Market
 # inside their 24-hour claim window — in step with Ottoneu, for the board on
 # /free-agents. Both windows last a day, so every three hours catches every
 # auction and every cut with hours to spare. One login plus two page loads per
-# run: nowhere near the 429s the per-player card scrape hit (#752).
+# run, all plain HTTP (no browser): nowhere near the 429s the per-player card
+# scrape hit (#752).
+#
+# The DigitalOcean droplet runs this every three hours
+# (deploy/droplet/scrape-fa-market.sh), under the same flock as its five-minute
+# Post Auctions job, so the two never write fa_market.first_seen_at (each
+# auction's Discord key) at once — a lock this GitHub run cannot share. This
+# once-a-day schedule is the fallback if the droplet is down, and keeps the
+# workflow on alert-scheduled-failure.yml.
 #
 # /auctions is public; /waivers needs a logged-in session (FANGRAPHS_USERNAME /
 # FANGRAPHS_PASSWORD, the same secrets the arbitration scrape uses). Without the
@@ -18,10 +26,10 @@ on:
         type: boolean
         default: false
 
-  # Every three hours; the gate job limits real runs to the in-season phase of
-  # the league_calendar resolver.
+  # Daily fallback (the droplet runs every three hours); the gate job limits
+  # real runs to the in-season phase of the league_calendar resolver.
   schedule:
-    - cron: "41 */3 * * *"
+    - cron: "41 13 * * *"
 
 permissions:
   contents: read
@@ -75,12 +83,9 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install playwright requests beautifulsoup4 supabase python-dotenv
+          pip install requests beautifulsoup4 supabase python-dotenv
           # Install this repo as a package so `import scripts.*` resolves
           pip install -e . --no-deps
-
-      - name: Install Playwright browsers
-        run: playwright install --with-deps chromium
 
       - name: Create .env
         env:
@@ -103,15 +108,6 @@ jobs:
           ARGS=""
           if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="--dry-run"; fi
           python scripts/scrape_fa_market.py $ARGS
-
-      - name: Upload debug artifacts on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-screenshots
-          path: debug/
-          retention-days: 7
-          if-no-files-found: ignore
 
       - name: Revalidate site
         if: ${{ inputs.dry_run != true }}

@@ -1,0 +1,24 @@
+# Scrape FA Market on the droplet: log in to FanGraphs over plain HTTP, snapshot
+# open auctions and claimable waivers into fa_market, then revalidate
+# /free-agents. Started every three hours by ottoneu-scrape-fa-market.timer; the
+# in-season gate (scripts/fa_market_gate.py) makes off-season runs a no-op.
+# Takes the same /run/lock/ottoneu-fa-market.lock as ottoneu-post-auctions, so
+# the two never write fa_market.first_seen_at at once. GitHub's
+# scrape-fa-market.yml stays on a daily fallback schedule.
+[Unit]
+Description=Ottoneu FA market scrape (auctions + waivers)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=deploy
+WorkingDirectory=/home/deploy/ottoneu-db
+Environment=PYTHONUNBUFFERED=1
+Environment=SITE_URL=https://sofa-db.vercel.app
+# Secrets (SUPABASE_URL, SUPABASE_KEY, FANGRAPHS_USERNAME, FANGRAPHS_PASSWORD,
+# REVALIDATE_SECRET) come from /home/deploy/ottoneu-db/.env.
+ExecStart=/home/deploy/ottoneu-db/deploy/droplet/scrape-fa-market.sh
+TimeoutStartSec=10min
+Nice=5
+MemoryMax=400M

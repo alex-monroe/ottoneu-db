@@ -164,6 +164,14 @@ class TestGate:
         assert gate_main(["--force"], today=date(2026, 3, 1)) == 0
         assert out.read_text() == "due=true\n"
 
+    def test_exit_code_signals_not_due(self, monkeypatch):
+        from scripts import fa_market_gate
+        monkeypatch.delenv("GITHUB_OUTPUT", raising=False)
+        monkeypatch.setattr(fa_market_gate, "_resolve_context", lambda today: {"phase": "pre_draft"})
+        assert gate_main(["--exit-code"]) == 3
+        assert gate_main([]) == 0
+        assert gate_main(["--exit-code", "--force"]) == 0
+
 
 # League 309's /auctions/65780 on 2026-10-21, trimmed: a team-link table with
 # the bids out of order, to show the parser sorts them.

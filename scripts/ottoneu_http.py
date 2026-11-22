@@ -61,11 +61,14 @@ def fetch_page(
     each caller passes its own so a blocked request is attributable to the
     scraper that made it. ``cookie`` (or the ``OTTONEU_COOKIE`` env var) is an
     optional escape hatch: a raw ``Cookie`` header reusing a browser session,
-    only needed if a page we read is ever put behind the login.
+    only needed if a page we read is ever put behind the login. A ``session``
+    (e.g. `fangraphs_login.login_session`) sends its own cookies, so the env var
+    is not read for it — it would replace the session's login cookie.
     """
     url = f"{BASE_URL}{path}"
     headers = {"User-Agent": user_agent, "Accept": accept}
-    cookie = cookie or os.getenv("OTTONEU_COOKIE")
+    if session is None:
+        cookie = cookie or os.getenv("OTTONEU_COOKIE")
     if cookie:
         headers["Cookie"] = cookie
 
