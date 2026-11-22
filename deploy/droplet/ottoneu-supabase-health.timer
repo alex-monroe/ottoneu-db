@@ -1,0 +1,10 @@
+[Unit]
+Description=Check self-hosted Supabase every five minutes
+
+[Timer]
+OnCalendar=*:2/5
+AccuracySec=10s
+Unit=ottoneu-supabase-health.service
+
+[Install]
+WantedBy=timers.target

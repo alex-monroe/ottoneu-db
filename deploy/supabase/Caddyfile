@@ -1,0 +1,17 @@
+# Public entry point for self-hosted Supabase: TLS for {$PROXY_DOMAIN}
+# (db.rosterloom.com), certificate from Let's Encrypt, renewed by Caddy.
+# Only the two APIs this project and fantasy-pulse use are exposed; everything
+# else (Studio, postgres-meta, Storage, Realtime, Functions) is not running and
+# answers 404 here rather than reaching the gateway.
+{$PROXY_DOMAIN} {
+	@api path /rest/v1/* /auth/v1/*
+	handle @api {
+		reverse_proxy api-gw:8000
+	}
+
+	handle {
+		respond 404
+	}
+
+	header -server
+}

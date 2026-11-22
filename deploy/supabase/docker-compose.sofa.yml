@@ -1,0 +1,49 @@
+# Our layer on top of self-hosted Supabase's docker-compose.yml
+# (~/supabase on the droplet, release recorded in ~/supabase/.supabase-version).
+# The upstream files stay untouched so `sh update.sh` merges cleanly; every
+# change we make lives here. Enabled through COMPOSE_FILE in ~/supabase/.env:
+#
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.sofa.yml
+#
+# We run only db, rest, auth, api-gw and caddy (see docs/exec-plans/supabase-self-host.md):
+#
+#   sh run.sh start   # no: starts every upstream service
+#   docker compose up -d --wait db rest auth api-gw caddy
+#
+# Ports: only Caddy (80/443) is public. Postgres and the gateway are bound to
+# 127.0.0.1, so the droplet's jobs use http://localhost:8000 and Postgres is
+# reached from a laptop over an SSH tunnel. (Docker ignores ufw; the Cloud
+# Firewall allows only 22/80/443 anyway.)
+
+services:
+  db:
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  api-gw:
+    ports: !override
+      - "127.0.0.1:8000:8000"
+    # Upstream waits for Studio, which we don't run.
+    depends_on: !reset {}
+
+  caddy:
+    container_name: supabase-caddy
+    image: caddy:2.10
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    depends_on:
+      api-gw:
+        condition: service_healthy
+    environment:
+      PROXY_DOMAIN: ${PROXY_DOMAIN}
+    volumes:
+      - ./volumes/proxy/sofa/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

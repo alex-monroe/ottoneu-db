@@ -24,6 +24,13 @@ is claimed before each send, so a manual workflow run overlapping it never posts
 twice. The script takes `/run/lock/ottoneu-fa-market.lock`, which any other
 droplet job that rewrites `fa_market` must take too.
 
+## Self-hosted Supabase
+
+`ottoneu-supabase-health.timer` runs `supabase-health.sh` every five minutes.
+It checks `https://db.rosterloom.com` end to end: Auth's health endpoint and a
+PostgREST request. The stack itself runs under Docker Compose in `~/supabase`;
+see [deploy/supabase/README.md](../supabase/README.md).
+
 ## Alerts
 
 Every unit runs its job through `run-checked.sh <check> <command>`, which pings
@@ -37,6 +44,7 @@ shows up. A check is created on its first ping; set its schedule then:
 |---|---|---|---|
 | `post-auctions` | 5 min | 10 min | runs every five minutes, all year |
 | `live-worm` | 1 min | 6 h | runs every minute, but a loop may run 340 minutes before it reports |
+| `supabase-health` | 5 min | 10 min | `supabase-health.sh` checks the self-hosted API's public URL every five minutes |
 
 Without `HC_PING_KEY` in `.env` the jobs still run, unreported. DigitalOcean
 Monitoring alert policies cover the machine itself (memory, disk, CPU).
@@ -47,7 +55,7 @@ Monitoring alert policies cover the machine itself (memory, disk, CPU).
 cd ~/ottoneu-db && git pull && venv/bin/pip install -q -e . && (cd web && npm ci --no-audit --no-fund)
 sudo cp deploy/droplet/ottoneu-*.service deploy/droplet/ottoneu-*.timer /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now ottoneu-live-worm.timer ottoneu-post-auctions.timer
+sudo systemctl enable --now ottoneu-live-worm.timer ottoneu-post-auctions.timer ottoneu-supabase-health.timer
 ```
 
 Node 22 comes from NodeSource's apt repo. Secrets, all mode 600 and gitignored:
