@@ -1,8 +1,11 @@
 # Plan: self-host Supabase on the DigitalOcean droplet
 
-**Status:** Proposed (2026-11-22). Nothing is built yet. Phase 0 has D1 (one
-project) and D2 (cost: $25/month hosted) decided, with recommendations for the
-rest, D3 (`db.rosterloom.com`, A record added) and D4 (no direct Postgres).
+**Status:** Phase 1 done (2026-11-22). The stripped-down stack (`db`, `rest`,
+`auth`, `api-gw` (Envoy), `caddy`) runs on the droplet at
+`https://db.rosterloom.com`, release `self-hosted/v0.8.4`, empty and serving no
+traffic. Operating notes: [deploy/supabase/README.md](../../deploy/supabase/README.md).
+Phase 0 decisions D1–D5 are made; D6 (Resend for GoTrue email) is set up before
+cutover. Next: Phase 2, the rehearsal restore.
 
 **Goal:** move the shared Supabase database off the hosted platform onto the
 droplet (`sofa-db-server`, 138.68.230.37, SFO2, Ubuntu 24.04, user `deploy`). It
@@ -94,7 +97,18 @@ stays untouched as the rollback until the new one has run cleanly for two weeks.
   - Check in the Supabase dashboard (Authentication → Emails) which emails
     fantasy-pulse actually sends; the setup is the same either way.
 
-## Phase 1: stand up the stack (no data, no traffic)
+## Phase 1: stand up the stack (no data, no traffic) — done
+
+As built, this differed from the steps below in three ways:
+- Supabase's `setup.sh` now does the install (`-y --skip-deps -p supabase`
+  into `~/supabase`). Postgres 17 is the default there, and the version stamp
+  lets `update.sh` merge later releases.
+- The gateway is **Envoy** (`api-gw`), the new upstream default, not Kong.
+- **Caddy runs as a container** in our override, not on the host.
+
+Measured with the database empty: ~265 MB for the five containers.
+
+The steps as planned:
 
 1. **Get the compose files.** Clone `supabase/supabase` at a pinned release tag.
    Copy `docker/` to `/opt/supabase` and follow the Postgres 17 guide. Pin every

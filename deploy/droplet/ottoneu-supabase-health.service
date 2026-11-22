@@ -1,0 +1,14 @@
+# Checks self-hosted Supabase's public API every five minutes
+# (ottoneu-supabase-health.timer) and reports to Healthchecks (check
+# `supabase-health`), so an API outage alerts even when no job is running.
+[Unit]
+Description=Self-hosted Supabase health check
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=deploy
+WorkingDirectory=/home/deploy/ottoneu-db
+ExecStart=/home/deploy/ottoneu-db/deploy/droplet/run-checked.sh supabase-health /home/deploy/ottoneu-db/deploy/droplet/supabase-health.sh
+TimeoutStartSec=2min
