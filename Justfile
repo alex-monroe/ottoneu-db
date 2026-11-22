@@ -400,12 +400,16 @@ rebuild-score-worm *args:
 live-score-worm *args:
     {{python}} scripts/live_score_worm.py {{args}}
 
-# Snapshot the open FA market (active auctions + claimable waivers) into fa_market.
-# Logs in with FANGRAPHS_USERNAME/PASSWORD for waivers; auctions-only without them
-# or with --auctions-only. Also stores recently completed auctions (fa_auction_results).
-# e.g. just scrape-fa-market --dry-run ; just scrape-fa-market --auctions-only
+# Snapshot the open FA auctions (public page, no login) into fa_market, plus recently
+# completed auctions into fa_auction_results. e.g. just scrape-fa-market --dry-run
 scrape-fa-market *args:
     {{python}} scripts/scrape_fa_market.py {{args}}
+
+# Infer the players on waivers from the public roster CSV (a diff against the last
+# poll's snapshot in .cache/fa-waivers/) and write fa_market's waiver rows. The
+# droplet runs it every ten minutes. e.g. just infer-fa-waivers --dry-run
+infer-fa-waivers *args:
+    {{python}} scripts/infer_fa_waivers.py {{args}}
 
 # Post the week's community power ranking to Discord (reads web/.env.local; needs
 # DISCORD_TOKEN + DISCORD_CHANNEL_ID unless --dry-run). Only ever posts a public week.

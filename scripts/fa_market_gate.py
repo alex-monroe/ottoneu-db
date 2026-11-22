@@ -1,7 +1,7 @@
 """Decide whether the scheduled free-agent market scrape should run now.
 
-The "Scrape FA Market" workflow fires every few hours all year, but the board it
-feeds is an in-season tool (the off-season FA market is the keeper auction, which
+The droplet's FA waivers job (deploy/droplet/fa-waivers.sh) fires every ten
+minutes all year, but the board it feeds is an in-season tool (the off-season FA market is the keeper auction, which
 has its own pages). This gate asks the league_calendar resolver
 (scripts/season.py) for the phase instead of hard-coding months, and writes
 `due=true|false` to $GITHUB_OUTPUT so the workflow skips the scrape job cleanly
@@ -9,7 +9,8 @@ has its own pages). This gate asks the league_calendar resolver
 
 Usage:
     python -m scripts.fa_market_gate            # resolve from league_calendar
-    python -m scripts.fa_market_gate --force    # always due (manual dispatch)
+    python -m scripts.fa_market_gate --force    # always due (manual run)
+    python -m scripts.fa_market_gate --exit-code  # exit 0 if due, 3 if not (shell callers)
 """
 
 from __future__ import annotations
@@ -21,6 +22,8 @@ from datetime import date
 from scripts.season import get_season_context
 
 DUE_PHASES = ("in_season",)
+# --exit-code's "not due": distinct from 1, which an uncaught error also exits with.
+NOT_DUE_EXIT = 3
 
 
 def fa_market_due(ctx: dict) -> tuple[bool, str]:
@@ -50,6 +53,8 @@ def main(argv: list[str] | None = None, today: date | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--force", action="store_true",
                         help="Treat the scrape as due regardless of the phase.")
+    parser.add_argument("--exit-code", action="store_true",
+                        help="Exit 3 when not due, for shell callers without $GITHUB_OUTPUT.")
     args = parser.parse_args(argv)
     today = today or date.today()
 
@@ -60,7 +65,7 @@ def main(argv: list[str] | None = None, today: date | None = None) -> int:
 
     print(f"{reason} -> {'scraping' if due else 'skipping scrape'}.")
     _write_output(due)
-    return 0
+    return NOT_DUE_EXIT if args.exit_code and not due else 0
 
 
 if __name__ == "__main__":

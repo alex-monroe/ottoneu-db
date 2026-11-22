@@ -1,10 +1,9 @@
-"""Scrape the open free-agent market: active auctions and claimable waivers.
+"""Scrape the open free-agent auctions (and recently completed ones) from Ottoneu.
 
 Usage:
-    just scrape-fa-market                       # fetch both pages, write the table
+    just scrape-fa-market                       # fetch the auctions page, write the tables
     just scrape-fa-market --dry-run             # fetch and print, write nothing
-    just scrape-fa-market --auctions-only       # public auctions page only, no login
-    just scrape-fa-market --auctions-file a.html --waivers-file w.html --dry-run
+    just scrape-fa-market --auctions-file a.html --dry-run
 
 Two Ottoneu pages, two different access rules (checked 2026-10-17):
 
@@ -26,44 +25,38 @@ Two Ottoneu pages, two different access rules (checked 2026-10-17):
                                 to the team lower in the standings (`break_ties`),
                                 whatever order the page lists the tied bids in.
 
-So the scrape logs in when FANGRAPHS_USERNAME / FANGRAPHS_PASSWORD are set
-(`scripts/fangraphs_login.py`) and reads both pages in one browser session.
-Without credentials — or with `--auctions-only`, which the every-few-minutes
-Discord job uses — it reads the public auctions page over plain HTTP and leaves
-the waiver rows alone, so a missing secret degrades to half a board rather than
-none.
+This scrape reads only the public pages, over plain HTTP (no login, no browser).
+The waiver rows come from `scripts/infer_fa_waivers.py`, which infers them from
+the public roster CSV: the FanGraphs login is behind a Cloudflare challenge from
+the droplet, and nothing used the auction ids only a logged-in page shows.
 
 ## Times
 
 An auction row prints a countdown, not a clock time, so its end is
-`scraped_at + countdown` — an absolute instant with no time zone to guess. A
-waiver row prints the cut time on Ottoneu's site clock ("October 17, 2026 9:51
-AM"); it is stored verbatim as `cut_at_local` (the same convention as `trades`
-and `transactions`), and the claim deadline is that wall-clock time read in the
-league's time zone (`nfl_week.LEAGUE_TZ`, US Eastern) plus WAIVER_CLAIM_HOURS.
+`scraped_at + countdown` — an absolute instant with no time zone to guess.
+`claim_deadline` (used by `infer_fa_waivers.py`) reads a site-clock cut time in
+the league's time zone (`nfl_week.LEAGUE_TZ`, US Eastern) plus WAIVER_CLAIM_HOURS.
 
 ## Writes
 
-`fa_market`, one row per player currently up for auction or on waivers. Each
-kind is a snapshot of its page: upsert what is listed, then delete what is no
-longer listed. A kind that was not fetched this run is left untouched; the web
-filters out rows whose `ends_at` has passed, so a stale row expires on its own.
-Two values outlive a single scrape (`carry_over`): `first_seen_at`, which keys
-the auction's Discord post, and `market_id`, which only a logged-in scrape sees.
+`fa_market` rows with `kind='auction'`, a snapshot of the page: upsert what is
+listed, then delete what is no longer listed. Waiver rows are left alone. The
+web filters out rows whose `ends_at` has passed, so a stale row expires on its
+own. `first_seen_at`, which keys the auction's Discord post, outlives a single
+scrape (`carry_over`). Only the droplet's five-minute Post Auctions job runs this
+scrape on a schedule, so it is the only writer of `first_seen_at`.
 
 `fa_auction_results`, one row per completed auction that ended in the last
 RESULT_LOOKBACK_DAYS and is not stored yet — one extra page load each, so a
 handful a day. These feed the "auction finished" Discord post.
 
-Two page loads (plus a login) per logged-in run every few hours, and one page
-load per `--auctions-only` run — well clear of the 429s the per-player card
-scrape hits (#752).
+One page load per run, plus one per newly completed auction — well clear of the
+429s the per-player card scrape hits (#752).
 """
 
 from __future__ import annotations
 
 import argparse
-import asyncio
 import re
 import sys
 from dataclasses import asdict, dataclass, field
@@ -72,24 +65,16 @@ from datetime import date, datetime, timedelta, timezone
 from bs4 import BeautifulSoup
 
 from scripts.config import LEAGUE_ID, WAIVER_CLAIM_HOURS, get_supabase_client
-from scripts.fangraphs_login import have_credentials, login_to_fangraphs, save_debug_screenshot
 from scripts.nfl_week import LEAGUE_TZ
-from scripts.ottoneu_http import BASE_URL, fetch_page
+from scripts.ottoneu_http import fetch_page
 
 TABLE = "fa_market"
 RESULTS_TABLE = "fa_auction_results"
 AUCTIONS_PATH = "/football/{league_id}/auctions"
 AUCTION_PATH = "/football/{league_id}/auctions/{auction_id}"
-WAIVERS_PATH = "/football/{league_id}/waivers"
 USER_AGENT = (
     "ottoneu-db-fa-market/1.0 "
     "(personal research tool; github.com/alex-monroe/ottoneu-db)"
-)
-# Playwright's login needs a browser UA (see scrape_arbitration_progress.py); the
-# plain-HTTP path above must NOT use one (see ottoneu_http.py).
-BROWSER_UA = (
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 )
 
 CARD_HREF_RE = re.compile(r"/player_card/(nfl|college)/(\d+)")
@@ -97,7 +82,6 @@ DURATION_RE = re.compile(r"(\d+)\s*(day|hour|minute|second)s?", re.I)
 INPUT_ID_RE = re.compile(r"\[(\d+)\]")
 AUCTION_HREF_RE = re.compile(r"/auctions/(\d+)/?$")
 TEAM_HREF_RE = re.compile(r"/team/(\d+)")
-CUT_DATE_FORMAT = "%B %d, %Y %I:%M %p"
 ENDED_DATE_FORMAT = "%b %d, %Y %I:%M %p"
 # Completed auctions older than this (by site-clock date) are never fetched, so a
 # first run reads a few days of results rather than the whole season's.
@@ -114,7 +98,7 @@ class MarketRow:
     position: str | None
     injury_status: str | None
     ends_at: str                    # ISO UTC: auction end / claim window end
-    market_id: int | None = None    # auction id or claim id (logged-in pages only)
+    market_id: int | None = None    # auction/claim id: logged-in pages only, so no longer filled
     min_bid: int | None = None      # auctions
     salary: int | None = None       # waivers: the salary a claim pays
     cut_at_local: str | None = None  # waivers: Ottoneu site clock, ISO, no zone
@@ -168,14 +152,6 @@ def parse_ended_time(text: str) -> datetime | None:
     """'Oct 21, 2026 12:52 PM' -> naive datetime on the site clock."""
     try:
         return datetime.strptime(" ".join((text or "").split()), ENDED_DATE_FORMAT)
-    except ValueError:
-        return None
-
-
-def parse_cut_time(text: str) -> datetime | None:
-    """'October 17, 2026 9:51 AM' -> naive datetime on the site clock."""
-    try:
-        return datetime.strptime(" ".join((text or "").split()), CUT_DATE_FORMAT)
     except ValueError:
         return None
 
@@ -405,33 +381,6 @@ def with_auction_page(c: CompletedAuction, page: dict, standings: list[int] | No
     })
 
 
-def parse_waivers(html: str) -> list[MarketRow]:
-    """Rows of the 'Waiver Claims' table (logged-in page only)."""
-    soup = BeautifulSoup(html, "html.parser")
-    table = _table_after_heading(soup, "Waiver Claims")
-    # The heading sits in the page header; the claims table is the next one.
-    if table is None or table.tbody is None:
-        return []
-    rows = []
-    for tr in table.tbody.find_all("tr"):
-        tds = tr.find_all("td", recursive=False)
-        if len(tds) < 3:
-            continue
-        ident = _player_cell(tds[0])
-        cut = parse_cut_time(tds[2].get_text(" ", strip=True))
-        if ident is None or cut is None:
-            continue
-        rows.append(MarketRow(
-            kind="waiver",
-            ends_at=claim_deadline(cut).isoformat(),
-            market_id=_input_id(tds[3]) if len(tds) > 3 else None,
-            salary=parse_money(tds[1].get_text()),
-            cut_at_local=cut.isoformat(),
-            **ident,
-        ))
-    return rows
-
-
 def to_db_rows(rows: list[MarketRow], league_id: int, player_ids: dict[str, str], scraped_at: str) -> list[dict]:
     out = []
     for r in rows:
@@ -451,8 +400,8 @@ def carry_over(rows: list[dict], existing: dict[str, dict]) -> list[dict]:
 
     `existing` maps player_key -> the stored row's {first_seen_at, market_id}.
     A row seen before keeps its `first_seen_at` (the auction's Discord key); a
-    new one is first seen now. A public scrape cannot see `market_id`, so it
-    keeps the logged-in scrape's rather than blanking it.
+    new one is first seen now. `market_id` came only from the retired logged-in
+    scrape; a row that has one keeps it.
     """
     out = []
     for r in rows:
@@ -489,32 +438,6 @@ def fetch_auctions_public(league_id: int) -> str:
 
 def fetch_auction_page(league_id: int, auction_id: int) -> str:
     return fetch_page(AUCTION_PATH.format(league_id=league_id, auction_id=auction_id), USER_AGENT)
-
-
-async def fetch_logged_in(league_id: int) -> tuple[str, str]:
-    """(auctions_html, waivers_html) from one logged-in browser session."""
-    from playwright.async_api import async_playwright
-
-    waivers_url = BASE_URL + WAIVERS_PATH.format(league_id=league_id)
-    auctions_url = BASE_URL + AUCTIONS_PATH.format(league_id=league_id)
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await (await browser.new_context(user_agent=BROWSER_UA)).new_page()
-        try:
-            await login_to_fangraphs(page, waivers_url)
-            if "/waivers" not in page.url:
-                await page.goto(waivers_url, timeout=60000)
-            if "/waivers" not in page.url:
-                await save_debug_screenshot(page, "fa-market-waivers")
-                raise RuntimeError(f"Waivers page redirected to {page.url} — not logged in?")
-            await page.wait_for_selector("table", state="attached", timeout=30000)
-            waivers_html = await page.content()
-            await page.goto(auctions_url, timeout=60000)
-            await page.wait_for_selector("table", state="attached", timeout=30000)
-            auctions_html = await page.content()
-        finally:
-            await browser.close()
-    return auctions_html, waivers_html
 
 
 # ─── Writing ─────────────────────────────────────────────────────────────────
@@ -611,43 +534,24 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--dry-run", action="store_true", help="Print rows; write nothing.")
     parser.add_argument("--auctions-file", help="Parse a saved auctions page instead of fetching.")
-    parser.add_argument("--waivers-file", help="Parse a saved waivers page instead of fetching.")
-    parser.add_argument("--auctions-only", action="store_true",
-                        help="Read only the public auctions page over plain HTTP (no login, no waivers).")
+    # Every run is auctions-only now; the flag stays so existing callers keep working.
+    parser.add_argument("--auctions-only", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
 
     now = datetime.now(timezone.utc).replace(microsecond=0)
-    auctions_html: str | None = None
-    waivers_html: str | None = None
-
-    if args.auctions_file or args.waivers_file:
-        if args.auctions_file:
-            auctions_html = open(args.auctions_file, encoding="utf-8").read()
-        if args.waivers_file:
-            waivers_html = open(args.waivers_file, encoding="utf-8").read()
-    elif have_credentials() and not args.auctions_only:
-        auctions_html, waivers_html = asyncio.run(fetch_logged_in(LEAGUE_ID))
+    if args.auctions_file:
+        auctions_html = open(args.auctions_file, encoding="utf-8").read()
     else:
-        if not args.auctions_only:
-            print("FANGRAPHS_USERNAME/PASSWORD not set: reading public auctions only; "
-                  "waiver rows are left as they are.")
         auctions_html = fetch_auctions_public(LEAGUE_ID)
 
-    scraped: dict[str, list[MarketRow]] = {}
-    if auctions_html is not None:
-        scraped["auction"] = parse_auctions(auctions_html, now)
-        # Guard against a markup change reading as "no auctions": an empty table
-        # still has its heading, a broken page does not.
-        if not scraped["auction"] and "Active Auctions" not in auctions_html:
-            print("Error: no 'Active Auctions' heading — page markup changed?")
-            return 1
-    if waivers_html is not None:
-        scraped["waiver"] = parse_waivers(waivers_html)
-        if not scraped["waiver"] and "Waiver Claims" not in waivers_html:
-            print("Error: no 'Waiver Claims' heading — not logged in, or markup changed?")
-            return 1
+    scraped: dict[str, list[MarketRow]] = {"auction": parse_auctions(auctions_html, now)}
+    # Guard against a markup change reading as "no auctions": an empty table
+    # still has its heading, a broken page does not.
+    if not scraped["auction"] and "Active Auctions" not in auctions_html:
+        print("Error: no 'Active Auctions' heading — page markup changed?")
+        return 1
 
-    completed = parse_completed_auctions(auctions_html) if auctions_html is not None else []
+    completed = parse_completed_auctions(auctions_html)
 
     for kind, rows in scraped.items():
         print(f"{len(rows)} {kind} row(s)")

@@ -28,9 +28,9 @@ on:
 permissions:
   contents: read
 
-# Shared with scrape-fa-market.yml: both rewrite the fa_market auction rows, and
-# fa_market.first_seen_at (each auction's post key) must not be written by two
-# runs at once.
+# A manual run can overlap the droplet's five-minute run, which holds a lock this
+# run cannot see; the post is still sent once, because discord_posts is claimed
+# before each send. The group only keeps two manual runs apart.
 concurrency:
   group: scrape-fa-market
   cancel-in-progress: false
