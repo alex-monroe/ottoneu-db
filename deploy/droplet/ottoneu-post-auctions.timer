@@ -1,0 +1,10 @@
+[Unit]
+Description=Post FA auctions to Discord every five minutes
+
+[Timer]
+OnCalendar=*:0/5
+AccuracySec=10s
+Unit=ottoneu-post-auctions.service
+
+[Install]
+WantedBy=timers.target

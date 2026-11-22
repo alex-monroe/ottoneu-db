@@ -4,8 +4,9 @@
  *
  *   npx tsx scripts/post-auctions.ts [--dry-run] [--seed] [--max-age-days N]
  *
- * Run by `.github/workflows/post-auctions.yml` straight after each
- * `scrape_fa_market.py --auctions-only`, every ten minutes in season. This
+ * Run straight after each `scrape_fa_market.py --auctions-only`: every five
+ * minutes on the droplet (`deploy/droplet/post-auctions.sh`), and hourly by
+ * `.github/workflows/post-auctions.yml` as the fallback. This
  * replaced the standalone Railway bot (alex-monroe/ottoneu-discord-auction-bot),
  * which kept what it had announced in memory; here the `discord_posts` log
  * does that, so each run can start cold. Results that closed before
