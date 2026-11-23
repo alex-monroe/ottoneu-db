@@ -78,6 +78,7 @@
     ],
     "ask": [
       "Bash(gh pr merge *)",
+      "Bash(just migrate *)",
       "mcp__supabase__apply_migration"
     ],
     "deny": [
@@ -107,7 +108,11 @@
       "git pull *",
       "git fetch *",
       "git push *",
-      "git branch *"
+      "git branch *",
+      "just sql *",
+      "just migrate *",
+      "just gen-types",
+      "just db-lint"
     ],
     "network": {
       "allowLocalBinding": true,

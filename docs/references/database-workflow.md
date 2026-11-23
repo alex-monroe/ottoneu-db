@@ -14,6 +14,8 @@ After creating a new migration file in `migrations/` (numbered as the current hi
 3. **Update `docs/generated/db-schema.md`** — add the new table to the table list and increment the table count.
 4. **Verify with `just check-schema`** — a read-only, on-demand drift check that introspects the live DB and diffs it against `web/types/supabase.ts` and `docs/generated/db-schema.md` (ignoring `fp_*`). It catches a skipped step 2 or 3 (table or column missing from types/docs) immediately instead of as a later confusing `tsc` error, and exits nonzero on drift.
 
+**After the self-hosted cutover**, the MCP tools are replaced by `just migrate <file>`, `just gen-types` and `just sql` (see [deploy/supabase/README.md](../../deploy/supabase/README.md#query-migrate-and-generate-types-from-a-laptop)). Until then they target the droplet's rehearsal copy, so keep using the MCP against hosted.
+
 Skipping step 2 will cause TypeScript errors like `Argument of type '"new_table"' is not assignable to parameter of type '...'` when querying the new table.
 
 ## Supabase pagination

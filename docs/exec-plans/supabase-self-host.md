@@ -5,9 +5,11 @@
 `https://db.rosterloom.com`. It now holds a **rehearsal copy** of hosted's
 data and serves no traffic. Hosted still serves everything. Copying again is
 one command: `deploy/supabase/restore-from-hosted.sh` (~2 minutes). Operating
-notes: [deploy/supabase/README.md](../../deploy/supabase/README.md). Left
-before cutover: the Vercel-preview check (Phase 2, step 4), Phase 3 tooling,
-Phase 4 backups, and D6 (Resend).
+notes: [deploy/supabase/README.md](../../deploy/supabase/README.md). Phase 3's
+tooling is built (2026-11-22): `just sql`, `just migrate`, `just gen-types`,
+`just db-lint`, tested against the rehearsal copy. Until cutover, agents keep
+using the Supabase MCP against hosted. Left before cutover: the Vercel-preview
+check (Phase 2, step 4), Phase 4 backups, and D6 (Resend).
 
 **Goal:** move the shared Supabase database off the hosted platform onto the
 droplet (`sofa-db-server`, 138.68.230.37, SFO2, Ubuntu 24.04, user `deploy`). It
@@ -266,6 +268,17 @@ except switching any consumer over.
 Land these before cutover so day one isn't spent rebuilding the workflow. Each
 is a normal PR.
 
+**Built 2026-11-22.** The recipes run `psql` and the Supabase CLI *inside* the
+droplet over `ssh sofa` (`deploy/supabase/db.sh`). That replaced the planned
+SSH tunnel: no local psql, no port forward, no password on the laptop. Tested
+against the rehearsal copy:
+- `just migrate`: dry run, apply and record, and a refused repeat.
+- `just sql`: reads work; writes, `auth`, and the 12 `fp_` tables are denied.
+- `just gen-types`: every table in `web/types/supabase.ts` is present.
+- `just db-lint`: no errors.
+
+Each item below says what was built.
+
 - **Migrations.** Replace `mcp__supabase__apply_migration` with a
   `just migrate <file>` recipe:
   - it applies the file with `psql` over the SSH tunnel inside a transaction;
@@ -273,9 +286,11 @@ is a normal PR.
     `supabase_migrations.schema_migrations`, keeping it the system of record.
 
   Then update `docs/references/database-workflow.md` and `migrations/README.md`.
+  *Built:* `just migrate <file> [--dry-run]`. The docs switch at cutover (Phase 5, step 7).
 - **Types.** `npx supabase gen types typescript --db-url <tunnel URL>`
   replaces `mcp__supabase__generate_typescript_types`. Add a `just gen-types`
-  recipe.
+  recipe. *Built:* it writes `.cache/supabase-types.generated.ts`; the curated
+  `web/types/supabase.ts` is merged by hand, as before.
 - **Read-only SQL for agents.**
   - Create a `readonly` Postgres role (`SELECT` on `public`, no `fp_*` grants
     if that is easy to express, a `statement_timeout`).
@@ -284,12 +299,19 @@ is a normal PR.
   - Rewire the `db-reader` subagent and `.claude/settings.json`.
   - Extend `.claude/hooks/guard.py` so its `fp_` block covers the new tool name
     too.
+  - *Built:* role `agent_readonly` and `just sql`. The guard blocks `fp_` in the
+    query and in `just migrate`'s file. The sandbox exclusions are in. The
+    `db-reader` switch waits for cutover (Phase 5, step 7), since the MCP still
+    reaches the live, hosted data.
 - **Advisors.** The hosted security and performance advisors go away. Run
   `npx supabase db lint` (or splinter's SQL) as part of `just check-db`, on
-  demand.
+  demand. *Built:* `just db-lint`.
 - **Secrets inventory.** Add the self-hosted variables to
   `docs/references/environment-variables.md`, and record where the
-  `/opt/supabase/.env` copy lives.
+  `/opt/supabase/.env` copy lives. *Done:* the stack's secrets live in the
+  droplet's `~/supabase/.env`, with a copy in the owner's password manager
+  ([deploy/supabase/README.md](../../deploy/supabase/README.md)). The only
+  laptop variable is the optional `SOFA_SSH_HOST`.
 
 ## Phase 4: backups and upgrades (before cutover, not after)
 
@@ -332,7 +354,8 @@ league Discord if fantasy-pulse users will notice the forced sign-in.
    - Put fantasy-pulse in maintenance mode, or accept that writes during the
      window are lost.
 3. **Final dump and restore** (Phase 2, steps 1–4) into a freshly reset
-   self-hosted database, then verify the row counts.
+   self-hosted database, then verify the row counts. Then recreate the agent
+   role, which hosted doesn't have: `deploy/supabase/db.sh setup-readonly`.
 4. **Switch consumers.**
    - Droplet: `.env` and `web/.env.local` → `http://localhost:8000` and the new
      keys.
@@ -354,7 +377,17 @@ league Discord if fantasy-pulse users will notice the forced sign-in.
 6. **Unfreeze.**
    - Re-enable the workflows (`gh workflow enable`) and the droplet timers.
    - Watch Healthchecks and the DigitalOcean memory graph for a day.
-7. **Repo follow-up PR:**
+7. **Repo follow-up PR:** switch agents from the Supabase MCP to the Phase 3
+   recipes, then remove the MCP:
+   - `.claude/agents/db-reader.md`: tools `Bash` instead of the two `mcp__supabase__*`
+     tools, and "run `just sql`" in its rules;
+   - `.claude/settings.json`: drop the `mcp__supabase__*` allows, the
+     `apply_migration` ask, the `supabase` entry in `enabledMcpjsonServers`, and
+     the hosted domains; drop `.mcp.json`'s server;
+   - `docs/references/database-workflow.md`, `migrations/README.md`,
+     `docs/generated/db-schema.md`, `docs/references/autonomous-operation.md`:
+     `just migrate` / `just gen-types` / `just sql` in place of the MCP tools;
+   - `.agents/` (Antigravity): its guard and hooks name the MCP tools;
    - docs that say "Supabase dashboard" or name the hosted URL;
    - `CLAUDE.md`/`AGENTS.md` references to the Supabase MCP;
    - the db-schema generator, if it calls the MCP;

@@ -188,6 +188,23 @@ check-docs:
 check-schema:
     {{python}} scripts/check_schema.py
 
+# ── Self-hosted Postgres on the droplet (over `ssh sofa`; see deploy/supabase/README.md) ──
+# Read-only SQL or a psql meta-command (\dt, \d players) as agent_readonly
+sql query:
+    deploy/supabase/db.sh sql {{quote(query)}}
+
+# Apply a migration file in one transaction and record it in schema_migrations (--dry-run rolls back)
+migrate file *flags:
+    deploy/supabase/db.sh migrate {{file}} {{flags}}
+
+# Generate TypeScript types (fp_ stripped) into .cache/ for merging into web/types/supabase.ts
+gen-types:
+    deploy/supabase/db.sh gen-types
+
+# Supabase's schema linter (stands in for the hosted security/performance advisors)
+db-lint:
+    deploy/supabase/db.sh lint
+
 # Permission-friction report: prompt rate trend + regression check (see docs/references/autonomous-operation.md)
 permission-report *args:
     python3 .claude/hooks/permission_report.py {{args}}

@@ -35,6 +35,12 @@ This convention is enforced offline by `scripts/tests/test_migrations.py`
    TypeScript types, update `web/types/supabase.ts`, and update
    `docs/generated/db-schema.md`.
 
+After the move to self-hosted Supabase (see
+[docs/exec-plans/supabase-self-host.md](../docs/exec-plans/supabase-self-host.md)),
+step 2 becomes `just migrate migrations/NNN_name.sql` (`--dry-run` first). It
+records the row in `schema_migrations` the same way. Until that cutover, keep
+using `apply_migration`: the recipe targets the droplet's copy, not hosted.
+
 ## Local ↔ remote reconciliation
 
 The local files (`NNN_*.sql`) and the remote `schema_migrations` entries
