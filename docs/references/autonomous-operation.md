@@ -28,10 +28,11 @@ session also loads the main checkout's `settings.local.json`.
 What is deliberately *not* auto-approved outside the sandbox: interpreters
 (`python3`, `node`, `venv/bin/python` — inside the sandbox they run freely),
 `cp`/`mv`/`rm`, `psql`, `gh auth`, and anything on the deny list
-(`git push --force`, `sudo`). `gh pr merge` and `mcp__supabase__apply_migration`
+(`git push --force`, `sudo`). `gh pr merge` and `just migrate`
 are **ask** rules: they prompt even in an otherwise quiet session.
-`mcp__supabase__execute_sql` stays allowed for workflow reasons; the guard hook
-keeps it off `fp_*` tables.
+`just sql` (read-only, as `agent_readonly`) stays allowed; the guard hook
+keeps it off `fp_*` tables. Both run outside the sandbox, because ssh can't
+run inside it.
 
 ## Layer 1 — Allowlist design notes
 
@@ -157,7 +158,7 @@ Known breakages and fixes:
 
 | Symptom | Fix |
 |---|---|
-| `psql` / any non-HTTP DB client can't connect | It ignores the proxy. Use `just py` / the Supabase MCP, or approve the unsandboxed retry |
+| `psql` / any non-HTTP DB client can't connect | It ignores the proxy. Use `just py` / `just sql`, or approve the unsandboxed retry |
 | A scraper hits a new host → network prompt / 403 from the proxy | Add the host to `allowedDomains` *and* `.devcontainer/allowed-domains.txt` |
 | `git checkout`/`switch` fails with `unable to unlink old` / `unable to create file .claude/...`, or `git push -u` can't write `.git/config` | `.claude/skills`, `.claude/hooks`, `.claude/settings*.json` and `.git/config` are protected, so git's working-tree commands (`checkout`, `switch`, `pull`, `merge`, `rebase`, `reset`, `restore`, `stash`, `fetch`, `push`, `branch`, …) are in `excludedCommands`. That only helps for a plain call: `cd x && git checkout y` still runs sandboxed. A failed sandboxed checkout can leave the index half-switched; check `git status` before continuing |
 | `next build` / any Node `fetch` fails with `fetch failed` / `ENOTFOUND` | Node's built-in fetch ignores `HTTPS_PROXY` unless `NODE_USE_ENV_PROXY=1` — set in `settings.json` `env` |

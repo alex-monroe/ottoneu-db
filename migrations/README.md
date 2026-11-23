@@ -27,19 +27,15 @@ This convention is enforced offline by `scripts/tests/test_migrations.py`
 
 1. Create the next file: `migrations/NNN_short_description.sql` (NNN = current
    highest + 1).
-2. Apply it to the remote database via the Supabase MCP `apply_migration` tool
-   (or the Supabase dashboard). `apply_migration` records the change in
-   `supabase_migrations.schema_migrations`, which is the canonical audit trail.
+2. Apply it to the database: `just migrate migrations/NNN_name.sql --dry-run`,
+   then without `--dry-run`. In one transaction, the recipe runs the file and
+   records it in `supabase_migrations.schema_migrations`, the canonical audit
+   trail. It refuses a name that's already recorded. It always asks for
+   approval. See [deploy/supabase/README.md](../deploy/supabase/README.md).
 3. Follow the post-migration steps in
    [CLAUDE.md → Database migration workflow](../CLAUDE.md): regenerate the
    TypeScript types, update `web/types/supabase.ts`, and update
    `docs/generated/db-schema.md`.
-
-After the move to self-hosted Supabase (see
-[docs/exec-plans/supabase-self-host.md](../docs/exec-plans/supabase-self-host.md)),
-step 2 becomes `just migrate migrations/NNN_name.sql` (`--dry-run` first). It
-records the row in `schema_migrations` the same way. Until that cutover, keep
-using `apply_migration`: the recipe targets the droplet's copy, not hosted.
 
 ## Local ↔ remote reconciliation
 
@@ -49,8 +45,10 @@ by name — historically some remote entries carry the `NNN_` prefix and some
 don't. The local sequence is what we lint mechanically; the remote list is the
 source of truth for *applied* state.
 
-To audit the remote side, list the applied migrations with the Supabase MCP
-`list_migrations` tool and compare against this directory. There is no automated
+To audit the remote side, list the applied migrations with
+`just sql 'select version, name from supabase_migrations.schema_migrations order by version'`
+and compare against this directory. Entries applied by `just migrate` (from
+2026-11-23) use the full file stem, e.g. `066_add_x`. There is no automated
 CI check for this because CI has no direct connection to the
 `supabase_migrations` schema (the PostgREST client only exposes the `public`
 schema).
