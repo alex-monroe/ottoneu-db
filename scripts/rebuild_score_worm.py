@@ -601,7 +601,7 @@ def week_game_rows(
 ) -> dict[int, list[dict]]:
     """Every league game of one week: game id -> its `matchup_score_plays` rows.
 
-    `scheduled` lists NFL games with no plays yet, as (nfl game id, home, away):
+    `scheduled` lists NFL games with no timed plays yet, as (nfl game id, home, away):
     their starters still bring 60 minutes and their whole projection, so a
     live week's progress and win probability count the games still to come.
     """

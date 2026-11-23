@@ -63,6 +63,22 @@ class TestSources:
         assert sources == {"2026_08_CAR_GB": "nflverse", "2026_08_BAL_BUF": "espn"}
         assert scheduled == [("2026_08_KC_DEN", "DEN", "KC")]
 
+    def test_game_kicked_off_without_plays_still_gets_a_clock(self):
+        # At kickoff ESPN flips a game to "in" a minute or two before its feed
+        # has a play. Its starters must keep their projection, or every row's
+        # win probability shifts until the first play lands.
+        nflverse = pd.DataFrame([nflverse_row("2026_08_CAR_GB", 1),
+                                 nflverse_row("2026_08_CAR_GB", 2, desc="END GAME")])
+        games = [espn_game("2026_08_CAR_GB", "post"), espn_game("2026_08_BAL_BUF", "in", event="77"),
+                 espn_game("2026_08_KC_DEN", "in", event="78")]
+        untimed = {"type": {"text": "Coin Toss"}, "text": "Toss won by KC.", "sequenceNumber": "1",
+                   "period": {"number": 1}, "clock": {}, "wallclock": None,
+                   "teamParticipants": [], "participants": [], "start": {}}
+        frame, sources, scheduled = week_frame(8, games, nflverse, {"77": [], "78": [untimed]}, {})
+        assert sources == {"2026_08_CAR_GB": "nflverse", "2026_08_BAL_BUF": "espn",
+                           "2026_08_KC_DEN": "espn"}
+        assert scheduled == [("2026_08_BAL_BUF", "BUF", "BAL"), ("2026_08_KC_DEN", "DEN", "KC")]
+
 
 class TestLooping:
     def test_keeps_going_while_a_game_is_on(self):
