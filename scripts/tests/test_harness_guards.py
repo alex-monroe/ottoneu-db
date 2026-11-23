@@ -57,6 +57,35 @@ def test_allows_ordinary_sql(query):
     assert _check(_sql(query)) is None
 
 
+@pytest.mark.parametrize("command", [
+    "just sql 'select * from fp_notes'",
+    'just sql "select count(*) from public.FP_LEAGUES"',
+    "deploy/supabase/db.sh sql 'select 1 from fp_teams'",
+    "cd web && just sql 'select * from fp_teams'",
+])
+def test_blocks_self_hosted_sql_on_fp_tables(command):
+    assert "fp_" in _check(_bash(command)).lower()
+
+
+@pytest.mark.parametrize("command", [
+    "just sql 'select count(*) from players'",
+    "just sql '\\dt public.player*'",
+    "echo 'just sql select * from fp_notes'",  # only mentions the recipe
+    "git commit -m 'stop using fp_notes in just sql'",
+])
+def test_allows_self_hosted_sql_otherwise(command):
+    assert _check(_bash(command)) is None
+
+
+def test_blocks_migration_file_touching_fp_tables(tmp_path):
+    (tmp_path / "066_bad.sql").write_text("alter table fp_teams add column y int;\n")
+    (tmp_path / "066_ok.sql").write_text("alter table players add column y int;\n")
+    assert _check(_bash("just migrate 066_bad.sql", cwd=str(tmp_path)))
+    assert _check(_bash("just migrate 066_bad.sql --dry-run", cwd=str(tmp_path)))
+    assert _check(_bash("just migrate 066_ok.sql", cwd=str(tmp_path))) is None
+    assert _check(_bash("just migrate missing.sql", cwd=str(tmp_path))) is None
+
+
 def test_any_fp_identifier_blocks_even_a_column():
     # Deliberately name-based and conservative: the guard doesn't parse SQL, so
     # an fp_-prefixed column blocks too. No table in this repo uses that prefix.

@@ -75,6 +75,34 @@ sides. It takes ~2 minutes. `--reset` **wipes the self-hosted database**; while
 it holds only a rehearsal copy, that's the point. After cutover, never run it
 against the live self-hosted database.
 
+## Query, migrate and generate types from a laptop
+
+The Supabase MCP only reaches hosted projects, so these `just` recipes replace
+it. Each one runs [`db.sh`](db.sh), which runs `psql` (or the Supabase CLI)
+inside the droplet over `ssh sofa`. The laptop needs no psql, no tunnel and no
+database password.
+
+| Recipe | Replaces | What it does |
+|---|---|---|
+| `just sql "<query>"` | `execute_sql`, `list_tables` | Read-only SQL or a psql meta-command (`\dt`, `\d players`) as `agent_readonly`. |
+| `just migrate migrations/NNN_x.sql [--dry-run]` | `apply_migration` | Runs the file and records it in `supabase_migrations.schema_migrations`, all in one transaction. Refuses a name that's already recorded. Then refreshes `agent_readonly`'s grants and reloads PostgREST. `--dry-run` rolls everything back. |
+| `just gen-types` | `generate_typescript_types` | Writes `.cache/supabase-types.generated.ts` (prettier-formatted, `fp_` stripped). `web/types/supabase.ts` is curated, so copy in only the entries you need. |
+| `just db-lint` | `get_advisors` | `supabase db lint` on `public`. |
+
+`agent_readonly` ([agent-readonly.sql](agent-readonly.sql)):
+- has `SELECT` on every `public` table except `fp_*`, plus `supabase_migrations.schema_migrations`;
+- has `BYPASSRLS`, so it sees what the MCP's `postgres` role saw;
+- defaults to read-only transactions with a 30 s statement timeout;
+- has no password, so it can only log in from inside the db container.
+
+Create it, or recreate it after a restore from hosted, with
+`deploy/supabase/db.sh setup-readonly`.
+
+From Claude Code, ssh can't run inside the sandbox, so these four recipes are
+listed in the sandbox's `excludedCommands`. `just migrate` always asks for
+approval. The guard hook blocks `fp_` names in a `just sql` query or a
+migration file.
+
 ## Check it
 
 `ottoneu-supabase-health.timer` ([deploy/droplet/](../droplet/README.md))

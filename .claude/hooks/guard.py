@@ -5,7 +5,9 @@ Each rule below used to be prose in AGENTS.md. Prose is advice; this hook is a
 fact. Rules (see docs/references/autonomous-operation.md#guard-hooks):
 
 1. SQL that names an `fp_*` table. The Supabase project is shared with the
-   fantasy-pulse app, which owns every `fp_`-prefixed table.
+   fantasy-pulse app, which owns every `fp_`-prefixed table. Covers the
+   Supabase MCP and the self-hosted recipes: the query of `just sql`, and the
+   file given to `just migrate` (or `deploy/supabase/db.sh sql|migrate`).
 2. `git commit` while the checkout is on `main`, and `git push` to `main`.
    Every change goes through a PR.
 3. `just promote` / `just analyze` from a linked worktree. They write shared
@@ -44,6 +46,8 @@ GIT_COMMIT = re.compile(CMD + r"git\s+(?:-C\s+(\S+)\s+)?commit\b")
 # `git push origin main`, `git push origin HEAD:main`, `git push origin refs/heads/main`
 PUSH_TO_MAIN = re.compile(CMD + r"git\s+push\b[^;&|\n]*\s(?:\S+:)?(?:refs/heads/)?main(?=\s|$|[;&|])")
 PROD_RECIPE = re.compile(CMD + r"just\s+(promote|analyze)\b")
+DB_SQL = re.compile(CMD + r"(?:just\s+sql|\S*db\.sh\s+sql)\b")
+DB_MIGRATE = re.compile(CMD + r"(?:just\s+migrate|\S*db\.sh\s+migrate)\s+([^\s;&|]+)")
 GH_CALL = re.compile(r"(?:^|[;&|(\n]|\$\(|`)\s*gh(?:\s|$)")
 
 QUOTED = re.compile(r"'[^']*'|\"(?:\\.|[^\"\\])*\"")
@@ -78,6 +82,14 @@ def excluded_patterns(project_dir: str) -> List[str]:
             return list(json.load(f).get("sandbox", {}).get("excludedCommands") or [])
     except (OSError, ValueError, AttributeError):
         return ["gh *"]
+
+
+def _fp_reason(name: str) -> str:
+    return (
+        f"Blocked: this SQL names `{name}`. Tables prefixed `fp_` belong "
+        "to the fantasy-pulse app that shares this Supabase project — this repo "
+        "must not read, write, alter or migrate them (AGENTS.md)."
+    )
 
 
 def _code_only(command: str) -> str:
@@ -135,17 +147,30 @@ def check(
         sql = " ".join(str(tool_input.get(k) or "") for k in ("query", "name"))
         match = FP_TABLE.search(sql)
         if match:
-            return (
-                f"Blocked: this SQL names `{match.group(0)}`. Tables prefixed `fp_` belong "
-                "to the fantasy-pulse app that shares this Supabase project — this repo "
-                "must not read, write, alter or migrate them (AGENTS.md)."
-            )
+            return _fp_reason(match.group(0))
         return None
 
     if tool != "Bash":
         return None
     command = str(tool_input.get("command") or "")
     code = _code_only(command)
+
+    # Self-hosted DB access (`just sql` / `just migrate`, deploy/supabase/db.sh):
+    # the same fp_ rule as the Supabase MCP. The query is quoted, so scan the
+    # raw command; a migration is a file, so scan the file.
+    if DB_SQL.search(code):
+        match = FP_TABLE.search(command)
+        if match:
+            return _fp_reason(match.group(0))
+    for migration in DB_MIGRATE.finditer(code):
+        path = os.path.join(cwd, migration.group(1))
+        try:
+            with open(path) as f:
+                match = FP_TABLE.search(f.read())
+        except OSError:
+            match = None
+        if match:
+            return _fp_reason(match.group(0))
 
     if PUSH_TO_MAIN.search(code):
         return (
