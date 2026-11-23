@@ -1,7 +1,8 @@
 # Plan: self-host Supabase on the DigitalOcean droplet
 
-**Status: cut over 2026-11-23 (06:24–06:45 UTC).** Everything in sofa-db now
-reads and writes the self-hosted stack at `https://db.rosterloom.com` on the
+**Status: done (2026-11-23).** sofa-db cut over 06:24–06:45 UTC, and
+fantasy-pulse followed the same morning (its own repo, PRs #253–#255). Both
+apps read and write the self-hosted stack at `https://db.rosterloom.com` on the
 droplet:
 - the Vercel production site;
 - the 29 GitHub workflows;
@@ -9,13 +10,15 @@ droplet:
 - agents, through `just sql` / `just migrate` / `just gen-types` / `just db-lint`.
 
 Writers were frozen for the final copy, which matched hosted on every check.
+Hosted got no app traffic after about 06:35 UTC. The owner moved it from Pro
+($25/mo) to the free plan instead of deleting it. Free projects pause when
+idle, and it is not a rollback any more.
 
-Still on hosted: **fantasy-pulse**. Its `fp_*` tables on self-hosted are a
-copy as of the cutover; moving it is the owner's call. Hosted stays untouched
-as the rollback until the hold ends (about 2026-12-07); then cancel the Pro
-plan. Skipped by decision: off-droplet backups (Phase 4; the weekly droplet
-backup covers the machine) and Resend (D6). Email autoconfirm is on instead,
-so sign-ups don't wait for mail. Operating notes:
+The final archive of hosted is `~/supabase-migration/hosted-final-20261123.dump`
+on the droplet (`pg_dump -Fc`, 27 MB). `hosted.env` and the intermediate dumps
+were deleted. Skipped by decision: off-droplet backups (Phase 4; the weekly
+droplet backup covers the machine) and Resend (D6). Email autoconfirm is on
+instead. Operating notes:
 [deploy/supabase/README.md](../../deploy/supabase/README.md).
 
 **Goal:** move the shared Supabase database off the hosted platform onto the
