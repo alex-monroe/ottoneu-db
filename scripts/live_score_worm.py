@@ -114,9 +114,15 @@ def week_frame(
     espn_plays: dict[str, list[dict]],
     gsis_of_espn: dict[str, str],
 ) -> tuple[pd.DataFrame, dict[str, str], list[tuple[str, str, str]]]:
-    """One week's plays from both feeds (pure): (frame, sources, scheduled games).
+    """One week's plays from both feeds (pure): (frame, sources, games without a clock).
 
     `espn_plays` maps ESPN event id -> its plays, for the games ESPN covers.
+    The third value lists every NFL game with no timed play in the frame, as
+    (nfl game id, home, away): games not yet started, and games ESPN calls in
+    progress before its feed has a play with a clock. Each gets a 0-minute
+    clock, so its starters keep their minutes and projection. Without one they
+    drop out of every row's projection and spread, and the whole win
+    probability history shifts until the first timed play arrives.
     """
     ended = set(nflverse_week.loc[nflverse_week["desc"] == "END GAME", "game_id"])
     sources = pick_sources(espn_games, ended)
@@ -129,7 +135,8 @@ def week_frame(
         parts.append(pd.DataFrame(espn_rows))
     frame = pd.concat([p for p in parts if not p.empty], ignore_index=True) if any(
         not p.empty for p in parts) else nflverse_week.iloc[0:0]
-    scheduled = [(g["game_id"], g["home"], g["away"]) for g in espn_games if g["game_id"] not in sources]
+    clocked = set(worm.game_clocks(frame)) if not frame.empty else set()
+    scheduled = [(g["game_id"], g["home"], g["away"]) for g in espn_games if g["game_id"] not in clocked]
     return frame, sources, scheduled
 
 
@@ -285,7 +292,7 @@ class LiveWorm:
 
         feeds = {s: sum(1 for v in sources.values() if v == s) for s in ("nflverse", "espn")}
         print(f"{now:%H:%M:%S} week {week}: {feeds['nflverse']} NFL games from nflverse, "
-              f"{feeds['espn']} from ESPN, {len(scheduled)} not started")
+              f"{feeds['espn']} from ESPN, {len(espn_games) - len(sources)} not started")
         changed = []
         for game in games:
             rows = built[game["game_id"]]
