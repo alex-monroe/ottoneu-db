@@ -62,7 +62,12 @@ ssh -N -L 5432:127.0.0.1:5432 deploy@138.68.230.37
 psql "postgres://postgres:<POSTGRES_PASSWORD>@127.0.0.1:5432/postgres"
 ```
 
-## Copy hosted's data in
+## Copy hosted's data in (migration only, now retired)
+
+The cutover is done and `~/supabase-migration/hosted.env` is deleted, so this
+script stops at its first step. It is kept as the record of how the copy was
+made. **Never recreate `hosted.env` and run it:** `--reset` wipes the live
+database.
 
 ```bash
 ~/ottoneu-db/deploy/supabase/restore-from-hosted.sh ~/supabase-migration/<name> --reset
