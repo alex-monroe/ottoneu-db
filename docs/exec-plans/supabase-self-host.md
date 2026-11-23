@@ -1,15 +1,22 @@
 # Plan: self-host Supabase on the DigitalOcean droplet
 
-**Status:** Phase 2 rehearsed (2026-11-22). Phase 1's stack (`db`, `rest`,
-`auth`, `api-gw` (Envoy), `caddy`; release `self-hosted/v0.8.4`) runs at
-`https://db.rosterloom.com`. It now holds a **rehearsal copy** of hosted's
-data and serves no traffic. Hosted still serves everything. Copying again is
-one command: `deploy/supabase/restore-from-hosted.sh` (~2 minutes). Operating
-notes: [deploy/supabase/README.md](../../deploy/supabase/README.md). Phase 3's
-tooling is built (2026-11-22): `just sql`, `just migrate`, `just gen-types`,
-`just db-lint`, tested against the rehearsal copy. Until cutover, agents keep
-using the Supabase MCP against hosted. Left before cutover: the Vercel-preview
-check (Phase 2, step 4), Phase 4 backups, and D6 (Resend).
+**Status: cut over 2026-11-23 (06:24–06:45 UTC).** Everything in sofa-db now
+reads and writes the self-hosted stack at `https://db.rosterloom.com` on the
+droplet:
+- the Vercel production site;
+- the 29 GitHub workflows;
+- the droplet jobs (through `http://localhost:8000`);
+- agents, through `just sql` / `just migrate` / `just gen-types` / `just db-lint`.
+
+Writers were frozen for the final copy, which matched hosted on every check.
+
+Still on hosted: **fantasy-pulse**. Its `fp_*` tables on self-hosted are a
+copy as of the cutover; moving it is the owner's call. Hosted stays untouched
+as the rollback until the hold ends (about 2026-12-07); then cancel the Pro
+plan. Skipped by decision: off-droplet backups (Phase 4; the weekly droplet
+backup covers the machine) and Resend (D6). Email autoconfirm is on instead,
+so sign-ups don't wait for mail. Operating notes:
+[deploy/supabase/README.md](../../deploy/supabase/README.md).
 
 **Goal:** move the shared Supabase database off the hosted platform onto the
 droplet (`sofa-db-server`, 138.68.230.37, SFO2, Ubuntu 24.04, user `deploy`). It

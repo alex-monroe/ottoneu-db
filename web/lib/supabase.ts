@@ -99,7 +99,7 @@ export function getSupabaseAdmin(): SupabaseClient<Database> {
     const secretKey = process.env.SUPABASE_SECRET_KEY ?? process.env.OTTONEU_DB_SUPABASE_SECRET_KEY
     if (!secretKey) {
       throw new Error(
-        'SUPABASE_SECRET_KEY is not set. Add it to web/.env.local (get it from Supabase Dashboard > Settings > API Keys).'
+        'SUPABASE_SECRET_KEY is not set. Add it to web/.env.local (on the droplet: `cd ~/supabase && sh run.sh secrets`).'
       )
     }
     _supabaseAdmin = createClient<Database>(supabaseUrl, secretKey, {

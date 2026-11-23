@@ -5,16 +5,16 @@ Migrations, generated types, and reading large tables. Summarised in
 
 ## Database migration workflow
 
-Migration files live in `migrations/` and follow the `NNN_snake_case.sql` convention (zero-padded, contiguous sequence) documented in [migrations/README.md](../../migrations/README.md). The naming and sequence are linted offline by `just check-migrations` (also run under `just check-arch` and `just test-python`). The remote `supabase_migrations.schema_migrations` table — auditable via the `list_migrations` MCP tool — is the system of record for what has actually been applied.
+Migration files live in `migrations/` and follow the `NNN_snake_case.sql` convention (zero-padded, contiguous sequence) documented in [migrations/README.md](../../migrations/README.md). The naming and sequence are linted offline by `just check-migrations` (also run under `just check-arch` and `just test-python`). The `supabase_migrations.schema_migrations` table — auditable with `just sql` — is the system of record for what has actually been applied.
 
-After creating a new migration file in `migrations/` (numbered as the current highest + 1) and applying it (via `mcp__supabase__apply_migration` or the Supabase dashboard):
+After creating a new migration file in `migrations/` (numbered as the current highest + 1) and applying it with `just migrate migrations/NNN_name.sql` (`--dry-run` first):
 
-1. **Regenerate TypeScript types** using `mcp__supabase__generate_typescript_types` (or `npx supabase gen types typescript`).
+1. **Regenerate TypeScript types** with `just gen-types`. It writes `.cache/supabase-types.generated.ts`, with `fp_*` stripped.
 2. **Update `web/types/supabase.ts`** with the regenerated output so the Supabase client recognizes the new table.
 3. **Update `docs/generated/db-schema.md`** — add the new table to the table list and increment the table count.
 4. **Verify with `just check-schema`** — a read-only, on-demand drift check that introspects the live DB and diffs it against `web/types/supabase.ts` and `docs/generated/db-schema.md` (ignoring `fp_*`). It catches a skipped step 2 or 3 (table or column missing from types/docs) immediately instead of as a later confusing `tsc` error, and exits nonzero on drift.
 
-**After the self-hosted cutover**, the MCP tools are replaced by `just migrate <file>`, `just gen-types` and `just sql` (see [deploy/supabase/README.md](../../deploy/supabase/README.md#query-migrate-and-generate-types-from-a-laptop)). Until then they target the droplet's rehearsal copy, so keep using the MCP against hosted.
+The database is self-hosted on the droplet (since 2026-11-23); the recipes reach it over `ssh sofa`. See [deploy/supabase/README.md](../../deploy/supabase/README.md#query-migrate-and-generate-types-from-a-laptop).
 
 Skipping step 2 will cause TypeScript errors like `Argument of type '"new_table"' is not assignable to parameter of type '...'` when querying the new table.
 

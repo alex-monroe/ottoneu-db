@@ -4,11 +4,11 @@ Thirty-nine tables owned by this project, grouped into the six subsystems of [SU
 
 ## Shared Database — Hands Off `fp_*`
 
-The Supabase project (`OttoneuDB`, ref `rbinbcwinchphipvcfqk`) is **shared with a separate app, `fantasy-pulse`**, as of 2026-05. Any table whose name starts with `fp_` belongs to fantasy-pulse and is owned by that codebase, not this one.
+The database (self-hosted Supabase on the droplet since 2026-11-23, `https://db.rosterloom.com`; formerly hosted project `OttoneuDB`) is **shared with a separate app, `fantasy-pulse`**, as of 2026-05. Any table whose name starts with `fp_` belongs to fantasy-pulse and is owned by that codebase, not this one.
 
 **Rules:**
 - **Do not read, write, alter, drop, or migrate any `fp_*` table** from this project's scripts, web app, or migrations.
-- Do not include `fp_*` tables in TypeScript type generation outputs intended for this repo unless you explicitly strip them — they will appear in `mcp__supabase__list_tables` output and in regenerated `web/types/supabase.ts`. Leave them alone, but be aware they show up.
+- Do not include `fp_*` tables in TypeScript type generation outputs intended for this repo unless you explicitly strip them — they will appear in `\dt` output and in the raw generator output (`just gen-types` strips them). Leave them alone, but be aware they show up.
 - New migrations in `migrations/` must only touch ottoneu tables. Never write a migration that modifies an `fp_*` table.
 - When listing tables for any purpose (analysis, debugging, schema docs), filter `fp_*` out.
 
@@ -120,9 +120,9 @@ One row per player per game (migration 061), written by `scripts/backfill_nfl_we
 
 ## Schema Files
 
-- **Migrations (source of intent):** `migrations/` — numbered `NNN_snake_case.sql` files. See [migrations/README.md](../../migrations/README.md) for naming and the apply-via-MCP workflow. Linted offline by `just check-migrations`.
-- **Remote system of record:** the `supabase_migrations.schema_migrations` table — audit via the `list_migrations` MCP tool.
-- **This document:** a generated, human-readable schema reference. It can lag the migrations directory (e.g. tables added via `apply_migration` or the dashboard without a numbered file, or migrations added after the last regeneration). Treat it as a convenience reference, not the source of truth.
+- **Migrations (source of intent):** `migrations/` — numbered `NNN_snake_case.sql` files. See [migrations/README.md](../../migrations/README.md) for naming and the `just migrate` workflow. Linted offline by `just check-migrations`.
+- **Remote system of record:** the `supabase_migrations.schema_migrations` table — audit with `just sql`.
+- **This document:** a generated, human-readable schema reference. It can lag the migrations directory (e.g. tables added without a numbered file, or migrations added after the last regeneration). Treat it as a convenience reference, not the source of truth.
 - **Job queue:** `migrations/002_add_scraper_jobs.sql` defines the `scraper_jobs` table for the persistent job queue.
 
 ## Row-Level Security

@@ -67,19 +67,11 @@
       "WebFetch(domain:www.rotowire.com)",
       "WebFetch(domain:www.fantasypros.com)",
       "WebFetch(domain:code.claude.com)",
-      "mcp__supabase__list_projects",
-      "mcp__supabase__list_tables",
-      "mcp__supabase__list_migrations",
-      "mcp__supabase__execute_sql",
-      "mcp__supabase__get_advisors",
-      "mcp__supabase__search_docs",
-      "mcp__supabase__generate_typescript_types",
       "Read(~/.claude/**)"
     ],
     "ask": [
       "Bash(gh pr merge *)",
-      "Bash(just migrate *)",
-      "mcp__supabase__apply_migration"
+      "Bash(just migrate *)"
     ],
     "deny": [
       "Bash(git push --force *)",
@@ -124,8 +116,7 @@
         "registry.npmjs.org",
         "pypi.org",
         "files.pythonhosted.org",
-        "rbinbcwinchphipvcfqk.supabase.co",
-        "api.supabase.com",
+        "db.rosterloom.com",
         "ottoneu.fangraphs.com",
         "www.draftsharks.com",
         "www.fantasypros.com",
@@ -151,9 +142,7 @@
       ]
     }
   },
-  "enabledMcpjsonServers": [
-    "supabase"
-  ],
+  "enabledMcpjsonServers": [],
   "hooks": {
     "SessionStart": [
       {
