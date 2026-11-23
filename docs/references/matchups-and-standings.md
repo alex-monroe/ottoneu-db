@@ -6,8 +6,8 @@ that knows the league has games.
 
 | | |
 |---|---|
-| **Tables** | `league_matchups` (migration 037) · `matchup_lineups` (migration 044) · `matchup_score_snapshots` (migration 053) · `matchup_score_plays` (migrations 055–059) · `live_worm_state` (migration 059) |
-| **Scrapers** | `scripts/scrape_matchups.py` — `just scrape-matchups` · `scripts/scrape_lineups.py` — `just scrape-lineups` · `scripts/rebuild_score_worm.py` — `just rebuild-score-worm` (nflverse play-by-play) · `scripts/live_score_worm.py` + `scripts/espn_pbp.py` — `just live-score-worm` (ESPN play-by-play, live) |
+| **Tables** | `league_matchups` (migration 037) · `matchup_lineups` (migration 044) · `matchup_score_snapshots` (migration 053) · `matchup_score_plays` (migrations 055–059) · `live_worm_state` (migration 059) · `nfl_live_games` / `nfl_live_plays` / `nfl_live_players` (migration 066) |
+| **Scrapers** | `scripts/scrape_matchups.py` — `just scrape-matchups` · `scripts/scrape_lineups.py` — `just scrape-lineups` · `scripts/rebuild_score_worm.py` — `just rebuild-score-worm` (nflverse play-by-play) · `scripts/live_score_worm.py` + `scripts/espn_pbp.py` + `scripts/live_feed.py` — `just live-score-worm` (ESPN play-by-play, live) |
 | **Derivation** | `web/lib/standings.ts` + `web/lib/live-matchup.ts` + `web/lib/playoff-odds.ts` + `web/lib/score-worm.ts` (pure) · `web/lib/matchups.ts` + `web/lib/matchup-lineups.ts` + `web/lib/playoff-odds-data.ts` (fetchers) |
 | **Routes** | `/scoreboard` and `/scoreboard/[gameId]` (public) · the homepage league-status section |
 | **MCP tools** | `get_scoreboard` · `get_standings` (incl. playoff odds) |
@@ -384,6 +384,29 @@ Win %, and the cone) for games in progress, with no separate chart code.
   (`fetchLiveTotals`) and also refreshes itself while games are live. The ESPN
   total can sit a little below Ottoneu's as well as above it: the two feeds
   score a play a minute or two apart, and a lateral is not modelled.
+
+##### The live NFL feed: the same plays, for other apps
+
+Roster Loom (`alex-monroe/fantasy-pulse`) shares this database and shows live
+scores for Sleeper, Yahoo, ESPN and Ottoneu leagues with their own scoring.
+Rather than scrape ESPN a second time, it reads the plays this loop already
+fetches. Every pass, `scripts/live_feed.py` writes the week's frame (nflverse
+games plus ESPN games, as `week_frame` builds it) *before* this league's
+lineups or scoring touch it (migration 066):
+
+- `nfl_live_games`: each NFL game's state, feed and game clock.
+- `nfl_live_plays`: each timed play's time, game seconds elapsed, and each
+  player's stat line on it, keyed by gsis id, in **Sleeper's stat keys**
+  (`pass_yd`, `rec`, `rush_td`, `fgm_40_49`, `fum_lost`, ...), so a league's
+  scoring settings apply directly. A game's rows are replaced when they change.
+- `nfl_live_players`: gsis id → ESPN id, name, position and team.
+
+`play_stats` mirrors `play_points` rule for rule; scoring its output with
+`OTTONEU_SLEEPER_SCORING` reproduces `play_points` exactly
+(`scripts/tests/test_live_feed.py`), so the feed scores the same as the worm.
+The tables and `live_worm_state` (the heartbeat) are public-read. A failed
+feed write is logged and never fails a pass. Defense/special-teams stats are
+not in the feed, because the worm does not score them.
 
 ##### What runs it: a timer on the droplet → a looping job
 

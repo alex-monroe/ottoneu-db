@@ -991,6 +991,123 @@ export type Database = {
           },
         ]
       }
+      nfl_live_games: {
+        Row: {
+          away_team: string
+          elapsed_seconds: number
+          espn_event: string | null
+          finished: boolean
+          game_id: string
+          home_team: string
+          kickoff: string | null
+          last_play_at: string | null
+          length_seconds: number
+          season: number
+          source: string | null
+          state: string
+          updated_at: string
+          week: number
+        }
+        Insert: {
+          away_team: string
+          elapsed_seconds?: number
+          espn_event?: string | null
+          finished?: boolean
+          game_id: string
+          home_team: string
+          kickoff?: string | null
+          last_play_at?: string | null
+          length_seconds?: number
+          season: number
+          source?: string | null
+          state: string
+          updated_at?: string
+          week: number
+        }
+        Update: {
+          away_team?: string
+          elapsed_seconds?: number
+          espn_event?: string | null
+          finished?: boolean
+          game_id?: string
+          home_team?: string
+          kickoff?: string | null
+          last_play_at?: string | null
+          length_seconds?: number
+          season?: number
+          source?: string | null
+          state?: string
+          updated_at?: string
+          week?: number
+        }
+        Relationships: []
+      }
+      nfl_live_players: {
+        Row: {
+          espn_id: string | null
+          full_name: string
+          gsis_id: string
+          position: string | null
+          season: number
+          team: string | null
+          updated_at: string
+        }
+        Insert: {
+          espn_id?: string | null
+          full_name: string
+          gsis_id: string
+          position?: string | null
+          season: number
+          team?: string | null
+          updated_at?: string
+        }
+        Update: {
+          espn_id?: string | null
+          full_name?: string
+          gsis_id?: string
+          position?: string | null
+          season?: number
+          team?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      nfl_live_plays: {
+        Row: {
+          elapsed_seconds: number | null
+          game_id: string
+          id: number
+          play_at: string
+          play_id: number
+          season: number
+          source: string
+          stats: Json | null
+          week: number
+        }
+        Insert: {
+          elapsed_seconds?: number | null
+          game_id: string
+          id?: number
+          play_at: string
+          play_id: number
+          season: number
+          source: string
+          stats?: Json | null
+          week: number
+        }
+        Update: {
+          elapsed_seconds?: number | null
+          game_id?: string
+          id?: number
+          play_at?: string
+          play_id?: number
+          season?: number
+          source?: string
+          stats?: Json | null
+          week?: number
+        }
+        Relationships: []
+      }
       nfl_stats: {
         Row: {
           air_yards_share: number | null

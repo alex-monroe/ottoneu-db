@@ -51,6 +51,7 @@ import pandas as pd
 import requests
 
 from scripts import espn_pbp
+from scripts import live_feed
 from scripts import rebuild_score_worm as worm
 from scripts.config import LEAGUE_ID, get_supabase_client
 from scripts.scrape_lineups import games_for_week, scrape_week
@@ -239,6 +240,7 @@ class LiveWorm:
         self.gsis_of_espn: dict[str, str] = {}
         self.roster: pd.DataFrame | None = None
         self.written: dict[int, str] = {}
+        self.feed = live_feed.LiveFeedWriter(supabase, dry_run)
 
     def load_season(self, season: int) -> None:
         if self.season == season:
@@ -269,6 +271,8 @@ class LiveWorm:
             return []
         season, week = games[0]["season"], games[0]["week"]
         self.load_season(season)
+        # Once per season (retried each pass until it lands).
+        live_feed.write_safely(self.feed.write_players, self.roster, self.gsis_of_espn, season)
         espn_games = espn_pbp.fetch_week_games(season, week)
         self.refresh_nflverse(now, espn_games)
         nflverse_week = self.nflverse[self.nflverse["week"] == week]
@@ -280,6 +284,8 @@ class LiveWorm:
             if g["state"] != "pre" and g["game_id"] not in ended
         }
         frame, sources, scheduled = week_frame(week, espn_games, nflverse_week, espn_plays, self.gsis_of_espn)
+        # The league-agnostic feed other apps score their own way (migration 066).
+        live_feed.write_safely(self.feed.write_week, frame, espn_games, season, week, sources, now.isoformat())
 
         starters = worm.week_starters(self.supabase, self.league_id, season, week)
         projections = worm.week_projections(self.supabase, season, week)
