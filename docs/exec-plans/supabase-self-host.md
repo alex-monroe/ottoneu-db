@@ -1,11 +1,13 @@
 # Plan: self-host Supabase on the DigitalOcean droplet
 
-**Status:** Phase 1 done (2026-11-22). The stripped-down stack (`db`, `rest`,
-`auth`, `api-gw` (Envoy), `caddy`) runs on the droplet at
-`https://db.rosterloom.com`, release `self-hosted/v0.8.4`, empty and serving no
-traffic. Operating notes: [deploy/supabase/README.md](../../deploy/supabase/README.md).
-Phase 0 decisions D1–D5 are made; D6 (Resend for GoTrue email) is set up before
-cutover. Next: Phase 2, the rehearsal restore.
+**Status:** Phase 2 rehearsed (2026-11-22). Phase 1's stack (`db`, `rest`,
+`auth`, `api-gw` (Envoy), `caddy`; release `self-hosted/v0.8.4`) runs at
+`https://db.rosterloom.com`. It now holds a **rehearsal copy** of hosted's
+data and serves no traffic. Hosted still serves everything. Copying again is
+one command: `deploy/supabase/restore-from-hosted.sh` (~2 minutes). Operating
+notes: [deploy/supabase/README.md](../../deploy/supabase/README.md). Left
+before cutover: the Vercel-preview check (Phase 2, step 4), Phase 3 tooling,
+Phase 4 backups, and D6 (Resend).
 
 **Goal:** move the shared Supabase database off the hosted platform onto the
 droplet (`sofa-db-server`, 138.68.230.37, SFO2, Ubuntu 24.04, user `deploy`). It
@@ -161,6 +163,52 @@ The steps as planned:
    answers. The memory-use baseline is recorded.
 
 ## Phase 2: rehearsal restore (hosted stays live)
+
+**Rehearsed 2026-11-22, twice**: by hand, then with
+`deploy/supabase/restore-from-hosted.sh <workdir> --reset`, which captures every
+step below.
+- **Timings** (droplet, 195 MB database):
+  - dump ~70 s (108 MB of SQL);
+  - reset ~15 s;
+  - restore ~15 s in one transaction;
+  - migration history ~5 s;
+  - **~105 s end to end**.
+- **Edits the dump needed** (the script now makes them automatically, so the
+  steps below are the manual version):
+  - `supabase db dump` writes `data.sql` with
+    `SET session_replication_role = replica` already at the top.
+  - It skips `supabase_migrations`, so the script copies it separately with
+    `pg_dump --schema=supabase_migrations`.
+  - The Vault secret and the pg_cron job aren't in the dump at all, which is
+    what we want after migration 065.
+  - It writes empty `COPY` blocks for the 9 `storage.*` tables (Storage isn't
+    run) and for `auth.one_time_tokens` / `auth.saml_providers`. Those two
+    have a column hosted's newer Auth added (`link_token_hash`,
+    `dedicated_scope`). Dropping empty blocks loses nothing.
+  - A non-empty block with a column the self-hosted Auth lacks would fail the
+    one-transaction restore loudly.
+- **Verified**:
+  - `deploy/supabase/counts.sql` is identical on both sides: every public
+    table's row count (fp_ tables excluded) plus 63 tables, 64 policies,
+    RLS on all 63, 9 functions, 173 indexes, 47 foreign keys, 7 extensions,
+    9 auth users and identities, and 77 migration rows. The one exception is
+    `matchup_score_plays`, which was a few rows behind because the live worm
+    was writing during a game. The cutover's write freeze closes that.
+  - Over `https://db.rosterloom.com`:
+    - the publishable key reads `players` (3,155 rows);
+    - `discord_posts` and `users` return 0 to it;
+    - the secret key reads `discord_posts` (126);
+    - the 1000-row cap behaves like hosted.
+  - `live_score_worm.py --once --dry-run` and `post-auctions.sh --dry-run`
+    worked against `http://localhost:8000`.
+- **Not done yet:** the Vercel preview check (step 4, "Site"). It needs
+  preview-scoped `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  (the publishable key) and `SUPABASE_SECRET_KEY` on a branch. Get the values
+  with `ssh sofa 'cd ~/supabase && sh run.sh secrets'` and set them yourself
+  in Vercel; don't paste them into a chat. Also not done: a fantasy-pulse
+  sign-in.
+
+The steps as planned:
 
 Run this at least once, and again just before cutover. It is the whole cutover
 except switching any consumer over.
